@@ -5,16 +5,32 @@
  * @format
  */
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
   Text,
   View,
   ImageBackground,
+  Button,
 } from 'react-native';
+import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
+import AuthScreen from './AuthScreen';
 
 const App: React.FC = () => {
+  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth().onAuthStateChanged(currentUser => {
+      setUser(currentUser);
+    });
+    return unsubscribe;
+  }, []);
+
+  if (!user) {
+    return <AuthScreen />;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -26,6 +42,7 @@ const App: React.FC = () => {
           <Text style={styles.subtitle}>
             Your Personal AI Astrology Guide
           </Text>
+          <Button title="Sign Out" onPress={() => auth().signOut()} />
         </View>
       </ImageBackground>
     </SafeAreaView>
