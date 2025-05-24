@@ -5,15 +5,11 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-platform :ios, min_ios_version_supported
+platform :ios, '16.0'
 use_modular_headers!
 prepare_react_native_project!
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
+use_frameworks! :linkage => :static
 
 target 'StelliumApp' do
   config = use_native_modules!
@@ -32,5 +28,16 @@ target 'StelliumApp' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    installer.pods_project.targets.each do |target|
+      if target.name.start_with?('Firebase') || target.name == 'GoogleUtilities'
+        target.build_configurations.each do |config|
+          other_swift_flags = config.build_settings['OTHER_SWIFT_FLAGS'] || '$(inherited)'
+          unless other_swift_flags.include?('-enable-experimental-feature AccessLevelOnImport')
+            config.build_settings['OTHER_SWIFT_FLAGS'] = other_swift_flags + ' -enable-experimental-feature AccessLevelOnImport'
+          end
+        end
+      end
+    end
   end
 end
