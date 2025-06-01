@@ -11,7 +11,6 @@ import {
   StyleSheet,
   Text,
   View,
-  ImageBackground,
   Button,
 } from 'react-native';
 import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
@@ -33,18 +32,13 @@ const App: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ImageBackground
-        source={require('./assets/stars-bg.jpg')}
-        style={styles.backgroundImage}
-      >
-        <View style={styles.content}>
-          <Text style={styles.title}>Stellium</Text>
-          <Text style={styles.subtitle}>
-            Your Personal AI Astrology Guide
-          </Text>
-          <Button title="Sign Out" onPress={() => auth().signOut()} />
-        </View>
-      </ImageBackground>
+      <View style={styles.content}>
+        <Text style={styles.title}>Stellium</Text>
+        <Text style={styles.subtitle}>
+          Your Personal AI Astrology Guide
+        </Text>
+        <Button title="Sign Out" onPress={() => auth().signOut()} />
+      </View>
     </SafeAreaView>
   );
 };
@@ -53,13 +47,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  backgroundImage: {
-    flex: 1,
-    resizeMode: 'cover',
-  },
   content: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: '#1a1a2e',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
