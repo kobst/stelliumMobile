@@ -1,17 +1,31 @@
-import React, {useState} from 'react';
-import {Button, TextInput, View, StyleSheet} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {Button, TextInput, View, StyleSheet, Alert} from 'react-native';
 import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
 const AuthScreen: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [confirm, setConfirm] = useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
   const [code, setCode] = useState('');
 
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio.apps.googleusercontent.com',
+    });
+  }, []);
+
   const signInWithGoogle = async () => {
-    // TODO: integrate Google sign-in and obtain the idToken
-    // const { idToken } = await GoogleSignin.signIn();
-    // const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-    // await auth().signInWithCredential(googleCredential);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      if (userInfo.data?.idToken) {
+        const googleCredential = auth.GoogleAuthProvider.credential(userInfo.data.idToken);
+        await auth().signInWithCredential(googleCredential);
+      }
+    } catch (error: any) {
+      console.error('Google Sign-In Error:', error);
+      Alert.alert('Error', 'Google Sign-In failed. Please try again.');
+    }
   };
 
   const signInWithFacebook = async () => {
@@ -25,8 +39,9 @@ const AuthScreen: React.FC = () => {
       try {
         const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
         setConfirm(confirmation);
-      } catch (e) {
-        console.error(e);
+      } catch (error: any) {
+        console.error('Phone Auth Error:', error);
+        Alert.alert('Error', 'Phone authentication failed. Please check the number and try again.');
       }
     }
   };
@@ -35,8 +50,9 @@ const AuthScreen: React.FC = () => {
     if (confirm && code) {
       try {
         await confirm.confirm(code);
-      } catch (e) {
-        console.error(e);
+      } catch (error: any) {
+        console.error('Code Confirmation Error:', error);
+        Alert.alert('Error', 'Invalid verification code. Please try again.');
       }
     }
   };

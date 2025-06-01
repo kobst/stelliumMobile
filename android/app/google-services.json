@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "63614597334",
+    "project_id": "stellium-70a2a",
+    "storage_bucket": "stellium-70a2a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:63614597334:android:06f2b783faf6a292357177",
+        "android_client_info": {
+          "package_name": "com.stelliumapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAZubcym-IEaPAxPP04hkxMBkY0wc4OgI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
