@@ -1,9 +1,10 @@
 import { BroadTopicsEnum, HTTP_POST, CONTENT_TYPE_HEADER, APPLICATION_JSON, ERROR_API_CALL } from "./constants";
+import { REACT_APP_SERVER_URL, REACT_APP_GOOGLE_API_KEY } from '@env';
 
-const SERVER_URL = process.env.REACT_APP_SERVER_URL;
+const SERVER_URL = REACT_APP_SERVER_URL;
 
 export const fetchTimeZone = async (lat: number, lon: number, epochTimeSeconds: number) => {
-  const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
+  const apiKey = REACT_APP_GOOGLE_API_KEY;
   const url = `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lon}&timestamp=${epochTimeSeconds}&key=${apiKey}`;
 
   try {

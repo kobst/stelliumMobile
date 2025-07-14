@@ -6,65 +6,51 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import {
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  View,
-  Button,
-} from 'react-native';
 import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
 import AuthScreen from './AuthScreen';
+import RootNavigator from './src/navigation';
+import {useStore} from './src/store';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+  const { setUserData, initializeFromStorage } = useStore();
 
   useEffect(() => {
+    // Initialize store from storage
+    initializeFromStorage();
+
     const unsubscribe = auth().onAuthStateChanged(currentUser => {
       setUser(currentUser);
+
+      // Update store with user authentication state
+      if (currentUser) {
+        const userData = {
+          id: currentUser.uid,
+          name: currentUser.displayName || 'User',
+          email: currentUser.email || '',
+          // Placeholder birth data - will be collected during onboarding
+          birthYear: 1990,
+          birthMonth: 1,
+          birthDay: 1,
+          birthHour: 12,
+          birthMinute: 0,
+          birthLocation: '',
+          timezone: '',
+        };
+        setUserData(userData);
+      } else {
+        setUserData(null);
+      }
     });
+
     return unsubscribe;
-  }, []);
+  }, [initializeFromStorage, setUserData]);
 
   if (!user) {
     return <AuthScreen />;
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Stellium</Text>
-        <Text style={styles.subtitle}>
-          Your Personal AI Astrology Guide
-        </Text>
-        <Button title="Sign Out" onPress={() => auth().signOut()} />
-      </View>
-    </SafeAreaView>
-  );
+  return <RootNavigator />;
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-});
 
 export default App;
