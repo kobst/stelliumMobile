@@ -1,0 +1,109 @@
+import { apiClient } from './client';
+import { TransitEvent } from '../types';
+
+export interface HoroscopeRequest {
+  userId: string;
+  date?: string;
+}
+
+export interface HoroscopeResponse {
+  content: string;
+  type: 'daily' | 'weekly' | 'monthly';
+  date: string;
+  createdAt: string;
+}
+
+export interface TransitWindowsResponse {
+  transits: TransitEvent[];
+  dateRange: {
+    start: string;
+    end: string;
+  };
+}
+
+export interface CustomHoroscopeRequest {
+  userId: string;
+  transitEvents: TransitEvent[];
+}
+
+export interface CustomHoroscopeResponse {
+  content: string;
+  selectedTransits: TransitEvent[];
+  createdAt: string;
+}
+
+export const horoscopesApi = {
+  // Get daily horoscope
+  getDailyHoroscope: async (userId: string, date?: string): Promise<HoroscopeResponse> => {
+    return apiClient.post<HoroscopeResponse>(`/users/${userId}/horoscope/daily`, {
+      date: date || new Date().toISOString().split('T')[0],
+    });
+  },
+
+  // Get weekly horoscope
+  getWeeklyHoroscope: async (userId: string, date?: string): Promise<HoroscopeResponse> => {
+    return apiClient.post<HoroscopeResponse>(`/users/${userId}/horoscope/weekly`, {
+      date: date || new Date().toISOString().split('T')[0],
+    });
+  },
+
+  // Get monthly horoscope
+  getMonthlyHoroscope: async (userId: string, date?: string): Promise<HoroscopeResponse> => {
+    return apiClient.post<HoroscopeResponse>(`/users/${userId}/horoscope/monthly`, {
+      date: date || new Date().toISOString().split('T')[0],
+    });
+  },
+
+  // Get latest horoscope
+  getLatestHoroscope: async (userId: string): Promise<HoroscopeResponse> => {
+    return apiClient.get<HoroscopeResponse>(`/users/${userId}/horoscope/latest`);
+  },
+
+  // Get transit windows for custom horoscope selection
+  getTransitWindows: async (userId: string): Promise<TransitWindowsResponse> => {
+    return apiClient.post<TransitWindowsResponse>('/getTransitWindows', { userId });
+  },
+
+  // Generate custom horoscope from selected transits
+  generateCustomHoroscope: async (
+    request: CustomHoroscopeRequest
+  ): Promise<CustomHoroscopeResponse> => {
+    return apiClient.post<CustomHoroscopeResponse>('/generateCustomHoroscope', request);
+  },
+
+  // Get horoscope by time period
+  getHoroscopeByPeriod: async (
+    userId: string,
+    period: 'today' | 'tomorrow' | 'thisWeek' | 'nextWeek' | 'thisMonth' | 'nextMonth'
+  ): Promise<HoroscopeResponse> => {
+    const now = new Date();
+    let targetDate: Date;
+
+    switch (period) {
+      case 'today':
+        targetDate = now;
+        return horoscopesApi.getDailyHoroscope(userId, targetDate.toISOString().split('T')[0]);
+      
+      case 'tomorrow':
+        targetDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        return horoscopesApi.getDailyHoroscope(userId, targetDate.toISOString().split('T')[0]);
+      
+      case 'thisWeek':
+        return horoscopesApi.getWeeklyHoroscope(userId, now.toISOString().split('T')[0]);
+      
+      case 'nextWeek':
+        targetDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        return horoscopesApi.getWeeklyHoroscope(userId, targetDate.toISOString().split('T')[0]);
+      
+      case 'thisMonth':
+        return horoscopesApi.getMonthlyHoroscope(userId, now.toISOString().split('T')[0]);
+      
+      case 'nextMonth':
+        targetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        return horoscopesApi.getMonthlyHoroscope(userId, targetDate.toISOString().split('T')[0]);
+      
+      default:
+        return horoscopesApi.getDailyHoroscope(userId);
+    }
+  },
+};
