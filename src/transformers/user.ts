@@ -19,20 +19,58 @@ export interface DisplayUser {
 
 export const userTransformers = {
   // Transform API user response to internal User type
-  apiResponseToUser: (apiUser: UserResponse): User => {
-    return {
-      id: apiUser.id,
-      name: apiUser.name,
+  apiResponseToUser: (apiResponse: any): User => {
+    console.log('\n=== USER TRANSFORMER ===');
+    console.log('Raw API response:', JSON.stringify(apiResponse, null, 2));
+    
+    // Handle the actual response structure: response.user contains the user data
+    const userData = apiResponse.user || apiResponse;
+    const userId = apiResponse.userId || userData.id;
+    
+    console.log('Extracted userData:', JSON.stringify(userData, null, 2));
+    console.log('Extracted userId:', userId);
+    
+    // Extract birth data - could be nested or flat
+    const birthData = userData.birthData || userData;
+    console.log('Extracted birthData:', JSON.stringify(birthData, null, 2));
+    
+    // Extract timezone from various possible locations
+    let timezone = birthData.timezone || birthData.tzone;
+    
+    // If not found in birthData, check the birth chart
+    if (!timezone && (userData.birthChart || apiResponse.birthChart)) {
+      const chartData = userData.birthChart || apiResponse.birthChart;
+      if (chartData && chartData.tzone !== undefined) {
+        timezone = chartData.tzone.toString();
+      }
+    }
+    
+    console.log('Timezone extraction:', {
+      fromBirthData: birthData.timezone || birthData.tzone,
+      fromChart: (userData.birthChart || apiResponse.birthChart)?.tzone,
+      final: timezone
+    });
+
+    const transformedUser = {
+      id: userId,
+      name: userData.name || birthData.name,
       email: '', // Not typically returned from API
-      birthYear: apiUser.birthData.birthYear,
-      birthMonth: apiUser.birthData.birthMonth,
-      birthDay: apiUser.birthData.birthDay,
-      birthHour: apiUser.birthData.birthHour,
-      birthMinute: apiUser.birthData.birthMinute,
-      birthLocation: apiUser.birthData.birthLocation,
-      timezone: apiUser.birthData.timezone,
-      birthChart: apiUser.birthChart,
+      birthYear: birthData.birthYear,
+      birthMonth: birthData.birthMonth,
+      birthDay: birthData.birthDay,
+      birthHour: birthData.birthHour || 12,
+      birthMinute: birthData.birthMinute || 0,
+      birthLocation: birthData.birthLocation || birthData.placeOfBirth,
+      timezone: timezone,
+      birthChart: userData.birthChart || apiResponse.birthChart,
     };
+    
+    console.log('Final transformed user:', JSON.stringify(transformedUser, null, 2));
+    console.log('birthLocation:', transformedUser.birthLocation);
+    console.log('timezone:', transformedUser.timezone);
+    console.log('=======================\n');
+    
+    return transformedUser;
   },
 
   // Transform internal User to API create request
@@ -160,12 +198,13 @@ export const userTransformers = {
   // Check if user profile is complete
   isProfileComplete: (user: User): boolean => {
     return !!(
+      user.id &&
       user.name &&
       user.birthYear &&
       user.birthMonth &&
       user.birthDay &&
       user.birthLocation &&
-      user.timezone
+      user.birthChart
     );
   },
 

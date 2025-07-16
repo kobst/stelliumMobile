@@ -218,7 +218,10 @@ export const useStore = create<StoreState>((set, get) => ({
       const { userData } = get();
       if (userData) {
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
-        await AsyncStorage.setItem('userId', userData.id);
+        // Only store userId if it exists and is not empty
+        if (userData.id && userData.id.trim() !== '') {
+          await AsyncStorage.setItem('userId', userData.id);
+        }
       }
     } catch (error) {
       console.error('Failed to persist user data:', error);

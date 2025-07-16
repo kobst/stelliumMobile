@@ -2,14 +2,16 @@ import { apiClient } from './client';
 import { User } from '../types';
 
 export interface CreateUserRequest {
-  name: string;
-  birthYear: number;
-  birthMonth: number;
-  birthDay: number;
-  birthHour: number;
-  birthMinute: number;
-  birthLocation: string;
-  timezone: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  placeOfBirth: string;
+  time: string;
+  lat?: number;
+  lon?: number;
+  tzone?: number;
+  gender?: string;
+  unknownTime?: boolean;
 }
 
 export interface CreateUserUnknownTimeRequest {
@@ -19,6 +21,8 @@ export interface CreateUserUnknownTimeRequest {
   birthDay: number;
   birthLocation: string;
   timezone: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface UserResponse {
@@ -62,7 +66,15 @@ export interface PaginatedUserSubjectsResponse {
 export const usersApi = {
   // Create user with known birth time
   createUser: async (userData: CreateUserRequest): Promise<UserResponse> => {
-    return apiClient.post<UserResponse>('/createUser', userData);
+    console.log('\n=== USERS API: createUser ===');
+    console.log('Request data:', JSON.stringify(userData, null, 2));
+    
+    const response = await apiClient.post<UserResponse>('/createUser', userData);
+    
+    console.log('Response received:', JSON.stringify(response, null, 2));
+    console.log('===========================\n');
+    
+    return response;
   },
 
   // Create user with unknown birth time
