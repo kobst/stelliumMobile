@@ -6,14 +6,35 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { fetchTimeZone } from '../../api';
+import { externalApi } from '../api';
 import { usersApi } from '../api';
 import { useStore } from '../store';
 import { userTransformers } from '../transformers/user';
 
 const GOOGLE_API = process.env.REACT_APP_GOOGLE_API_KEY;
+const SERVER_URL = process.env.REACT_APP_SERVER_URL;
+
+console.log('=== ENVIRONMENT CONFIG ===');
+console.log('SERVER_URL:', SERVER_URL);
+console.log('GOOGLE_API_KEY:', GOOGLE_API ? 'Set' : 'Not set');
+console.log('========================');
+
+// RadioButton component
+const RadioButton: React.FC<{
+  selected: boolean;
+  onPress: () => void;
+  label: string;
+}> = ({ selected, onPress, label }) => (
+  <TouchableOpacity style={styles.radioContainer} onPress={onPress}>
+    <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
+      {selected && <View style={styles.radioInner} />}
+    </View>
+    <Text style={styles.radioLabel}>{label}</Text>
+  </TouchableOpacity>
+);
 
 const UserOnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -21,8 +42,12 @@ const UserOnboardingScreen: React.FC = () => {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [birthYear, setBirthYear] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthDay, setBirthDay] = useState('');
+  const [birthHour, setBirthHour] = useState('');
+  const [birthMinute, setBirthMinute] = useState('');
+  const [amPm, setAmPm] = useState<'AM' | 'PM'>('AM');
   const [placeQuery, setPlaceQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [lat, setLat] = useState<number | null>(null);
@@ -36,10 +61,29 @@ const UserOnboardingScreen: React.FC = () => {
     const errs: string[] = [];
     if (!firstName.trim()) errs.push('First name is required');
     if (!lastName.trim()) errs.push('Last name is required');
-    if (!date) errs.push('Date is required');
-    if (!unknownTime && !time) errs.push('Time is required');
+    if (!birthYear || !birthMonth || !birthDay) errs.push('Complete birth date is required');
+    if (!unknownTime && (!birthHour || !birthMinute)) errs.push('Birth time is required');
     if (!lat || !lon) errs.push('Location is required');
     if (!gender) errs.push('Gender/Sex is required');
+    
+    // Validate date is real
+    if (birthYear && birthMonth && birthDay) {
+      const year = parseInt(birthYear);
+      const month = parseInt(birthMonth);
+      const day = parseInt(birthDay);
+      
+      if (year < 1900 || year > new Date().getFullYear()) {
+        errs.push('Please enter a valid year');
+      } else if (month < 1 || month > 12) {
+        errs.push('Please enter a valid month (1-12)');
+      } else {
+        const daysInMonth = new Date(year, month, 0).getDate();
+        if (day < 1 || day > daysInMonth) {
+          errs.push(`${month}/${year} only has ${daysInMonth} days`);
+        }
+      }
+    }
+    
     return errs;
   };
 
@@ -87,50 +131,115 @@ const UserOnboardingScreen: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    console.log('\n=== FORM SUBMISSION STARTED ===');
+    console.log('Current endpoint:', SERVER_URL);
+    
     const formErrors = validateForm();
     if (formErrors.length > 0) {
+      console.log('Form validation failed:', formErrors);
       setErrors(formErrors);
       return;
     }
     setErrors([]);
+
     try {
-      const timeForTz = unknownTime ? '12:00' : time;
-      const dateTime = new Date(`${date}T${timeForTz}:00`);
-      const epoch = Math.floor(dateTime.getTime() / 1000);
-      const tzone = await fetchTimeZone(lat!, lon!, epoch);
-
-      const [year, month, day] = date.split('-').map(n => parseInt(n, 10));
-      const name = `${firstName} ${lastName}`.trim();
-
-      let response;
-      if (unknownTime) {
-        response = await usersApi.createUserUnknownTime({
-          name,
-          birthYear: year,
-          birthMonth: month,
-          birthDay: day,
-          birthLocation: placeOfBirth,
-          timezone: tzone.toString(),
-        });
-      } else {
-        const [hour, minute] = time.split(':').map(n => parseInt(n, 10));
-        response = await usersApi.createUser({
-          name,
-          birthYear: year,
-          birthMonth: month,
-          birthDay: day,
-          birthHour: hour,
-          birthMinute: minute,
-          birthLocation: placeOfBirth,
-          timezone: tzone.toString(),
-        });
+      // Convert date fields to frontend format
+      const date = `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`;
+      console.log('Formatted date:', date);
+      
+      // Convert time fields to frontend format
+      let time = 'unknown';
+      if (!unknownTime) {
+        // Convert 12-hour to 24-hour format
+        let hour24 = parseInt(birthHour);
+        if (amPm === 'AM') {
+          hour24 = hour24 === 12 ? 0 : hour24;
+        } else {
+          hour24 = hour24 === 12 ? 12 : hour24 + 12;
+        }
+        time = `${hour24.toString().padStart(2, '0')}:${birthMinute.padStart(2, '0')}`;
       }
+      console.log('Formatted time:', time);
+      
+      // Calculate timezone offset like frontend
+      const timeForTimezone = unknownTime ? '12:00' : time;
+      const dateTimeString = `${date}T${timeForTimezone}:00`;
+      const dateTime = new Date(dateTimeString);
+      const epochTimeSeconds = Math.floor(dateTime.getTime() / 1000);
+      
+      console.log('\nFetching timezone...');
+      console.log('Coordinates:', { lat, lon });
+      console.log('Epoch time:', epochTimeSeconds);
+      
+      const totalOffsetHours = await externalApi.fetchTimeZone(lat!, lon!, epochTimeSeconds);
+      console.log('Timezone offset hours:', totalOffsetHours);
 
-      const user = userTransformers.apiResponseToUser(response);
-      setUserData(user);
-      navigation.navigate('Main' as never);
+      // Prepare data in the format the store expects for navigation
+      const userData = {
+        id: '', // Will be set after user creation
+        name: `${firstName} ${lastName}`,
+        email: '', // Not collected in mobile
+        birthYear: parseInt(birthYear),
+        birthMonth: parseInt(birthMonth), 
+        birthDay: parseInt(birthDay),
+        birthHour: !unknownTime ? (amPm === 'AM' ? (parseInt(birthHour) === 12 ? 0 : parseInt(birthHour)) : (parseInt(birthHour) === 12 ? 12 : parseInt(birthHour) + 12)) : 12,
+        birthMinute: !unknownTime ? parseInt(birthMinute) : 0,
+        birthLocation: placeOfBirth, // Required for navigation
+        timezone: totalOffsetHours.toString(), // Required for navigation
+        // Store frontend format data for later use
+        frontendData: {
+          firstName,
+          lastName,
+          dateOfBirth: date,
+          placeOfBirth,
+          time: time,
+          lat: parseFloat(lat!.toString()),
+          lon: parseFloat(lon!.toString()),
+          tzone: parseFloat(totalOffsetHours.toString()),
+          gender,
+          unknownTime
+        }
+      };
+
+      console.log('\nUser data prepared:', JSON.stringify(userData, null, 2));
+
+      // Now call the API to create the user
+      console.log('\nCalling createUser API...');
+      const createUserPayload = {
+        firstName,
+        lastName,
+        dateOfBirth: date,
+        placeOfBirth,
+        time,
+        lat: lat!,
+        lon: lon!,
+        tzone: totalOffsetHours,
+        gender,
+        unknownTime
+      };
+      
+      console.log('API Payload:', JSON.stringify(createUserPayload, null, 2));
+      
+      const response = await usersApi.createUser(createUserPayload);
+      console.log('\nAPI Response:', JSON.stringify(response, null, 2));
+      
+      // Transform the API response to our User type
+      const createdUser = userTransformers.apiResponseToUser(response);
+      console.log('\nTransformed user:', JSON.stringify(createdUser, null, 2));
+
+      // Store the created user in the store
+      console.log('\nStoring created user in store...');
+      setUserData(createdUser);
+
+      console.log('Navigation should happen automatically due to conditional rendering');
+      console.log('=== FORM SUBMISSION COMPLETED ===\n');
+      
     } catch (error: any) {
-      setErrors([error.message || 'An error occurred']);
+      console.error('\n=== FORM SUBMISSION ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error stack:', error.stack);
+      console.error('===========================\n');
+      setErrors([error.message || 'An error occurred while preparing your profile. Please try again.']);
     }
   };
 
@@ -139,20 +248,22 @@ const UserOnboardingScreen: React.FC = () => {
       <Text style={styles.header}>Hello Stellium!</Text>
       <View style={styles.formGroup}>
         <Text style={styles.label}>My name is</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="First Name"
-          placeholderTextColor="#94a3b8"
-          value={firstName}
-          onChangeText={setFirstName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Last Name"
-          placeholderTextColor="#94a3b8"
-          value={lastName}
-          onChangeText={setLastName}
-        />
+        <View style={styles.nameRow}>
+          <TextInput
+            style={[styles.input, styles.nameInput]}
+            placeholder="First Name"
+            placeholderTextColor="#94a3b8"
+            value={firstName}
+            onChangeText={setFirstName}
+          />
+          <TextInput
+            style={[styles.input, styles.nameInput]}
+            placeholder="Last Name"
+            placeholderTextColor="#94a3b8"
+            value={lastName}
+            onChangeText={setLastName}
+          />
+        </View>
       </View>
       <View style={styles.formGroup}>
         <Text style={styles.label}>I was born in</Text>
@@ -175,43 +286,127 @@ const UserOnboardingScreen: React.FC = () => {
       ))}
       <View style={styles.formGroup}>
         <Text style={styles.label}>on this date</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#94a3b8"
-          value={date}
-          onChangeText={setDate}
-        />
+        <View style={styles.dateRow}>
+          <TextInput
+            style={[styles.input, styles.dateInput]}
+            placeholder="YYYY"
+            placeholderTextColor="#94a3b8"
+            value={birthYear}
+            onChangeText={(text) => {
+              if (/^\d{0,4}$/.test(text)) {
+                setBirthYear(text);
+              }
+            }}
+            keyboardType="numeric"
+            maxLength={4}
+          />
+          <TextInput
+            style={[styles.input, styles.dateInput]}
+            placeholder="MM"
+            placeholderTextColor="#94a3b8"
+            value={birthMonth}
+            onChangeText={(text) => {
+              if (/^\d{0,2}$/.test(text) && (text === '' || (parseInt(text) >= 1 && parseInt(text) <= 12))) {
+                setBirthMonth(text);
+              }
+            }}
+            keyboardType="numeric"
+            maxLength={2}
+          />
+          <TextInput
+            style={[styles.input, styles.dateInput]}
+            placeholder="DD"
+            placeholderTextColor="#94a3b8"
+            value={birthDay}
+            onChangeText={(text) => {
+              if (/^\d{0,2}$/.test(text) && (text === '' || parseInt(text) <= 31)) {
+                setBirthDay(text);
+              }
+            }}
+            keyboardType="numeric"
+            maxLength={2}
+          />
+        </View>
       </View>
       <View style={styles.formGroup}>
         <Text style={styles.label}>at this time</Text>
-        <TouchableOpacity
-          style={styles.timeToggle}
-          onPress={() => setUnknownTime(!unknownTime)}
-        >
-          <Text style={styles.timeToggleText}>
-            {unknownTime ? 'Unknown' : 'Known Time'}
-          </Text>
-        </TouchableOpacity>
-        {!unknownTime && (
-          <TextInput
-            style={styles.input}
-            placeholder="HH:MM"
-            placeholderTextColor="#94a3b8"
-            value={time}
-            onChangeText={setTime}
+        <View style={styles.radioGroup}>
+          <RadioButton
+            selected={!unknownTime}
+            onPress={() => setUnknownTime(false)}
+            label="Known Time"
           />
+          <RadioButton
+            selected={unknownTime}
+            onPress={() => setUnknownTime(true)}
+            label="Unknown Time"
+          />
+        </View>
+        {!unknownTime && (
+          <View>
+            <View style={styles.timeRow}>
+              <TextInput
+                style={[styles.input, styles.timeInput]}
+                placeholder="HH"
+                placeholderTextColor="#94a3b8"
+                value={birthHour}
+                onChangeText={(text) => {
+                  if (/^\d{0,2}$/.test(text) && (text === '' || (parseInt(text) >= 1 && parseInt(text) <= 12))) {
+                    setBirthHour(text);
+                  }
+                }}
+                keyboardType="numeric"
+                maxLength={2}
+              />
+              <Text style={styles.timeSeparator}>:</Text>
+              <TextInput
+                style={[styles.input, styles.timeInput]}
+                placeholder="MM"
+                placeholderTextColor="#94a3b8"
+                value={birthMinute}
+                onChangeText={(text) => {
+                  if (/^\d{0,2}$/.test(text) && (text === '' || parseInt(text) <= 59)) {
+                    setBirthMinute(text);
+                  }
+                }}
+                keyboardType="numeric"
+                maxLength={2}
+              />
+            </View>
+            <View style={styles.amPmRow}>
+              <RadioButton
+                selected={amPm === 'AM'}
+                onPress={() => setAmPm('AM')}
+                label="AM"
+              />
+              <RadioButton
+                selected={amPm === 'PM'}
+                onPress={() => setAmPm('PM')}
+                label="PM"
+              />
+            </View>
+          </View>
         )}
       </View>
       <View style={styles.formGroup}>
         <Text style={styles.label}>My gender/sex is</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="male / female / nonbinary"
-          placeholderTextColor="#94a3b8"
-          value={gender}
-          onChangeText={setGender}
-        />
+        <View style={styles.radioGroup}>
+          <RadioButton
+            selected={gender === 'male'}
+            onPress={() => setGender('male')}
+            label="Male"
+          />
+          <RadioButton
+            selected={gender === 'female'}
+            onPress={() => setGender('female')}
+            label="Female"
+          />
+          <RadioButton
+            selected={gender === 'nonbinary'}
+            onPress={() => setGender('nonbinary')}
+            label="Non-binary"
+          />
+        </View>
       </View>
       <TouchableOpacity style={styles.submit} onPress={handleSubmit}>
         <Text style={styles.submitText}>Submit</Text>
@@ -237,42 +432,101 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  formGroup: { marginBottom: 12 },
-  label: { color: 'white', marginBottom: 4 },
+  formGroup: { marginBottom: 16 },
+  label: { color: 'white', marginBottom: 8, fontSize: 16 },
   input: {
     borderWidth: 1,
     borderColor: 'white',
     borderRadius: 4,
-    padding: 8,
+    padding: 12,
     color: 'white',
     marginBottom: 8,
+    fontSize: 16,
   },
   fullWidth: { width: '100%' },
-  timeToggle: {
-    padding: 8,
-    borderWidth: 1,
-    borderColor: 'white',
-    borderRadius: 4,
-    marginRight: 8,
+  nameRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  timeToggleText: { color: 'white' },
-  submit: {
-    backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 4,
+  nameInput: {
+    flex: 1,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: 10,
     alignItems: 'center',
+  },
+  dateInput: {
+    width: 80,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     marginTop: 8,
   },
-  submitText: { color: 'black', fontWeight: 'bold' },
+  timeInput: {
+    width: 60,
+  },
+  timeSeparator: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  amPmRow: {
+    flexDirection: 'row',
+    gap: 20,
+    marginTop: 10,
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 8,
+  },
+  radioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioOuterSelected: {
+    borderColor: '#3b82f6',
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#3b82f6',
+  },
+  radioLabel: {
+    color: 'white',
+    fontSize: 16,
+  },
+  submit: {
+    backgroundColor: 'white',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  submitText: { color: 'black', fontWeight: 'bold', fontSize: 16 },
   suggestion: {
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#334155',
   },
   suggestionText: { color: 'white' },
-  errorContainer: { marginTop: 8 },
-  errorText: { color: '#ef4444' },
+  errorContainer: { marginTop: 12 },
+  errorText: { color: '#ef4444', fontSize: 14 },
 });
 
 export default UserOnboardingScreen;

@@ -18,23 +18,35 @@ export const externalApi = {
     const apiKey = REACT_APP_GOOGLE_API_KEY;
     const url = `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lon}&timestamp=${epochTimeSeconds}&key=${apiKey}`;
 
+    console.log('\n=== FETCHING TIMEZONE ===');
+    console.log('Google API Key:', apiKey ? 'Set' : 'Not set');
+    console.log('URL:', url);
+    console.log('Params:', { lat, lon, epochTimeSeconds });
+
     try {
       const response = await fetch(url);
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data: TimeZoneResponse = await response.json();
+      console.log('Response data:', data);
+      
       if (data.status !== 'OK') {
         throw new Error(`Error from TimeZone API: ${data.status}`);
       }
 
       const totalOffsetHours = (data.rawOffset + data.dstOffset) / 3600;
       console.log(`Total Offset in Hours: ${totalOffsetHours}`);
+      console.log('=======================\n');
 
       return totalOffsetHours;
     } catch (error) {
+      console.error('\n=== TIMEZONE FETCH ERROR ===');
       console.error('Error fetching time zone:', error);
+      console.error('===========================\n');
       throw error;
     }
   },
