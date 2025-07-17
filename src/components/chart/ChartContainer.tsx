@@ -17,6 +17,7 @@ interface ChartContainerProps {
   error?: string | null;
   userName?: string;
   userId?: string;
+  overview?: string | null;
 }
 
 const ChartContainer: React.FC<ChartContainerProps> = ({
@@ -25,6 +26,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   error = null,
   userName,
   userId,
+  overview,
 }) => {
   const [showTables, setShowTables] = useState(false);
   const [showAspects, setShowAspects] = useState(true);
@@ -112,12 +114,22 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
         showTables ? (
           <ChartTables birthChart={birthChart} />
         ) : (
-          <View style={styles.chartSection}>
-            <ChartWheel 
-              birthChart={birthChart}
-              showAspects={showAspects}
-              showHouses={showHouses}
-            />
+          <View>
+            <View style={styles.chartSection}>
+              <ChartWheel 
+                birthChart={birthChart}
+                showAspects={showAspects}
+                showHouses={showHouses}
+              />
+            </View>
+            
+            {/* Overview Section */}
+            {overview && (
+              <View style={styles.overviewSection}>
+                <Text style={styles.overviewTitle}>Chart Overview</Text>
+                <Text style={styles.overviewText}>{overview}</Text>
+              </View>
+            )}
           </View>
         )
       ) : (
@@ -269,6 +281,26 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  overviewSection: {
+    margin: 16,
+    marginTop: 0,
+    padding: 16,
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  overviewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#8b5cf6',
+    marginBottom: 12,
+  },
+  overviewText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#e2e8f0',
   },
 });
 
