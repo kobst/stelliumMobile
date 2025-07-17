@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { User } from '../types';
+import { User, SubjectDocument } from '../types';
 
 export interface CreateUserRequest {
   firstName: string;
@@ -84,9 +84,9 @@ export const usersApi = {
     return apiClient.post<UserResponse>('/createUserUnknownTime', userData);
   },
 
-  // Get user by ID
-  getUser: async (userId: string): Promise<UserResponse> => {
-    return apiClient.post<UserResponse>('/getUser', { userId });
+  // Get user by ID - returns backend SubjectDocument format
+  getUser: async (userId: string): Promise<SubjectDocument> => {
+    return apiClient.post<SubjectDocument>('/getUser', { userId });
   },
 
   // Get all users (admin function)

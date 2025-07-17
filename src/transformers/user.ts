@@ -1,4 +1,4 @@
-import { User } from '../types';
+import { User, SubjectDocument } from '../types';
 import { CreateUserRequest, UserResponse } from '../api';
 
 export interface DisplayUser {
@@ -18,7 +18,45 @@ export interface DisplayUser {
 }
 
 export const userTransformers = {
-  // Transform API user response to internal User type
+  // Transform SubjectDocument from backend to internal User type
+  subjectDocumentToUser: (subject: SubjectDocument): User => {
+    console.log('\n=== SUBJECT DOCUMENT TRANSFORMER ===');
+    console.log('Raw Subject Document:', JSON.stringify(subject, null, 2));
+    
+    // Parse date of birth
+    const dateOfBirth = new Date(subject.dateOfBirth);
+    
+    // Parse time if available
+    let birthHour = 12;
+    let birthMinute = 0;
+    
+    if (subject.time && !subject.birthTimeUnknown) {
+      const [hours, minutes] = subject.time.split(':').map(Number);
+      birthHour = hours;
+      birthMinute = minutes;
+    }
+    
+    const transformedUser: User = {
+      id: subject._id,
+      name: `${subject.firstName} ${subject.lastName}`,
+      email: subject.email || '',
+      birthYear: dateOfBirth.getFullYear(),
+      birthMonth: dateOfBirth.getMonth() + 1,
+      birthDay: dateOfBirth.getDate(),
+      birthHour,
+      birthMinute,
+      birthLocation: subject.placeOfBirth,
+      timezone: subject.totalOffsetHours.toString(),
+      birthChart: subject.birthChart,
+    };
+    
+    console.log('Transformed User:', JSON.stringify(transformedUser, null, 2));
+    console.log('====================================\n');
+    
+    return transformedUser;
+  },
+
+  // Transform API user response to internal User type (legacy)
   apiResponseToUser: (apiResponse: any): User => {
     console.log('\n=== USER TRANSFORMER ===');
     console.log('Raw API response:', JSON.stringify(apiResponse, null, 2));
