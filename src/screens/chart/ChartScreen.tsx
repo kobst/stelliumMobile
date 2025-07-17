@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useStore } from '../../store';
 import { useChart } from '../../hooks/useChart';
-import { ChartContainer } from '../../components';
+import { ChartTabNavigator } from '../../components';
 
 const ChartScreen: React.FC = () => {
   const { userData } = useStore();
@@ -41,13 +41,14 @@ const ChartScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Birth Chart Visualization */}
-      <ChartContainer
+      {/* Birth Chart Tab Navigator */}
+      <ChartTabNavigator
         birthChart={userData?.birthChart}
         loading={chartLoading}
         error={chartError}
         userName={userData?.name}
         userId={userData?.id}
+        overview={overview}
       />
 
       {/* Analysis Section - Optional */}
