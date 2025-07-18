@@ -23,7 +23,6 @@ const ChartScreen: React.FC = () => {
     clearError,
   } = useChart();
 
-  const [showAnalysis, setShowAnalysis] = useState(false);
 
   useEffect(() => {
     if (userData?.birthChart) {
@@ -51,26 +50,6 @@ const ChartScreen: React.FC = () => {
         overview={overview}
       />
 
-      {/* Analysis Section - Optional */}
-      {overview && (
-        <View style={styles.analysisSection}>
-          <TouchableOpacity 
-            style={styles.analysisToggle}
-            onPress={() => setShowAnalysis(!showAnalysis)}
-          >
-            <Text style={styles.analysisToggleText}>
-              {showAnalysis ? '▼' : '▶'} Chart Analysis
-            </Text>
-          </TouchableOpacity>
-          
-          {showAnalysis && (
-            <View style={styles.analysisCard}>
-              <Text style={styles.analysisText}>{overview}</Text>
-            </View>
-          )}
-        </View>
-      )}
-
       {/* Error Handling */}
       {chartError && (
         <View style={styles.errorSection}>
@@ -88,34 +67,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0f172a',
-  },
-  analysisSection: {
-    margin: 16,
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  analysisToggle: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-  },
-  analysisToggleText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#8b5cf6',
-  },
-  analysisCard: {
-    padding: 16,
-    backgroundColor: '#0f172a',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-  },
-  analysisText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#e2e8f0',
   },
   errorSection: {
     margin: 16,
