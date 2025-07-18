@@ -133,7 +133,7 @@ const TopicSection: React.FC<TopicSectionProps> = ({
             {Object.entries(topicData.subtopics || {}).map(([subtopicKey, content]) => (
               <View key={subtopicKey} style={styles.subtopic}>
                 <Text style={styles.subtopicTitle}>
-                  {topicConfig.subtopics[subtopicKey]?.replace(/_/g, ' ') || subtopicKey}
+                  {topicConfig.subtopics[subtopicKey] || subtopicKey.replace(/_/g, ' ')}
                 </Text>
                 <Text style={styles.subtopicContent}>
                   {typeof content === 'string' ? content : 'Analysis content not available'}
@@ -148,8 +148,16 @@ const TopicSection: React.FC<TopicSectionProps> = ({
 };
 
 const AnalysisTab: React.FC = () => {
-  const { fullAnalysis, loading } = useChart();
+  const { fullAnalysis, loading, loadFullAnalysis } = useChart();
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
+
+  // Load analysis on mount if not already loaded
+  React.useEffect(() => {
+    if (!fullAnalysis && !loading) {
+      console.log('AnalysisTab - Loading full analysis...');
+      loadFullAnalysis();
+    }
+  }, [fullAnalysis, loading, loadFullAnalysis]);
 
   const toggleTopic = (topicKey: string) => {
     const newExpanded = new Set(expandedTopics);

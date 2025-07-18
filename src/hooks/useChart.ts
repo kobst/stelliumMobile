@@ -182,12 +182,13 @@ export const useChart = (userId?: string): UseChartReturn => {
     }
   }, [userData?.birthChart]);
 
-  // Load overview on mount if user data is available
+  // Load full analysis on mount if user data is available
   useEffect(() => {
-    if (userData?.birthChart) {
-      loadOverview();
+    if (userData?.id && !fullAnalysis && !loading) {
+      console.log('useChart - Auto-loading full analysis for user:', userData.id);
+      loadFullAnalysis();
     }
-  }, [userData?.birthChart, loadOverview]);
+  }, [userData?.id, fullAnalysis, loading, loadFullAnalysis]);
 
   return {
     overview,

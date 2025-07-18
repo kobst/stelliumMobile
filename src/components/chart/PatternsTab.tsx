@@ -5,8 +5,16 @@ import { useStore } from '../../store';
 import PatternCard from './PatternCard';
 
 const PatternsTab: React.FC = () => {
-  const { fullAnalysis, loading } = useChart();
+  const { fullAnalysis, loading, loadFullAnalysis } = useChart();
   const { userData } = useStore();
+
+  // Load analysis on mount if not already loaded
+  React.useEffect(() => {
+    if (!fullAnalysis && !loading) {
+      console.log('PatternsTab - Loading full analysis...');
+      loadFullAnalysis();
+    }
+  }, [fullAnalysis, loading, loadFullAnalysis]);
 
   // Get dominance interpretations from the analysis response
   const getDominanceInterpretations = () => {
@@ -16,7 +24,7 @@ const PatternsTab: React.FC = () => {
       elements: basicAnalysis.dominance?.elements?.interpretation || '',
       modalities: basicAnalysis.dominance?.modalities?.interpretation || '',
       quadrants: basicAnalysis.dominance?.quadrants?.interpretation || '',
-      patterns: basicAnalysis.dominance?.pattern?.interpretation || '',
+      patterns: basicAnalysis.dominance?.pattern?.interpretation || '', // Note: API uses "pattern" not "patterns"
       planetary: basicAnalysis.dominance?.planetary?.interpretation || '',
     };
   };

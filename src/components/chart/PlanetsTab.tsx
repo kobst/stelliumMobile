@@ -10,13 +10,23 @@ const PLANET_ORDER = [
 ];
 
 const PlanetsTab: React.FC = () => {
-  const { fullAnalysis, loading } = useChart();
+  const { fullAnalysis, loading, loadFullAnalysis } = useChart();
 
   // Get planet analysis data
   const getPlanetAnalysis = () => {
     const planets = fullAnalysis?.interpretation?.basicAnalysis?.planets || {};
+    console.log('PlanetsTab - fullAnalysis:', fullAnalysis);
+    console.log('PlanetsTab - planets data:', planets);
     return planets;
   };
+
+  // Load analysis on mount if not already loaded
+  React.useEffect(() => {
+    if (!fullAnalysis && !loading) {
+      console.log('PlanetsTab - Loading full analysis...');
+      loadFullAnalysis();
+    }
+  }, [fullAnalysis, loading, loadFullAnalysis]);
 
   if (loading) {
     return (
@@ -50,6 +60,7 @@ const PlanetsTab: React.FC = () => {
               planet={planet}
               interpretation={planetAnalysis[planet]?.interpretation}
               description={planetAnalysis[planet]?.description}
+              astrologicalData={planetAnalysis[planet]?.astrologicalData}
             />
           ))
         ) : (
