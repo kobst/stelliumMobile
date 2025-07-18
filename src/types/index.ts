@@ -39,14 +39,21 @@ export interface Aspect {
 }
 
 export interface TransitEvent {
-  id: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  exactDate: string;
+  id?: string;
+  type: 'transit-to-natal' | 'transit-to-transit' | 'moon-phase';
   transitingPlanet: string;
-  natalPlanet: string;
+  targetPlanet?: string;
   aspect: string;
+  start: string;
+  end: string;
+  exact: string;
+  description?: string;
+  transitingSign?: string;
+  targetSign?: string;
+  transitingHouse?: string;
+  targetHouse?: string;
+  transitingSigns?: string[];
+  moonPhaseData?: any;
 }
 
 export interface WorkflowState {

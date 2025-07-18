@@ -11,10 +11,16 @@ export interface ApiResponse<T = any> {
   message?: string;
 }
 
-export interface ApiError {
-  message: string;
+export class ApiError extends Error {
   status?: number;
   code?: string;
+
+  constructor(options: { message: string; status?: number; code?: string }) {
+    super(options.message);
+    this.name = 'ApiError';
+    this.status = options.status;
+    this.code = options.code;
+  }
 }
 
 class ApiClient {

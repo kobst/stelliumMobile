@@ -40,6 +40,24 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
     }
   };
 
+  const getFullName = (item: CelebrityRelationship, userType: 'A' | 'B') => {
+    if (userType === 'A') {
+      // If we have separate first/last name fields, use them
+      if (item.userA_firstName && item.userA_lastName) {
+        return `${item.userA_firstName} ${item.userA_lastName}`;
+      }
+      // Otherwise use the full name field
+      return item.userA_name;
+    } else {
+      // If we have separate first/last name fields, use them
+      if (item.userB_firstName && item.userB_lastName) {
+        return `${item.userB_firstName} ${item.userB_lastName}`;
+      }
+      // Otherwise use the full name field
+      return item.userB_name;
+    }
+  };
+
   const renderRelationshipItem = ({ item }: { item: CelebrityRelationship }) => (
     <TouchableOpacity 
       style={styles.relationshipCard}
@@ -57,7 +75,7 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
       
       <View style={styles.celebrityPair}>
         <View style={styles.celebrityInfo}>
-          <Text style={styles.celebrityName}>{item.userA_name}</Text>
+          <Text style={styles.celebrityName}>{getFullName(item, 'A')}</Text>
           <Text style={styles.celebrityDOB}>
             {new Date(item.userA_dateOfBirth).toLocaleDateString()}
           </Text>
@@ -68,7 +86,7 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
         </View>
         
         <View style={styles.celebrityInfo}>
-          <Text style={styles.celebrityName}>{item.userB_name}</Text>
+          <Text style={styles.celebrityName}>{getFullName(item, 'B')}</Text>
           <Text style={styles.celebrityDOB}>
             {new Date(item.userB_dateOfBirth).toLocaleDateString()}
           </Text>
