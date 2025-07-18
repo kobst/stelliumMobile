@@ -30,12 +30,13 @@ export const horoscopeTransformers = {
   transformTransits: (rawTransits: RawTransitData[]): TransitEvent[] => {
     return rawTransits.map(transit => ({
       id: transit.id,
+      type: 'transit-to-natal' as const,
       description: transit.description,
-      startDate: transit.startDate,
-      endDate: transit.endDate,
-      exactDate: transit.exactDate,
+      start: transit.startDate,
+      end: transit.endDate,
+      exact: transit.exactDate,
       transitingPlanet: transit.transitingPlanet,
-      natalPlanet: transit.natalPlanet,
+      targetPlanet: transit.natalPlanet,
       aspect: transit.aspect,
     }));
   },
@@ -96,8 +97,8 @@ export const horoscopeTransformers = {
     }
 
     return transits.filter(transit => {
-      const transitStart = new Date(transit.startDate);
-      const transitEnd = new Date(transit.endDate);
+      const transitStart = new Date(transit.start);
+      const transitEnd = new Date(transit.end);
       
       // Transit overlaps with period if it starts before period ends and ends after period starts
       return transitStart <= endDate && transitEnd >= startDate;
@@ -121,10 +122,10 @@ export const horoscopeTransformers = {
       intensity += 1;
     }
 
-    // Natal planet weight
-    if (['Sun', 'Moon', 'Ascendant'].includes(transit.natalPlanet)) {
+    // Target planet weight
+    if (['Sun', 'Moon', 'Ascendant'].includes(transit.targetPlanet || '')) {
       intensity += 3;
-    } else if (majorPlanets.includes(transit.natalPlanet)) {
+    } else if (majorPlanets.includes(transit.targetPlanet || '')) {
       intensity += 2;
     } else {
       intensity += 1;
@@ -158,7 +159,7 @@ export const horoscopeTransformers = {
       }
       
       // If same intensity, sort by exact date (sooner first)
-      return new Date(a.exactDate).getTime() - new Date(b.exactDate).getTime();
+      return new Date(a.exact).getTime() - new Date(b.exact).getTime();
     });
   },
 

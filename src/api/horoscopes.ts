@@ -7,10 +7,31 @@ export interface HoroscopeRequest {
 }
 
 export interface HoroscopeResponse {
-  content: string;
-  type: 'daily' | 'weekly' | 'monthly';
-  date: string;
-  createdAt: string;
+  success: boolean;
+  horoscope: {
+    text?: string;
+    interpretation?: string;
+    startDate: string;
+    endDate: string;
+    keyTransits?: KeyTransit[];
+    analysis?: {
+      keyThemes?: KeyTheme[];
+    };
+  };
+}
+
+export interface KeyTransit {
+  transitingPlanet: string;
+  aspect: string;
+  targetPlanet: string;
+  exactDate: string;
+}
+
+export interface KeyTheme {
+  transitingPlanet: string;
+  aspect: string;
+  targetPlanet?: string;
+  exactDate?: string;
 }
 
 export interface TransitWindowsResponse {
@@ -27,30 +48,62 @@ export interface CustomHoroscopeRequest {
 }
 
 export interface CustomHoroscopeResponse {
-  content: string;
-  selectedTransits: TransitEvent[];
-  createdAt: string;
+  success: boolean;
+  horoscope: {
+    text: string;
+    startDate: string;
+    endDate: string;
+    selectedTransits: TransitEvent[];
+  };
 }
 
 export const horoscopesApi = {
   // Get daily horoscope
   getDailyHoroscope: async (userId: string, date?: string): Promise<HoroscopeResponse> => {
     return apiClient.post<HoroscopeResponse>(`/users/${userId}/horoscope/daily`, {
-      date: date || new Date().toISOString().split('T')[0],
+      startDate: date || new Date().toISOString().split('T')[0],
     });
   },
 
   // Get weekly horoscope
   getWeeklyHoroscope: async (userId: string, date?: string): Promise<HoroscopeResponse> => {
     return apiClient.post<HoroscopeResponse>(`/users/${userId}/horoscope/weekly`, {
-      date: date || new Date().toISOString().split('T')[0],
+      startDate: date || new Date().toISOString().split('T')[0],
     });
   },
 
   // Get monthly horoscope
   getMonthlyHoroscope: async (userId: string, date?: string): Promise<HoroscopeResponse> => {
     return apiClient.post<HoroscopeResponse>(`/users/${userId}/horoscope/monthly`, {
-      date: date || new Date().toISOString().split('T')[0],
+      startDate: date || new Date().toISOString().split('T')[0],
+    });
+  },
+
+  // Generate daily horoscope
+  generateDailyHoroscope: async (userId: string, startDate: string): Promise<HoroscopeResponse> => {
+    return apiClient.post<HoroscopeResponse>(`/users/${userId}/horoscope/daily`, {
+      startDate,
+    });
+  },
+
+  // Generate weekly horoscope
+  generateWeeklyHoroscope: async (userId: string, startDate: Date): Promise<HoroscopeResponse> => {
+    return apiClient.post<HoroscopeResponse>(`/users/${userId}/horoscope/weekly`, {
+      startDate,
+    });
+  },
+
+  // Generate monthly horoscope
+  generateMonthlyHoroscope: async (userId: string, startDate: Date): Promise<HoroscopeResponse> => {
+    return apiClient.post<HoroscopeResponse>(`/users/${userId}/horoscope/monthly`, {
+      startDate,
+    });
+  },
+
+  // Generate custom horoscope
+  generateCustomHoroscope: async (userId: string, transitEvents: TransitEvent[]): Promise<CustomHoroscopeResponse> => {
+    return apiClient.post<CustomHoroscopeResponse>(`/users/${userId}/horoscope/custom`, {
+      transitEvents,
     });
   },
 
@@ -60,12 +113,16 @@ export const horoscopesApi = {
   },
 
   // Get transit windows for custom horoscope selection
-  getTransitWindows: async (userId: string): Promise<TransitWindowsResponse> => {
-    return apiClient.post<TransitWindowsResponse>('/getTransitWindows', { userId });
+  getTransitWindows: async (userId: string, from?: string, to?: string): Promise<TransitWindowsResponse> => {
+    return apiClient.post<TransitWindowsResponse>('/getTransitWindows', { 
+      userId, 
+      from, 
+      to 
+    });
   },
 
-  // Generate custom horoscope from selected transits
-  generateCustomHoroscope: async (
+  // Generate custom horoscope from selected transits (old API)
+  generateCustomHoroscopeOld: async (
     request: CustomHoroscopeRequest
   ): Promise<CustomHoroscopeResponse> => {
     return apiClient.post<CustomHoroscopeResponse>('/generateCustomHoroscope', request);

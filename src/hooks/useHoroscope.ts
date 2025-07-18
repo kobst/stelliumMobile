@@ -64,7 +64,12 @@ export const useHoroscope = (userId?: string): UseHoroscopeReturn => {
     setError(null);
 
     try {
-      const response = await horoscopesApi.getTransitWindows(targetUserId);
+      // Calculate date range for transit windows (next 3 months)
+      const now = new Date();
+      const from = now.toISOString();
+      const to = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(); // 3 months from now
+
+      const response = await horoscopesApi.getTransitWindows(targetUserId, from, to);
       setTransitData(response.transits);
       setStoreTransitData(response.transits);
     } catch (err) {
@@ -91,10 +96,7 @@ export const useHoroscope = (userId?: string): UseHoroscopeReturn => {
     setError(null);
 
     try {
-      const response = await horoscopesApi.generateCustomHoroscope({
-        userId: targetUserId,
-        transitEvents: selectedTransits,
-      });
+      const response = await horoscopesApi.generateCustomHoroscope(targetUserId, selectedTransits);
       
       setCustomHoroscope(response);
       setStoreCustomHoroscope(response);

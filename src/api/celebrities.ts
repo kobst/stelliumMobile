@@ -89,6 +89,10 @@ export interface CelebrityRelationship {
   userB_id: string;
   userA_name: string;
   userB_name: string;
+  userA_firstName?: string;
+  userA_lastName?: string;
+  userB_firstName?: string;
+  userB_lastName?: string;
   userA_dateOfBirth: string;
   userB_dateOfBirth: string;
   createdAt: string;
