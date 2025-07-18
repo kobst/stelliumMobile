@@ -38,29 +38,10 @@ export const useChart = (userId?: string): UseChartReturn => {
   const clearError = () => setError(null);
 
   const loadOverview = useCallback(async () => {
-    if (!userData?.birthChart) {
-      setError('No birth chart data available');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await chartsApi.getShortOverview(userData.birthChart);
-      setOverview(response.overview);
-      
-      setAnalysisState({
-        hasOverview: true,
-        overviewContent: response.overview,
-      });
-    } catch (err) {
-      const errorMessage = err instanceof ApiError ? err.message : 'Failed to load overview';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [userData?.birthChart, setAnalysisState]);
+    // Overview is now loaded as part of fetchAnalysis - no separate API call needed
+    // This function is kept for backward compatibility but does nothing
+    return;
+  }, []);
 
   const loadFullAnalysis = useCallback(async () => {
     const targetUserId = userId || userData?.id;
@@ -84,6 +65,12 @@ export const useChart = (userId?: string): UseChartReturn => {
 
       setFullAnalysis(response);
       
+      // Extract overview from the response structure
+      const basicAnalysis = response.interpretation?.basicAnalysis;
+      if (basicAnalysis?.overview) {
+        setOverview(basicAnalysis.overview);
+      }
+      
       // Update store with chart data
       if (response.planets && response.houses && response.aspects) {
         setChartData(response.planets, response.houses, response.aspects);
@@ -91,6 +78,8 @@ export const useChart = (userId?: string): UseChartReturn => {
       
       setAnalysisState({
         hasFullAnalysis: true,
+        hasOverview: !!basicAnalysis?.overview,
+        overviewContent: basicAnalysis?.overview || '',
         analysisContent: response,
       });
     } catch (err) {

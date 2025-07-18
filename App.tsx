@@ -25,7 +25,7 @@ const App: React.FC = () => {
     // DEVELOPMENT: Bypass Firebase auth and use hardcoded userId
     const initializeWithHardcodedUser = async () => {
       // This should be the _id field from a SubjectDocument in your database
-      const HARDCODED_USER_ID = '684f3f4a177d98c2630c086d';
+      const HARDCODED_USER_ID = '687872a0d568acfa7957b348';
       
       console.log('\n=== DEVELOPMENT MODE: Using hardcoded userId ===');
       console.log('Hardcoded User ID:', HARDCODED_USER_ID);

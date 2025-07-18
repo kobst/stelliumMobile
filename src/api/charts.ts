@@ -8,17 +8,73 @@ export interface AnalysisWorkflowResponse {
   progress?: number;
 }
 
-export interface ChartAnalysisResponse {
+// Structured analysis response based on frontend guide
+export interface BasicAnalysis {
   overview: string;
-  fullAnalysis: any;
-  topics: any;
-  planets: any[];
-  houses: any[];
-  aspects: any[];
-  elements: any;
-  modalities: any;
-  quadrants: any;
-  patterns: any;
+  dominance: {
+    elements: { interpretation: string };
+    modalities: { interpretation: string };
+    quadrants: { interpretation: string };
+    patterns: { interpretation: string };
+    planetary: { interpretation: string };
+  };
+  planets: {
+    [planetName: string]: {
+      interpretation: string;
+      description: string;
+    };
+  };
+}
+
+export interface SubtopicAnalysis {
+  [topicKey: string]: {
+    label: string;
+    subtopics: {
+      [subtopicKey: string]: string;
+    };
+    tensionFlow?: {
+      supportDensity: number;
+      challengeDensity: number;
+      polarityRatio: number;
+      quadrant: string;
+      totalAspects: number;
+      supportAspects: number;
+      challengeAspects: number;
+      keystoneAspects: any[];
+      description: string;
+    };
+  };
+}
+
+export interface VectorizationStatus {
+  topicAnalysis: {
+    isComplete: boolean;
+    progress: number;
+  };
+  basicAnalysis: {
+    isComplete: boolean;
+    progress: number;
+  };
+}
+
+export interface ChartAnalysisResponse {
+  birthChartAnalysisId: string;
+  interpretation: {
+    basicAnalysis: BasicAnalysis;
+    SubtopicAnalysis: SubtopicAnalysis;
+  };
+  vectorizationStatus: VectorizationStatus;
+  // Legacy fields for backward compatibility
+  overview?: string;
+  fullAnalysis?: any;
+  topics?: any;
+  planets?: any[];
+  houses?: any[];
+  aspects?: any[];
+  elements?: any;
+  modalities?: any;
+  quadrants?: any;
+  patterns?: any;
 }
 
 export interface PlanetOverviewRequest {
@@ -27,21 +83,6 @@ export interface PlanetOverviewRequest {
 }
 
 export const chartsApi = {
-  // Get short overview of birth chart
-  getShortOverview: async (birthData: any): Promise<{ overview: string }> => {
-    return apiClient.post<{ overview: string }>('/getShortOverview', { birthData });
-  },
-
-  // Get planet-specific overview
-  getPlanetOverview: async (
-    planetName: string,
-    birthData: any
-  ): Promise<{ analysis: string }> => {
-    return apiClient.post<{ analysis: string }>('/getShortOverviewPlanet', {
-      planetName,
-      birthData,
-    });
-  },
 
   // Get full birth chart analysis
   getFullBirthChartAnalysis: async (user: User): Promise<ChartAnalysisResponse> => {

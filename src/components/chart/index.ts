@@ -8,4 +8,6 @@ export { default as ChartTabNavigator } from './ChartTabNavigator';
 export { default as PatternsTab } from './PatternsTab';
 export { default as PlanetsTab } from './PlanetsTab';
 export { default as AnalysisTab } from './AnalysisTab';
+export { default as PatternCard } from './PatternCard';
+export { default as PlanetCard } from './PlanetCard';
 export * from './ChartUtils';
