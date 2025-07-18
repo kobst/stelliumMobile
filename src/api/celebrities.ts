@@ -1,20 +1,18 @@
 import { apiClient } from './client';
 
 export interface Celebrity {
-  id: string;
-  name: string;
-  profession: string;
-  birthYear: number;
-  birthMonth: number;
-  birthDay: number;
-  birthHour?: number;
-  birthMinute?: number;
-  birthLocation: string;
-  timezone: string;
+  _id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  placeOfBirth: string;
+  time?: string;
+  gender?: 'male' | 'female' | 'other';
+  totalOffsetHours?: number;
   birthChart?: any;
-  imageUrl?: string;
-  biography?: string;
-  tags?: string[];
+  isCelebrity?: boolean;
+  isReadOnly?: boolean;
+  kind?: string;
 }
 
 export interface CreateCelebrityRequest {
@@ -85,6 +83,18 @@ export interface CelebrityCompatibilityResponse {
   synastryAspects: any[];
 }
 
+export interface CelebrityRelationship {
+  _id: string;
+  userA_id: string;
+  userB_id: string;
+  userA_name: string;
+  userB_name: string;
+  userA_dateOfBirth: string;
+  userB_dateOfBirth: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export const celebritiesApi = {
   // Get all celebrities (enhanced with pagination and search)
   getCelebrities: async (
@@ -139,11 +149,17 @@ export const celebritiesApi = {
 
   // Get celebrity relationships/compatibility with user
   getCelebrityRelationships: async (
-    userId: string
-  ): Promise<CelebrityCompatibilityResponse[]> => {
-    return apiClient.post<CelebrityCompatibilityResponse[]>('/getCelebrityRelationships', {
-      userId,
+    limit: number = 50
+  ): Promise<CelebrityRelationship[]> => {
+    const response = await apiClient.post<{ success: boolean; relationships: CelebrityRelationship[] }>('/getCelebrityRelationships', {
+      limit,
     });
+    
+    if (response.success) {
+      return response.relationships;
+    } else {
+      throw new Error('Failed to fetch celebrity relationships');
+    }
   },
 
   // Analyze compatibility between user and celebrity
