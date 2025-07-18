@@ -13,6 +13,8 @@ import {
   House,
   Aspect
 } from '../types';
+import { Celebrity } from '../api/celebrities';
+import { celebrityToUser } from '../transformers/celebrity';
 
 interface StoreState {
   // User & Authentication
@@ -57,6 +59,7 @@ interface StoreState {
   setAnalysisState: (analysisState: Partial<AnalysisWorkflowState>) => void;
   setActiveUserContext: (context: User | null) => void;
   switchUserContext: (newUser: User) => void;
+  switchToCelebrityContext: (celebrity: Celebrity) => void;
   navigateBack: () => void;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
@@ -154,6 +157,16 @@ export const useStore = create<StoreState>((set, get) => ({
     set({
       previousUserContext: activeUserContext,
       activeUserContext: newUser
+    });
+  },
+
+  switchToCelebrityContext: (celebrity) => {
+    const { activeUserContext } = get();
+    const userFromCelebrity = celebrityToUser(celebrity);
+    
+    set({
+      previousUserContext: activeUserContext,
+      activeUserContext: userFromCelebrity
     });
   },
 
