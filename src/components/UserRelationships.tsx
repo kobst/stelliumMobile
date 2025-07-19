@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../store';
 import { relationshipsApi, UserCompositeChart } from '../api/relationships';
 
@@ -26,6 +26,13 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
   useEffect(() => {
     loadRelationships();
   }, []);
+
+  // Reload relationships when the screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadRelationships();
+    }, [])
+  );
 
   const loadRelationships = async () => {
     const userId = userData?.userId || userData?.id;
