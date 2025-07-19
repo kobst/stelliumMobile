@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useStore } from '../store';
-import { horoscopesApi, HoroscopeResponse, CustomHoroscopeResponse } from '../api/horoscopes';
+import { horoscopesApi, HoroscopeResponse, CustomHoroscopeResponse, TransitWindowsResponse } from '../api/horoscopes';
 import { TransitEvent, HoroscopeFilter } from '../types';
 import { 
   getDateRangeForPeriod, 
@@ -62,8 +62,33 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   });
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
   const [horoscopeError, setHoroscopeError] = useState<string | null>(null);
+  const [loadedTabs, setLoadedTabs] = useState<Set<HoroscopeFilter>>(new Set());
+  
+  // Custom horoscope specific state
+  const [customTransitWindows, setCustomTransitWindows] = useState<TransitEvent[]>([]);
+  const [transitWindowsLoading, setTransitWindowsLoading] = useState(false);
+  const [transitWindowsError, setTransitWindowsError] = useState<string | null>(null);
+  const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  
+  // Transit filtering state
+  const [transitFilters, setTransitFilters] = useState({
+    transitingPlanet: '',
+    natalPlanet: '',
+    dateRange: { start: '', end: '' },
+    showFilters: false
+  });
 
   const { userData } = useStore();
+
+  // Helper function to add timeout to promises
+  const withTimeout = (promise: Promise<any>, timeoutMs: number = 30000): Promise<any> => {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+      )
+    ]);
+  };
 
   // Helper function to get horoscope for a specific period
   const getHoroscopeForPeriod = async (targetUserId: string, startDate: Date | string, type: 'daily' | 'weekly' | 'monthly') => {
@@ -71,13 +96,13 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       let response;
       switch (type) {
         case 'daily':
-          response = await horoscopesApi.generateDailyHoroscope(targetUserId, typeof startDate === 'string' ? startDate : startDate.toISOString().split('T')[0]);
+          response = await withTimeout(horoscopesApi.generateDailyHoroscope(targetUserId, typeof startDate === 'string' ? startDate : startDate.toISOString().split('T')[0]));
           break;
         case 'weekly':
-          response = await horoscopesApi.generateWeeklyHoroscope(targetUserId, typeof startDate === 'string' ? new Date(startDate) : startDate);
+          response = await withTimeout(horoscopesApi.generateWeeklyHoroscope(targetUserId, typeof startDate === 'string' ? new Date(startDate) : startDate));
           break;
         case 'monthly':
-          response = await horoscopesApi.generateMonthlyHoroscope(targetUserId, typeof startDate === 'string' ? new Date(startDate) : startDate);
+          response = await withTimeout(horoscopesApi.generateMonthlyHoroscope(targetUserId, typeof startDate === 'string' ? new Date(startDate) : startDate));
           break;
         default:
           throw new Error(`Unknown horoscope type: ${type}`);
@@ -94,31 +119,145 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     }
   };
 
-  // Filter transit events based on active tab
+  // Filter transit events based on active tab and filters
   const filteredTransits = useMemo(() => {
-    if (!transitWindows || transitWindows.length === 0) {
-      return [];
+    let transitsToFilter: TransitEvent[] = [];
+    
+    if (activeTab === 'custom') {
+      // For custom tab, use customTransitWindows
+      transitsToFilter = customTransitWindows;
+    } else {
+      if (!transitWindows || transitWindows.length === 0) {
+        return [];
+      }
+      
+      const dateRange = getDateRangeForPeriod(activeTab, customDateRange || undefined);
+      
+      transitsToFilter = transitWindows.filter(transit => {
+        const transitStart = new Date(transit.start);
+        const transitEnd = new Date(transit.end);
+        
+        return dateRangesOverlap(
+          { start: transitStart, end: transitEnd },
+          dateRange
+        );
+      });
     }
 
-    const dateRange = getDateRangeForPeriod(activeTab);
+    // Apply additional filters for custom tab
+    if (activeTab === 'custom') {
+      transitsToFilter = transitsToFilter.filter(transit => {
+        // Filter by transiting planet
+        if (transitFilters.transitingPlanet && 
+            transit.transitingPlanet.toLowerCase() !== transitFilters.transitingPlanet.toLowerCase()) {
+          return false;
+        }
+        
+        // Filter by natal planet (targetPlanet)
+        if (transitFilters.natalPlanet && transit.targetPlanet &&
+            transit.targetPlanet.toLowerCase() !== transitFilters.natalPlanet.toLowerCase()) {
+          return false;
+        }
+        
+        // Filter by date range
+        if (transitFilters.dateRange.start || transitFilters.dateRange.end) {
+          const transitDate = new Date(transit.exact);
+          
+          if (transitFilters.dateRange.start) {
+            const filterStartDate = new Date(transitFilters.dateRange.start);
+            if (transitDate < filterStartDate) return false;
+          }
+          
+          if (transitFilters.dateRange.end) {
+            const filterEndDate = new Date(transitFilters.dateRange.end);
+            filterEndDate.setHours(23, 59, 59, 999); // End of day
+            if (transitDate > filterEndDate) return false;
+          }
+        }
+        
+        return true;
+      });
+    }
 
-    const filtered = transitWindows.filter(transit => {
-      const transitStart = new Date(transit.start);
-      const transitEnd = new Date(transit.end);
-      
-      return dateRangesOverlap(
-        { start: transitStart, end: transitEnd },
-        dateRange
-      );
-    }).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-
-    return filtered;
-  }, [transitWindows, activeTab]);
+    return transitsToFilter.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+  }, [transitWindows, customTransitWindows, activeTab, customDateRange, transitFilters]);
 
   // Helper function to capitalize aspect names
   const capitalizeAspect = (aspect: string): string => {
     if (!aspect) return 'N/A';
     return aspect.charAt(0).toUpperCase() + aspect.slice(1);
+  };
+
+  // Get unique planet lists for filter dropdowns
+  const getUniquePlanets = (transits: TransitEvent[], type: 'transiting' | 'natal') => {
+    const planets = new Set<string>();
+    transits.forEach(transit => {
+      if (type === 'transiting') {
+        planets.add(transit.transitingPlanet);
+      } else if (type === 'natal' && transit.targetPlanet) {
+        planets.add(transit.targetPlanet);
+      }
+    });
+    return Array.from(planets).sort();
+  };
+
+  // Filter management functions
+  const updateFilter = (filterType: string, value: string) => {
+    setTransitFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  const updateDateRangeFilter = (type: 'start' | 'end', value: string) => {
+    setTransitFilters(prev => ({
+      ...prev,
+      dateRange: {
+        ...prev.dateRange,
+        [type]: value
+      }
+    }));
+  };
+
+  const clearFilters = () => {
+    setTransitFilters({
+      transitingPlanet: '',
+      natalPlanet: '',
+      dateRange: { start: '', end: '' },
+      showFilters: false
+    });
+  };
+
+  const toggleFilters = () => {
+    setTransitFilters(prev => ({
+      ...prev,
+      showFilters: !prev.showFilters
+    }));
+  };
+
+  // Planet selection handlers
+  const showPlanetPicker = (type: 'transiting' | 'natal') => {
+    const planets = getUniquePlanets(customTransitWindows, type);
+    const options = ['All Planets', ...planets];
+    
+    Alert.alert(
+      `Select ${type === 'transiting' ? 'Transiting' : 'Natal'} Planet`,
+      'Choose a planet to filter by:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        ...options.map(planet => ({
+          text: planet,
+          onPress: () => {
+            const filterValue = planet === 'All Planets' ? '' : planet;
+            if (type === 'transiting') {
+              updateFilter('transitingPlanet', filterValue);
+            } else {
+              updateFilter('natalPlanet', filterValue);
+            }
+          }
+        }))
+      ]
+    );
   };
 
   // Helper function to get transit description
@@ -161,60 +300,124 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     return description;
   };
 
-  // Fetch all horoscopes when component mounts
-  useEffect(() => {
-    const fetchAllHoroscopes = async () => {
-      const targetUserId = userId || userData?.id;
-      if (!targetUserId) return;
-      
-      setHoroscopeLoading(true);
+  // Fetch horoscope for a specific tab with retry capability
+  const fetchHoroscopeForTab = async (tab: HoroscopeFilter, isRetry: boolean = false) => {
+    const targetUserId = userId || userData?.id;
+    if (!targetUserId || (!isRetry && loadedTabs.has(tab) && horoscopeCache[tab])) return;
+    
+    setHoroscopeLoading(true);
+    if (isRetry) {
       setHoroscopeError(null);
+    }
+    
+    try {
+      let startDate: Date | string;
+      let type: 'daily' | 'weekly' | 'monthly';
       
-      try {
-        // Get start dates for all periods
-        const todayStart = getTodayRange().start;
-        const tomorrowStart = getTomorrowRange().start;
-        const thisWeekStart = getCurrentWeekRange().start;
-        const nextWeekStart = getNextWeekRange().start;
-        const thisMonthStart = getCurrentMonthRange().start;
-        const nextMonthStart = getNextMonthRange().start;
-
-        // Fetch all horoscopes in parallel
-        const [
-          todayHoroscope,
-          tomorrowHoroscope,
-          thisWeekHoroscope,
-          nextWeekHoroscope,
-          thisMonthHoroscope,
-          nextMonthHoroscope,
-        ] = await Promise.all([
-          getHoroscopeForPeriod(targetUserId, todayStart.toISOString().split('T')[0], 'daily'),
-          getHoroscopeForPeriod(targetUserId, tomorrowStart.toISOString().split('T')[0], 'daily'),
-          getHoroscopeForPeriod(targetUserId, thisWeekStart, 'weekly'),
-          getHoroscopeForPeriod(targetUserId, nextWeekStart, 'weekly'),
-          getHoroscopeForPeriod(targetUserId, thisMonthStart, 'monthly'),
-          getHoroscopeForPeriod(targetUserId, nextMonthStart, 'monthly'),
-        ]);
-
-        // Update cache with all horoscopes
-        setHoroscopeCache({
-          today: todayHoroscope,
-          tomorrow: tomorrowHoroscope,
-          thisWeek: thisWeekHoroscope,
-          nextWeek: nextWeekHoroscope,
-          thisMonth: thisMonthHoroscope,
-          nextMonth: nextMonthHoroscope,
-        });
-      } catch (error) {
-        console.error('Error fetching horoscopes:', error);
-        setHoroscopeError((error as Error).message);
-      } finally {
-        setHoroscopeLoading(false);
+      switch (tab) {
+        case 'today':
+          startDate = getTodayRange().start.toISOString().split('T')[0];
+          type = 'daily';
+          break;
+        case 'tomorrow':
+          startDate = getTomorrowRange().start.toISOString().split('T')[0];
+          type = 'daily';
+          break;
+        case 'thisWeek':
+          startDate = getCurrentWeekRange().start;
+          type = 'weekly';
+          break;
+        case 'nextWeek':
+          startDate = getNextWeekRange().start;
+          type = 'weekly';
+          break;
+        case 'thisMonth':
+          startDate = getCurrentMonthRange().start;
+          type = 'monthly';
+          break;
+        case 'nextMonth':
+          startDate = getNextMonthRange().start;
+          type = 'monthly';
+          break;
       }
-    };
+      
+      const horoscope = await getHoroscopeForPeriod(targetUserId, startDate, type);
+      
+      setHoroscopeCache(prev => ({
+        ...prev,
+        [tab]: horoscope
+      }));
+      
+      setLoadedTabs(prev => new Set([...prev, tab]));
+      if (isRetry) {
+        setHoroscopeError(null);
+      }
+    } catch (error) {
+      console.error(`Error fetching ${tab} horoscope:`, error);
+      setHoroscopeError(`Failed to load ${tab} horoscope: ${(error as Error).message}`);
+      setLoadedTabs(prev => new Set([...prev, tab])); // Mark as loaded even if failed
+    } finally {
+      setHoroscopeLoading(false);
+    }
+  };
 
-    fetchAllHoroscopes();
-  }, [userId, userData?.id]);
+  // Retry function for failed horoscopes
+  const retryHoroscope = () => {
+    fetchHoroscopeForTab(activeTab, true);
+  };
+
+  // Fetch transit windows for custom horoscope
+  const fetchTransitWindows = async () => {
+    const targetUserId = userId || userData?.id;
+    if (!targetUserId) return;
+
+    setTransitWindowsLoading(true);
+    setTransitWindowsError(null);
+
+    try {
+      // Default to 6 weeks from present date
+      const now = new Date();
+      const fromDate = new Date(now);
+      const toDate = new Date(now);
+      toDate.setDate(now.getDate() + 42); // 6 weeks forward (42 days)
+
+      const response = await withTimeout(horoscopesApi.getTransitWindows(
+        targetUserId,
+        fromDate.toISOString().split('T')[0],
+        toDate.toISOString().split('T')[0]
+      ));
+
+      if (response.transitEvents && response.transitEvents.length > 0) {
+        setCustomTransitWindows(response.transitEvents);
+        // Set default custom date range to 6 weeks from now if not set
+        if (!customDateRange) {
+          const now = new Date();
+          const sixWeeksOut = new Date(now);
+          sixWeeksOut.setDate(now.getDate() + 42);
+          setCustomDateRange({ start: now, end: sixWeeksOut });
+        }
+      } else {
+        throw new Error('No transit data received');
+      }
+    } catch (error) {
+      console.error('Error fetching transit windows:', error);
+      setTransitWindowsError(`Failed to load transit data: ${(error as Error).message}`);
+    } finally {
+      setTransitWindowsLoading(false);
+    }
+  };
+
+  // Load horoscope when active tab changes
+  useEffect(() => {
+    if (activeTab === 'custom') {
+      // For custom tab, fetch transit windows instead of horoscope
+      if (customTransitWindows.length === 0) {
+        fetchTransitWindows();
+      }
+    } else {
+      fetchHoroscopeForTab(activeTab);
+    }
+  }, [activeTab, userId, userData?.id]);
 
   // Handle transit selection
   const handleTransitSelection = (transitIndex: number) => {
@@ -275,7 +478,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     }
   };
 
-  if (loading || horoscopeLoading) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#8b5cf6" />
@@ -284,7 +487,9 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     );
   }
 
-  if (error || horoscopeError) {
+  // Only show full error state if we have no data at all
+  const hasAnyData = Object.values(horoscopeCache).some(value => value !== null);
+  if ((error || horoscopeError) && !hasAnyData) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Error loading data: {error || horoscopeError}</Text>
@@ -299,6 +504,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     { key: 'nextWeek', label: 'Next Week' },
     { key: 'thisMonth', label: 'This Month' },
     { key: 'nextMonth', label: 'Next Month' },
+    { key: 'custom', label: 'Custom' },
   ] as const;
 
   return (
@@ -333,9 +539,71 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
         ))}
       </ScrollView>
 
+      {/* Partial Error Indicator */}
+      {horoscopeError && hasAnyData && (
+        <View style={styles.partialErrorNotice}>
+          <Text style={styles.partialErrorText}>
+            ⚠️ Some horoscopes couldn't be loaded. Switch to other tabs to see available content.
+          </Text>
+        </View>
+      )}
+
       {/* Horoscope Content */}
       <View style={styles.section}>
-        {horoscopeCache[activeTab] && (
+        {activeTab === 'custom' ? (
+          // Custom horoscope interface
+          <View>
+            {transitWindowsLoading ? (
+              <View style={styles.horoscopeGenerating}>
+                <ActivityIndicator size="large" color="#8b5cf6" style={styles.generatingSpinner} />
+                <Text style={styles.horoscopeGeneratingTitle}>Loading Transit Data</Text>
+                <Text style={styles.horoscopeGeneratingText}>
+                  Fetching available transit events for custom horoscope generation...
+                </Text>
+              </View>
+            ) : transitWindowsError ? (
+              <View style={styles.horoscopeError}>
+                <Text style={styles.horoscopeErrorTitle}>Unable to Load Transit Data</Text>
+                <Text style={styles.horoscopeErrorText}>
+                  We're experiencing issues loading transit data. Please try again.
+                </Text>
+                <Text style={styles.errorDetails}>Error: {transitWindowsError}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={fetchTransitWindows}>
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.customHoroscopeInterface}>
+                <Text style={styles.customInterfaceTitle}>Custom Horoscope Generator</Text>
+                <Text style={styles.customInterfaceSubtitle}>
+                  Select specific transit events below to generate a personalized horoscope interpretation.
+                </Text>
+                
+                {/* Date Range Info */}
+                {customDateRange && (
+                  <View style={styles.dateRangeInfo}>
+                    <Text style={styles.dateRangeText}>
+                      Showing transits for: {formatDateRange(
+                        customDateRange.start.toISOString(),
+                        customDateRange.end.toISOString()
+                      )}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Filter Toggle Button */}
+                <TouchableOpacity
+                  style={styles.filterToggleButton}
+                  onPress={toggleFilters}
+                >
+                  <Text style={styles.filterToggleText}>
+                    {transitFilters.showFilters ? 'Hide Filters' : 'Show Filters'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        ) : horoscopeCache[activeTab] ? (
           <View style={styles.horoscopeCard}>
             <Text style={styles.horoscopeTitle}>
               Your {activeTab === 'today' || activeTab === 'tomorrow' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
@@ -377,6 +645,38 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
               </View>
             )}
           </View>
+        ) : (
+          <View style={styles.horoscopeGenerating}>
+            {horoscopeLoading ? (
+              <>
+                <ActivityIndicator size="large" color="#8b5cf6" style={styles.generatingSpinner} />
+                <Text style={styles.horoscopeGeneratingTitle}>
+                  Generating Your {activeTab === 'today' || activeTab === 'tomorrow' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
+                </Text>
+                <Text style={styles.horoscopeGeneratingText}>
+                  We're analyzing the cosmic influences for this period...
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.horoscopeErrorTitle}>
+                  Unable to Load {activeTab === 'today' || activeTab === 'tomorrow' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
+                </Text>
+                <Text style={styles.horoscopeErrorText}>
+                  We're experiencing issues loading this horoscope. Please try again.
+                </Text>
+                {horoscopeError && (
+                  <Text style={styles.errorDetails}>Error: {horoscopeError}</Text>
+                )}
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={retryHoroscope}
+                >
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         )}
 
         {/* Custom Horoscope Section */}
@@ -390,26 +690,75 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           </View>
         )}
 
-        {/* Collapsible Transit Section */}
+        {/* Transit Filters for Custom Tab */}
+        {activeTab === 'custom' && transitFilters.showFilters && (
+          <View style={styles.filtersContainer}>
+            <Text style={styles.filtersTitle}>Filter Transit Events</Text>
+            
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>Transiting Planet:</Text>
+              <View style={styles.pickerContainer}>
+                <TouchableOpacity 
+                  style={styles.pickerButton}
+                  onPress={() => showPlanetPicker('transiting')}
+                >
+                  <Text style={styles.pickerText}>
+                    {transitFilters.transitingPlanet || 'All Planets'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>Natal Planet:</Text>
+              <View style={styles.pickerContainer}>
+                <TouchableOpacity 
+                  style={styles.pickerButton}
+                  onPress={() => showPlanetPicker('natal')}
+                >
+                  <Text style={styles.pickerText}>
+                    {transitFilters.natalPlanet || 'All Planets'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.filterActions}>
+              <TouchableOpacity
+                style={styles.clearFiltersButton}
+                onPress={clearFilters}
+              >
+                <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Collapsible Transit Section - Always visible for custom tab */}
         <View style={styles.transitSection}>
-          <TouchableOpacity
-            style={styles.transitToggle}
-            onPress={() => setShowTransits(!showTransits)}
-          >
-            <Text style={styles.transitToggleText}>
-              {showTransits ? 'Hide' : 'Show'} Transit Details
-            </Text>
-          </TouchableOpacity>
+          {activeTab !== 'custom' && (
+            <TouchableOpacity
+              style={styles.transitToggle}
+              onPress={() => setShowTransits(!showTransits)}
+            >
+              <Text style={styles.transitToggleText}>
+                {showTransits ? 'Hide' : 'Show'} Transit Details
+              </Text>
+            </TouchableOpacity>
+          )}
           
-          {showTransits && (
+          {(showTransits || activeTab === 'custom') && (
             <View style={styles.transitDetailsContainer}>
               {filteredTransits.length === 0 ? (
                 <Text style={styles.noTransitsText}>
-                  No significant transits found for {
-                    activeTab === 'thisWeek' ? 'this week' :
-                    activeTab === 'nextWeek' ? 'next week' :
-                    activeTab === 'thisMonth' ? 'this month' : 'next month'
-                  }.
+                  {activeTab === 'custom' 
+                    ? 'No transit events found for the selected date range.'
+                    : `No significant transits found for ${
+                        activeTab === 'thisWeek' ? 'this week' :
+                        activeTab === 'nextWeek' ? 'next week' :
+                        activeTab === 'thisMonth' ? 'this month' : 'next month'
+                      }.`
+                  }
                 </Text>
               ) : (
                 <>
@@ -620,6 +969,84 @@ const styles = StyleSheet.create({
     color: '#8b5cf6',
     marginBottom: 12,
   },
+  partialErrorNotice: {
+    backgroundColor: '#fbbf24',
+    margin: 16,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+  },
+  partialErrorText: {
+    color: '#92400e',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  horoscopeGenerating: {
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#8b5cf6',
+    alignItems: 'center',
+  },
+  generatingSpinner: {
+    marginBottom: 16,
+  },
+  horoscopeGeneratingTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#8b5cf6',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  horoscopeGeneratingText: {
+    fontSize: 14,
+    color: '#e2e8f0',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  horoscopeError: {
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    alignItems: 'center',
+  },
+  horoscopeErrorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ef4444',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  horoscopeErrorText: {
+    fontSize: 14,
+    color: '#e2e8f0',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorDetails: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  retryButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   transitSection: {
     backgroundColor: '#1e293b',
     borderRadius: 12,
@@ -713,6 +1140,106 @@ const styles = StyleSheet.create({
   transitExactDate: {
     fontSize: 12,
     color: '#94a3b8',
+  },
+  customHoroscopeInterface: {
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#8b5cf6',
+  },
+  customInterfaceTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#8b5cf6',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  customInterfaceSubtitle: {
+    fontSize: 14,
+    color: '#e2e8f0',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  dateRangeInfo: {
+    backgroundColor: '#374151',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  dateRangeText: {
+    fontSize: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  filterToggleButton: {
+    backgroundColor: '#374151',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  filterToggleText: {
+    color: '#8b5cf6',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  filtersContainer: {
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    padding: 16,
+    margin: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  filtersTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  filterRow: {
+    marginBottom: 12,
+  },
+  filterLabel: {
+    fontSize: 14,
+    color: '#e2e8f0',
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#374151',
+    borderRadius: 8,
+    backgroundColor: '#374151',
+  },
+  pickerButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  pickerText: {
+    fontSize: 14,
+    color: '#e2e8f0',
+  },
+  filterActions: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  clearFiltersButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  clearFiltersText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
