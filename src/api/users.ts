@@ -25,6 +25,14 @@ export interface CreateUserUnknownTimeRequest {
   longitude?: number;
 }
 
+export interface CreateGuestSubjectRequest extends CreateUserRequest {
+  ownerUserId: string;
+}
+
+export interface CreateGuestSubjectUnknownTimeRequest extends CreateUserUnknownTimeRequest {
+  ownerUserId: string;
+}
+
 export interface UserResponse {
   id: string;
   name: string;
@@ -128,5 +136,33 @@ export const usersApi = {
   // Delete user
   deleteUser: async (userId: string): Promise<{ success: boolean }> => {
     return apiClient.delete<{ success: boolean }>(`/users/${userId}`);
+  },
+
+  // Create guest subject with known birth time
+  createGuestSubject: async (guestData: CreateGuestSubjectRequest): Promise<SubjectDocument> => {
+    console.log('\n=== USERS API: createGuestSubject ===');
+    console.log('Request data:', JSON.stringify(guestData, null, 2));
+    
+    const response = await apiClient.post<SubjectDocument>('/createGuestSubject', guestData);
+    
+    console.log('Response received:', JSON.stringify(response, null, 2));
+    console.log('===========================\n');
+    
+    return response;
+  },
+
+  // Create guest subject with unknown birth time
+  createGuestSubjectUnknownTime: async (
+    guestData: CreateGuestSubjectUnknownTimeRequest
+  ): Promise<SubjectDocument> => {
+    console.log('\n=== USERS API: createGuestSubjectUnknownTime ===');
+    console.log('Request data:', JSON.stringify(guestData, null, 2));
+    
+    const response = await apiClient.post<SubjectDocument>('/createGuestSubjectUnknownTime', guestData);
+    
+    console.log('Response received:', JSON.stringify(response, null, 2));
+    console.log('===========================\n');
+    
+    return response;
   },
 };

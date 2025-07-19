@@ -36,6 +36,10 @@ interface StoreState {
   currentUserContext: User | null;    // Account owner
   activeUserContext: User | null;     // Currently viewed user  
   previousUserContext: User | null;   // Navigation breadcrumb
+  
+  // Guest Subjects
+  guestSubjects: User[];
+  selectedSubject: User | null;
 
   // Workflow States
   creationWorkflowState: WorkflowState;
@@ -74,6 +78,11 @@ interface StoreState {
   // Chart Data Actions
   setChartData: (planets: Planet[], houses: House[], aspects: Aspect[]) => void;
   
+  // Guest Subject Actions
+  setGuestSubjects: (subjects: User[]) => void;
+  addGuestSubject: (subject: User) => void;
+  setSelectedSubject: (subject: User | null) => void;
+  
   // Persistence Actions
   initializeFromStorage: () => Promise<void>;
   persistUserData: () => Promise<void>;
@@ -97,6 +106,9 @@ export const useStore = create<StoreState>((set, get) => ({
   currentUserContext: null,
   activeUserContext: null,
   previousUserContext: null,
+  
+  guestSubjects: [],
+  selectedSubject: null,
 
   creationWorkflowState: {
     workflowId: null,
@@ -206,6 +218,15 @@ export const useStore = create<StoreState>((set, get) => ({
     userHouses: houses,
     userAspects: aspects
   }),
+  
+  // Guest Subject Actions
+  setGuestSubjects: (subjects) => set({ guestSubjects: subjects }),
+  
+  addGuestSubject: (subject) => set((state) => ({
+    guestSubjects: [...state.guestSubjects, subject]
+  })),
+  
+  setSelectedSubject: (subject) => set({ selectedSubject: subject }),
 
   // Persistence Actions
   initializeFromStorage: async () => {

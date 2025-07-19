@@ -16,6 +16,10 @@ export type {
   CreateUserRequest,
   CreateUserUnknownTimeRequest,
   UserResponse,
+  GetUserSubjectsRequest,
+  PaginatedUserSubjectsResponse,
+  CreateGuestSubjectRequest,
+  CreateGuestSubjectUnknownTimeRequest,
 } from './users';
 
 export type {

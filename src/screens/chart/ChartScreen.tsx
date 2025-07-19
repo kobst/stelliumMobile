@@ -7,12 +7,17 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useRoute } from '@react-navigation/native';
 import { useStore } from '../../store';
 import { useChart } from '../../hooks/useChart';
 import { ChartTabNavigator } from '../../components';
 
 const ChartScreen: React.FC = () => {
+  const route = useRoute<any>();
   const { userData } = useStore();
+  
+  // Use the subject passed from navigation, or fall back to logged-in user
+  const subject = route.params?.subject || userData;
   
   const {
     overview,
@@ -21,19 +26,19 @@ const ChartScreen: React.FC = () => {
     error: chartError,
     loadFullAnalysis,
     clearError,
-  } = useChart();
+  } = useChart(subject?.id);
 
 
   useEffect(() => {
-    if (userData?.birthChart) {
+    if (subject?.birthChart) {
       loadFullAnalysis();
     }
-  }, [userData?.birthChart, loadFullAnalysis]);
+  }, [subject?.birthChart, loadFullAnalysis]);
 
-  if (!userData) {
+  if (!subject) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Please sign in to view your birth chart</Text>
+        <Text style={styles.errorText}>Please sign in to view birth charts</Text>
       </View>
     );
   }
@@ -42,11 +47,11 @@ const ChartScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Birth Chart Tab Navigator */}
       <ChartTabNavigator
-        birthChart={userData?.birthChart}
+        birthChart={subject?.birthChart}
         loading={chartLoading}
         error={chartError}
-        userName={userData?.name}
-        userId={userData?.id}
+        userName={subject?.name}
+        userId={subject?.id}
         overview={overview}
       />
 

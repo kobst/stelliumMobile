@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useChart } from '../../hooks/useChart';
 
+interface AnalysisTabProps {
+  userId?: string;
+}
+
 // Topic definitions based on frontend guide
 const BROAD_TOPICS = {
   PERSONALITY_IDENTITY: {
@@ -147,8 +151,8 @@ const TopicSection: React.FC<TopicSectionProps> = ({
   );
 };
 
-const AnalysisTab: React.FC = () => {
-  const { fullAnalysis, loading, loadFullAnalysis } = useChart();
+const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
+  const { fullAnalysis, loading, loadFullAnalysis } = useChart(userId);
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
 
   // Load analysis on mount if not already loaded
@@ -169,6 +173,20 @@ const AnalysisTab: React.FC = () => {
     setExpandedTopics(newExpanded);
   };
 
+  // Fallback UI component for missing analysis
+  const renderMissingAnalysis = () => (
+    <View style={styles.missingAnalysisContainer}>
+      <Text style={styles.missingAnalysisIcon}>🌍</Text>
+      <Text style={styles.missingAnalysisTitle}>360° Analysis Not Available</Text>
+      <Text style={styles.missingAnalysisText}>
+        Complete life analysis is not available for this chart.
+      </Text>
+      <TouchableOpacity style={styles.completeAnalysisButton} onPress={loadFullAnalysis}>
+        <Text style={styles.completeAnalysisButtonText}>Complete Full Analysis</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -183,6 +201,10 @@ const AnalysisTab: React.FC = () => {
     BROAD_TOPICS[key as keyof typeof BROAD_TOPICS]
   );
 
+  if (availableTopics.length === 0) {
+    return renderMissingAnalysis();
+  }
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
@@ -195,24 +217,15 @@ const AnalysisTab: React.FC = () => {
         </View>
 
         {/* Topics */}
-        {availableTopics.length > 0 ? (
-          availableTopics.map(topicKey => (
-            <TopicSection
-              key={topicKey}
-              topicKey={topicKey}
-              topicData={subtopicAnalysis[topicKey]}
-              expanded={expandedTopics.has(topicKey)}
-              onToggle={() => toggleTopic(topicKey)}
-            />
-          ))
-        ) : (
-          <View style={styles.noDataContainer}>
-            <Text style={styles.noDataTitle}>360° Analysis Not Available</Text>
-            <Text style={styles.noDataText}>
-              The comprehensive life area analysis will appear here once the complete birth chart analysis is ready. This includes detailed insights into personality, relationships, career, spiritual growth, and more.
-            </Text>
-          </View>
-        )}
+        {availableTopics.map(topicKey => (
+          <TopicSection
+            key={topicKey}
+            topicKey={topicKey}
+            topicData={subtopicAnalysis[topicKey]}
+            expanded={expandedTopics.has(topicKey)}
+            onToggle={() => toggleTopic(topicKey)}
+          />
+        ))}
       </View>
     </ScrollView>
   );
@@ -376,6 +389,42 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  missingAnalysisContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0f172a',
+    padding: 32,
+  },
+  missingAnalysisIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  missingAnalysisTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  missingAnalysisText: {
+    fontSize: 16,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  completeAnalysisButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  completeAnalysisButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet, Text } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useChart } from '../../hooks/useChart';
+import { BirthChart } from '../../types';
 import PlanetCard from './PlanetCard';
 
 // Planet order based on frontend guide
@@ -9,8 +10,13 @@ const PLANET_ORDER = [
   'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Node', 'Midheaven'
 ];
 
-const PlanetsTab: React.FC = () => {
-  const { fullAnalysis, loading, loadFullAnalysis } = useChart();
+interface PlanetsTabProps {
+  userId?: string;
+  birthChart?: BirthChart;
+}
+
+const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
+  const { fullAnalysis, loading, loadFullAnalysis } = useChart(userId);
 
   // Get planet analysis data
   const getPlanetAnalysis = () => {
@@ -28,6 +34,20 @@ const PlanetsTab: React.FC = () => {
     }
   }, [fullAnalysis, loading, loadFullAnalysis]);
 
+  // Fallback UI component for missing analysis
+  const renderMissingAnalysis = () => (
+    <View style={styles.missingAnalysisContainer}>
+      <Text style={styles.missingAnalysisIcon}>🪐</Text>
+      <Text style={styles.missingAnalysisTitle}>Planetary Analysis Not Available</Text>
+      <Text style={styles.missingAnalysisText}>
+        Complete planetary analysis is not available for this chart.
+      </Text>
+      <TouchableOpacity style={styles.completeAnalysisButton} onPress={loadFullAnalysis}>
+        <Text style={styles.completeAnalysisButtonText}>Complete Full Analysis</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -41,6 +61,12 @@ const PlanetsTab: React.FC = () => {
     planetAnalysis[planet] && planetAnalysis[planet].interpretation
   );
 
+  // Only show planet cards if we have interpretation data
+  // If no planets have interpretations, show the "Complete Full Analysis" screen
+  if (availablePlanets.length === 0) {
+    return renderMissingAnalysis();
+  }
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
@@ -53,8 +79,7 @@ const PlanetsTab: React.FC = () => {
         </View>
 
         {/* Planet Cards */}
-        {availablePlanets.length > 0 ? (
-          availablePlanets.map(planet => (
+        {availablePlanets.map(planet => (
             <PlanetCard
               key={planet}
               planet={planet}
@@ -62,30 +87,7 @@ const PlanetsTab: React.FC = () => {
               description={planetAnalysis[planet]?.description}
               astrologicalData={planetAnalysis[planet]?.astrologicalData}
             />
-          ))
-        ) : (
-          <View style={styles.noDataContainer}>
-            <Text style={styles.noDataTitle}>Planetary Analysis Not Available</Text>
-            <Text style={styles.noDataText}>
-              Detailed planetary interpretations will appear here once the complete birth chart analysis is ready.
-            </Text>
-            
-            {/* Show all planets even without analysis */}
-            <View style={styles.placeholderPlanets}>
-              <Text style={styles.placeholderTitle}>Planets in your chart:</Text>
-              <View style={styles.planetGrid}>
-                {PLANET_ORDER.map(planet => (
-                  <PlanetCard
-                    key={planet}
-                    planet={planet}
-                    interpretation={undefined}
-                    description={undefined}
-                  />
-                ))}
-              </View>
-            </View>
-          </View>
-        )}
+          ))}
       </View>
     </ScrollView>
   );
@@ -165,6 +167,42 @@ const styles = StyleSheet.create({
   },
   planetGrid: {
     gap: 8,
+  },
+  missingAnalysisContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0f172a',
+    padding: 32,
+  },
+  missingAnalysisIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  missingAnalysisTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  missingAnalysisText: {
+    fontSize: 16,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  completeAnalysisButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  completeAnalysisButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
