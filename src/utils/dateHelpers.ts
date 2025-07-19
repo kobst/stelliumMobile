@@ -110,7 +110,7 @@ export const formatDateRange = (start: string, end: string): string => {
 };
 
 // Helper function to get date range for a specific period
-export const getDateRangeForPeriod = (period: string): DateRange => {
+export const getDateRangeForPeriod = (period: string, customRange?: DateRange): DateRange => {
   switch (period) {
     case 'today':
       return getTodayRange();
@@ -124,6 +124,8 @@ export const getDateRangeForPeriod = (period: string): DateRange => {
       return getCurrentMonthRange();
     case 'nextMonth':
       return getNextMonthRange();
+    case 'custom':
+      return customRange || getCurrentWeekRange();
     default:
       return getCurrentWeekRange();
   }

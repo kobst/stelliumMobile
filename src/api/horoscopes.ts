@@ -35,8 +35,8 @@ export interface KeyTheme {
 }
 
 export interface TransitWindowsResponse {
-  transits: TransitEvent[];
-  dateRange: {
+  transitEvents: TransitEvent[];
+  dateRange?: {
     start: string;
     end: string;
   };

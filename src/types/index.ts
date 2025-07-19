@@ -85,7 +85,7 @@ export interface UserSubscription {
   expiresAt?: string;
 }
 
-export type HoroscopeFilter = 'today' | 'tomorrow' | 'thisWeek' | 'nextWeek' | 'thisMonth' | 'nextMonth';
+export type HoroscopeFilter = 'today' | 'tomorrow' | 'thisWeek' | 'nextWeek' | 'thisMonth' | 'nextMonth' | 'custom';
 
 export type TabName = 'horoscope' | 'chart' | 'relationships' | 'celebrity';
 
