@@ -1,11 +1,17 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet, Text } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
+import { BirthChart } from '../../types';
 import PatternCard from './PatternCard';
 
-const PatternsTab: React.FC = () => {
-  const { fullAnalysis, loading, loadFullAnalysis } = useChart();
+interface PatternsTabProps {
+  userId?: string;
+  birthChart?: BirthChart;
+}
+
+const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
+  const { fullAnalysis, loading, loadFullAnalysis } = useChart(userId);
   const { userData } = useStore();
 
   // Load analysis on mount if not already loaded
@@ -80,20 +86,34 @@ const PatternsTab: React.FC = () => {
     }).filter(Boolean);
   };
 
-  // Get chart pattern data from the birth chart response in userData
+  // Get chart pattern data from the selected subject's birth chart
   const getChartPatternData = () => {
-    // Pattern data comes from the birthChart in userData, not from the analysis
-    const birthChart = userData?.birthChart;
+    // Use the passed birthChart prop or fall back to userData.birthChart
+    const chartData = birthChart || userData?.birthChart;
 
     return {
       // Use the correct nested structure from the API response
-      elements: Array.isArray(birthChart?.elements?.elements) ? birthChart.elements.elements : [],
-      modalities: Array.isArray(birthChart?.modalities?.modalities) ? birthChart.modalities.modalities : [],
-      quadrants: Array.isArray(birthChart?.quadrants?.quadrants) ? birthChart.quadrants.quadrants : [],
-      patterns: birthChart?.patterns || { patterns: [] },
-      planetaryDominance: Array.isArray(birthChart?.planetaryDominance?.planets) ? birthChart.planetaryDominance.planets : [],
+      elements: Array.isArray(chartData?.elements?.elements) ? chartData.elements.elements : [],
+      modalities: Array.isArray(chartData?.modalities?.modalities) ? chartData.modalities.modalities : [],
+      quadrants: Array.isArray(chartData?.quadrants?.quadrants) ? chartData.quadrants.quadrants : [],
+      patterns: chartData?.patterns || { patterns: [] },
+      planetaryDominance: Array.isArray(chartData?.planetaryDominance?.planets) ? chartData.planetaryDominance.planets : [],
     };
   };
+
+  // Fallback UI component for missing analysis
+  const renderMissingAnalysis = () => (
+    <View style={styles.missingAnalysisContainer}>
+      <Text style={styles.missingAnalysisIcon}>📊</Text>
+      <Text style={styles.missingAnalysisTitle}>Patterns Analysis Not Available</Text>
+      <Text style={styles.missingAnalysisText}>
+        Complete analysis data is not available for this chart. 
+      </Text>
+      <TouchableOpacity style={styles.completeAnalysisButton} onPress={loadFullAnalysis}>
+        <Text style={styles.completeAnalysisButtonText}>Complete Full Analysis</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   if (loading) {
     return (
@@ -105,6 +125,16 @@ const PatternsTab: React.FC = () => {
 
   const dominanceInterpretations = getDominanceInterpretations();
   const chartData = getChartPatternData();
+
+  // Check if we have BOTH raw data AND interpretation data
+  // Only show pattern cards if we have interpretations, even if raw data exists
+  const hasInterpretationData = fullAnalysis?.interpretation?.basicAnalysis?.dominance;
+  const hasRawData = chartData.elements.length > 0 || chartData.modalities.length > 0;
+  
+  // Only display patterns if we have interpretation data (regardless of raw data availability)
+  if (!hasInterpretationData) {
+    return renderMissingAnalysis();
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -159,15 +189,6 @@ const PatternsTab: React.FC = () => {
           type="planetary"
         />
 
-        {/* Show message if no analysis data available */}
-        {!fullAnalysis && !loading && (
-          <View style={styles.noDataContainer}>
-            <Text style={styles.noDataTitle}>Analysis Not Available</Text>
-            <Text style={styles.noDataText}>
-              Complete birth chart analysis data is not yet available. The patterns will appear here once the analysis is complete.
-            </Text>
-          </View>
-        )}
       </View>
     </ScrollView>
   );
@@ -214,6 +235,42 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  missingAnalysisContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0f172a',
+    padding: 32,
+  },
+  missingAnalysisIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  missingAnalysisTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  missingAnalysisText: {
+    fontSize: 16,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  completeAnalysisButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  completeAnalysisButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

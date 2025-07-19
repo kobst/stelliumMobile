@@ -53,11 +53,11 @@ const ChartTabNavigator: React.FC<ChartTabNavigatorProps> = ({
           />
         );
       case 'patterns':
-        return <PatternsTab />;
+        return <PatternsTab userId={userId} birthChart={birthChart} />;
       case 'planets':
-        return <PlanetsTab />;
+        return <PlanetsTab userId={userId} birthChart={birthChart} />;
       case 'analysis':
-        return <AnalysisTab />;
+        return <AnalysisTab userId={userId} />;
       default:
         return <ChartContainer birthChart={birthChart} loading={loading} error={error} userName={userName} userId={userId} overview={overview} />;
     }
