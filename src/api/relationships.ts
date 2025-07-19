@@ -280,4 +280,41 @@ export const relationshipsApi = {
   getCompositeChart: async (compositeChartId: string): Promise<any> => {
     return apiClient.get<any>(`/composite-charts/${compositeChartId}`);
   },
+
+  // Create relationship directly with enhanced analysis
+  createRelationshipDirect: async (userIdA: string, userIdB: string): Promise<{ success: boolean; relationship?: any; error?: string }> => {
+    try {
+      const response = await apiClient.post<any>('/enhanced-relationship-analysis', {
+        userIdA,
+        userIdB
+      });
+      
+      // Transform the response to match expected format
+      if (response.success) {
+        return {
+          success: true,
+          relationship: {
+            compositeChartId: response.compositeChartId,
+            userA: response.userA,
+            userB: response.userB,
+            enhancedAnalysis: response.enhancedAnalysis,
+            profileAnalysis: response.profileAnalysis,
+            // Include chart data for immediate display
+            compositeChart: response.compositeChart,
+            synastryAspects: response.synastryAspects,
+            synastryHousePlacements: response.synastryHousePlacements,
+            metadata: response.metadata
+          }
+        };
+      } else {
+        return {
+          success: false,
+          error: response.error || 'Failed to create relationship'
+        };
+      }
+    } catch (error: any) {
+      console.error('Error creating relationship:', error);
+      throw new Error(error.message || 'Failed to create relationship');
+    }
+  },
 };

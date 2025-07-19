@@ -49,27 +49,68 @@ const RelationshipAnalysisScreen: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Fetch analysis data and user birth charts in parallel
-      const promises: Promise<any>[] = [
-        relationshipsApi.fetchRelationshipAnalysis(relationship._id)
-      ];
+      // Check if enhanced analysis data is already included in the relationship object (new relationships)
+      if ((relationship as any).enhancedAnalysis) {
+        // Use the enhanced analysis data that's already included
+        const enhancedAnalysis = (relationship as any).enhancedAnalysis;
+        
+        // Transform enhanced analysis to match RelationshipAnalysisResponse interface
+        const transformedAnalysis: RelationshipAnalysisResponse = {
+          profileAnalysis: (relationship as any).profileAnalysis || {
+            profileResult: {
+              tier: 'Enhanced',
+              profile: 'Compatibility Analysis',
+              clusterScores: {
+                Heart: Math.round(enhancedAnalysis.scores?.EMOTIONAL_SECURITY_CONNECTION?.overall || 0),
+                Body: Math.round(enhancedAnalysis.scores?.SEX_AND_INTIMACY?.overall || 0),
+                Mind: Math.round(enhancedAnalysis.scores?.COMMUNICATION_AND_MENTAL_CONNECTION?.overall || 0),
+                Life: Math.round(enhancedAnalysis.scores?.PRACTICAL_GROWTH_SHARED_GOALS?.overall || 0),
+                Soul: Math.round(enhancedAnalysis.scores?.KARMIC_LESSONS_GROWTH?.overall || 0),
+              }
+            }
+          },
+          scores: enhancedAnalysis.scores,
+          // Use the actual holistic overview from the enhanced analysis
+          holisticOverview: enhancedAnalysis.holisticOverview,
+          // Include tension flow analysis from the enhanced analysis
+          tensionFlowAnalysis: enhancedAnalysis.tensionFlowAnalysis,
+          // Include cluster analysis if available
+          clusterAnalysis: enhancedAnalysis.clusterAnalysis,
+          // Include category analysis if available
+          categoryAnalysis: enhancedAnalysis.categoryAnalysis
+        };
+        
+        setAnalysisData(transformedAnalysis);
+      } else {
+        // Fallback to fetching analysis data (existing relationships)
+        try {
+          const analysisResult = await relationshipsApi.fetchRelationshipAnalysis(relationship._id);
+          setAnalysisData(analysisResult);
+        } catch (fetchError) {
+          console.log('No existing analysis data found, continuing without analysis data');
+          // Don't set error state - just continue without analysis data
+          // This allows the Charts tab to work with chart data from the relationship object
+        }
+      }
       
-      // Only fetch user data if we have user IDs
+      // Fetch user birth charts in parallel if we have user IDs
+      const userPromises: Promise<any>[] = [];
       if (relationship.userA_id) {
-        promises.push(usersApi.getUser(relationship.userA_id));
+        userPromises.push(usersApi.getUser(relationship.userA_id));
       }
       if (relationship.userB_id) {
-        promises.push(usersApi.getUser(relationship.userB_id));
+        userPromises.push(usersApi.getUser(relationship.userB_id));
       }
       
-      const results = await Promise.all(promises);
-      setAnalysisData(results[0]);
-      
-      if (relationship.userA_id && results[1]) {
-        setUserAData(results[1]);
-      }
-      if (relationship.userB_id && results[2]) {
-        setUserBData(results[2]);
+      if (userPromises.length > 0) {
+        const userResults = await Promise.all(userPromises);
+        
+        if (relationship.userA_id && userResults[0]) {
+          setUserAData(userResults[0]);
+        }
+        if (relationship.userB_id && userResults[userResults.length - 1]) {
+          setUserBData(userResults[userResults.length - 1]);
+        }
       }
     } catch (err) {
       console.error('Failed to load relationship analysis:', err);
@@ -439,7 +480,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
             {relationship.userA_name} & {relationship.userB_name}
           </Text>
           <Text style={styles.createdDate}>
-            Created {new Date(relationship.createdAt).toLocaleDateString()}
+            Created {relationship.createdAt ? new Date(relationship.createdAt).toLocaleDateString() : 'Invalid Date'}
           </Text>
         </View>
       </View>

@@ -40,14 +40,12 @@ const RelationshipsScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Create New Analysis</Text>
           
-          <TouchableOpacity style={styles.actionButton} disabled>
-            <Text style={styles.actionButtonText}>💕 Add Partner</Text>
-            <Text style={styles.comingSoonText}>Coming Soon</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.actionButton} disabled>
-            <Text style={styles.actionButtonText}>⭐ Celebrity Match</Text>
-            <Text style={styles.comingSoonText}>Coming Soon</Text>
+          <TouchableOpacity 
+            style={styles.createButton} 
+            onPress={() => (navigation as any).navigate('CreateRelationship')}
+          >
+            <Text style={styles.createButtonText}>✨ Create New Relationship</Text>
+            <Text style={styles.createButtonSubtext}>Choose from guests or celebrities</Text>
           </TouchableOpacity>
         </View>
       ),
@@ -143,24 +141,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 20,
   },
-  actionButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#374151',
+  createButton: {
+    backgroundColor: '#8b5cf6',
     padding: 16,
     borderRadius: 8,
+    alignItems: 'center',
     marginBottom: 8,
   },
-  actionButtonText: {
-    color: '#e2e8f0',
+  createButtonText: {
+    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  comingSoonText: {
-    color: '#9ca3af',
+  createButtonSubtext: {
+    color: '#e2e8f0',
     fontSize: 12,
-    fontStyle: 'italic',
   },
   emptyState: {
     alignItems: 'center',
