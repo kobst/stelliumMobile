@@ -1,6 +1,7 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import RelationshipsScreen from '../screens/relationships/RelationshipsScreen';
+import RelationshipAnalysisScreen from '../screens/relationships/RelationshipAnalysisScreen';
 
 const Stack = createStackNavigator();
 
@@ -21,6 +22,11 @@ const RelationshipsStack: React.FC = () => {
         name="RelationshipsMain" 
         component={RelationshipsScreen}
         options={{ title: 'Relationships' }}
+      />
+      <Stack.Screen 
+        name="RelationshipAnalysis" 
+        component={RelationshipAnalysisScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
