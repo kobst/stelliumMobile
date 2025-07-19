@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
+  FlatList,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../../store';
+import UserRelationships from '../../components/UserRelationships';
 
 const RelationshipsScreen: React.FC = () => {
   const { userData } = useStore();
+  const navigation = useNavigation();
 
   if (!userData) {
     return (
@@ -19,80 +22,99 @@ const RelationshipsScreen: React.FC = () => {
     );
   }
 
-  return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Relationship Compatibility</Text>
-        <Text style={styles.sectionSubtitle}>
-          Discover cosmic connections and compatibility insights
-        </Text>
-      </View>
-
-      {/* Create New Relationship */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Create New Analysis</Text>
-        
-        <TouchableOpacity style={styles.actionButton} disabled>
-          <Text style={styles.actionButtonText}>💕 Add Partner</Text>
-          <Text style={styles.comingSoonText}>Coming Soon</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.actionButton} disabled>
-          <Text style={styles.actionButtonText}>⭐ Celebrity Match</Text>
-          <Text style={styles.comingSoonText}>Coming Soon</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Existing Relationships */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Your Relationships</Text>
-        <Text style={styles.sectionSubtitle}>
-          No relationships analyzed yet
-        </Text>
-        
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateIcon}>💫</Text>
-          <Text style={styles.emptyStateText}>
-            Start by creating your first relationship analysis to discover cosmic compatibility insights
+  const headerSections = [
+    {
+      id: 'header',
+      component: (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Relationship Compatibility</Text>
+          <Text style={styles.sectionSubtitle}>
+            Discover cosmic connections and compatibility insights
           </Text>
         </View>
-      </View>
-
-      {/* Compatibility Categories Preview */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Compatibility Analysis</Text>
-        <Text style={styles.sectionSubtitle}>
-          Our analysis covers these key areas:
-        </Text>
-        
-        <View style={styles.categoryList}>
-          {[
-            '💫 Overall Attraction & Chemistry',
-            '🏡 Emotional Security & Connection',
-            '💬 Communication & Learning',
-            '🎯 Values, Goals & Life Direction',
-            '🔥 Intimacy & Sexuality',
-            '💍 Long-term Stability',
-            '🌟 Spiritual Growth',
-          ].map((category, index) => (
-            <View key={index} style={styles.categoryItem}>
-              <Text style={styles.categoryText}>{category}</Text>
-            </View>
-          ))}
+      ),
+    },
+    {
+      id: 'create',
+      component: (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Create New Analysis</Text>
+          
+          <TouchableOpacity style={styles.actionButton} disabled>
+            <Text style={styles.actionButtonText}>💕 Add Partner</Text>
+            <Text style={styles.comingSoonText}>Coming Soon</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionButton} disabled>
+            <Text style={styles.actionButtonText}>⭐ Celebrity Match</Text>
+            <Text style={styles.comingSoonText}>Coming Soon</Text>
+          </TouchableOpacity>
         </View>
-      </View>
+      ),
+    },
+    {
+      id: 'relationships',
+      component: (
+        <View style={styles.relationshipsSection}>
+          <UserRelationships
+            onRelationshipPress={(relationship) => {
+              console.log('Navigate to relationship analysis:', relationship);
+              (navigation as any).navigate('RelationshipAnalysis', { relationship });
+            }}
+          />
+        </View>
+      ),
+    },
+    {
+      id: 'categories',
+      component: (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Compatibility Analysis</Text>
+          <Text style={styles.sectionSubtitle}>
+            Our analysis covers these key areas:
+          </Text>
+          
+          <View style={styles.categoryList}>
+            {[
+              '💫 Overall Attraction & Chemistry',
+              '🏡 Emotional Security & Connection',
+              '💬 Communication & Learning',
+              '🎯 Values, Goals & Life Direction',
+              '🔥 Intimacy & Sexuality',
+              '💍 Long-term Stability',
+              '🌟 Spiritual Growth',
+            ].map((category, index) => (
+              <View key={index} style={styles.categoryItem}>
+                <Text style={styles.categoryText}>{category}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ),
+    },
+    {
+      id: 'synastry',
+      component: (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About Synastry</Text>
+          <Text style={styles.infoText}>
+            Synastry is the astrological practice of comparing two birth charts to understand relationship dynamics. 
+            Our AI analyzes planetary aspects, house placements, and cosmic patterns to provide detailed 
+            compatibility insights across seven key relationship areas.
+          </Text>
+        </View>
+      ),
+    },
+  ];
 
-      {/* Synastry Info */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About Synastry</Text>
-        <Text style={styles.infoText}>
-          Synastry is the astrological practice of comparing two birth charts to understand relationship dynamics. 
-          Our AI analyzes planetary aspects, house placements, and cosmic patterns to provide detailed 
-          compatibility insights across seven key relationship areas.
-        </Text>
-      </View>
-    </ScrollView>
+  return (
+    <FlatList
+      style={styles.container}
+      data={headerSections}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => item.component}
+      showsVerticalScrollIndicator={true}
+    />
   );
 };
 
@@ -182,6 +204,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     padding: 32,
+  },
+  relationshipsSection: {
+    flex: 1,
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
 });
 

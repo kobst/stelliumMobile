@@ -41,6 +41,12 @@ export type {
   RelationshipResponse,
   RelationshipScore,
   RelationshipWorkflowResponse,
+  UserCompositeChart,
+  RelationshipAnalysisResponse,
+  SynastryAspect,
+  SynastryHousePlacement,
+  SynastryHousePlacements,
+  CompositeChart,
 } from './relationships';
 
 export type {

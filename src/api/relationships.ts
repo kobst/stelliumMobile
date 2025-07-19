@@ -44,6 +44,132 @@ export interface CompositeChartRequest {
   compositeBirthChart: any;
 }
 
+export interface UserCompositeChart {
+  _id: string;
+  userA_name: string;
+  userB_name: string;
+  userA_dateOfBirth: string;
+  userB_dateOfBirth: string;
+  createdAt: string;
+  synastryAspects?: SynastryAspect[];
+  synastryHousePlacements?: SynastryHousePlacements;
+  compositeChart?: CompositeChart;
+  userA_id?: string;
+  userB_id?: string;
+  isCelebrityRelationship?: boolean;
+  ownerUserId?: string;
+  updatedAt?: string;
+}
+
+export interface SynastryAspect {
+  planet1: string;
+  planet1Degree: number;
+  planet1Sign: string;
+  planet2: string;
+  planet2Degree: number;
+  planet2Sign: string;
+  aspectType: string;
+  planet1IsRetro: boolean;
+  planet2IsRetro: boolean;
+  orb: number;
+}
+
+export interface SynastryHousePlacement {
+  planet: string;
+  planetDegree: number;
+  planetSign: string;
+  house: number;
+  direction: string;
+}
+
+export interface SynastryHousePlacements {
+  AinB: SynastryHousePlacement[];
+  BinA: SynastryHousePlacement[];
+}
+
+export interface CompositeChart {
+  planets: Array<{
+    name: string;
+    full_degree: number;
+    norm_degree: number;
+    sign: string;
+    house: number;
+  }>;
+  houses: Array<{
+    house: string;
+    degree: number;
+    sign: string;
+  }>;
+  aspects: Array<{
+    aspectingPlanet: string;
+    aspectingPlanetDegree: number;
+    aspectedPlanet: string;
+    aspectedPlanetDegree: number;
+    aspectType: string;
+    orb: number;
+  }>;
+  houseSystem: string;
+  hasAccurateBirthTimes: boolean;
+}
+
+export interface RelationshipAnalysisResponse {
+  scores?: {
+    [key: string]: { score: number; analysis: string };
+  };
+  holisticOverview?: {
+    overview: string;
+    topStrengths?: Array<{ name: string; description: string }>;
+    keyChallenges?: Array<{ name: string; description: string }>;
+  };
+  profileAnalysis?: {
+    profileResult: {
+      tier: string;
+      profile: string;
+      clusterScores: {
+        Heart: number;
+        Body: number;
+        Mind: number;
+        Life: number;
+        Soul: number;
+      };
+    };
+  };
+  clusterAnalysis?: {
+    [key: string]: {
+      analysis: string;
+      scoredItems: Array<{ score: number; description: string }>;
+    };
+  };
+  tensionFlowAnalysis?: {
+    supportDensity: number;
+    challengeDensity: number;
+    polarityRatio: number;
+    quadrant: string;
+    totalAspects: number;
+    supportAspects: number;
+    challengeAspects: number;
+    insight?: {
+      recommendations: string[];
+    };
+  };
+  categoryAnalysis?: {
+    [key: string]: {
+      panels?: {
+        synastry?: string;
+        composite?: string;
+        fullAnalysis?: string;
+      };
+      relevantPosition?: string;
+    };
+  };
+  // Chart data from the composite chart document
+  synastryAspects?: SynastryAspect[];
+  synastryHousePlacements?: SynastryHousePlacements;
+  compositeChart?: CompositeChart;
+  userA_name?: string;
+  userB_name?: string;
+}
+
 export interface RelationshipWorkflowResponse {
   workflowId: string;
   status: string;
@@ -105,14 +231,6 @@ export const relationshipsApi = {
     });
   },
 
-  // Fetch relationship analysis
-  fetchRelationshipAnalysis: async (
-    compositeChartId: string
-  ): Promise<{ analysis: any }> => {
-    return apiClient.post<{ analysis: any }>('/fetchRelationshipAnalysis', {
-      compositeChartId,
-    });
-  },
 
   // Process and vectorize relationship analysis
   processRelationshipAnalysis: async (
@@ -146,5 +264,20 @@ export const relationshipsApi = {
   // Delete relationship
   deleteRelationship: async (relationshipId: string): Promise<{ success: boolean }> => {
     return apiClient.delete<{ success: boolean }>(`/relationships/${relationshipId}`);
+  },
+
+  // Get user composite charts (existing relationships)
+  getUserCompositeCharts: async (ownerUserId: string): Promise<UserCompositeChart[]> => {
+    return apiClient.post<UserCompositeChart[]>('/getUserCompositeCharts', { ownerUserId });
+  },
+
+  // Fetch relationship analysis data
+  fetchRelationshipAnalysis: async (compositeChartId: string): Promise<RelationshipAnalysisResponse> => {
+    return apiClient.post<RelationshipAnalysisResponse>('/fetchRelationshipAnalysis', { compositeChartId });
+  },
+
+  // Get composite chart data (includes chart structure)
+  getCompositeChart: async (compositeChartId: string): Promise<any> => {
+    return apiClient.get<any>(`/composite-charts/${compositeChartId}`);
   },
 };
