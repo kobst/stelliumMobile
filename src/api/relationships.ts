@@ -112,34 +112,92 @@ export interface CompositeChart {
   hasAccurateBirthTimes: boolean;
 }
 
+export interface RelationshipScoredItem {
+  score: number;
+  source: 'synastry' | 'composite' | 'synastryHousePlacement' | 'compositeHousePlacement';
+  type: 'aspect' | 'housePlacement';
+  reason: string;
+  description: string;
+  aspect?: string;
+  orb?: number;
+  pairKey?: string;
+  planet1Sign?: string;
+  planet2Sign?: string;
+  planet1House?: number;
+  planet2House?: number;
+  planet?: string;
+  house?: number;
+  direction?: string;
+  category?: string;
+  clusterWeight?: number;
+}
+
+export interface ClusterScoreAnalysis {
+  scoredItems: RelationshipScoredItem[];
+  analysis: string;
+}
+
 export interface RelationshipAnalysisResponse {
+  // Core scoring data
   scores?: {
-    [key: string]: { score: number; analysis: string };
+    [category: string]: {
+      overall: number;
+      synastry: number;
+      composite: number;
+      synastryHousePlacements: number;
+      compositeHousePlacements: number;
+    };
   };
+  
+  // Score analysis with scored items
+  scoreAnalysis?: {
+    [category: string]: {
+      scoredItems: RelationshipScoredItem[];
+      analysis: string;
+    };
+  };
+
+  // Cluster-based analysis
+  clusterAnalysis?: {
+    Heart: ClusterScoreAnalysis;
+    Body: ClusterScoreAnalysis;
+    Mind: ClusterScoreAnalysis;
+    Life: ClusterScoreAnalysis;
+    Soul: ClusterScoreAnalysis;
+  } | null;
+
+  // Holistic overview
   holisticOverview?: {
+    topStrengths: RelationshipScoredItem[];
+    keyChallenges: RelationshipScoredItem[];
     overview: string;
-    topStrengths?: Array<{ name: string; description: string }>;
-    keyChallenges?: Array<{ name: string; description: string }>;
-  };
+  } | null;
+
+  // Profile analysis
   profileAnalysis?: {
     profileResult: {
       tier: string;
       profile: string;
-      clusterScores: {
-        Heart: number;
-        Body: number;
-        Mind: number;
-        Life: number;
-        Soul: number;
+      clusterScores: Record<string, number>;
+      statistics: {
+        avg: number;
+        high: number;
+        low: number;
+        spread: number;
+        stdev: number;
+        dominantClusters: string[];
+        laggingClusters: string[];
       };
+      uniformity: string;
+      explanation: string;
+      confidence: number;
     };
-  };
-  clusterAnalysis?: {
-    [key: string]: {
-      analysis: string;
-      scoredItems: Array<{ score: number; description: string }>;
-    };
-  };
+    rawCategoryScores: Record<string, number>;
+    generatedAt: string;
+    version: string;
+  } | null;
+
+  // Tension flow analysis
   tensionFlowAnalysis?: {
     supportDensity: number;
     challengeDensity: number;
@@ -148,20 +206,63 @@ export interface RelationshipAnalysisResponse {
     totalAspects: number;
     supportAspects: number;
     challengeAspects: number;
-    insight?: {
+    keystoneAspects: any[];
+    networkMetrics: any;
+    insight: {
+      quadrant: string;
+      polarityRatio: number;
+      description: string;
       recommendations: string[];
     };
-  };
-  categoryAnalysis?: {
-    [key: string]: {
-      panels?: {
-        synastry?: string;
-        composite?: string;
-        fullAnalysis?: string;
+  } | null;
+
+  // Category analysis (7 detailed category analyses)
+  analysis?: {
+    [category: string]: {
+      relevantPosition: string;
+      panels: {
+        synastry: string;
+        composite: string;
+        fullAnalysis: string;
       };
-      relevantPosition?: string;
+      generatedAt: string;
     };
   };
+
+  // Debug information
+  debug?: {
+    inputSummary: {
+      compositeChartId: string;
+      userAId: string;
+      userBId: string;
+      userAName: string;
+      userBName: string;
+    };
+    patterns: {
+      totalItems: number;
+      topStrengthsCount: number;
+      keyChallengesCount: number;
+    };
+    categoryDistribution: {
+      strongestCategories: Array<{
+        category: string;
+        score: number;
+      }>;
+      weakestCategories: Array<{
+        category: string;
+        score: number;
+      }>;
+      averageScore: number;
+    };
+    clusterItemCounts: Record<string, number>;
+    tensionFlow: {
+      quadrant: string;
+      supportDensity: number;
+      challengeDensity: number;
+      keystoneAspectsCount: number;
+    };
+  };
+
   // Chart data from the composite chart document
   synastryAspects?: SynastryAspect[];
   synastryHousePlacements?: SynastryHousePlacements;
