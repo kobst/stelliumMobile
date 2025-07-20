@@ -15,6 +15,8 @@ import { SubjectDocument } from '../../types';
 import SynastryChartWheel from '../../components/chart/SynastryChartWheel';
 import SynastryAspectsTable from '../../components/chart/SynastryAspectsTable';
 import CompositeChartTables from '../../components/chart/CompositeChartTables';
+import RadarChart from '../../components/chart/RadarChart';
+import ScoredItemsTable from '../../components/chart/ScoredItemsTable';
 
 type RelationshipAnalysisScreenRouteProp = RouteProp<{
   RelationshipAnalysis: {
@@ -76,8 +78,10 @@ const RelationshipAnalysisScreen: React.FC = () => {
           tensionFlowAnalysis: enhancedAnalysis.tensionFlowAnalysis,
           // Include cluster analysis if available
           clusterAnalysis: enhancedAnalysis.clusterAnalysis,
-          // Include category analysis if available
-          categoryAnalysis: enhancedAnalysis.categoryAnalysis
+          // Include detailed category analysis if available
+          analysis: enhancedAnalysis.analysis,
+          // Include score analysis if available
+          scoreAnalysis: enhancedAnalysis.scoreAnalysis
         };
         
         setAnalysisData(transformedAnalysis);
@@ -270,25 +274,26 @@ const RelationshipAnalysisScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Radar Chart Placeholder */}
+          {/* Radar Chart */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>💕 Compatibility Scores</Text>
-            <View style={styles.radarPlaceholder}>
-              <Text style={styles.placeholderText}>Radar Chart</Text>
-              <Text style={styles.placeholderSubtext}>5-axis compatibility visualization</Text>
-              
-              {/* Show cluster scores */}
-              <View style={styles.scoresGrid}>
-                {Object.entries(analysisData.profileAnalysis.profileResult.clusterScores).map(([cluster, score]) => (
-                  <View key={cluster} style={styles.scoreCard}>
-                    <Text style={styles.scoreIcon}>{getClusterIcon(cluster)}</Text>
-                    <Text style={styles.scoreLabel}>{cluster}</Text>
-                    <Text style={styles.scoreValue}>{score}%</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
+            <RadarChart 
+              data={analysisData.profileAnalysis.profileResult.clusterScores}
+              size={300}
+            />
           </View>
+
+          {/* Cluster Analysis Sections */}
+          {analysisData.clusterAnalysis && Object.entries(analysisData.clusterAnalysis).map(([cluster, data]) => (
+            <View key={cluster} style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                {getClusterIcon(cluster)} {cluster} Analysis
+              </Text>
+              <Text style={styles.clusterAnalysisText}>
+                {data.analysis}
+              </Text>
+            </View>
+          ))}
         </>
       ) : (
         <View style={styles.missingDataCard}>
@@ -385,33 +390,131 @@ const RelationshipAnalysisScreen: React.FC = () => {
     </ScrollView>
   );
 
-  const AnalysisTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      {analysisData?.categoryAnalysis ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔍 Detailed Analysis</Text>
-          <Text style={styles.sectionSubtitle}>
-            Coming soon: 7 category detailed analysis with sub-tabs
-          </Text>
-          <View style={styles.placeholder}>
-            <Text style={styles.placeholderText}>Category Analysis</Text>
-            <Text style={styles.placeholderSubtext}>Sub-tab navigation for detailed insights</Text>
+  const AnalysisTab = () => {
+    const [activeAnalysisTab, setActiveAnalysisTab] = useState('OVERALL_ATTRACTION_CHEMISTRY');
+    
+    const categoryInfo: { [key: string]: { icon: string; name: string } } = {
+      'OVERALL_ATTRACTION_CHEMISTRY': { icon: '💫', name: 'Overall Attraction & Chemistry' },
+      'EMOTIONAL_SECURITY_CONNECTION': { icon: '🏡', name: 'Emotional Security & Connection' },
+      'SEX_AND_INTIMACY': { icon: '🔥', name: 'Sex & Intimacy' },
+      'COMMUNICATION_AND_MENTAL_CONNECTION': { icon: '💬', name: 'Communication & Mental Connection' },
+      'COMMITMENT_LONG_TERM_POTENTIAL': { icon: '💍', name: 'Commitment & Long-term Potential' },
+      'KARMIC_LESSONS_GROWTH': { icon: '🌟', name: 'Karmic Lessons & Growth' },
+      'PRACTICAL_GROWTH_SHARED_GOALS': { icon: '🎯', name: 'Practical Growth & Shared Goals' },
+    };
+
+    const analysisCategories = analysisData?.analysis ? Object.keys(analysisData.analysis) : [];
+    const currentCategoryData = analysisData?.analysis?.[activeAnalysisTab];
+
+    return (
+      <View style={styles.analysisContainer}>
+        {analysisData?.analysis && analysisCategories.length > 0 ? (
+          <>
+            {/* Category Tab Navigation */}
+            <View style={styles.analysisTabContainer}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.analysisTabScrollContainer}
+              >
+                {analysisCategories.map((category) => (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.analysisTab,
+                      activeAnalysisTab === category && styles.activeAnalysisTab,
+                    ]}
+                    onPress={() => setActiveAnalysisTab(category)}
+                  >
+                    <Text style={styles.analysisTabIcon}>
+                      {categoryInfo[category]?.icon || '📊'}
+                    </Text>
+                    <Text style={[
+                      styles.analysisTabText,
+                      activeAnalysisTab === category && styles.activeAnalysisTabText,
+                    ]}>
+                      {categoryInfo[category]?.name || category.replace(/_/g, ' ')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Category Content */}
+            <ScrollView style={styles.analysisCategoryContent} showsVerticalScrollIndicator={false}>
+              {currentCategoryData ? (
+                <>
+                  {/* Category Header */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>
+                      {categoryInfo[activeAnalysisTab]?.icon || '📊'} {categoryInfo[activeAnalysisTab]?.name || activeAnalysisTab}
+                    </Text>
+                    {analysisData?.scoreAnalysis?.[activeAnalysisTab]?.scoredItems && (
+                      <View style={styles.relevantPositionCard}>
+                        <Text style={styles.relevantPositionTitle}>🎯 Most Significant Factors</Text>
+                        <ScoredItemsTable
+                          scoredItems={analysisData.scoreAnalysis[activeAnalysisTab].scoredItems}
+                          userAName={relationship.userA_name || 'User A'}
+                          userBName={relationship.userB_name || 'User B'}
+                        />
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Analysis Panels */}
+                  {currentCategoryData.panels.synastry && (
+                    <View style={styles.section}>
+                      <Text style={styles.sectionTitle}>🔗 Synastry Analysis</Text>
+                      <Text style={styles.analysisText}>
+                        {currentCategoryData.panels.synastry}
+                      </Text>
+                    </View>
+                  )}
+
+                  {currentCategoryData.panels.composite && (
+                    <View style={styles.section}>
+                      <Text style={styles.sectionTitle}>🌟 Composite Analysis</Text>
+                      <Text style={styles.analysisText}>
+                        {currentCategoryData.panels.composite}
+                      </Text>
+                    </View>
+                  )}
+
+                  {currentCategoryData.panels.fullAnalysis && (
+                    <View style={styles.section}>
+                      <Text style={styles.sectionTitle}>🔍 Full Analysis</Text>
+                      <Text style={styles.analysisText}>
+                        {currentCategoryData.panels.fullAnalysis}
+                      </Text>
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.missingDataCard}>
+                  <Text style={styles.missingDataIcon}>📊</Text>
+                  <Text style={styles.missingDataTitle}>Analysis Loading</Text>
+                  <Text style={styles.missingDataText}>
+                    Analysis data for this category is being prepared.
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </>
+        ) : (
+          <View style={styles.missingDataCard}>
+            <Text style={styles.missingDataIcon}>🔍</Text>
+            <Text style={styles.missingDataTitle}>Detailed Analysis</Text>
+            <Text style={styles.missingDataText}>
+              Complete your full analysis to unlock detailed category insights across all 7 compatibility areas.
+            </Text>
+            <TouchableOpacity style={styles.completeAnalysisButton}>
+              <Text style={styles.completeAnalysisButtonText}>Complete Full Analysis</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      ) : (
-        <View style={styles.missingDataCard}>
-          <Text style={styles.missingDataIcon}>🔍</Text>
-          <Text style={styles.missingDataTitle}>Detailed Analysis</Text>
-          <Text style={styles.missingDataText}>
-            Complete your full analysis to unlock detailed category insights across all 7 compatibility areas.
-          </Text>
-          <TouchableOpacity style={styles.completeAnalysisButton}>
-            <Text style={styles.completeAnalysisButtonText}>Complete Full Analysis</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </ScrollView>
-  );
+        )}
+      </View>
+    );
+  };
 
   const getClusterIcon = (cluster: string): string => {
     const icons: { [key: string]: string } = {
@@ -683,39 +786,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginHorizontal: 20,
   },
-  radarPlaceholder: {
-    backgroundColor: '#0f172a',
-    borderRadius: 8,
-    padding: 24,
-    alignItems: 'center',
-  },
-  scoresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginTop: 16,
-    gap: 12,
-  },
-  scoreCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    minWidth: 80,
-  },
-  scoreIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  scoreLabel: {
-    color: '#94a3b8',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  scoreValue: {
-    color: '#8b5cf6',
-    fontSize: 14,
-    fontWeight: 'bold',
+  clusterAnalysisText: {
+    color: '#ffffff',
+    fontSize: 15,
+    lineHeight: 24,
+    fontStyle: 'italic',
   },
   overviewText: {
     color: '#ffffff',
@@ -827,6 +902,65 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  analysisContainer: {
+    flex: 1,
+  },
+  analysisTabContainer: {
+    backgroundColor: '#1e293b',
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  analysisTabScrollContainer: {
+    paddingHorizontal: 16,
+  },
+  analysisTab: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    alignItems: 'center',
+    minWidth: 120,
+  },
+  activeAnalysisTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#8b5cf6',
+  },
+  analysisTabIcon: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  analysisTabText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  activeAnalysisTabText: {
+    color: '#8b5cf6',
+    fontWeight: '600',
+  },
+  analysisCategoryContent: {
+    flex: 1,
+    padding: 16,
+  },
+  relevantPositionCard: {
+    backgroundColor: '#0f172a',
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#8b5cf6',
+  },
+  relevantPositionTitle: {
+    color: '#8b5cf6',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  analysisText: {
+    color: '#ffffff',
+    fontSize: 15,
+    lineHeight: 24,
   },
 });
 
