@@ -4,6 +4,7 @@ import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
 import { BirthChart } from '../../types';
 import PatternCard from './PatternCard';
+import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
 
 interface PatternsTabProps {
   userId?: string;
@@ -109,9 +110,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
       <Text style={styles.missingAnalysisText}>
         Complete analysis data is not available for this chart. 
       </Text>
-      <TouchableOpacity style={styles.completeAnalysisButton} onPress={loadFullAnalysis}>
-        <Text style={styles.completeAnalysisButtonText}>Complete Full Analysis</Text>
-      </TouchableOpacity>
+      <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
     </View>
   );
 

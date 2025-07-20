@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-nati
 import { useChart } from '../../hooks/useChart';
 import { BirthChart } from '../../types';
 import PlanetCard from './PlanetCard';
+import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
 
 // Planet order based on frontend guide
 const PLANET_ORDER = [
@@ -42,9 +43,7 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
       <Text style={styles.missingAnalysisText}>
         Complete planetary analysis is not available for this chart.
       </Text>
-      <TouchableOpacity style={styles.completeAnalysisButton} onPress={loadFullAnalysis}>
-        <Text style={styles.completeAnalysisButtonText}>Complete Full Analysis</Text>
-      </TouchableOpacity>
+      <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
     </View>
   );
 
