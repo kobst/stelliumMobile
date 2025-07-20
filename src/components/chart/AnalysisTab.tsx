@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useChart } from '../../hooks/useChart';
+import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
 
 interface AnalysisTabProps {
   userId?: string;
@@ -181,9 +182,7 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
       <Text style={styles.missingAnalysisText}>
         Complete life analysis is not available for this chart.
       </Text>
-      <TouchableOpacity style={styles.completeAnalysisButton} onPress={loadFullAnalysis}>
-        <Text style={styles.completeAnalysisButtonText}>Complete Full Analysis</Text>
-      </TouchableOpacity>
+      <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
     </View>
   );
 

@@ -92,6 +92,7 @@ export const useChart = (userId?: string): UseChartReturn => {
 
   const startAnalysisWorkflow = useCallback(async () => {
     const targetUserId = userId || userData?.id;
+    console.log('useChart - startAnalysisWorkflow called for userId:', targetUserId);
     if (!targetUserId) {
       setError('No user ID available');
       return;
@@ -101,43 +102,77 @@ export const useChart = (userId?: string): UseChartReturn => {
     setError(null);
 
     try {
+      console.log('useChart - Calling startFullAnalysis API');
       const response = await chartsApi.startFullAnalysis(targetUserId);
+      console.log('useChart - startFullAnalysis response:', response);
       setWorkflowState(response);
       setStoreWorkflowState(response);
       
       // Start polling for status
       if (response.workflowId) {
+        console.log('useChart - Starting polling for workflowId:', response.workflowId);
         pollWorkflowStatus(response.workflowId);
       }
     } catch (err) {
+      console.error('useChart - startAnalysisWorkflow error:', err);
       const errorMessage = err instanceof ApiError ? err.message : 'Failed to start analysis workflow';
       setError(errorMessage);
       setLoading(false);
     }
-  }, [userId, userData?.id, setStoreWorkflowState]);
+  }, [userId, userData?.id, setStoreWorkflowState, pollWorkflowStatus]);
 
   const pollWorkflowStatus = useCallback(async (workflowId: string) => {
+    const targetUserId = userId || userData?.id;
+    console.log('useChart - Starting polling for workflowId:', workflowId, 'userId:', targetUserId);
+    if (!targetUserId) {
+      setError('No user ID available for polling');
+      return;
+    }
+    
     try {
       const pollInterval = setInterval(async () => {
         try {
-          const statusResponse = await chartsApi.pollAnalysisStatus(workflowId);
+          console.log('useChart - Polling status for workflowId:', workflowId, 'userId:', targetUserId);
+          const statusResponse = await chartsApi.pollAnalysisStatus(targetUserId, workflowId);
+          console.log('useChart - Poll response:', statusResponse);
           setWorkflowState(statusResponse);
           setStoreWorkflowState(statusResponse);
           
-          if (statusResponse.isCompleted) {
+          if (statusResponse.completed) {
+            console.log('useChart - Workflow completed, fetching analysis data');
             clearInterval(pollInterval);
             setLoading(false);
             
             // Fetch completed analysis data
-            const analysisData = await chartsApi.getCompleteAnalysisData(workflowId);
-            setFullAnalysis(analysisData);
-            
-            setAnalysisState({
-              hasFullAnalysis: true,
-              analysisContent: analysisData,
-            });
+            try {
+              const analysisData = await chartsApi.getCompleteAnalysisData(targetUserId, workflowId);
+              console.log('useChart - Analysis data received from complete-data:', analysisData);
+              setFullAnalysis(analysisData);
+              
+              setAnalysisState({
+                hasFullAnalysis: true,
+                analysisContent: analysisData,
+              });
+            } catch (completeDataError) {
+              console.log('useChart - complete-data failed, trying fetchAnalysis:', completeDataError);
+              // Fallback to regular analysis fetch
+              try {
+                const fallbackData = await chartsApi.fetchAnalysis(targetUserId);
+                console.log('useChart - Fallback analysis data received:', fallbackData);
+                setFullAnalysis(fallbackData);
+                
+                setAnalysisState({
+                  hasFullAnalysis: true,
+                  analysisContent: fallbackData,
+                });
+              } catch (fallbackError) {
+                console.error('useChart - Both complete-data and fetchAnalysis failed:', fallbackError);
+                setError('Failed to fetch completed analysis data');
+              }
+            }
           }
         } catch (err) {
+          console.error('useChart - Polling error:', err);
           clearInterval(pollInterval);
           const errorMessage = err instanceof ApiError ? err.message : 'Workflow polling failed';
           setError(errorMessage);
@@ -159,7 +194,7 @@ export const useChart = (userId?: string): UseChartReturn => {
       setError(errorMessage);
       setLoading(false);
     }
-  }, [loading, setStoreWorkflowState, setAnalysisState]);
+  }, [userId, userData?.id, loading, setStoreWorkflowState, setAnalysisState]);
 
   const getPlanetOverview = useCallback(async (planetName: string): Promise<string | null> => {
     if (!userData?.birthChart) {

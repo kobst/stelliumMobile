@@ -2,10 +2,18 @@ import { apiClient } from './client';
 import { User } from '../types';
 
 export interface AnalysisWorkflowResponse {
+  success: boolean;
   workflowId: string;
   status: string;
-  isCompleted: boolean;
-  progress?: number;
+  completed: boolean;
+  progress?: {
+    percentage: number;
+    completedTasks: number;
+    totalTasks: number;
+    currentPhase: string;
+  };
+  stepFunctionStatus: string;
+  message: string;
 }
 
 // Structured analysis response based on frontend guide
@@ -100,13 +108,50 @@ export const chartsApi = {
   },
 
   // Poll analysis status
-  pollAnalysisStatus: async (workflowId: string): Promise<AnalysisWorkflowResponse> => {
-    return apiClient.post<AnalysisWorkflowResponse>('/analysis/full-status', { workflowId });
+  pollAnalysisStatus: async (userId: string, workflowId: string): Promise<AnalysisWorkflowResponse> => {
+    return apiClient.post<AnalysisWorkflowResponse>('/analysis/full-status', { userId, workflowId });
   },
 
   // Get completed analysis data
-  getCompleteAnalysisData: async (workflowId: string): Promise<ChartAnalysisResponse> => {
-    return apiClient.post<ChartAnalysisResponse>('/analysis/complete-data', { workflowId });
+  getCompleteAnalysisData: async (userId: string, workflowId: string): Promise<ChartAnalysisResponse> => {
+    const response = await apiClient.post<any>('/workflow/get-complete-data', { userId, workflowId });
+    
+    // Transform the response to match our ChartAnalysisResponse interface
+    if (response.success && response.data) {
+      const { subject, analysis } = response.data;
+      
+      return {
+        birthChartAnalysisId: analysis._id,
+        interpretation: {
+          basicAnalysis: {
+            overview: analysis.interpretation?.basicAnalysis?.overview || '',
+            dominance: {
+              elements: { interpretation: analysis.interpretation?.basicAnalysis?.dominancePatterns?.elements || '' },
+              modalities: { interpretation: analysis.interpretation?.basicAnalysis?.dominancePatterns?.modalities || '' },
+              quadrants: { interpretation: analysis.interpretation?.basicAnalysis?.dominancePatterns?.quadrants || '' },
+              patterns: { interpretation: analysis.interpretation?.basicAnalysis?.dominancePatterns?.patterns || '' },
+              planetary: { interpretation: analysis.interpretation?.basicAnalysis?.dominancePatterns?.planetary || '' },
+            },
+            planets: analysis.interpretation?.basicAnalysis?.planetAnalysis || {},
+          },
+          SubtopicAnalysis: analysis.interpretation?.topicAnalysis || {},
+        },
+        vectorizationStatus: analysis.vectorizationStatus || {
+          topicAnalysis: { isComplete: false, progress: 0 },
+          basicAnalysis: { isComplete: false, progress: 0 },
+        },
+        // Include birth chart data from subject
+        planets: subject.birthChart?.planets || [],
+        houses: subject.birthChart?.houses || [],
+        aspects: subject.birthChart?.aspects || [],
+        elements: subject.birthChart?.elements || {},
+        modalities: subject.birthChart?.modalities || {},
+        quadrants: subject.birthChart?.quadrants || {},
+        patterns: subject.birthChart?.patterns || [],
+      };
+    }
+    
+    throw new Error('Invalid response format from workflow/get-complete-data');
   },
 
   // Generate topic analysis

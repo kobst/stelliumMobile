@@ -10,4 +10,5 @@ export { default as PlanetsTab } from './PlanetsTab';
 export { default as AnalysisTab } from './AnalysisTab';
 export { default as PatternCard } from './PatternCard';
 export { default as PlanetCard } from './PlanetCard';
+export { default as CompleteFullAnalysisButton } from './CompleteFullAnalysisButton';
 export * from './ChartUtils';
