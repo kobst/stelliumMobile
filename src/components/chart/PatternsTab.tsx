@@ -5,6 +5,7 @@ import { useStore } from '../../store';
 import { BirthChart } from '../../types';
 import PatternCard from './PatternCard';
 import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
+import { useTheme } from '../../theme';
 
 interface PatternsTabProps {
   userId?: string;
@@ -14,6 +15,7 @@ interface PatternsTabProps {
 const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   const { fullAnalysis, loading, loadFullAnalysis } = useChart(userId);
   const { userData } = useStore();
+  const { colors } = useTheme();
 
   // Load analysis on mount if not already loaded
   React.useEffect(() => {
@@ -104,10 +106,10 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
 
   // Fallback UI component for missing analysis
   const renderMissingAnalysis = () => (
-    <View style={styles.missingAnalysisContainer}>
+    <View style={[styles.missingAnalysisContainer, { backgroundColor: colors.background }]}>
       <Text style={styles.missingAnalysisIcon}>📊</Text>
-      <Text style={styles.missingAnalysisTitle}>Patterns Analysis Not Available</Text>
-      <Text style={styles.missingAnalysisText}>
+      <Text style={[styles.missingAnalysisTitle, { color: colors.onBackground }]}>Patterns Analysis Not Available</Text>
+      <Text style={[styles.missingAnalysisText, { color: colors.onSurfaceVariant }]}>
         Complete analysis data is not available for this chart. 
       </Text>
       <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
@@ -116,8 +118,8 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading patterns analysis...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading patterns analysis...</Text>
       </View>
     );
   }
@@ -136,7 +138,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
         {/* Elements Card */}
         <PatternCard
@@ -196,7 +198,6 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   content: {
     padding: 16,
@@ -205,19 +206,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 32,
   },
   loadingText: {
     fontSize: 16,
-    color: '#94a3b8',
     textAlign: 'center',
   },
   noDataContainer: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
     padding: 24,
     alignItems: 'center',
     marginBottom: 16,
@@ -225,13 +222,11 @@ const styles = StyleSheet.create({
   noDataTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#8b5cf6',
     textAlign: 'center',
     marginBottom: 12,
   },
   noDataText: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -239,7 +234,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 32,
   },
   missingAnalysisIcon: {
@@ -249,25 +243,21 @@ const styles = StyleSheet.create({
   missingAnalysisTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#ffffff',
     textAlign: 'center',
     marginBottom: 12,
   },
   missingAnalysisText: {
     fontSize: 16,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
   },
   completeAnalysisButton: {
-    backgroundColor: '#3b82f6',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   completeAnalysisButtonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },

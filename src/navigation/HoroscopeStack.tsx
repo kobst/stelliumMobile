@@ -3,17 +3,20 @@ import { createStackNavigator } from '@react-navigation/stack';
 import HoroscopeScreen from '../screens/horoscope/HoroscopeScreen';
 import TransitSelectionScreen from '../screens/horoscope/TransitSelectionScreen';
 import CustomHoroscopeScreen from '../screens/horoscope/CustomHoroscopeScreen';
+import { useTheme } from '../theme';
 
 const Stack = createStackNavigator();
 
 const HoroscopeStack: React.FC = () => {
+  const { colors } = useTheme();
+  
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#1f2937',
+          backgroundColor: colors.surface,
         },
-        headerTintColor: '#ffffff',
+        headerTintColor: colors.onSurface,
         headerTitleStyle: {
           fontWeight: 'bold',
         },

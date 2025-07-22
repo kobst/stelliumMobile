@@ -9,15 +9,17 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../../store';
 import UserRelationships from '../../components/UserRelationships';
+import { useTheme } from '../../theme';
 
 const RelationshipsScreen: React.FC = () => {
   const { userData } = useStore();
   const navigation = useNavigation();
+  const { colors } = useTheme();
 
   if (!userData) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Please sign in to view relationships</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view relationships</Text>
       </View>
     );
   }
@@ -26,9 +28,9 @@ const RelationshipsScreen: React.FC = () => {
     {
       id: 'header',
       component: (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Relationship Compatibility</Text>
-          <Text style={styles.sectionSubtitle}>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Relationship Compatibility</Text>
+          <Text style={[styles.sectionSubtitle, { color: colors.onSurfaceVariant }]}>
             Discover cosmic connections and compatibility insights
           </Text>
         </View>
@@ -37,15 +39,15 @@ const RelationshipsScreen: React.FC = () => {
     {
       id: 'create',
       component: (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Create New Analysis</Text>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Create New Analysis</Text>
           
           <TouchableOpacity 
-            style={styles.createButton} 
+            style={[styles.createButton, { backgroundColor: colors.primary }]} 
             onPress={() => (navigation as any).navigate('CreateRelationship')}
           >
-            <Text style={styles.createButtonText}>✨ Create New Relationship</Text>
-            <Text style={styles.createButtonSubtext}>Choose from guests or celebrities</Text>
+            <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>✨ Create New Relationship</Text>
+            <Text style={[styles.createButtonSubtext, { color: colors.onPrimary }]}>Choose from guests or celebrities</Text>
           </TouchableOpacity>
         </View>
       ),
@@ -66,9 +68,9 @@ const RelationshipsScreen: React.FC = () => {
     {
       id: 'categories',
       component: (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Compatibility Analysis</Text>
-          <Text style={styles.sectionSubtitle}>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Compatibility Analysis</Text>
+          <Text style={[styles.sectionSubtitle, { color: colors.onSurfaceVariant }]}>
             Our analysis covers these key areas:
           </Text>
           
@@ -82,8 +84,8 @@ const RelationshipsScreen: React.FC = () => {
               '💍 Long-term Stability',
               '🌟 Spiritual Growth',
             ].map((category, index) => (
-              <View key={index} style={styles.categoryItem}>
-                <Text style={styles.categoryText}>{category}</Text>
+              <View key={index} style={[styles.categoryItem, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.categoryText, { color: colors.onSurface }]}>{category}</Text>
               </View>
             ))}
           </View>
@@ -93,9 +95,9 @@ const RelationshipsScreen: React.FC = () => {
     {
       id: 'synastry',
       component: (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About Synastry</Text>
-          <Text style={styles.infoText}>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>About Synastry</Text>
+          <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
             Synastry is the astrological practice of comparing two birth charts to understand relationship dynamics. 
             Our AI analyzes planetary aspects, house placements, and cosmic patterns to provide detailed 
             compatibility insights across seven key relationship areas.
@@ -107,7 +109,7 @@ const RelationshipsScreen: React.FC = () => {
 
   return (
     <FlatList
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       data={headerSections}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => item.component}
@@ -119,52 +121,42 @@ const RelationshipsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   section: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#94a3b8',
     marginBottom: 16,
     lineHeight: 20,
   },
   createButton: {
-    backgroundColor: '#8b5cf6',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 8,
   },
   createButtonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
   },
   createButtonSubtext: {
-    color: '#e2e8f0',
     fontSize: 12,
   },
   emptyState: {
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#0f172a',
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#334155',
     borderStyle: 'dashed',
   },
   emptyStateIcon: {
@@ -173,7 +165,6 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -183,20 +174,16 @@ const styles = StyleSheet.create({
   categoryItem: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   categoryText: {
     fontSize: 14,
-    color: '#e2e8f0',
     lineHeight: 20,
   },
   infoText: {
     fontSize: 14,
-    color: '#94a3b8',
     lineHeight: 20,
   },
   errorText: {
-    color: '#ef4444',
     fontSize: 16,
     textAlign: 'center',
     padding: 32,

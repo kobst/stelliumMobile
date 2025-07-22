@@ -4,6 +4,7 @@ import { useChart } from '../../hooks/useChart';
 import { BirthChart } from '../../types';
 import PlanetCard from './PlanetCard';
 import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
+import { useTheme } from '../../theme';
 
 // Planet order based on frontend guide
 const PLANET_ORDER = [
@@ -18,6 +19,7 @@ interface PlanetsTabProps {
 
 const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
   const { fullAnalysis, loading, loadFullAnalysis } = useChart(userId);
+  const { colors } = useTheme();
 
   // Get planet analysis data
   const getPlanetAnalysis = () => {
@@ -37,10 +39,10 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
 
   // Fallback UI component for missing analysis
   const renderMissingAnalysis = () => (
-    <View style={styles.missingAnalysisContainer}>
+    <View style={[styles.missingAnalysisContainer, { backgroundColor: colors.background }]}>
       <Text style={styles.missingAnalysisIcon}>🪐</Text>
-      <Text style={styles.missingAnalysisTitle}>Planetary Analysis Not Available</Text>
-      <Text style={styles.missingAnalysisText}>
+      <Text style={[styles.missingAnalysisTitle, { color: colors.onBackground }]}>Planetary Analysis Not Available</Text>
+      <Text style={[styles.missingAnalysisText, { color: colors.onSurfaceVariant }]}>
         Complete planetary analysis is not available for this chart.
       </Text>
       <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
@@ -49,8 +51,8 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading planetary analysis...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading planetary analysis...</Text>
       </View>
     );
   }
@@ -67,12 +69,12 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>🪐 Planetary Analysis</Text>
-          <Text style={styles.headerSubtitle}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.primary }]}>🪐 Planetary Analysis</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
             Detailed interpretations for each planet in your birth chart
           </Text>
         </View>
@@ -95,7 +97,6 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   content: {
     padding: 16,
@@ -104,18 +105,15 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(139, 92, 246, 0.2)',
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#8b5cf6',
     marginBottom: 8,
     textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -123,19 +121,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 32,
   },
   loadingText: {
     fontSize: 16,
-    color: '#94a3b8',
     textAlign: 'center',
   },
   noDataContainer: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
     padding: 24,
     alignItems: 'center',
     marginBottom: 16,
@@ -143,13 +137,11 @@ const styles = StyleSheet.create({
   noDataTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#8b5cf6',
     textAlign: 'center',
     marginBottom: 12,
   },
   noDataText: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -160,7 +152,6 @@ const styles = StyleSheet.create({
   placeholderTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -171,7 +162,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 32,
   },
   missingAnalysisIcon: {
@@ -181,25 +171,21 @@ const styles = StyleSheet.create({
   missingAnalysisTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#ffffff',
     textAlign: 'center',
     marginBottom: 12,
   },
   missingAnalysisText: {
     fontSize: 16,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
   },
   completeAnalysisButton: {
-    backgroundColor: '#3b82f6',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   completeAnalysisButtonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },

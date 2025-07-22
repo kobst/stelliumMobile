@@ -9,6 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useStore } from '../store';
+import { useTheme } from '../theme';
 import { celebritiesApi, CelebrityRelationship } from '../api/celebrities';
 
 interface CelebrityRelationshipsProps {
@@ -17,6 +18,7 @@ interface CelebrityRelationshipsProps {
 
 const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCelebrityPress }) => {
   const { userData } = useStore();
+  const { colors } = useTheme();
   const [relationships, setRelationships] = useState<CelebrityRelationship[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,61 +62,61 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
 
   const renderRelationshipItem = ({ item }: { item: CelebrityRelationship }) => (
     <TouchableOpacity 
-      style={styles.relationshipCard}
+      style={[styles.relationshipCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={() => {
         // Future: Navigate to relationship analysis
         console.log('Selected relationship:', item);
       }}
     >
       <View style={styles.relationshipHeader}>
-        <Text style={styles.relationshipTitle}>Celebrity Relationship</Text>
-        <Text style={styles.createdDate}>
+        <Text style={[styles.relationshipTitle, { color: colors.primary }]}>Celebrity Relationship</Text>
+        <Text style={[styles.createdDate, { color: colors.onSurfaceVariant }]}>
           {new Date(item.createdAt).toLocaleDateString()}
         </Text>
       </View>
       
       <View style={styles.celebrityPair}>
         <View style={styles.celebrityInfo}>
-          <Text style={styles.celebrityName}>{getFullName(item, 'A')}</Text>
-          <Text style={styles.celebrityDOB}>
+          <Text style={[styles.celebrityName, { color: colors.onSurface }]}>{getFullName(item, 'A')}</Text>
+          <Text style={[styles.celebrityDOB, { color: colors.onSurfaceVariant }]}>
             {new Date(item.userA_dateOfBirth).toLocaleDateString()}
           </Text>
         </View>
         
         <View style={styles.separator}>
-          <Text style={styles.separatorText}>♥</Text>
+          <Text style={[styles.separatorText, { color: colors.primary }]}>♥</Text>
         </View>
         
         <View style={styles.celebrityInfo}>
-          <Text style={styles.celebrityName}>{getFullName(item, 'B')}</Text>
-          <Text style={styles.celebrityDOB}>
+          <Text style={[styles.celebrityName, { color: colors.onSurface }]}>{getFullName(item, 'B')}</Text>
+          <Text style={[styles.celebrityDOB, { color: colors.onSurfaceVariant }]}>
             {new Date(item.userB_dateOfBirth).toLocaleDateString()}
           </Text>
         </View>
       </View>
       
-      <View style={styles.viewAnalysisContainer}>
-        <Text style={styles.viewAnalysisText}>Tap to view analysis →</Text>
+      <View style={[styles.viewAnalysisContainer, { borderTopColor: colors.border }]}>
+        <Text style={[styles.viewAnalysisText, { color: colors.primary }]}>Tap to view analysis →</Text>
       </View>
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Loading celebrity relationships...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading celebrity relationships...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={styles.errorSection}>
-          <Text style={styles.errorText}>Error: {error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadRelationships}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.errorSection, { backgroundColor: colors.surface, borderColor: colors.error }]}>
+          <Text style={[styles.errorText, { color: colors.error }]}>Error: {error}</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.error }]} onPress={loadRelationships}>
+            <Text style={[styles.retryButtonText, { color: colors.onError }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -122,13 +124,13 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {relationships.length === 0 ? (
-        <View style={styles.noResultsContainer}>
-          <Text style={styles.noResultsText}>
+        <View style={[styles.noResultsContainer, { backgroundColor: colors.background }]}>
+          <Text style={[styles.noResultsText, { color: colors.onSurfaceVariant }]}>
             No celebrity relationships found.
           </Text>
-          <Text style={styles.noResultsSubtext}>
+          <Text style={[styles.noResultsSubtext, { color: colors.onSurfaceVariant }]}>
             Celebrity relationships will appear here once they are created.
           </Text>
         </View>
@@ -149,17 +151,14 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 32,
   },
   loadingText: {
-    color: '#94a3b8',
     fontSize: 16,
     marginTop: 12,
   },
@@ -167,17 +166,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 32,
   },
   noResultsText: {
-    color: '#94a3b8',
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 8,
   },
   noResultsSubtext: {
-    color: '#64748b',
     fontSize: 14,
     textAlign: 'center',
     fontStyle: 'italic',
@@ -189,10 +185,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   relationshipCard: {
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
     marginBottom: 12,
     padding: 16,
   },
@@ -203,12 +197,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   relationshipTitle: {
-    color: '#f97316',
     fontSize: 14,
     fontWeight: '600',
   },
   createdDate: {
-    color: '#64748b',
     fontSize: 12,
   },
   celebrityPair: {
@@ -221,14 +213,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   celebrityName: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
     textAlign: 'center',
   },
   celebrityDOB: {
-    color: '#94a3b8',
     fontSize: 12,
     textAlign: 'center',
   },
@@ -237,43 +227,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   separatorText: {
-    color: '#8b5cf6',
     fontSize: 20,
   },
   viewAnalysisContainer: {
     alignItems: 'center',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
   },
   viewAnalysisText: {
-    color: '#8b5cf6',
     fontSize: 14,
     fontWeight: '500',
   },
   errorSection: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ef4444',
     alignItems: 'center',
   },
   errorText: {
-    color: '#ef4444',
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 12,
   },
   retryButton: {
-    backgroundColor: '#ef4444',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   retryButtonText: {
-    color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
   },

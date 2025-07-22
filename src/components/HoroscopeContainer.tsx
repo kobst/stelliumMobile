@@ -23,6 +23,7 @@ import {
   getNextMonthRange,
   dateRangesOverlap 
 } from '../utils/dateHelpers';
+import { useTheme } from '../theme';
 
 interface HoroscopeContainerProps {
   transitWindows?: TransitEvent[];
@@ -46,6 +47,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   error = null,
   userId,
 }) => {
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<HoroscopeFilter>('today');
   const [showTransits, setShowTransits] = useState(true);
   const [selectedTransits, setSelectedTransits] = useState<Set<number>>(new Set());
@@ -478,10 +480,12 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     }
   };
 
+  const styles = createStyles(colors);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading horoscope data...</Text>
       </View>
     );
@@ -555,7 +559,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           <View>
             {transitWindowsLoading ? (
               <View style={styles.horoscopeGenerating}>
-                <ActivityIndicator size="large" color="#8b5cf6" style={styles.generatingSpinner} />
+                <ActivityIndicator size="large" color={colors.primary} style={styles.generatingSpinner} />
                 <Text style={styles.horoscopeGeneratingTitle}>Loading Transit Data</Text>
                 <Text style={styles.horoscopeGeneratingText}>
                   Fetching available transit events for custom horoscope generation...
@@ -649,7 +653,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           <View style={styles.horoscopeGenerating}>
             {horoscopeLoading ? (
               <>
-                <ActivityIndicator size="large" color="#8b5cf6" style={styles.generatingSpinner} />
+                <ActivityIndicator size="large" color={colors.primary} style={styles.generatingSpinner} />
                 <Text style={styles.horoscopeGeneratingTitle}>
                   Generating Your {activeTab === 'today' || activeTab === 'tomorrow' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
                 </Text>
@@ -818,19 +822,20 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+// Create a function to generate dynamic styles based on theme
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.background,
   },
   loadingText: {
-    color: '#94a3b8',
+    color: colors.onSurfaceVariant,
     fontSize: 16,
     marginTop: 12,
   },
@@ -838,18 +843,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.background,
     padding: 32,
   },
   errorText: {
-    color: '#ef4444',
+    color: colors.error,
     fontSize: 16,
     textAlign: 'center',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: colors.onBackground,
     textAlign: 'center',
     marginVertical: 16,
   },
@@ -857,69 +862,69 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  tabContentContainer: {
-    paddingRight: 16,
-  },
   tabButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginRight: 8,
     borderRadius: 20,
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.border,
   },
   activeTabButton: {
-    backgroundColor: '#8b5cf6',
-    borderColor: '#8b5cf6',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   tabButtonText: {
-    color: '#94a3b8',
+    color: colors.onSurfaceVariant,
     fontWeight: '500',
     fontSize: 14,
   },
   activeTabButtonText: {
-    color: 'white',
+    color: colors.onPrimary,
   },
   section: {
     margin: 16,
   },
   horoscopeCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.border,
   },
   horoscopeTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: colors.onSurface,
     marginBottom: 12,
   },
   horoscopeText: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#e2e8f0',
+    color: colors.onSurface,
     marginBottom: 12,
   },
   horoscopeDate: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: colors.onSurfaceVariant,
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  tabContentContainer: {
+    paddingRight: 16,
   },
   keyTransitsSection: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: colors.border,
   },
   keyTransitsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
+    color: colors.onSurface,
     marginBottom: 8,
   },
   transitItem: {
@@ -927,68 +932,68 @@ const styles = StyleSheet.create({
   },
   transitText: {
     fontSize: 14,
-    color: '#e2e8f0',
+    color: colors.onSurface,
   },
   transitPlanet: {
     fontWeight: '600',
-    color: '#8b5cf6',
+    color: colors.primary,
   },
   transitDate: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: colors.onSurfaceVariant,
     marginTop: 2,
   },
   keyThemesSection: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: colors.border,
   },
   keyThemesTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
+    color: colors.onSurface,
     marginBottom: 8,
   },
   themeText: {
     fontSize: 14,
-    color: '#e2e8f0',
+    color: colors.onSurface,
     marginBottom: 4,
   },
   customHoroscopeSection: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#8b5cf6',
+    borderColor: colors.primary,
   },
   customHoroscopeTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#8b5cf6',
+    color: colors.primary,
     marginBottom: 12,
   },
   partialErrorNotice: {
-    backgroundColor: '#fbbf24',
+    backgroundColor: colors.surfaceVariant,
     margin: 16,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#f59e0b',
+    borderColor: colors.border,
   },
   partialErrorText: {
-    color: '#92400e',
+    color: colors.onSurfaceVariant,
     fontSize: 14,
     textAlign: 'center',
   },
   horoscopeGenerating: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 24,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#8b5cf6',
+    borderColor: colors.primary,
     alignItems: 'center',
   },
   generatingSpinner: {
@@ -997,71 +1002,71 @@ const styles = StyleSheet.create({
   horoscopeGeneratingTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#8b5cf6',
+    color: colors.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   horoscopeGeneratingText: {
     fontSize: 14,
-    color: '#e2e8f0',
+    color: colors.onSurface,
     textAlign: 'center',
     lineHeight: 20,
   },
   horoscopeError: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#ef4444',
+    borderColor: colors.error,
     alignItems: 'center',
   },
   horoscopeErrorTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ef4444',
+    color: colors.error,
     marginBottom: 8,
     textAlign: 'center',
   },
   horoscopeErrorText: {
     fontSize: 14,
-    color: '#e2e8f0',
+    color: colors.onSurface,
     marginBottom: 8,
     textAlign: 'center',
   },
   errorDetails: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: colors.onSurfaceVariant,
     marginBottom: 12,
     textAlign: 'center',
     fontStyle: 'italic',
   },
   retryButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.error,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   retryButtonText: {
-    color: '#ffffff',
+    color: colors.onError,
     fontSize: 14,
     fontWeight: '500',
   },
   transitSection: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.border,
   },
   transitToggle: {
-    backgroundColor: '#374151',
+    backgroundColor: colors.surfaceVariant,
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   transitToggleText: {
-    color: '#8b5cf6',
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -1069,7 +1074,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   noTransitsText: {
-    color: '#94a3b8',
+    color: colors.onSurfaceVariant,
     fontSize: 14,
     textAlign: 'center',
     fontStyle: 'italic',
@@ -1079,18 +1084,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   generateCustomButton: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: colors.primary,
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 8,
   },
   disabledButton: {
-    backgroundColor: '#6b7280',
+    backgroundColor: colors.onSurfaceVariant,
     opacity: 0.6,
   },
   generateCustomButtonText: {
-    color: '#ffffff',
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -1100,7 +1105,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: colors.border,
   },
   transitCheckbox: {
     marginRight: 12,
@@ -1110,17 +1115,17 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#6b7280',
+    borderColor: colors.onSurfaceVariant,
     borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkedCheckbox: {
-    backgroundColor: '#8b5cf6',
-    borderColor: '#8b5cf6',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   checkmark: {
-    color: '#ffffff',
+    color: colors.onPrimary,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -1129,54 +1134,54 @@ const styles = StyleSheet.create({
   },
   transitDescription: {
     fontSize: 14,
-    color: '#e2e8f0',
+    color: colors.onSurface,
     marginBottom: 4,
   },
   transitDateRange: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: colors.onSurfaceVariant,
     marginBottom: 2,
   },
   transitExactDate: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: colors.onSurfaceVariant,
   },
   customHoroscopeInterface: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#8b5cf6',
+    borderColor: colors.primary,
   },
   customInterfaceTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#8b5cf6',
+    color: colors.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   customInterfaceSubtitle: {
     fontSize: 14,
-    color: '#e2e8f0',
+    color: colors.onSurface,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 16,
   },
   dateRangeInfo: {
-    backgroundColor: '#374151',
+    backgroundColor: colors.surfaceVariant,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   dateRangeText: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: colors.onSurfaceVariant,
     textAlign: 'center',
     fontStyle: 'italic',
   },
   filterToggleButton: {
-    backgroundColor: '#374151',
+    backgroundColor: colors.surfaceVariant,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
@@ -1184,22 +1189,22 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   filterToggleText: {
-    color: '#8b5cf6',
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '500',
   },
   filtersContainer: {
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     margin: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: colors.border,
   },
   filtersTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: colors.onSurface,
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -1208,15 +1213,15 @@ const styles = StyleSheet.create({
   },
   filterLabel: {
     fontSize: 14,
-    color: '#e2e8f0',
+    color: colors.onSurface,
     marginBottom: 6,
     fontWeight: '500',
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: colors.border,
     borderRadius: 8,
-    backgroundColor: '#374151',
+    backgroundColor: colors.surfaceVariant,
   },
   pickerButton: {
     paddingHorizontal: 12,
@@ -1224,20 +1229,20 @@ const styles = StyleSheet.create({
   },
   pickerText: {
     fontSize: 14,
-    color: '#e2e8f0',
+    color: colors.onSurface,
   },
   filterActions: {
     marginTop: 16,
     alignItems: 'center',
   },
   clearFiltersButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.error,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   clearFiltersText: {
-    color: '#ffffff',
+    color: colors.onError,
     fontSize: 14,
     fontWeight: '500',
   },

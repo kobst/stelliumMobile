@@ -14,10 +14,12 @@ import { useStore } from '../../store';
 import { usersApi, PaginatedUserSubjectsResponse } from '../../api';
 import { SubjectDocument } from '../../types';
 import { userTransformers } from '../../transformers/user';
+import { useTheme } from '../../theme';
 
 const ChartSelectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { userData } = useStore();
+  const { colors } = useTheme();
   const [guestSubjects, setGuestSubjects] = useState<SubjectDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -137,21 +139,21 @@ const ChartSelectionScreen: React.FC = () => {
 
   if (!userData) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Please sign in to view charts</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view charts</Text>
       </View>
     );
   }
 
   return (
     <ScrollView 
-      style={styles.container} 
+      style={[styles.container, { backgroundColor: colors.background }]} 
       contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          tintColor="#60a5fa"
+          tintColor={colors.primary}
         />
       }
       onScroll={({ nativeEvent }) => {
@@ -163,33 +165,33 @@ const ChartSelectionScreen: React.FC = () => {
       }}
       scrollEventThrottle={400}
     >
-      <Text style={styles.header}>My Birth Chart</Text>
+      <Text style={[styles.header, { color: colors.onBackground }]}>My Birth Chart</Text>
       
       {/* Logged-in User's Chart - Expanded */}
       <TouchableOpacity
-        style={[styles.chartCard, styles.primaryCard]}
+        style={[styles.chartCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}
         onPress={() => handleSelectChart(null)}
       >
         <View style={styles.chartHeader}>
-          <Text style={styles.chartQuestion}>How is my day?</Text>
+          <Text style={[styles.chartQuestion, { color: colors.onSurfaceVariant }]}>How is my day?</Text>
           <View style={styles.expandedContent}>
-            <View style={styles.chartCircle}>
+            <View style={[styles.chartCircle, { borderColor: colors.primary, backgroundColor: colors.background }]}>
               <Text style={styles.zodiacSymbol}>
                 {getZodiacIcon(userData.birthMonth, userData.birthDay)}
               </Text>
             </View>
-            <Text style={styles.chartLabel}>Birth Chart</Text>
+            <Text style={[styles.chartLabel, { color: colors.onSurface }]}>Birth Chart</Text>
           </View>
         </View>
       </TouchableOpacity>
 
       {/* Friends & Family Section */}
-      <Text style={styles.sectionHeader}>Friends & Family</Text>
+      <Text style={[styles.sectionHeader, { color: colors.onBackground }]}>Friends & Family</Text>
       
       {loading ? (
-        <ActivityIndicator size="large" color="#60a5fa" style={styles.loader} />
+        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
       ) : error ? (
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
       ) : (
         <>
           {guestSubjects.map((subject) => {
@@ -199,19 +201,19 @@ const ChartSelectionScreen: React.FC = () => {
             return (
               <TouchableOpacity
                 key={subject._id}
-                style={styles.guestCard}
+                style={[styles.guestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => handleSelectChart(subject)}
               >
-                <View style={styles.guestAvatar}>
-                  <Text style={styles.avatarText}>
+                <View style={[styles.guestAvatar, { backgroundColor: colors.surfaceVariant }]}>
+                  <Text style={[styles.avatarText, { color: colors.onSurfaceVariant }]}>
                     {subject.firstName[0]}{subject.lastName[0]}
                   </Text>
                 </View>
                 <View style={styles.guestInfo}>
-                  <Text style={styles.guestName}>
+                  <Text style={[styles.guestName, { color: colors.onSurface }]}>
                     {subject.firstName} {subject.lastName}
                   </Text>
-                  <Text style={styles.guestDetails}>
+                  <Text style={[styles.guestDetails, { color: colors.onSurfaceVariant }]}>
                     {birthDate.toLocaleDateString('en-US', { 
                       month: 'short', 
                       day: 'numeric', 
@@ -227,14 +229,14 @@ const ChartSelectionScreen: React.FC = () => {
       )}
 
       {/* Add New Birth Chart Button */}
-      <TouchableOpacity style={styles.addButton} onPress={handleAddNewChart}>
-        <Text style={styles.addButtonIcon}>+</Text>
-        <Text style={styles.addButtonText}>Add New Birth Chart</Text>
+      <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={handleAddNewChart}>
+        <Text style={[styles.addButtonIcon, { color: colors.primary }]}>+</Text>
+        <Text style={[styles.addButtonText, { color: colors.primary }]}>Add New Birth Chart</Text>
       </TouchableOpacity>
 
       {/* Loading indicator for pagination */}
       {loading && !refreshing && guestSubjects.length > 0 && (
-        <ActivityIndicator size="small" color="#60a5fa" style={styles.paginationLoader} />
+        <ActivityIndicator size="small" color={colors.primary} style={styles.paginationLoader} />
       )}
     </ScrollView>
   );
@@ -243,7 +245,6 @@ const ChartSelectionScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   content: {
     padding: 16,
@@ -252,19 +253,12 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 16,
   },
   chartCard: {
-    backgroundColor: '#1e293b',
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  primaryCard: {
-    borderColor: '#60a5fa',
     borderWidth: 2,
   },
   chartHeader: {
@@ -272,7 +266,6 @@ const styles = StyleSheet.create({
   },
   chartQuestion: {
     fontSize: 16,
-    color: '#94a3b8',
     marginBottom: 16,
   },
   expandedContent: {
@@ -283,11 +276,9 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: '#60a5fa',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-    backgroundColor: '#0f172a',
   },
   zodiacSymbol: {
     fontSize: 48,
@@ -295,35 +286,29 @@ const styles = StyleSheet.create({
   chartLabel: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#ffffff',
   },
   sectionHeader: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#ffffff',
     marginBottom: 16,
   },
   guestCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   guestAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#374151',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   avatarText: {
-    color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
   },
@@ -333,12 +318,10 @@ const styles = StyleSheet.create({
   guestName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
     marginBottom: 4,
   },
   guestDetails: {
     fontSize: 14,
-    color: '#94a3b8',
   },
   guestZodiac: {
     fontSize: 24,
@@ -348,29 +331,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 16,
     marginTop: 12,
     borderWidth: 2,
-    borderColor: '#334155',
     borderStyle: 'dashed',
   },
   addButtonIcon: {
     fontSize: 24,
-    color: '#60a5fa',
     marginRight: 8,
   },
   addButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#60a5fa',
   },
   loader: {
     marginVertical: 32,
   },
   errorText: {
-    color: '#ef4444',
     fontSize: 14,
     textAlign: 'center',
     marginVertical: 16,

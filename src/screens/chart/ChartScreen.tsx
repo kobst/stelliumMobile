@@ -11,10 +11,12 @@ import { useRoute } from '@react-navigation/native';
 import { useStore } from '../../store';
 import { useChart } from '../../hooks/useChart';
 import { ChartTabNavigator } from '../../components';
+import { useTheme } from '../../theme';
 
 const ChartScreen: React.FC = () => {
   const route = useRoute<any>();
   const { userData } = useStore();
+  const { colors } = useTheme();
   
   // Use the subject passed from navigation, or fall back to logged-in user
   const subject = route.params?.subject || userData;
@@ -37,14 +39,14 @@ const ChartScreen: React.FC = () => {
 
   if (!subject) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Please sign in to view birth charts</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view birth charts</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Birth Chart Tab Navigator */}
       <ChartTabNavigator
         birthChart={subject?.birthChart}
@@ -57,10 +59,10 @@ const ChartScreen: React.FC = () => {
 
       {/* Error Handling */}
       {chartError && (
-        <View style={styles.errorSection}>
-          <Text style={styles.errorText}>Chart Error: {chartError}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={clearError}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+        <View style={[styles.errorSection, { backgroundColor: colors.surface, borderColor: colors.error }]}>
+          <Text style={[styles.errorText, { color: colors.error }]}>Chart Error: {chartError}</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.error }]} onPress={clearError}>
+            <Text style={[styles.retryButtonText, { color: colors.onError }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -71,31 +73,25 @@ const ChartScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   errorSection: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ef4444',
     alignItems: 'center',
   },
   errorText: {
-    color: '#ef4444',
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 12,
   },
   retryButton: {
-    backgroundColor: '#ef4444',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   retryButtonText: {
-    color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
   },

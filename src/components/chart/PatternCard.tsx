@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { useTheme } from '../../theme';
 
 interface PatternData {
   elements?: Array<{
@@ -35,6 +36,7 @@ interface PatternCardProps {
 }
 
 const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
+  const { colors } = useTheme();
   const getElementColor = (name: string) => {
     switch (name) {
       case 'Fire': return '#FF6B6B';
@@ -89,12 +91,12 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
         {items.map((item, index) => (
           <View key={item.name} style={styles.distributionItem}>
             <View style={styles.distributionHeader}>
-              <Text style={styles.categoryName}>{item.name}</Text>
-              <Text style={styles.percentageText}>{item.percentage}%</Text>
+              <Text style={[styles.categoryName, { color: colors.onSurface }]}>{item.name}</Text>
+              <Text style={[styles.percentageText, { color: colors.onSurface }]}>{item.percentage}%</Text>
             </View>
             
             {/* Progress bar */}
-            <View style={styles.progressBarContainer}>
+            <View style={[styles.progressBarContainer, { backgroundColor: colors.surfaceVariant }]}>
               <View 
                 style={[
                   styles.progressBar, 
@@ -110,8 +112,8 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
             {item.planets && (
               <View style={styles.planetTags}>
                 {item.planets.map(planet => (
-                  <View key={planet} style={styles.planetTag}>
-                    <Text style={styles.planetTagText}>{planet}</Text>
+                  <View key={planet} style={[styles.planetTag, { backgroundColor: colors.primaryContainer }]}>
+                    <Text style={[styles.planetTagText, { color: colors.onPrimaryContainer }]}>{planet}</Text>
                   </View>
                 ))}
               </View>
@@ -126,7 +128,7 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
     if (type !== 'patterns' || !data.patterns) {
       return (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No patterns data available</Text>
+          <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>No patterns data available</Text>
         </View>
       );
     }
@@ -151,7 +153,7 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
     if (patternsArray.length === 0) {
       return (
         <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No significant patterns detected</Text>
+          <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>No significant patterns detected</Text>
         </View>
       );
     }
@@ -159,13 +161,13 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
     return (
       <ScrollView style={styles.patternsContainer} showsVerticalScrollIndicator={false}>
         {patternsArray.map((pattern: any, index: number) => (
-          <View key={pattern.id || index} style={styles.patternItem}>
+          <View key={pattern.id || index} style={[styles.patternItem, { backgroundColor: colors.surfaceVariant }]}>
             <View style={styles.patternHeader}>
-              <Text style={styles.patternType}>
+              <Text style={[styles.patternType, { color: colors.primary }]}>
                 {pattern.type ? pattern.type.replace('_', ' ').toUpperCase() : 'PATTERN'}
               </Text>
             </View>
-            <Text style={styles.patternDescription}>
+            <Text style={[styles.patternDescription, { color: colors.onSurface }]}>
               {pattern.description || pattern}
             </Text>
           </View>
@@ -186,10 +188,10 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
   };
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Text style={styles.icon}>{getCardIcon()}</Text>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, { color: colors.primary }]}>{title}</Text>
       </View>
 
       <View style={styles.content}>
@@ -197,9 +199,9 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
       </View>
 
       {data.interpretation && (
-        <View style={styles.interpretationSection}>
-          <Text style={styles.interpretationTitle}>Interpretation</Text>
-          <Text style={styles.interpretationText}>{data.interpretation}</Text>
+        <View style={[styles.interpretationSection, { borderTopColor: colors.border, backgroundColor: colors.surfaceVariant }]}>
+          <Text style={[styles.interpretationTitle, { color: colors.primary }]}>Interpretation</Text>
+          <Text style={[styles.interpretationText, { color: colors.onSurface }]}>{data.interpretation}</Text>
         </View>
       )}
     </View>
@@ -208,10 +210,8 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
     marginBottom: 16,
     overflow: 'hidden',
   },
@@ -220,7 +220,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(139, 92, 246, 0.2)',
   },
   icon: {
     fontSize: 20,
@@ -229,7 +228,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#a78bfa',
     flex: 1,
   },
   content: {
@@ -250,17 +248,14 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#ffffff',
     flex: 1,
   },
   percentageText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#ffffff',
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 4,
     marginBottom: 8,
   },
@@ -274,21 +269,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   planetTag: {
-    backgroundColor: 'rgba(139, 92, 246, 0.3)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   planetTagText: {
     fontSize: 12,
-    color: '#ffffff',
     fontWeight: '500',
   },
   patternsContainer: {
     maxHeight: 200,
   },
   patternItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
@@ -299,12 +291,10 @@ const styles = StyleSheet.create({
   patternType: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#8b5cf6',
     textTransform: 'uppercase',
   },
   patternDescription: {
     fontSize: 14,
-    color: '#e2e8f0',
     lineHeight: 20,
   },
   noDataContainer: {
@@ -313,24 +303,19 @@ const styles = StyleSheet.create({
   },
   noDataText: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
   },
   interpretationSection: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(139, 92, 246, 0.2)',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
   interpretationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8b5cf6',
     marginBottom: 8,
   },
   interpretationText: {
     fontSize: 14,
-    color: '#e2e8f0',
     lineHeight: 20,
   },
 });

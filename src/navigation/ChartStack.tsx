@@ -3,17 +3,20 @@ import { createStackNavigator } from '@react-navigation/stack';
 import ChartSelectionScreen from '../screens/chart/ChartSelectionScreen';
 import ChartScreen from '../screens/chart/ChartScreen';
 import GuestOnboardingScreen from '../screens/chart/GuestOnboardingScreen';
+import { useTheme } from '../theme';
 
 const Stack = createStackNavigator();
 
 const ChartStack: React.FC = () => {
+  const { colors } = useTheme();
+  
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#1f2937',
+          backgroundColor: colors.surface,
         },
-        headerTintColor: '#ffffff',
+        headerTintColor: colors.onSurface,
         headerTitleStyle: {
           fontWeight: 'bold',
         },

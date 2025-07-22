@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useChart } from '../../hooks/useChart';
 import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
+import { useTheme } from '../../theme';
 
 interface AnalysisTabProps {
   userId?: string;
@@ -77,54 +78,56 @@ interface TopicSectionProps {
   topicData: any;
   expanded: boolean;
   onToggle: () => void;
+  colors: any;
 }
 
 const TopicSection: React.FC<TopicSectionProps> = ({ 
   topicKey, 
   topicData, 
   expanded, 
-  onToggle 
+  onToggle,
+  colors
 }) => {
   const topicConfig = BROAD_TOPICS[topicKey as keyof typeof BROAD_TOPICS];
   
   if (!topicConfig || !topicData) return null;
 
   return (
-    <View style={styles.topicSection}>
+    <View style={[styles.topicSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <TouchableOpacity style={styles.topicHeader} onPress={onToggle}>
         <View style={styles.topicHeaderContent}>
           <Text style={styles.topicIcon}>{topicConfig.icon}</Text>
-          <Text style={styles.topicTitle}>{topicData.label || topicConfig.label}</Text>
+          <Text style={[styles.topicTitle, { color: colors.onSurface }]}>{topicData.label || topicConfig.label}</Text>
         </View>
-        <Text style={styles.expandIcon}>{expanded ? '▼' : '▶'}</Text>
+        <Text style={[styles.expandIcon, { color: colors.primary }]}>{expanded ? '▼' : '▶'}</Text>
       </TouchableOpacity>
 
       {expanded && (
-        <View style={styles.topicContent}>
+        <View style={[styles.topicContent, { borderTopColor: colors.border }]}>
           {/* Tension Flow Analysis if available */}
           {topicData.tensionFlow && (
-            <View style={styles.tensionFlowSection}>
-              <Text style={styles.tensionFlowTitle}>⚡ Energy Pattern</Text>
-              <Text style={styles.tensionFlowDescription}>
+            <View style={[styles.tensionFlowSection, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
+              <Text style={[styles.tensionFlowTitle, { color: colors.primary }]}>⚡ Energy Pattern</Text>
+              <Text style={[styles.tensionFlowDescription, { color: colors.onSurface }]}>
                 {topicData.tensionFlow.description}
               </Text>
               
               <View style={styles.tensionMetrics}>
                 <View style={styles.metric}>
-                  <Text style={styles.metricLabel}>Support Level</Text>
-                  <Text style={styles.metricValue}>
+                  <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Support Level</Text>
+                  <Text style={[styles.metricValue, { color: colors.onSurface }]}>
                     {topicData.tensionFlow.supportDensity?.toFixed(1) || 'N/A'}
                   </Text>
                 </View>
                 <View style={styles.metric}>
-                  <Text style={styles.metricLabel}>Challenge Level</Text>
-                  <Text style={styles.metricValue}>
+                  <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Challenge Level</Text>
+                  <Text style={[styles.metricValue, { color: colors.onSurface }]}>
                     {topicData.tensionFlow.challengeDensity?.toFixed(1) || 'N/A'}
                   </Text>
                 </View>
                 <View style={styles.metric}>
-                  <Text style={styles.metricLabel}>Quadrant</Text>
-                  <Text style={styles.metricValue}>
+                  <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Quadrant</Text>
+                  <Text style={[styles.metricValue, { color: colors.onSurface }]}>
                     {topicData.tensionFlow.quadrant || 'N/A'}
                   </Text>
                 </View>
@@ -134,13 +137,13 @@ const TopicSection: React.FC<TopicSectionProps> = ({
 
           {/* Subtopics */}
           <View style={styles.subtopicsSection}>
-            <Text style={styles.subtopicsTitle}>Analysis Areas</Text>
+            <Text style={[styles.subtopicsTitle, { color: colors.primary }]}>Analysis Areas</Text>
             {Object.entries(topicData.subtopics || {}).map(([subtopicKey, content]) => (
-              <View key={subtopicKey} style={styles.subtopic}>
-                <Text style={styles.subtopicTitle}>
+              <View key={subtopicKey} style={[styles.subtopic, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.subtopicTitle, { color: colors.onSurface }]}>
                   {topicConfig.subtopics[subtopicKey] || subtopicKey.replace(/_/g, ' ')}
                 </Text>
-                <Text style={styles.subtopicContent}>
+                <Text style={[styles.subtopicContent, { color: colors.onSurface }]}>
                   {typeof content === 'string' ? content : 'Analysis content not available'}
                 </Text>
               </View>
@@ -155,6 +158,7 @@ const TopicSection: React.FC<TopicSectionProps> = ({
 const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
   const { fullAnalysis, loading, loadFullAnalysis } = useChart(userId);
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
+  const { colors } = useTheme();
 
   // Load analysis on mount if not already loaded
   React.useEffect(() => {
@@ -176,10 +180,10 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
 
   // Fallback UI component for missing analysis
   const renderMissingAnalysis = () => (
-    <View style={styles.missingAnalysisContainer}>
+    <View style={[styles.missingAnalysisContainer, { backgroundColor: colors.background }]}>
       <Text style={styles.missingAnalysisIcon}>🌍</Text>
-      <Text style={styles.missingAnalysisTitle}>360° Analysis Not Available</Text>
-      <Text style={styles.missingAnalysisText}>
+      <Text style={[styles.missingAnalysisTitle, { color: colors.onBackground }]}>360° Analysis Not Available</Text>
+      <Text style={[styles.missingAnalysisText, { color: colors.onSurfaceVariant }]}>
         Complete life analysis is not available for this chart.
       </Text>
       <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
@@ -188,8 +192,8 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading 360° analysis...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading 360° analysis...</Text>
       </View>
     );
   }
@@ -205,12 +209,12 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>🌍 360° Life Analysis</Text>
-          <Text style={styles.headerSubtitle}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.primary }]}>🌍 360° Life Analysis</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
             Comprehensive analysis across all major life areas
           </Text>
         </View>
@@ -223,6 +227,7 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
             topicData={subtopicAnalysis[topicKey]}
             expanded={expandedTopics.has(topicKey)}
             onToggle={() => toggleTopic(topicKey)}
+            colors={colors}
           />
         ))}
       </View>
@@ -233,7 +238,6 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   content: {
     padding: 16,
@@ -242,18 +246,15 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(139, 92, 246, 0.2)',
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#8b5cf6',
     marginBottom: 8,
     textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -261,19 +262,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 32,
   },
   loadingText: {
     fontSize: 16,
-    color: '#94a3b8',
     textAlign: 'center',
   },
   topicSection: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
     marginBottom: 12,
     overflow: 'hidden',
   },
@@ -295,33 +292,26 @@ const styles = StyleSheet.create({
   topicTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
     flex: 1,
   },
   expandIcon: {
     fontSize: 14,
-    color: '#8b5cf6',
     fontWeight: 'bold',
   },
   topicContent: {
     borderTopWidth: 1,
-    borderTopColor: 'rgba(139, 92, 246, 0.2)',
   },
   tensionFlowSection: {
     padding: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(139, 92, 246, 0.2)',
   },
   tensionFlowTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8b5cf6',
     marginBottom: 8,
   },
   tensionFlowDescription: {
     fontSize: 14,
-    color: '#e2e8f0',
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -334,13 +324,11 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 12,
-    color: '#94a3b8',
     marginBottom: 4,
   },
   metricValue: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#ffffff',
   },
   subtopicsSection: {
     padding: 16,
@@ -348,44 +336,36 @@ const styles = StyleSheet.create({
   subtopicsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8b5cf6',
     marginBottom: 12,
   },
   subtopic: {
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   subtopicTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
     marginBottom: 8,
   },
   subtopicContent: {
     fontSize: 14,
-    color: '#e2e8f0',
     lineHeight: 20,
   },
   noDataContainer: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
     padding: 24,
     alignItems: 'center',
   },
   noDataTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#8b5cf6',
     textAlign: 'center',
     marginBottom: 12,
   },
   noDataText: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -393,7 +373,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 32,
   },
   missingAnalysisIcon: {
@@ -403,25 +382,21 @@ const styles = StyleSheet.create({
   missingAnalysisTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#ffffff',
     textAlign: 'center',
     marginBottom: 12,
   },
   missingAnalysisText: {
     fontSize: 16,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
   },
   completeAnalysisButton: {
-    backgroundColor: '#3b82f6',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   completeAnalysisButtonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },

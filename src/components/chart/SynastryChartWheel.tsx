@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle, Line, Text as SvgText, G } from 'react-native-svg';
 import type { ReactElement } from 'react';
+import { useTheme } from '../../theme';
 import { BackendPlanet, BackendHouse, PlanetName, ZodiacSign } from '../../types';
 import {
   CHART_DIMENSIONS,
@@ -30,6 +31,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
   transitName,
   title,
 }) => {
+  const { colors } = useTheme();
   const { size, centerX, centerY, outerRadius, innerRadius, planetRadius, houseRadius } = CHART_DIMENSIONS;
   
   // Smaller radius for transit planets (outer ring)
@@ -53,7 +55,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
         cy={centerY}
         r={outerRadius}
         fill="none"
-        stroke="#ffffff"
+        stroke={colors.onSurface}
         strokeWidth="2"
       />
     );
@@ -66,7 +68,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
         cy={centerY}
         r={innerRadius}
         fill="none"
-        stroke="#ffffff"
+        stroke={colors.onSurface}
         strokeWidth="2"
       />
     );
@@ -84,7 +86,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
           y1={y1}
           x2={x2}
           y2={y2}
-          stroke="#ffffff"
+          stroke={colors.onSurface}
           strokeWidth="1"
         />
       );
@@ -105,7 +107,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
           x={signX}
           y={signY}
           fontSize="18"
-          fill={ZODIAC_COLORS[signNames[i]] || '#ffffff'}
+          fill={ZODIAC_COLORS[signNames[i]] || colors.onSurface}
           textAnchor="middle"
           alignmentBaseline="middle"
         >
@@ -138,7 +140,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
           y1={y1}
           x2={x2}
           y2={y2}
-          stroke="#ffffff"
+          stroke={colors.onSurface}
           strokeWidth={isAngular ? "3" : "1"}
         />
       );
@@ -153,7 +155,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
           x={numX}
           y={numY}
           fontSize="12"
-          fill="#cccccc"
+          fill={colors.onSurfaceVariant}
           textAnchor="middle"
           alignmentBaseline="middle"
         >
@@ -173,7 +175,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
     const filteredPlanets = filterPlanets(basePlanets);
     
     filteredPlanets.forEach((planet) => {
-      const planetColor = PLANET_COLORS[planet.name as PlanetName] || '#ffffff';
+      const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
       
       const { x: planetX, y: planetY } = getCirclePosition(
         planet.full_degree, 
@@ -190,7 +192,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
           cx={planetX}
           cy={planetY}
           r="12"
-          fill="rgba(0,0,0,0.8)"
+          fill={colors.background + 'CC'}
           stroke={planetColor}
           strokeWidth="2"
         />
@@ -240,7 +242,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
     const filteredPlanets = filterPlanets(transitPlanets);
     
     filteredPlanets.forEach((planet) => {
-      const planetColor = PLANET_COLORS[planet.name as PlanetName] || '#ffffff';
+      const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
       
       const { x: planetX, y: planetY } = getCirclePosition(
         planet.full_degree, 
@@ -257,7 +259,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
           cx={planetX}
           cy={planetY}
           r="10"
-          fill="rgba(139, 92, 246, 0.2)"
+          fill={colors.primary + '33'}
           stroke={planetColor}
           strokeWidth="1.5"
           strokeDasharray="2,2"
@@ -302,8 +304,8 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      {title && <Text style={styles.title}>{title}</Text>}
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {title && <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>}
       
       <View style={styles.chartContainer}>
         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
@@ -324,12 +326,12 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
       {/* Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendIndicator, styles.baseIndicator]} />
-          <Text style={styles.legendText}>{baseName} (Inner)</Text>
+          <View style={[styles.legendIndicator, styles.baseIndicator, { backgroundColor: colors.onSurface, borderColor: colors.primary }]} />
+          <Text style={[styles.legendText, { color: colors.onSurfaceVariant }]}>{baseName} (Inner)</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendIndicator, styles.transitIndicator]} />
-          <Text style={styles.legendText}>{transitName} (Outer)</Text>
+          <View style={[styles.legendIndicator, styles.transitIndicator, { backgroundColor: colors.primary + '33', borderColor: colors.primary }]} />
+          <Text style={[styles.legendText, { color: colors.onSurfaceVariant }]}>{transitName} (Outer)</Text>
         </View>
       </View>
     </View>
@@ -339,17 +341,14 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 16,
     margin: 8,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -374,19 +373,14 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   baseIndicator: {
-    backgroundColor: '#ffffff',
     borderWidth: 2,
-    borderColor: '#8b5cf6',
   },
   transitIndicator: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
     borderWidth: 1.5,
-    borderColor: '#8b5cf6',
     borderStyle: 'dashed',
   },
   legendText: {
     fontSize: 12,
-    color: '#94a3b8',
   },
 });
 

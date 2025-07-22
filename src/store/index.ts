@@ -15,6 +15,7 @@ import {
 } from '../types';
 import { Celebrity } from '../api/celebrities';
 import { celebrityToUser } from '../transformers/celebrity';
+import { ThemeMode } from '../theme';
 
 interface StoreState {
   // User & Authentication
@@ -50,6 +51,9 @@ interface StoreState {
   loading: boolean;
   error: string | null;
   activeTab: TabName;
+  
+  // Theme State
+  themeMode: ThemeMode;
 
   // Transit & Horoscope States
   transitData: TransitEvent[];
@@ -68,6 +72,9 @@ interface StoreState {
   clearError: () => void;
   setLoading: (loading: boolean) => void;
   setActiveTab: (tab: TabName) => void;
+  
+  // Theme Actions
+  setThemeMode: (theme: ThemeMode) => void;
 
   // Transit & Horoscope Actions
   setTransitData: (transitData: TransitEvent[]) => void;
@@ -136,6 +143,9 @@ export const useStore = create<StoreState>((set, get) => ({
   loading: false,
   error: null,
   activeTab: 'horoscope',
+  
+  // Theme State
+  themeMode: 'system',
 
   transitData: [],
   selectedTransits: new Set(),
@@ -195,6 +205,15 @@ export const useStore = create<StoreState>((set, get) => ({
   clearError: () => set({ error: null }),
   setLoading: (loading) => set({ loading }),
   setActiveTab: (tab) => set({ activeTab: tab }),
+  
+  // Theme Actions
+  setThemeMode: (theme) => {
+    set({ themeMode: theme });
+    // Persist theme preference
+    AsyncStorage.setItem('themeMode', theme).catch(error => 
+      console.error('Failed to persist theme mode:', error)
+    );
+  },
 
   // Transit & Horoscope Actions
   setTransitData: (transitData) => set({ transitData }),
@@ -231,7 +250,11 @@ export const useStore = create<StoreState>((set, get) => ({
   // Persistence Actions
   initializeFromStorage: async () => {
     try {
-      const userData = await AsyncStorage.getItem('userData');
+      const [userData, themeMode] = await Promise.all([
+        AsyncStorage.getItem('userData'),
+        AsyncStorage.getItem('themeMode')
+      ]);
+      
       if (userData) {
         const parsedUserData = JSON.parse(userData);
         set({ 
@@ -242,8 +265,12 @@ export const useStore = create<StoreState>((set, get) => ({
           activeUserContext: parsedUserData
         });
       }
+      
+      if (themeMode && (themeMode === 'light' || themeMode === 'dark' || themeMode === 'system')) {
+        set({ themeMode: themeMode as ThemeMode });
+      }
     } catch (error) {
-      console.error('Failed to load user data from storage:', error);
+      console.error('Failed to load data from storage:', error);
     }
   },
 
