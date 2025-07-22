@@ -15,20 +15,6 @@ export interface Celebrity {
   kind?: string;
 }
 
-export interface CreateCelebrityRequest {
-  name: string;
-  profession: string;
-  birthYear: number;
-  birthMonth: number;
-  birthDay: number;
-  birthHour?: number;
-  birthMinute?: number;
-  birthLocation: string;
-  timezone: string;
-  imageUrl?: string;
-  biography?: string;
-  tags?: string[];
-}
 
 // Legacy search interface (kept for backward compatibility)
 export interface CelebritySearchRequest {
@@ -139,17 +125,6 @@ export const celebritiesApi = {
     return apiClient.post<Celebrity>('/getCelebrity', { celebrityId });
   },
 
-  // Create new celebrity (admin function)
-  createCelebrity: async (request: CreateCelebrityRequest): Promise<Celebrity> => {
-    return apiClient.post<Celebrity>('/createCeleb', request);
-  },
-
-  // Create celebrity with unknown birth time
-  createCelebrityUnknownTime: async (
-    request: Omit<CreateCelebrityRequest, 'birthHour' | 'birthMinute'>
-  ): Promise<Celebrity> => {
-    return apiClient.post<Celebrity>('/createCelebUnknownTime', request);
-  },
 
   // Get celebrity relationships/compatibility with user
   getCelebrityRelationships: async (
@@ -224,7 +199,7 @@ export const celebritiesApi = {
   // Update celebrity (admin function)
   updateCelebrity: async (
     celebrityId: string,
-    updates: Partial<CreateCelebrityRequest>
+    updates: Partial<Celebrity>
   ): Promise<Celebrity> => {
     return apiClient.put<Celebrity>(`/celebrities/${celebrityId}`, updates);
   },

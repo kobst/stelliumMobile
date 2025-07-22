@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SynastryAspect } from '../../api/relationships';
 import { AspectType, PlanetName } from '../../types';
+import { useTheme } from '../../theme';
 import { 
   getPlanetGlyph, 
   getAspectColor,
@@ -19,6 +20,7 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
   userAName, 
   userBName 
 }) => {
+  const { colors } = useTheme();
   const getAspectName = (aspectType: string): string => {
     const aspectNames: { [key: string]: string } = {
       conjunction: 'Conjunction',
@@ -51,12 +53,12 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
 
   const renderAspectRow = (aspect: SynastryAspect, index: number) => {
     const aspectColor = getAspectColor(aspect.aspectType as AspectType);
-    const planet1Color = PLANET_COLORS[aspect.planet1 as PlanetName] || '#ffffff';
-    const planet2Color = PLANET_COLORS[aspect.planet2 as PlanetName] || '#ffffff';
+    const planet1Color = PLANET_COLORS[aspect.planet1 as PlanetName] || colors.onSurface;
+    const planet2Color = PLANET_COLORS[aspect.planet2 as PlanetName] || colors.onSurface;
     
     return (
       <View key={`${aspect.planet1}-${aspect.planet2}-${index}`} 
-            style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
+            style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow, { borderBottomColor: colors.border }]}>
         
         {/* User A Planet Symbol */}
         <View style={styles.planetCell}>
@@ -67,8 +69,8 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
         
         {/* User A Planet Name */}
         <View style={styles.nameCell}>
-          <Text style={styles.planetName}>{aspect.planet1}</Text>
-          <Text style={styles.userName}>({userAName})</Text>
+          <Text style={[styles.planetName, { color: colors.onSurface }]}>{aspect.planet1}</Text>
+          <Text style={[styles.userName, { color: colors.primary }]}>({userAName})</Text>
         </View>
         
         {/* Aspect Symbol */}
@@ -94,13 +96,13 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
         
         {/* User B Planet Name */}
         <View style={styles.nameCell}>
-          <Text style={styles.planetName}>{aspect.planet2}</Text>
-          <Text style={styles.userName}>({userBName})</Text>
+          <Text style={[styles.planetName, { color: colors.onSurface }]}>{aspect.planet2}</Text>
+          <Text style={[styles.userName, { color: colors.primary }]}>({userBName})</Text>
         </View>
         
         {/* Orb */}
         <View style={styles.orbCell}>
-          <Text style={styles.orb}>{aspect.orb?.toFixed(1)}°</Text>
+          <Text style={[styles.orb, { color: colors.onSurfaceVariant }]}>{aspect.orb?.toFixed(1)}°</Text>
         </View>
       </View>
     );
@@ -108,44 +110,44 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
 
   if (!aspects || aspects.length === 0) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Synastry Aspects</Text>
-        <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No synastry aspects found</Text>
+      <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.onSurface }]}>Synastry Aspects</Text>
+        <View style={[styles.noDataContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>No synastry aspects found</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Synastry Aspects</Text>
-      <Text style={styles.subtitle}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={[styles.title, { color: colors.onSurface }]}>Synastry Aspects</Text>
+      <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
         Planetary connections between {userAName} and {userBName}
       </Text>
       
       {/* Header */}
-      <View style={[styles.row, styles.headerRow]}>
+      <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
         <View style={styles.planetCell}>
-          <Text style={styles.headerText}>☽</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☽</Text>
         </View>
         <View style={styles.nameCell}>
-          <Text style={styles.headerText}>{userAName}</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>{userAName}</Text>
         </View>
         <View style={styles.aspectSymbolCell}>
-          <Text style={styles.headerText}>◦</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>◦</Text>
         </View>
         <View style={styles.aspectNameCell}>
-          <Text style={styles.headerText}>Aspect</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Aspect</Text>
         </View>
         <View style={styles.planetCell}>
-          <Text style={styles.headerText}>☉</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☉</Text>
         </View>
         <View style={styles.nameCell}>
-          <Text style={styles.headerText}>{userBName}</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>{userBName}</Text>
         </View>
         <View style={styles.orbCell}>
-          <Text style={styles.headerText}>Orb</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Orb</Text>
         </View>
       </View>
       
@@ -159,23 +161,19 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 16,
     margin: 8,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 4,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 12,
-    color: '#94a3b8',
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -188,10 +186,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 2,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#334155',
   },
   headerRow: {
-    backgroundColor: '#374151',
     borderRadius: 6,
     marginBottom: 4,
     borderBottomWidth: 0,
@@ -225,7 +221,6 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#94a3b8',
     textAlign: 'center',
   },
   planetSymbol: {
@@ -234,11 +229,9 @@ const styles = StyleSheet.create({
   },
   planetName: {
     fontSize: 11,
-    color: '#e2e8f0',
   },
   userName: {
     fontSize: 9,
-    color: '#8b5cf6',
   },
   aspectSymbol: {
     fontSize: 14,
@@ -250,20 +243,16 @@ const styles = StyleSheet.create({
   },
   orb: {
     fontSize: 10,
-    color: '#94a3b8',
   },
   noDataContainer: {
     padding: 32,
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#334155',
     borderStyle: 'dashed',
   },
   noDataText: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
   },
 });

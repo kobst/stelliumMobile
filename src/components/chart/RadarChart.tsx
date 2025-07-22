@@ -9,6 +9,7 @@ import Svg, {
   LinearGradient,
   Stop,
 } from 'react-native-svg';
+import { useTheme } from '../../theme';
 
 interface RadarChartProps {
   data: { [key: string]: number };
@@ -16,6 +17,7 @@ interface RadarChartProps {
 }
 
 const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
+  const { colors } = useTheme();
   const center = size / 2;
   const maxRadius = (size / 2) - 40; // Reduced space for labels
   
@@ -94,12 +96,12 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
   const scaleRings = [0.25, 0.5, 0.75, 1.0];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface }]}>
       <Svg width={size} height={size} style={styles.svg}>
         <Defs>
           <LinearGradient id="dataGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3" />
-            <Stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.1" />
+            <Stop offset="0%" stopColor={colors.primary} stopOpacity="0.3" />
+            <Stop offset="100%" stopColor={colors.primary} stopOpacity="0.1" />
           </LinearGradient>
         </Defs>
 
@@ -111,7 +113,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
             cy={center}
             r={maxRadius * scale}
             fill="none"
-            stroke="#334155"
+            stroke={colors.border}
             strokeWidth="1"
             opacity="0.6"
           />
@@ -129,7 +131,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
               y1={center}
               x2={x2}
               y2={y2}
-              stroke="#334155"
+              stroke={colors.border}
               strokeWidth="1"
               opacity="0.6"
             />
@@ -140,7 +142,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
         <Polygon
           points={getDataPolygonPoints()}
           fill="url(#dataGradient)"
-          stroke="#8b5cf6"
+          stroke={colors.primary}
           strokeWidth="2"
           opacity="0.8"
         />
@@ -158,8 +160,8 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
               cx={x}
               cy={y}
               r="3"
-              fill="#8b5cf6"
-              stroke="#ffffff"
+              fill={colors.primary}
+              stroke={colors.onPrimary}
               strokeWidth="1"
             />
           );
@@ -172,7 +174,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
             x={center + 8}
             y={center - (maxRadius * scale) + 4}
             fontSize="10"
-            fill="#94a3b8"
+            fill={colors.onSurfaceVariant}
             textAnchor="start"
           >
             {`${scale * 100}%`}
@@ -194,12 +196,14 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
                 position: 'absolute',
                 left: labelPos.x,
                 top: labelPos.y,
+                backgroundColor: colors.surface + 'CC', // Semi-transparent
+                borderColor: colors.border + '99', // Semi-transparent border
               },
             ]}
           >
             <Text style={styles.labelIcon}>{cluster.icon}</Text>
-            <Text style={styles.labelText}>{cluster.label}</Text>
-            <Text style={styles.labelScore}>{score}%</Text>
+            <Text style={[styles.labelText, { color: colors.onSurfaceVariant }]}>{cluster.label}</Text>
+            <Text style={[styles.labelScore, { color: colors.primary }]}>{score}%</Text>
           </View>
         );
       })}
@@ -211,7 +215,6 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0f172a',
     borderRadius: 12,
     padding: 20,
     position: 'relative',
@@ -222,12 +225,10 @@ const styles = StyleSheet.create({
   labelContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(30, 41, 59, 0.8)', // Semi-transparent
     borderRadius: 6,
     padding: 6, // Reduced padding
     minWidth: 44, // Smaller width
     borderWidth: 1,
-    borderColor: 'rgba(51, 65, 85, 0.6)', // Semi-transparent border
   },
   labelIcon: {
     fontSize: 12, // Smaller icon
@@ -235,13 +236,11 @@ const styles = StyleSheet.create({
   },
   labelText: {
     fontSize: 8, // Smaller text
-    color: '#94a3b8',
     fontWeight: '500',
     marginBottom: 1,
   },
   labelScore: {
     fontSize: 10, // Smaller score
-    color: '#8b5cf6',
     fontWeight: 'bold',
   },
 });

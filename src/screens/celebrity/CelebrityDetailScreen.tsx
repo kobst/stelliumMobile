@@ -11,6 +11,7 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useStore } from '../../store';
 import { useChart } from '../../hooks/useChart';
+import { useTheme } from '../../theme';
 import { ChartTabNavigator } from '../../components';
 import { Celebrity } from '../../api/celebrities';
 import { getCelebrityDisplayName, getCelebritySubtitle } from '../../transformers/celebrity';
@@ -28,6 +29,7 @@ type CelebrityDetailScreenNavigationProp = StackNavigationProp<CelebrityStackPar
 const CelebrityDetailScreen: React.FC = () => {
   const route = useRoute<CelebrityDetailScreenRouteProp>();
   const navigation = useNavigation<CelebrityDetailScreenNavigationProp>();
+  const { colors } = useTheme();
   
   const { celebrity } = route.params;
   const { switchToCelebrityContext, navigateBack, activeUserContext } = useStore();
@@ -82,10 +84,10 @@ const CelebrityDetailScreen: React.FC = () => {
 
   if (!celebrity) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Celebrity data not found</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>Go Back</Text>
+      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>Celebrity data not found</Text>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.surface }]} onPress={() => navigation.goBack()}>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -93,26 +95,26 @@ const CelebrityDetailScreen: React.FC = () => {
 
   if (!isInitialized) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Loading celebrity chart...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading celebrity chart...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Custom Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-          <Text style={styles.backButtonText}>← Back</Text>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.surfaceVariant }]} onPress={handleBackPress}>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
         </TouchableOpacity>
         
         <View style={styles.celebrityInfo}>
-          <Text style={styles.celebrityName}>
+          <Text style={[styles.celebrityName, { color: colors.onSurface }]}>
             {getCelebrityDisplayName(celebrity)}
           </Text>
-          <Text style={styles.celebritySubtitle}>
+          <Text style={[styles.celebritySubtitle, { color: colors.onSurfaceVariant }]}>
             {getCelebritySubtitle(celebrity)}
           </Text>
         </View>
@@ -130,10 +132,10 @@ const CelebrityDetailScreen: React.FC = () => {
 
       {/* Error Handling */}
       {chartError && (
-        <View style={styles.errorSection}>
-          <Text style={styles.errorText}>Chart Error: {chartError}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={clearError}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+        <View style={[styles.errorSection, { backgroundColor: colors.surface, borderColor: colors.error }]}>
+          <Text style={[styles.errorText, { color: colors.error }]}>Chart Error: {chartError}</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.error }]} onPress={clearError}>
+            <Text style={[styles.retryButtonText, { color: colors.onError }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -144,17 +146,14 @@ const CelebrityDetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 32,
   },
   loadingText: {
-    color: '#94a3b8',
     fontSize: 16,
     marginTop: 12,
   },
@@ -162,27 +161,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 32,
   },
   header: {
-    backgroundColor: '#1e293b',
     paddingTop: 16,
     paddingBottom: 16,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   backButton: {
     alignSelf: 'flex-start',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#374151',
     borderRadius: 8,
     marginBottom: 12,
   },
   backButtonText: {
-    color: '#8b5cf6',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -192,39 +186,32 @@ const styles = StyleSheet.create({
   celebrityName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 4,
     textAlign: 'center',
   },
   celebritySubtitle: {
     fontSize: 14,
-    color: '#94a3b8',
     marginBottom: 4,
     textAlign: 'center',
   },
   errorSection: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ef4444',
     alignItems: 'center',
   },
   errorText: {
-    color: '#ef4444',
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 12,
   },
   retryButton: {
-    backgroundColor: '#ef4444',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   retryButtonText: {
-    color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
   },

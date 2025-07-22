@@ -1,9 +1,11 @@
 import React, {useState, useEffect} from 'react';
-import {Button, TextInput, View, StyleSheet, Alert} from 'react-native';
+import {Button, TextInput, StyleSheet, Alert, SafeAreaView} from 'react-native';
 import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import { useTheme } from './src/theme';
 
 const AuthScreen: React.FC = () => {
+  const { colors } = useTheme();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [confirm, setConfirm] = useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
   const [code, setCode] = useState('');
@@ -59,30 +61,32 @@ const AuthScreen: React.FC = () => {
 
   if (confirm) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
           placeholder="Verification code"
+          placeholderTextColor={colors.onSurfaceVariant}
           value={code}
           onChangeText={setCode}
         />
-        <Button title="Confirm Code" onPress={confirmCode} />
-      </View>
+        <Button title="Confirm Code" onPress={confirmCode} color={colors.primary} />
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Button title="Sign In with Google" onPress={signInWithGoogle} />
-      <Button title="Sign In with Facebook" onPress={signInWithFacebook} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Button title="Sign In with Google" onPress={signInWithGoogle} color={colors.primary} />
+      <Button title="Sign In with Facebook" onPress={signInWithFacebook} color={colors.primary} />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
         placeholder="Phone number"
+        placeholderTextColor={colors.onSurfaceVariant}
         value={phoneNumber}
         onChangeText={setPhoneNumber}
       />
-      <Button title="Send Code" onPress={signInWithPhone} />
-    </View>
+      <Button title="Send Code" onPress={signInWithPhone} color={colors.primary} />
+    </SafeAreaView>
   );
 };
 
@@ -96,10 +100,10 @@ const styles = StyleSheet.create({
   input: {
     height: 40,
     width: '80%',
-    borderColor: '#ccc',
     borderWidth: 1,
     marginVertical: 8,
     paddingHorizontal: 8,
+    borderRadius: 8,
   },
 });
 

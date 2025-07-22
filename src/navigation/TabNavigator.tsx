@@ -2,12 +2,14 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View, Text } from 'react-native';
 import { useStore } from '../store';
+import { useTheme } from '../theme';
 
 // Import stack navigators
 import HoroscopeStack from './HoroscopeStack';
 import ChartStack from './ChartStack';
 import RelationshipsStack from './RelationshipsStack';
 import CelebrityStack from './CelebrityStack';
+import SettingsScreen from '../screens/settings/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,6 +21,7 @@ const TabIcon: React.FC<{ name: string; focused: boolean }> = ({ name, focused }
       case 'Chart': return '⭕';
       case 'Relationships': return '💕';
       case 'Celebrity': return '⭐';
+      case 'Settings': return '⚙️';
       default: return '•';
     }
   };
@@ -34,6 +37,7 @@ const TabIcon: React.FC<{ name: string; focused: boolean }> = ({ name, focused }
 
 const TabNavigator: React.FC = () => {
   const { setActiveTab } = useStore();
+  const { colors } = useTheme();
 
   return (
     <Tab.Navigator
@@ -41,9 +45,16 @@ const TabNavigator: React.FC = () => {
         tabBarIcon: ({ focused }) => (
           <TabIcon name={route.name} focused={focused} />
         ),
-        tabBarActiveTintColor: '#8b5cf6',
-        tabBarInactiveTintColor: '#6b7280',
-        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: colors.tabBarActive,
+        tabBarInactiveTintColor: colors.tabBarInactive,
+        tabBarStyle: {
+          backgroundColor: colors.tabBarBackground,
+          borderTopColor: colors.tabBarBorder,
+          borderTopWidth: 1,
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 80,
+        },
         tabBarLabelStyle: styles.tabBarLabel,
         headerShown: false,
       })}
@@ -74,19 +85,16 @@ const TabNavigator: React.FC = () => {
         component={CelebrityStack}
         options={{ title: 'Celebrity' }}
       />
+      <Tab.Screen 
+        name="Settings" 
+        component={SettingsScreen}
+        options={{ title: 'Settings' }}
+      />
     </Tab.Navigator>
   );
 };
 
 const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: '#1f2937',
-    borderTopColor: '#374151',
-    borderTopWidth: 1,
-    paddingBottom: 8,
-    paddingTop: 8,
-    height: 80,
-  },
   tabBarLabel: {
     fontSize: 12,
     fontWeight: '500',

@@ -2,17 +2,20 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import CelebrityScreen from '../screens/celebrity/CelebrityScreen';
 import CelebrityDetailScreen from '../screens/celebrity/CelebrityDetailScreen';
+import { useTheme } from '../theme';
 
 const Stack = createStackNavigator();
 
 const CelebrityStack: React.FC = () => {
+  const { colors } = useTheme();
+  
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#1f2937',
+          backgroundColor: colors.surface,
         },
-        headerTintColor: '#ffffff',
+        headerTintColor: colors.onSurface,
         headerTitleStyle: {
           fontWeight: 'bold',
         },

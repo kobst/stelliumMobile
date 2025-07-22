@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { PLANET_SYMBOLS, ZODIAC_SYMBOLS } from './ChartUtils';
 import { RelationshipScoredItem } from '../../api/relationships';
+import { useTheme } from '../../theme';
 
 interface ScoredItemsTableProps {
   scoredItems: RelationshipScoredItem[];
@@ -14,6 +15,7 @@ const ScoredItemsTable: React.FC<ScoredItemsTableProps> = ({
   userAName, 
   userBName 
 }) => {
+  const { colors } = useTheme();
   // Sort by absolute value of score (highest impact first)
   const sortedItems = [...scoredItems].sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
 
@@ -118,25 +120,25 @@ const ScoredItemsTable: React.FC<ScoredItemsTableProps> = ({
 
   if (!scoredItems || scoredItems.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No significant factors available for this category.</Text>
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+        <Text style={[styles.emptyText, { color: colors.onSurfaceVariant }]}>No significant factors available for this category.</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.tableContainer}>
-      <View style={styles.tableHeader}>
-        <Text style={styles.headerType}>Type</Text>
-        <Text style={styles.headerDetails}>Details</Text>
+    <View style={[styles.tableContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+      <View style={[styles.tableHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerType, { color: colors.primary }]}>Type</Text>
+        <Text style={[styles.headerDetails, { color: colors.primary }]}>Details</Text>
       </View>
       {sortedItems.slice(0, 10).map((item, index) => ( // Show top 10 most significant
-        <View key={index} style={styles.tableRow}>
+        <View key={index} style={[styles.tableRow, { borderBottomColor: colors.border }]}>
           <View style={styles.typeCell}>
-            <Text style={styles.typeText}>{getTypeDisplay(item)}</Text>
+            <Text style={[styles.typeText, { color: colors.onSurface }]}>{getTypeDisplay(item)}</Text>
           </View>
           <View style={styles.detailsCell}>
-            <Text style={styles.detailsText}>{getDetailsDisplay(item, userAName, userBName)}</Text>
+            <Text style={[styles.detailsText, { color: colors.onSurfaceVariant }]}>{getDetailsDisplay(item, userAName, userBName)}</Text>
           </View>
         </View>
       ))}
@@ -146,29 +148,23 @@ const ScoredItemsTable: React.FC<ScoredItemsTableProps> = ({
 
 const styles = StyleSheet.create({
   tableContainer: {
-    backgroundColor: '#0f172a',
     borderRadius: 8,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#334155',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#1e293b',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   headerType: {
     flex: 0.3,
-    color: '#8b5cf6',
     fontSize: 14,
     fontWeight: 'bold',
   },
   headerDetails: {
     flex: 0.7,
-    color: '#8b5cf6',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -177,14 +173,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   typeCell: {
     flex: 0.3,
     justifyContent: 'center',
   },
   typeText: {
-    color: '#ffffff',
     fontSize: 12,
     fontWeight: '500',
   },
@@ -193,20 +187,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   detailsText: {
-    color: '#94a3b8',
     fontSize: 12,
     lineHeight: 16,
   },
   emptyContainer: {
-    backgroundColor: '#0f172a',
     borderRadius: 8,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
   },
   emptyText: {
-    color: '#64748b',
     fontSize: 14,
     textAlign: 'center',
     fontStyle: 'italic',

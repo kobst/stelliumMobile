@@ -6,13 +6,14 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
+import {FirebaseAuthTypes} from '@react-native-firebase/auth';
 import AuthScreen from './AuthScreen';
 import RootNavigator from './src/navigation';
 import {useStore} from './src/store';
 import {usersApi} from './src/api';
 import {userTransformers} from './src/transformers/user';
 import {SubjectDocument} from './src/types';
+import { ThemeProvider } from './src/theme';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
@@ -93,10 +94,18 @@ const App: React.FC = () => {
   }, [initializeFromStorage, setUserData]);
 
   if (!user) {
-    return <AuthScreen />;
+    return (
+      <ThemeProvider>
+        <AuthScreen />
+      </ThemeProvider>
+    );
   }
 
-  return <RootNavigator />;
+  return (
+    <ThemeProvider>
+      <RootNavigator />
+    </ThemeProvider>
+  );
 };
 
 export default App;

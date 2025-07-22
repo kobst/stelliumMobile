@@ -6,6 +6,7 @@ import {
   getAspectColor,
   PLANET_COLORS
 } from './ChartUtils';
+import { useTheme } from '../../theme';
 
 interface PlanetCardProps {
   planet: string;
@@ -47,6 +48,7 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
   description,
   astrologicalData
 }) => {
+  const { colors } = useTheme();
   // Parse the astrological data JSON
   const parseAstrologicalData = (): AstrologicalDataParsed | null => {
     if (!astrologicalData) return null;
@@ -119,9 +121,9 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
   };
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {/* Planet Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View style={[styles.symbolContainer, { backgroundColor: getPlanetColor(planet) + '20' }]}>
           <Text style={[styles.symbol, { color: getPlanetColor(planet) }]}>
             {getPlanetSymbol(planet)}
@@ -134,11 +136,11 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
 
       {/* Astrological Data Section (if available) */}
       {parsedData ? (
-        <View style={styles.astroDataSection}>
+        <View style={[styles.astroDataSection, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
           {/* Position */}
           {parsedData.positions.length > 0 && (
             <View style={styles.positionSubsection}>
-              <Text style={styles.astroDataLabel}>Position</Text>
+              <Text style={[styles.astroDataLabel, { color: colors.primary }]}>Position</Text>
               {parsedData.positions.map((position, index) => (
                 <View key={index} style={styles.positionRow}>
                   <View style={styles.planetSymbolContainer}>
@@ -146,15 +148,15 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
                       {getPlanetSymbol(position.planet)}
                     </Text>
                   </View>
-                  <Text style={styles.positionText}>
+                  <Text style={[styles.positionText, { color: colors.onSurface }]}>
                     {position.planet} in {position.sign} 
                   </Text>
                   <View style={styles.signSymbolContainer}>
-                    <Text style={styles.signSymbol}>
+                    <Text style={[styles.signSymbol, { color: colors.primary }]}>
                       {getZodiacGlyph(position.sign as any)}
                     </Text>
                   </View>
-                  <Text style={styles.houseText}>
+                  <Text style={[styles.houseText, { color: colors.onSurfaceVariant }]}>
                     House {position.house}
                   </Text>
                   {position.isRetrograde && (
@@ -168,7 +170,7 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
           {/* Aspects */}
           {parsedData.aspects.length > 0 && (
             <View style={styles.aspectsSubsection}>
-              <Text style={styles.astroDataLabel}>Aspects</Text>
+              <Text style={[styles.astroDataLabel, { color: colors.primary }]}>Aspects</Text>
               {parsedData.aspects.slice(0, 5).map((aspect, index) => ( // Limit to 5 aspects
                 <View key={index} style={styles.aspectRow}>
                   <View style={styles.aspectPlanets}>
@@ -182,16 +184,16 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
                       {getPlanetSymbol(aspect.planet2)}
                     </Text>
                   </View>
-                  <Text style={styles.aspectDescription}>
+                  <Text style={[styles.aspectDescription, { color: colors.onSurface }]}>
                     {aspect.orbDescription} {aspect.aspectType} to {aspect.planet2}
                   </Text>
-                  <Text style={styles.aspectOrb}>
+                  <Text style={[styles.aspectOrb, { color: colors.onSurfaceVariant }]}>
                     {aspect.orb.toFixed(1)}°
                   </Text>
                 </View>
               ))}
               {parsedData.aspects.length > 5 && (
-                <Text style={styles.moreAspects}>
+                <Text style={[styles.moreAspects, { color: colors.primary }]}>
                   +{parsedData.aspects.length - 5} more aspects
                 </Text>
               )}
@@ -201,13 +203,13 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
           {/* House Rulers */}
           {parsedData.houseRulers.length > 0 && (
             <View style={styles.rulersSubsection}>
-              <Text style={styles.astroDataLabel}>Rules</Text>
+              <Text style={[styles.astroDataLabel, { color: colors.primary }]}>Rules</Text>
               {parsedData.houseRulers.map((ruler, index) => (
                 <View key={index} style={styles.rulerRow}>
-                  <Text style={styles.rulerText}>
+                  <Text style={[styles.rulerText, { color: colors.onSurface }]}>
                     {ruler.sign} (House {ruler.house})
                   </Text>
-                  <Text style={styles.signSymbol}>
+                  <Text style={[styles.signSymbol, { color: colors.primary }]}>
                     {getZodiacGlyph(ruler.sign as any)}
                   </Text>
                 </View>
@@ -217,21 +219,21 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
         </View>
       ) : description ? (
         // Fallback to description if no parsed data
-        <View style={styles.descriptionSection}>
-          <Text style={styles.descriptionLabel}>Position</Text>
-          <Text style={styles.descriptionText}>{description}</Text>
+        <View style={[styles.descriptionSection, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
+          <Text style={[styles.descriptionLabel, { color: colors.primary }]}>Position</Text>
+          <Text style={[styles.descriptionText, { color: colors.onSurface }]}>{description}</Text>
         </View>
       ) : null}
 
       {/* Interpretation Section */}
       {interpretation ? (
         <View style={styles.interpretationSection}>
-          <Text style={styles.interpretationLabel}>Analysis</Text>
-          <Text style={styles.interpretationText}>{interpretation}</Text>
+          <Text style={[styles.interpretationLabel, { color: colors.primary }]}>Analysis</Text>
+          <Text style={[styles.interpretationText, { color: colors.onSurface }]}>{interpretation}</Text>
         </View>
       ) : (
         <View style={styles.noDataSection}>
-          <Text style={styles.noDataText}>
+          <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>
             Analysis for {planet} will be available once the full chart analysis is complete.
           </Text>
         </View>
@@ -242,10 +244,8 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
     marginBottom: 12,
     overflow: 'hidden',
   },
@@ -254,7 +254,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(139, 92, 246, 0.2)',
   },
   symbolContainer: {
     width: 40,
@@ -277,34 +276,27 @@ const styles = StyleSheet.create({
   },
   descriptionSection: {
     padding: 16,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(59, 130, 246, 0.2)',
   },
   descriptionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#60a5fa',
     textTransform: 'uppercase',
     marginBottom: 6,
     letterSpacing: 0.5,
   },
   descriptionText: {
     fontSize: 14,
-    color: '#e2e8f0',
     lineHeight: 20,
     opacity: 0.9,
   },
   astroDataSection: {
     padding: 16,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(59, 130, 246, 0.2)',
   },
   astroDataLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#60a5fa',
     textTransform: 'uppercase',
     marginBottom: 8,
     letterSpacing: 0.5,
@@ -328,7 +320,6 @@ const styles = StyleSheet.create({
   },
   positionText: {
     fontSize: 13,
-    color: '#e2e8f0',
     flex: 1,
   },
   signSymbolContainer: {
@@ -338,11 +329,9 @@ const styles = StyleSheet.create({
   },
   signSymbol: {
     fontSize: 14,
-    color: '#8b5cf6',
   },
   houseText: {
     fontSize: 12,
-    color: '#94a3b8',
     marginLeft: 8,
   },
   retrograde: {
@@ -372,20 +361,17 @@ const styles = StyleSheet.create({
   },
   aspectDescription: {
     fontSize: 12,
-    color: '#e2e8f0',
     flex: 1,
     marginLeft: 8,
   },
   aspectOrb: {
     fontSize: 10,
-    color: '#94a3b8',
     marginLeft: 8,
     width: 35,
     textAlign: 'right',
   },
   moreAspects: {
     fontSize: 11,
-    color: '#8b5cf6',
     fontStyle: 'italic',
     textAlign: 'center',
     marginTop: 4,
@@ -400,7 +386,6 @@ const styles = StyleSheet.create({
   },
   rulerText: {
     fontSize: 12,
-    color: '#e2e8f0',
     flex: 1,
   },
   interpretationSection: {
@@ -409,14 +394,12 @@ const styles = StyleSheet.create({
   interpretationLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#8b5cf6',
     textTransform: 'uppercase',
     marginBottom: 8,
     letterSpacing: 0.5,
   },
   interpretationText: {
     fontSize: 14,
-    color: '#ffffff',
     lineHeight: 22,
   },
   noDataSection: {
@@ -425,7 +408,6 @@ const styles = StyleSheet.create({
   },
   noDataText: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
     fontStyle: 'italic',

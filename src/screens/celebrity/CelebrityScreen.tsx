@@ -15,6 +15,7 @@ import { useStore } from '../../store';
 import { useCelebrities } from '../../hooks/useCelebrities';
 import { Celebrity } from '../../api/celebrities';
 import CelebrityRelationships from '../../components/CelebrityRelationships';
+import { useTheme } from '../../theme';
 
 type CelebrityStackParamList = {
   CelebrityMain: undefined;
@@ -30,6 +31,7 @@ type TabType = 'individuals' | 'relationships';
 const CelebrityScreen: React.FC = () => {
   const navigation = useNavigation<CelebrityScreenNavigationProp>();
   const { userData } = useStore();
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>('individuals');
   const [searchText, setSearchText] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -71,18 +73,18 @@ const CelebrityScreen: React.FC = () => {
   };
 
   const renderTabSwitcher = () => (
-    <View style={styles.tabSwitcher}>
+    <View style={[styles.tabSwitcher, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <TouchableOpacity
         style={[
           styles.tabButton,
-          activeTab === 'individuals' && styles.activeTabButton,
+          activeTab === 'individuals' && { backgroundColor: colors.primary },
         ]}
         onPress={() => setActiveTab('individuals')}
       >
         <Text
           style={[
-            styles.tabButtonText,
-            activeTab === 'individuals' && styles.activeTabButtonText,
+            { color: colors.onSurfaceVariant },
+            activeTab === 'individuals' && { color: colors.onPrimary, fontWeight: '600' },
           ]}
         >
           Individuals
@@ -91,14 +93,14 @@ const CelebrityScreen: React.FC = () => {
       <TouchableOpacity
         style={[
           styles.tabButton,
-          activeTab === 'relationships' && styles.activeTabButton,
+          activeTab === 'relationships' && { backgroundColor: colors.primary },
         ]}
         onPress={() => setActiveTab('relationships')}
       >
         <Text
           style={[
-            styles.tabButtonText,
-            activeTab === 'relationships' && styles.activeTabButtonText,
+            { color: colors.onSurfaceVariant },
+            activeTab === 'relationships' && { color: colors.onPrimary, fontWeight: '600' },
           ]}
         >
           Relationships
@@ -109,26 +111,26 @@ const CelebrityScreen: React.FC = () => {
 
   const renderCelebrityItem = ({ item }: { item: Celebrity }) => (
     <TouchableOpacity 
-      style={styles.celebrityItem} 
+      style={[styles.celebrityItem, { backgroundColor: colors.surface, borderColor: colors.border }]} 
       onPress={() => handleCelebrityPress(item)}
     >
       <View style={styles.celebrityInfo}>
-        <Text style={styles.celebrityName}>{item.firstName} {item.lastName}</Text>
-        <Text style={styles.celebrityDetails}>
+        <Text style={[styles.celebrityName, { color: colors.onSurface }]}>{item.firstName} {item.lastName}</Text>
+        <Text style={[styles.celebrityDetails, { color: colors.onSurfaceVariant }]}>
           {new Date(item.dateOfBirth).toLocaleDateString()}
         </Text>
-        <Text style={styles.celebrityLocation}>
+        <Text style={[styles.celebrityLocation, { color: colors.onSurfaceVariant }]}>
           Born in {item.placeOfBirth}
         </Text>
       </View>
-      <Text style={styles.viewChartText}>View Chart →</Text>
+      <Text style={[styles.viewChartText, { color: colors.primary }]}>View Chart →</Text>
     </TouchableOpacity>
   );
 
   if (!userData) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Please sign in to explore celebrity charts</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to explore celebrity charts</Text>
       </View>
     );
   }
@@ -143,20 +145,20 @@ const CelebrityScreen: React.FC = () => {
 
       {/* Error Display */}
       {error && activeTab === 'individuals' && (
-        <View style={styles.errorSection}>
-          <Text style={styles.errorText}>Error: {error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={clearError}>
-            <Text style={styles.retryButtonText}>Dismiss</Text>
+        <View style={[styles.errorSection, { backgroundColor: colors.surface, borderColor: colors.error }]}>
+          <Text style={[styles.errorText, { color: colors.error }]}>Error: {error}</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.error }]} onPress={clearError}>
+            <Text style={[styles.retryButtonText, { color: colors.onError }]}>Dismiss</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* Header */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
+      <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
           {activeTab === 'individuals' ? 'Celebrity Birth Charts' : 'Celebrity Relationships'}
         </Text>
-        <Text style={styles.sectionSubtitle}>
+        <Text style={[styles.sectionSubtitle, { color: colors.onSurfaceVariant }]}>
           {activeTab === 'individuals' 
             ? 'Explore the cosmic blueprints of famous personalities'
             : 'Discover your cosmic connections with celebrities'
@@ -166,30 +168,30 @@ const CelebrityScreen: React.FC = () => {
 
       {/* Search - Only show for individuals tab */}
       {activeTab === 'individuals' && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Search Celebrities</Text>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Search Celebrities</Text>
           <View style={styles.searchContainer}>
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.onSurface }]}
               placeholder="Search by name..."
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={colors.onSurfaceVariant}
               value={searchText}
               onChangeText={setSearchText}
             />
             {isSearching && (
-              <ActivityIndicator size="small" color="#8b5cf6" style={styles.searchLoader} />
+              <ActivityIndicator size="small" color={colors.primary} style={styles.searchLoader} />
             )}
           </View>
           {searchText.length > 0 && searchText.length <= 2 && (
-            <Text style={styles.searchHint}>Type at least 3 characters to search</Text>
+            <Text style={[styles.searchHint, { color: colors.onSurfaceVariant }]}>Type at least 3 characters to search</Text>
           )}
         </View>
       )}
 
       {/* Results Section Header - Only show for individuals tab */}
       {activeTab === 'individuals' && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
             {searchText.length > 2 
               ? `Search Results (${searchResults.length})`
               : `Celebrities (${displayData.length})`
@@ -198,13 +200,13 @@ const CelebrityScreen: React.FC = () => {
           
           {loading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#8b5cf6" />
-              <Text style={styles.loadingText}>Loading celebrities...</Text>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading celebrities...</Text>
             </View>
           )}
 
           {!loading && displayData.length === 0 && (
-            <Text style={styles.noResultsText}>
+            <Text style={[styles.noResultsText, { color: colors.onSurfaceVariant }]}>
               {searchText.length > 2 
                 ? "No celebrities found matching your search"
                 : "No celebrities available"
@@ -221,8 +223,8 @@ const CelebrityScreen: React.FC = () => {
     
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Loading more celebrities...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading more celebrities...</Text>
       </View>
     );
   };
@@ -240,7 +242,7 @@ const CelebrityScreen: React.FC = () => {
 
   if (activeTab === 'relationships') {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {renderHeader()}
         <CelebrityRelationships onCelebrityPress={handleCelebrityPress} />
       </View>
@@ -249,14 +251,14 @@ const CelebrityScreen: React.FC = () => {
 
   if (!loading && displayData.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {renderHeader()}
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
         data={displayData}
         renderItem={renderCelebrityItem}
@@ -277,17 +279,14 @@ const CelebrityScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   tabSwitcher: {
     flexDirection: 'row',
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 4,
     margin: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   tabButton: {
     flex: 1,
@@ -297,35 +296,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activeTabButton: {
-    backgroundColor: '#8b5cf6',
-  },
-  tabButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#94a3b8',
-  },
-  activeTabButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
   section: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#94a3b8',
     marginBottom: 16,
     lineHeight: 20,
   },
@@ -333,14 +316,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   searchInput: {
-    backgroundColor: '#0f172a',
     borderWidth: 1,
-    borderColor: '#334155',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#e2e8f0',
     marginBottom: 8,
   },
   searchLoader: {
@@ -350,7 +330,6 @@ const styles = StyleSheet.create({
   },
   searchHint: {
     fontSize: 12,
-    color: '#94a3b8',
     fontStyle: 'italic',
     marginBottom: 8,
   },
@@ -362,36 +341,25 @@ const styles = StyleSheet.create({
   categoryButton: {
     flex: 1,
     minWidth: '48%',
-    backgroundColor: '#374151',
     padding: 12,
     margin: 4,
     borderRadius: 8,
     alignItems: 'center',
   },
-  selectedCategoryButton: {
-    backgroundColor: '#8b5cf6',
-  },
   categoryButtonText: {
-    color: '#e2e8f0',
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
-  },
-  selectedCategoryButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
   },
   loadingContainer: {
     alignItems: 'center',
     padding: 32,
   },
   loadingText: {
-    color: '#94a3b8',
     fontSize: 14,
     marginTop: 8,
   },
   noResultsText: {
-    color: '#94a3b8',
     fontSize: 14,
     textAlign: 'center',
     padding: 32,
@@ -404,12 +372,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     padding: 16,
     borderRadius: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   celebrityInfo: {
     flex: 1,
@@ -417,46 +383,37 @@ const styles = StyleSheet.create({
   celebrityName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
     marginBottom: 4,
   },
   celebrityDetails: {
     fontSize: 14,
-    color: '#94a3b8',
     marginBottom: 2,
   },
   celebrityLocation: {
     fontSize: 12,
-    color: '#64748b',
   },
   viewChartText: {
-    color: '#8b5cf6',
     fontSize: 14,
     fontWeight: '500',
   },
   errorSection: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ef4444',
     alignItems: 'center',
   },
   errorText: {
-    color: '#ef4444',
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 12,
   },
   retryButton: {
-    backgroundColor: '#ef4444',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   retryButtonText: {
-    color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
   },

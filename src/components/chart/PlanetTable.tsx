@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { BackendPlanet, PlanetName } from '../../types';
+import { useTheme } from '../../theme';
 import { 
   PLANET_COLORS, 
   getPlanetGlyph, 
@@ -15,14 +16,15 @@ interface PlanetTableProps {
 }
 
 const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
+  const { colors } = useTheme();
   const filteredPlanets = filterPlanets(planets);
 
   const renderPlanetRow = (planet: BackendPlanet, index: number) => {
-    const planetColor = PLANET_COLORS[planet.name as PlanetName] || '#ffffff';
+    const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
     const { sign, position } = getZodiacPositionFromDegree(planet.full_degree);
     
     return (
-      <View key={planet.name} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
+      <View key={planet.name} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow, { borderBottomColor: colors.border }]}>
         {/* Planet Symbol */}
         <View style={styles.symbolCell}>
           <Text style={[styles.planetSymbol, { color: planetColor }]}>
@@ -32,36 +34,36 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
         
         {/* Planet Name */}
         <View style={styles.nameCell}>
-          <Text style={styles.planetName}>{planet.name}</Text>
+          <Text style={[styles.planetName, { color: colors.onSurface }]}>{planet.name}</Text>
         </View>
         
         {/* Degree in Sign */}
         <View style={styles.degreeCell}>
-          <Text style={styles.degree}>{position.toFixed(1)}°</Text>
+          <Text style={[styles.degree, { color: colors.onSurfaceVariant }]}>{position.toFixed(1)}°</Text>
         </View>
         
         {/* Sign Symbol */}
         <View style={styles.symbolCell}>
-          <Text style={styles.signSymbol}>
+          <Text style={[styles.signSymbol, { color: colors.primary }]}>
             {getZodiacGlyph(sign)}
           </Text>
         </View>
         
         {/* Sign Name */}
         <View style={styles.signCell}>
-          <Text style={styles.signName}>{sign}</Text>
+          <Text style={[styles.signName, { color: colors.onSurfaceVariant }]}>{sign}</Text>
         </View>
         
         {/* House */}
         <View style={styles.houseCell}>
-          <Text style={styles.house}>
+          <Text style={[styles.house, { color: colors.onSurfaceVariant }]}>
             {planet.house > 0 ? planet.house : '-'}
           </Text>
         </View>
         
         {/* Retrograde */}
         <View style={styles.retroCell}>
-          <Text style={styles.retro}>
+          <Text style={[styles.retro, { color: colors.error }]}>
             {planet.is_retro ? 'R' : ''}
           </Text>
         </View>
@@ -70,31 +72,31 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Planetary Positions</Text>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={[styles.title, { color: colors.onSurface }]}>Planetary Positions</Text>
       
       {/* Header */}
-      <View style={[styles.row, styles.headerRow]}>
+      <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
         <View style={styles.symbolCell}>
-          <Text style={styles.headerText}>☽</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☽</Text>
         </View>
         <View style={styles.nameCell}>
-          <Text style={styles.headerText}>Planet</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Planet</Text>
         </View>
         <View style={styles.degreeCell}>
-          <Text style={styles.headerText}>Degree</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Degree</Text>
         </View>
         <View style={styles.symbolCell}>
-          <Text style={styles.headerText}>♈</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>♈</Text>
         </View>
         <View style={styles.signCell}>
-          <Text style={styles.headerText}>Sign</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Sign</Text>
         </View>
         <View style={styles.houseCell}>
-          <Text style={styles.headerText}>House</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>House</Text>
         </View>
         <View style={styles.retroCell}>
-          <Text style={styles.headerText}>R</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>R</Text>
         </View>
       </View>
       
@@ -108,17 +110,14 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 16,
     margin: 8,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -131,10 +130,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#334155',
   },
   headerRow: {
-    backgroundColor: '#374151',
     borderRadius: 6,
     marginBottom: 4,
     borderBottomWidth: 0,
@@ -172,7 +169,6 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94a3b8',
     textAlign: 'center',
   },
   planetSymbol: {
@@ -182,27 +178,21 @@ const styles = StyleSheet.create({
   planetName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#ffffff',
   },
   degree: {
     fontSize: 12,
-    color: '#e2e8f0',
   },
   signSymbol: {
     fontSize: 16,
-    color: '#8b5cf6',
   },
   signName: {
     fontSize: 12,
-    color: '#e2e8f0',
   },
   house: {
     fontSize: 12,
-    color: '#94a3b8',
   },
   retro: {
     fontSize: 10,
-    color: '#ef4444',
     fontWeight: 'bold',
   },
 });

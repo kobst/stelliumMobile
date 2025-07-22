@@ -12,6 +12,7 @@ import ChartContainer from './ChartContainer';
 import PatternsTab from './PatternsTab';
 import PlanetsTab from './PlanetsTab';
 import AnalysisTab from './AnalysisTab';
+import { useTheme } from '../../theme';
 
 interface ChartTabNavigatorProps {
   birthChart?: BirthChart;
@@ -38,6 +39,7 @@ const ChartTabNavigator: React.FC<ChartTabNavigatorProps> = ({
   overview,
 }) => {
   const [activeTab, setActiveTab] = useState('chart');
+  const { colors } = useTheme();
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -64,9 +66,9 @@ const ChartTabNavigator: React.FC<ChartTabNavigatorProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -77,13 +79,13 @@ const ChartTabNavigator: React.FC<ChartTabNavigatorProps> = ({
               key={tab.key}
               style={[
                 styles.tab,
-                activeTab === tab.key && styles.activeTab
+                activeTab === tab.key && { backgroundColor: colors.primary }
               ]}
               onPress={() => setActiveTab(tab.key)}
             >
               <Text style={[
-                styles.tabText,
-                activeTab === tab.key && styles.activeTabText
+                { color: colors.onSurfaceVariant, fontSize: 14, fontWeight: '500', textAlign: 'center' },
+                activeTab === tab.key && { color: colors.onPrimary, fontWeight: '600' }
               ]}>
                 {tab.title}
               </Text>
@@ -103,12 +105,9 @@ const ChartTabNavigator: React.FC<ChartTabNavigatorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   tabContainer: {
-    backgroundColor: '#1e293b',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   tabScrollContent: {
     paddingHorizontal: 16,
@@ -121,19 +120,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  activeTab: {
-    backgroundColor: '#8b5cf6',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#94a3b8',
-    textAlign: 'center',
-  },
-  activeTabText: {
-    color: '#ffffff',
-    fontWeight: '600',
   },
   contentContainer: {
     flex: 1,

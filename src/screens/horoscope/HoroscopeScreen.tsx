@@ -9,10 +9,12 @@ import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../../store';
 import { useHoroscope } from '../../hooks/useHoroscope';
 import HoroscopeContainer from '../../components/HoroscopeContainer';
+import { useTheme } from '../../theme';
 
 const HoroscopeScreen: React.FC = () => {
   const navigation = useNavigation();
   const { userData } = useStore();
+  const { colors } = useTheme();
 
   const {
     transitData,
@@ -29,18 +31,18 @@ const HoroscopeScreen: React.FC = () => {
 
   if (!userData) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Please sign in to view your horoscope</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view your horoscope</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Welcome Section */}
-      <View style={styles.welcomeSection}>
-        <Text style={styles.welcomeText}>Hello, {userData.name}!</Text>
-        <Text style={styles.welcomeSubtitle}>
+      <View style={[styles.welcomeSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.welcomeText, { color: colors.onSurface }]}>Hello, {userData.name}!</Text>
+        <Text style={[styles.welcomeSubtitle, { color: colors.onSurfaceVariant }]}>
           Your personalized horoscope based on your birth chart
         </Text>
       </View>
@@ -59,29 +61,23 @@ const HoroscopeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   welcomeSection: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 4,
   },
   welcomeSubtitle: {
     fontSize: 14,
-    color: '#94a3b8',
     lineHeight: 20,
   },
   errorText: {
-    color: '#ef4444',
     fontSize: 16,
     textAlign: 'center',
     padding: 32,

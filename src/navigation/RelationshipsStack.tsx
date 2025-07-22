@@ -3,17 +3,20 @@ import { createStackNavigator } from '@react-navigation/stack';
 import RelationshipsScreen from '../screens/relationships/RelationshipsScreen';
 import RelationshipAnalysisScreen from '../screens/relationships/RelationshipAnalysisScreen';
 import CreateRelationshipScreen from '../screens/relationships/CreateRelationshipScreen';
+import { useTheme } from '../theme';
 
 const Stack = createStackNavigator();
 
 const RelationshipsStack: React.FC = () => {
+  const { colors } = useTheme();
+  
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#1f2937',
+          backgroundColor: colors.surface,
         },
-        headerTintColor: '#ffffff',
+        headerTintColor: colors.onSurface,
         headerTitleStyle: {
           fontWeight: 'bold',
         },
