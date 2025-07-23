@@ -97,7 +97,7 @@ export const useHoroscope = (userId?: string): UseHoroscopeReturn => {
 
     try {
       const response = await horoscopesApi.generateCustomHoroscope(targetUserId, selectedTransits);
-      
+
       setCustomHoroscope(response);
       setStoreCustomHoroscope(response);
     } catch (err) {

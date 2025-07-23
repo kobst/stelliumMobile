@@ -18,7 +18,7 @@ interface PersonCardProps {
 
 const PersonCard: React.FC<PersonCardProps> = ({ person, isSelected, onPress }) => {
   const { colors } = useTheme();
-  
+
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -101,23 +101,23 @@ const PersonCard: React.FC<PersonCardProps> = ({ person, isSelected, onPress }) 
           </View>
         )}
       </View>
-      
+
       <Text style={cardStyles.birthDate}>
         Born: {formatDate(person.dateOfBirth)}
       </Text>
-      
+
       {person.placeOfBirth && (
         <Text style={cardStyles.location}>
           📍 {person.placeOfBirth}
         </Text>
       )}
-      
+
       {person.profession && (
         <Text style={cardStyles.profession}>
           💼 {person.profession}
         </Text>
       )}
-      
+
       {person.gender && (
         <Text style={cardStyles.gender}>
           👤 {person.gender.charAt(0).toUpperCase() + person.gender.slice(1)}

@@ -22,8 +22,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState<ThemeMode>(themeMode);
 
   // Determine if we should use dark theme based on preference and system
-  const shouldUseDarkTheme = 
-    currentTheme === 'dark' || 
+  const shouldUseDarkTheme =
+    currentTheme === 'dark' ||
     (currentTheme === 'system' && systemColorScheme === 'dark');
 
   const colors = shouldUseDarkTheme ? darkTheme : lightTheme;

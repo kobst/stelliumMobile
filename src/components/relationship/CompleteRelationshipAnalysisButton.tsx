@@ -15,9 +15,9 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
 }) => {
   // Store state (minimal, only for scores and completion)
   const { relationshipWorkflowState } = useStore();
-  
+
   // Hook state
-  const { 
+  const {
     error,
     isStartingAnalysis,
     isPolling,
@@ -27,9 +27,9 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
     computeWorkflowProgress,
     startFullRelationshipAnalysis,
   } = useRelationshipWorkflow(compositeChartId);
-  
+
   // Check if polling is active (local or store state)
-  const isStorePollingActive = relationshipWorkflowState.isPollingActive && 
+  const isStorePollingActive = relationshipWorkflowState.isPollingActive &&
                               relationshipWorkflowState.activeCompositeChartId === compositeChartId;
   const isAnalysisInProgress = isStartingAnalysis || isPolling || isWorkflowRunning || isStorePollingActive;
 
@@ -41,7 +41,7 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
   }, [workflowComplete, relationshipWorkflowState.completed, onAnalysisComplete]);
 
   const handleStartAnalysis = async () => {
-    if (!compositeChartId || isAnalysisInProgress) return;
+    if (!compositeChartId || isAnalysisInProgress) {return;}
 
     try {
       await startFullRelationshipAnalysis(compositeChartId);
@@ -58,7 +58,7 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
   // Show loading state when analysis is in progress
   if (isAnalysisInProgress) {
     const progress = computeWorkflowProgress();
-    
+
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#8b5cf6" style={styles.spinner} />

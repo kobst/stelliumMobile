@@ -14,11 +14,11 @@ export const getCurrentWeekRange = (): DateRange => {
   const monday = new Date(now);
   monday.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
   monday.setHours(0, 0, 0, 0);
-  
+
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   sunday.setHours(23, 59, 59, 999);
-  
+
   return { start: monday, end: sunday };
 };
 
@@ -28,11 +28,11 @@ export const getNextWeekRange = (): DateRange => {
   const nextMonday = new Date(now);
   nextMonday.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1) + 7);
   nextMonday.setHours(0, 0, 0, 0);
-  
+
   const nextSunday = new Date(nextMonday);
   nextSunday.setDate(nextMonday.getDate() + 6);
   nextSunday.setHours(23, 59, 59, 999);
-  
+
   return { start: nextMonday, end: nextSunday };
 };
 
@@ -41,10 +41,10 @@ export const getCurrentMonthRange = (): DateRange => {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   startOfMonth.setHours(0, 0, 0, 0);
-  
+
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   endOfMonth.setHours(23, 59, 59, 999);
-  
+
   return { start: startOfMonth, end: endOfMonth };
 };
 
@@ -53,10 +53,10 @@ export const getNextMonthRange = (): DateRange => {
   const now = new Date();
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   startOfNextMonth.setHours(0, 0, 0, 0);
-  
+
   const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
   endOfNextMonth.setHours(23, 59, 59, 999);
-  
+
   return { start: startOfNextMonth, end: endOfNextMonth };
 };
 
@@ -65,10 +65,10 @@ export const getTodayRange = (): DateRange => {
   const now = new Date();
   const startOfDay = new Date(now);
   startOfDay.setHours(0, 0, 0, 0);
-  
+
   const endOfDay = new Date(now);
   endOfDay.setHours(23, 59, 59, 999);
-  
+
   return { start: startOfDay, end: endOfDay };
 };
 
@@ -77,23 +77,23 @@ export const getTomorrowRange = (): DateRange => {
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
-  
+
   const startOfTomorrow = new Date(tomorrow);
   startOfTomorrow.setHours(0, 0, 0, 0);
-  
+
   const endOfTomorrow = new Date(tomorrow);
   endOfTomorrow.setHours(23, 59, 59, 999);
-  
+
   return { start: startOfTomorrow, end: endOfTomorrow };
 };
 
 // Helper function to format dates for display
 export const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
   });
 };
 
@@ -101,11 +101,11 @@ export const formatDate = (dateString: string): string => {
 export const formatDateRange = (start: string, end: string): string => {
   const startDate = new Date(start);
   const endDate = new Date(end);
-  
+
   if (startDate.toDateString() === endDate.toDateString()) {
     return formatDate(start);
   }
-  
+
   return `${formatDate(start)} - ${formatDate(end)}`;
 };
 

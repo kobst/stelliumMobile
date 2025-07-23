@@ -23,14 +23,14 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
 }) => {
   const { colors } = useTheme();
   const { userData, activeUserContext, creationWorkflowState } = useStore();
-  const { 
-    startAnalysisWorkflow, 
-    workflowState, 
-    loading: chartLoading, 
+  const {
+    startAnalysisWorkflow,
+    workflowState,
+    loading: chartLoading,
     error,
-    loadFullAnalysis 
+    loadFullAnalysis,
   } = useChart(userId);
-  
+
   const [workflowStarted, setWorkflowStarted] = useState(false);
   const [progressState, setProgressState] = useState<ProgressState>({});
 
@@ -38,11 +38,11 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
   useEffect(() => {
     const activeWorkflowState = workflowState || creationWorkflowState;
     console.log('CompleteFullAnalysisButton - activeWorkflowState updated:', activeWorkflowState);
-    
+
     if (activeWorkflowState && activeWorkflowState.workflowId) {
       const progressPercentage = activeWorkflowState.progress?.percentage || activeWorkflowState.progress || 0;
       const isCompleted = activeWorkflowState.completed || activeWorkflowState.isCompleted;
-      
+
       const newProgressState = {
         workflowId: activeWorkflowState.workflowId,
         progress: progressPercentage,
@@ -72,20 +72,20 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
   }, [workflowState, creationWorkflowState, loadFullAnalysis, onAnalysisComplete]);
 
   const getPhaseDescription = (progress: number): string => {
-    if (progress < 20) return "Initializing analysis...";
-    if (progress < 40) return "Analyzing planetary positions...";
-    if (progress < 60) return "Computing aspect patterns...";
-    if (progress < 80) return "Generating interpretations...";
-    if (progress < 95) return "Finalizing analysis...";
-    return "Complete!";
+    if (progress < 20) {return 'Initializing analysis...';}
+    if (progress < 40) {return 'Analyzing planetary positions...';}
+    if (progress < 60) {return 'Computing aspect patterns...';}
+    if (progress < 80) {return 'Generating interpretations...';}
+    if (progress < 95) {return 'Finalizing analysis...';}
+    return 'Complete!';
   };
 
   const handleStartAnalysis = async () => {
     // Use the specific userId for the chart being viewed, fallback to activeUserContext, then userData
     const targetUserId = userId || activeUserContext?.id || userData?.id;
     console.log('CompleteFullAnalysisButton - starting analysis for userId:', targetUserId);
-    
-    if (!targetUserId || workflowStarted || chartLoading) return;
+
+    if (!targetUserId || workflowStarted || chartLoading) {return;}
 
     try {
       setWorkflowStarted(true);
@@ -101,18 +101,18 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
   const getButtonText = (): string => {
     if (chartLoading || workflowStarted) {
       if (progressState.progress && progressState.progress > 0) {
-        return "Analysis in Progress...";
+        return 'Analysis in Progress...';
       }
-      return "Starting Analysis...";
+      return 'Starting Analysis...';
     }
-    return "Complete Full Analysis";
+    return 'Complete Full Analysis';
   };
 
   const isButtonDisabled = (): boolean => {
     const targetUserId = userId || activeUserContext?.id || userData?.id;
-    return chartLoading || 
-           !targetUserId || 
-           workflowStarted || 
+    return chartLoading ||
+           !targetUserId ||
+           workflowStarted ||
            (progressState.progress !== undefined && progressState.progress > 0 && !progressState.isCompleted);
   };
 

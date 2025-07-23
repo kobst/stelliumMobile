@@ -52,7 +52,7 @@ const AspectColorLegend: React.FC<AspectColorLegendProps> = ({
 
   const renderAspectItem = (item: AspectLegendItem) => {
     const aspectColor = getAspectColor(item.type);
-    
+
     return (
       <View key={item.type} style={styles.legendItem}>
         <View style={[styles.colorIndicator, { backgroundColor: aspectColor }]} />
@@ -67,14 +67,14 @@ const AspectColorLegend: React.FC<AspectColorLegendProps> = ({
   };
 
   return (
-    <View 
+    <View
       style={[
         styles.container,
-        { 
+        {
           backgroundColor: colors.surfaceElevated,
           borderBottomColor: colors.strokeSubtle,
         },
-        style
+        style,
       ]}
     >
       <View style={styles.header}>
@@ -82,9 +82,9 @@ const AspectColorLegend: React.FC<AspectColorLegendProps> = ({
           Aspect Legend
         </Text>
       </View>
-      
-      <ScrollView 
-        horizontal 
+
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >

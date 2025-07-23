@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
-  ActivityIndicator 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { BirthChart } from '../../types';
 import ChartWheel from './ChartWheel';
@@ -35,8 +35,8 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   const [showHouses, setShowHouses] = useState(true);
 
   // Determine if we have complete chart data
-  const hasChartData = birthChart && 
-    birthChart.planets && 
+  const hasChartData = birthChart &&
+    birthChart.planets &&
     birthChart.planets.length > 0;
 
   if (loading) {
@@ -76,7 +76,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
           >
             <Text style={[
               { color: colors.onSurfaceVariant, fontSize: 14, fontWeight: '500' },
-              !showTables && { color: colors.onPrimary }
+              !showTables && { color: colors.onPrimary },
             ]}>
               Chart Wheel
             </Text>
@@ -87,7 +87,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
           >
             <Text style={[
               { color: colors.onSurfaceVariant, fontSize: 14, fontWeight: '500' },
-              showTables && { color: colors.onPrimary }
+              showTables && { color: colors.onPrimary },
             ]}>
               Data Tables
             </Text>
@@ -103,7 +103,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
             >
               <Text style={[
                 { fontSize: 12, color: colors.onSurfaceVariant },
-                showAspects && { color: colors.primary, fontWeight: '500' }
+                showAspects && { color: colors.primary, fontWeight: '500' },
               ]}>
                 {showAspects ? '✓' : '○'} Aspects
               </Text>
@@ -114,7 +114,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
             >
               <Text style={[
                 { fontSize: 12, color: colors.onSurfaceVariant },
-                showHouses && { color: colors.primary, fontWeight: '500' }
+                showHouses && { color: colors.primary, fontWeight: '500' },
               ]}>
                 {showHouses ? '✓' : '○'} Houses
               </Text>
@@ -130,13 +130,13 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
         ) : (
           <View>
             <View style={[styles.chartSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ChartWheel 
+              <ChartWheel
                 birthChart={birthChart}
                 showAspects={showAspects}
                 showHouses={showHouses}
               />
             </View>
-            
+
             {/* Overview Section */}
             {overview && (
               <View style={[styles.overviewSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>

@@ -18,22 +18,22 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ style }) => {
         {
           text: 'System',
           onPress: () => setTheme('system'),
-          style: theme === 'system' ? 'default' : 'cancel'
+          style: theme === 'system' ? 'default' : 'cancel',
         },
         {
           text: 'Light',
           onPress: () => setTheme('light'),
-          style: theme === 'light' ? 'default' : 'cancel'
+          style: theme === 'light' ? 'default' : 'cancel',
         },
         {
           text: 'Dark',
           onPress: () => setTheme('dark'),
-          style: theme === 'dark' ? 'default' : 'cancel'
+          style: theme === 'dark' ? 'default' : 'cancel',
         },
         {
           text: 'Cancel',
-          style: 'cancel'
-        }
+          style: 'cancel',
+        },
       ]
     );
   };
@@ -64,7 +64,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ style }) => {
   };
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }, style]}
       onPress={showThemeOptions}
       activeOpacity={0.7}

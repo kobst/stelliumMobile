@@ -8,7 +8,7 @@ const Stack = createStackNavigator();
 
 const CelebrityStack: React.FC = () => {
   const { colors } = useTheme();
-  
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -21,15 +21,15 @@ const CelebrityStack: React.FC = () => {
         },
       }}
     >
-      <Stack.Screen 
-        name="CelebrityMain" 
+      <Stack.Screen
+        name="CelebrityMain"
         component={CelebrityScreen}
         options={{ title: 'Celebrity Charts' }}
       />
-      <Stack.Screen 
-        name="CelebrityDetail" 
+      <Stack.Screen
+        name="CelebrityDetail"
         component={CelebrityDetailScreen}
-        options={{ 
+        options={{
           title: 'Celebrity Chart',
           headerShown: false, // Using custom header in component
         }}

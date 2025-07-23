@@ -85,12 +85,12 @@ export const usersApi = {
   createUser: async (userData: CreateUserRequest): Promise<UserResponse> => {
     console.log('\n=== USERS API: createUser ===');
     console.log('Request data:', JSON.stringify(userData, null, 2));
-    
+
     const response = await apiClient.post<UserResponse>('/createUser', userData);
-    
+
     console.log('Response received:', JSON.stringify(response, null, 2));
     console.log('===========================\n');
-    
+
     return response;
   },
 
@@ -119,11 +119,11 @@ export const usersApi = {
     if (typeof request === 'string') {
       return apiClient.post<any[]>('/getUserSubjects', { ownerUserId: request });
     }
-    
+
     if (request.usePagination) {
       return apiClient.post<PaginatedUserSubjectsResponse>('/getUserSubjects', request);
     }
-    
+
     // Legacy behavior - returns array directly
     const response = await apiClient.post<any[]>('/getUserSubjects', request);
     return response;
@@ -151,12 +151,12 @@ export const usersApi = {
   createGuestSubject: async (guestData: CreateGuestSubjectRequest): Promise<SubjectDocument> => {
     console.log('\n=== USERS API: createGuestSubject ===');
     console.log('Request data:', JSON.stringify(guestData, null, 2));
-    
+
     const response = await apiClient.post<SubjectDocument>('/createGuestSubject', guestData);
-    
+
     console.log('Response received:', JSON.stringify(response, null, 2));
     console.log('===========================\n');
-    
+
     return response;
   },
 
@@ -166,12 +166,12 @@ export const usersApi = {
   ): Promise<SubjectDocument> => {
     console.log('\n=== USERS API: createGuestSubjectUnknownTime ===');
     console.log('Request data:', JSON.stringify(guestData, null, 2));
-    
+
     const response = await apiClient.post<SubjectDocument>('/createGuestSubjectUnknownTime', guestData);
-    
+
     console.log('Response received:', JSON.stringify(response, null, 2));
     console.log('===========================\n');
-    
+
     return response;
   },
 };

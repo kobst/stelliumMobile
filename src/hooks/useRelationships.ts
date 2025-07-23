@@ -32,8 +32,8 @@ export const useRelationships = (userId?: string): UseRelationshipsReturn => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { 
-    userData, 
+  const {
+    userData,
     relationshipWorkflowState,
     setActiveUserContext,
   } = useStore();
@@ -54,10 +54,10 @@ export const useRelationships = (userId?: string): UseRelationshipsReturn => {
         userA: userData,
         userB,
       });
-      
+
       setCurrentRelationship(response);
       setRelationships(prev => [...prev, response]);
-      
+
       return response;
     } catch (err) {
       const errorMessage = err instanceof ApiError ? err.message : 'Failed to create relationship';
@@ -86,7 +86,7 @@ export const useRelationships = (userId?: string): UseRelationshipsReturn => {
         userB: relationship.userB,
         compositeChartId: relationship.id,
       });
-      
+
       setScores(response);
       return response;
     } catch (err) {
@@ -110,7 +110,7 @@ export const useRelationships = (userId?: string): UseRelationshipsReturn => {
     try {
       const response = await relationshipsApi.startRelationshipWorkflow(userData, userB);
       setWorkflowState(response);
-      
+
       // Start polling for status
       if (response.workflowId) {
         pollRelationshipStatus(response.workflowId);
@@ -128,11 +128,11 @@ export const useRelationships = (userId?: string): UseRelationshipsReturn => {
         try {
           const statusResponse = await relationshipsApi.pollRelationshipStatus(workflowId);
           setWorkflowState(statusResponse);
-          
+
           if (statusResponse.isCompleted) {
             clearInterval(pollInterval);
             setLoading(false);
-            
+
             // Load updated relationships
             loadUserRelationships();
           }
@@ -143,7 +143,7 @@ export const useRelationships = (userId?: string): UseRelationshipsReturn => {
           setLoading(false);
         }
       }, 3000);
-      
+
       // Cleanup interval after 10 minutes
       setTimeout(() => {
         clearInterval(pollInterval);
@@ -152,7 +152,7 @@ export const useRelationships = (userId?: string): UseRelationshipsReturn => {
           setLoading(false);
         }
       }, 600000);
-      
+
     } catch (err) {
       const errorMessage = err instanceof ApiError ? err.message : 'Failed to start polling relationship status';
       setError(errorMessage);
@@ -187,14 +187,14 @@ export const useRelationships = (userId?: string): UseRelationshipsReturn => {
 
     try {
       await relationshipsApi.deleteRelationship(relationshipId);
-      
+
       setRelationships(prev => prev.filter(r => r.id !== relationshipId));
-      
+
       if (currentRelationship?.id === relationshipId) {
         setCurrentRelationship(null);
         setScores(null);
       }
-      
+
       return true;
     } catch (err) {
       const errorMessage = err instanceof ApiError ? err.message : 'Failed to delete relationship';

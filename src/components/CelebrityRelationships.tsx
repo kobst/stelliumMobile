@@ -30,7 +30,7 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
   const loadRelationships = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await celebritiesApi.getCelebrityRelationships(50);
       setRelationships(response);
@@ -61,7 +61,7 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
   };
 
   const renderRelationshipItem = ({ item }: { item: CelebrityRelationship }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.relationshipCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={() => {
         // Future: Navigate to relationship analysis
@@ -74,7 +74,7 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
           {new Date(item.createdAt).toLocaleDateString()}
         </Text>
       </View>
-      
+
       <View style={styles.celebrityPair}>
         <View style={styles.celebrityInfo}>
           <Text style={[styles.celebrityName, { color: colors.onSurface }]}>{getFullName(item, 'A')}</Text>
@@ -82,11 +82,11 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
             {new Date(item.userA_dateOfBirth).toLocaleDateString()}
           </Text>
         </View>
-        
+
         <View style={styles.separator}>
           <Text style={[styles.separatorText, { color: colors.primary }]}>♥</Text>
         </View>
-        
+
         <View style={styles.celebrityInfo}>
           <Text style={[styles.celebrityName, { color: colors.onSurface }]}>{getFullName(item, 'B')}</Text>
           <Text style={[styles.celebrityDOB, { color: colors.onSurfaceVariant }]}>
@@ -94,7 +94,7 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCeleb
           </Text>
         </View>
       </View>
-      
+
       <View style={[styles.viewAnalysisContainer, { borderTopColor: colors.border }]}>
         <Text style={[styles.viewAnalysisText, { color: colors.primary }]}>Tap to view analysis →</Text>
       </View>

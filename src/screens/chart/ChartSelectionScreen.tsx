@@ -34,8 +34,8 @@ const ChartSelectionScreen: React.FC = () => {
   }, []);
 
   const loadGuestSubjects = async (isRefresh = false) => {
-    if (!userData?.id) return;
-    
+    if (!userData?.id) {return;}
+
     if (isRefresh) {
       setRefreshing(true);
       setCurrentPage(1);
@@ -44,7 +44,7 @@ const ChartSelectionScreen: React.FC = () => {
       setLoading(true);
     }
     setError(null);
-    
+
     try {
       const result = await usersApi.getUserSubjects({
         ownerUserId: userData.id,
@@ -52,18 +52,18 @@ const ChartSelectionScreen: React.FC = () => {
         page: isRefresh ? 1 : currentPage,
         limit: 20,
         sortBy: 'createdAt',
-        sortOrder: 'desc'
+        sortOrder: 'desc',
       }) as PaginatedUserSubjectsResponse;
 
       if (result.success) {
         const guests = result.data.filter((s: SubjectDocument) => s.kind === 'guest');
-        
+
         if (isRefresh) {
           setGuestSubjects(guests);
         } else {
           setGuestSubjects(prev => [...prev, ...guests]);
         }
-        
+
         setHasMore(result.pagination.hasNext);
         if (!isRefresh) {
           setCurrentPage(prev => prev + 1);
@@ -99,7 +99,7 @@ const ChartSelectionScreen: React.FC = () => {
       onGuestCreated: () => {
         // Refresh the list when a new guest is created
         handleRefresh();
-      }
+      },
     });
   };
 
@@ -123,7 +123,7 @@ const ChartSelectionScreen: React.FC = () => {
     for (const zodiac of zodiacDates) {
       const [startMonth, startDay] = zodiac.start;
       const [endMonth, endDay] = zodiac.end;
-      
+
       if (startMonth === endMonth) {
         if (birthMonth === startMonth && birthDay >= startDay && birthDay <= endDay) {
           return zodiac.sign;
@@ -135,7 +135,7 @@ const ChartSelectionScreen: React.FC = () => {
         }
       }
     }
-    
+
     return '⭐';
   };
 
@@ -149,7 +149,7 @@ const ChartSelectionScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         refreshControl={
@@ -170,7 +170,7 @@ const ChartSelectionScreen: React.FC = () => {
       >
       {/* My Birth Chart Section */}
       <Text style={[styles.header, { color: colors.onSurface }]}>My Birth Chart</Text>
-      
+
       {/* Compact My Birth Chart Row */}
       <TouchableOpacity
         style={[styles.compactChartCard, { backgroundColor: colors.surface }]}
@@ -196,7 +196,7 @@ const ChartSelectionScreen: React.FC = () => {
 
       {/* Friends & Family Section */}
       <Text style={[styles.sectionHeader, { color: colors.onSurface }]}>Friends & Family</Text>
-      
+
       {loading ? (
         <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
       ) : error ? (
@@ -206,7 +206,7 @@ const ChartSelectionScreen: React.FC = () => {
           {guestSubjects.map((subject) => {
             const birthDate = new Date(subject.dateOfBirth);
             const zodiacSign = getZodiacIcon(birthDate.getMonth() + 1, birthDate.getDate());
-            
+
             return (
               <TouchableOpacity
                 key={subject._id}
@@ -224,10 +224,10 @@ const ChartSelectionScreen: React.FC = () => {
                     {subject.firstName} {subject.lastName}
                   </Text>
                   <Text style={[styles.guestDetails, { color: colors.onSurfaceVariant }]}>
-                    {birthDate.toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      year: 'numeric' 
+                    {birthDate.toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
                     })} - {subject.placeOfBirth}
                   </Text>
                 </View>

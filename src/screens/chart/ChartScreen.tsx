@@ -17,13 +17,13 @@ const ChartScreen: React.FC = () => {
   const route = useRoute<any>();
   const { userData } = useStore();
   const { colors } = useTheme();
-  
+
   // Use the subject passed from navigation, or fall back to logged-in user
   const subject = route.params?.subject || userData;
-  
+
   const {
     overview,
-    fullAnalysis, 
+    fullAnalysis,
     loading: chartLoading,
     error: chartError,
     loadFullAnalysis,

@@ -38,7 +38,7 @@ const RelationshipsScreen: React.FC = () => {
           }}
         />
       </ScrollView>
-      
+
       {/* Footer Add Button */}
       <AddFooterButton
         title="+ Add New Relationship"

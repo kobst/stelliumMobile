@@ -11,7 +11,7 @@ import {
   TabName,
   Planet,
   House,
-  Aspect
+  Aspect,
 } from '../types';
 import { Celebrity } from '../api/celebrities';
 import { celebrityToUser } from '../transformers/celebrity';
@@ -35,9 +35,9 @@ interface StoreState {
 
   // Context Management (for viewing different charts)
   currentUserContext: User | null;    // Account owner
-  activeUserContext: User | null;     // Currently viewed user  
+  activeUserContext: User | null;     // Currently viewed user
   previousUserContext: User | null;   // Navigation breadcrumb
-  
+
   // Guest Subjects
   guestSubjects: User[];
   selectedSubject: User | null;
@@ -51,7 +51,7 @@ interface StoreState {
   loading: boolean;
   error: string | null;
   activeTab: TabName;
-  
+
   // Theme State
   themeMode: ThemeMode;
 
@@ -73,7 +73,7 @@ interface StoreState {
   clearError: () => void;
   setLoading: (loading: boolean) => void;
   setActiveTab: (tab: TabName) => void;
-  
+
   // Theme Actions
   setThemeMode: (theme: ThemeMode) => void;
 
@@ -85,12 +85,12 @@ interface StoreState {
 
   // Chart Data Actions
   setChartData: (planets: Planet[], houses: House[], aspects: Aspect[]) => void;
-  
+
   // Guest Subject Actions
   setGuestSubjects: (subjects: User[]) => void;
   addGuestSubject: (subject: User) => void;
   setSelectedSubject: (subject: User | null) => void;
-  
+
   // Persistence Actions
   initializeFromStorage: () => Promise<void>;
   persistUserData: () => Promise<void>;
@@ -114,7 +114,7 @@ export const useStore = create<StoreState>((set, get) => ({
   currentUserContext: null,
   activeUserContext: null,
   previousUserContext: null,
-  
+
   guestSubjects: [],
   selectedSubject: null,
 
@@ -122,7 +122,7 @@ export const useStore = create<StoreState>((set, get) => ({
     workflowId: null,
     status: null,
     isCompleted: false,
-    progress: null
+    progress: null,
   },
 
   analysisWorkflowState: {
@@ -130,7 +130,7 @@ export const useStore = create<StoreState>((set, get) => ({
     hasOverview: false,
     hasFullAnalysis: false,
     overviewContent: '',
-    analysisContent: {}
+    analysisContent: {},
   },
 
   relationshipWorkflowState: {
@@ -142,13 +142,13 @@ export const useStore = create<StoreState>((set, get) => ({
     completed: false,
     currentRelationship: null,
     isPollingActive: false,
-    activeCompositeChartId: null
+    activeCompositeChartId: null,
   },
 
   loading: false,
   error: null,
   activeTab: 'horoscope',
-  
+
   // Theme State
   themeMode: 'system',
 
@@ -159,26 +159,26 @@ export const useStore = create<StoreState>((set, get) => ({
 
   // Actions
   setUserData: (userData) => {
-    set({ 
-      userData, 
+    set({
+      userData,
       isAuthenticated: !!userData,
       userId: userData?.id || '',
       currentUserContext: userData,
-      activeUserContext: userData
+      activeUserContext: userData,
     });
     get().persistUserData();
   },
 
   setWorkflowState: (workflowState) => set((state) => ({
-    creationWorkflowState: { ...state.creationWorkflowState, ...workflowState }
+    creationWorkflowState: { ...state.creationWorkflowState, ...workflowState },
   })),
 
   setAnalysisState: (analysisState) => set((state) => ({
-    analysisWorkflowState: { ...state.analysisWorkflowState, ...analysisState }
+    analysisWorkflowState: { ...state.analysisWorkflowState, ...analysisState },
   })),
 
   setRelationshipWorkflowState: (relationshipState) => set((state) => ({
-    relationshipWorkflowState: { ...state.relationshipWorkflowState, ...relationshipState }
+    relationshipWorkflowState: { ...state.relationshipWorkflowState, ...relationshipState },
   })),
 
   setActiveUserContext: (context) => set({ activeUserContext: context }),
@@ -187,17 +187,17 @@ export const useStore = create<StoreState>((set, get) => ({
     const { activeUserContext } = get();
     set({
       previousUserContext: activeUserContext,
-      activeUserContext: newUser
+      activeUserContext: newUser,
     });
   },
 
   switchToCelebrityContext: (celebrity) => {
     const { activeUserContext } = get();
     const userFromCelebrity = celebrityToUser(celebrity);
-    
+
     set({
       previousUserContext: activeUserContext,
-      activeUserContext: userFromCelebrity
+      activeUserContext: userFromCelebrity,
     });
   },
 
@@ -206,7 +206,7 @@ export const useStore = create<StoreState>((set, get) => ({
     if (previousUserContext) {
       set({
         activeUserContext: previousUserContext,
-        previousUserContext: null
+        previousUserContext: null,
       });
     }
   },
@@ -214,12 +214,12 @@ export const useStore = create<StoreState>((set, get) => ({
   clearError: () => set({ error: null }),
   setLoading: (loading) => set({ loading }),
   setActiveTab: (tab) => set({ activeTab: tab }),
-  
+
   // Theme Actions
   setThemeMode: (theme) => {
     set({ themeMode: theme });
     // Persist theme preference
-    AsyncStorage.setItem('themeMode', theme).catch(error => 
+    AsyncStorage.setItem('themeMode', theme).catch(error =>
       console.error('Failed to persist theme mode:', error)
     );
   },
@@ -244,16 +244,16 @@ export const useStore = create<StoreState>((set, get) => ({
   setChartData: (planets, houses, aspects) => set({
     userPlanets: planets,
     userHouses: houses,
-    userAspects: aspects
+    userAspects: aspects,
   }),
-  
+
   // Guest Subject Actions
   setGuestSubjects: (subjects) => set({ guestSubjects: subjects }),
-  
+
   addGuestSubject: (subject) => set((state) => ({
-    guestSubjects: [...state.guestSubjects, subject]
+    guestSubjects: [...state.guestSubjects, subject],
   })),
-  
+
   setSelectedSubject: (subject) => set({ selectedSubject: subject }),
 
   // Persistence Actions
@@ -261,20 +261,20 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       const [userData, themeMode] = await Promise.all([
         AsyncStorage.getItem('userData'),
-        AsyncStorage.getItem('themeMode')
+        AsyncStorage.getItem('themeMode'),
       ]);
-      
+
       if (userData) {
         const parsedUserData = JSON.parse(userData);
-        set({ 
+        set({
           userData: parsedUserData,
           isAuthenticated: true,
           userId: parsedUserData.id,
           currentUserContext: parsedUserData,
-          activeUserContext: parsedUserData
+          activeUserContext: parsedUserData,
         });
       }
-      
+
       if (themeMode && (themeMode === 'light' || themeMode === 'dark' || themeMode === 'system')) {
         set({ themeMode: themeMode as ThemeMode });
       }
@@ -296,5 +296,5 @@ export const useStore = create<StoreState>((set, get) => ({
     } catch (error) {
       console.error('Failed to persist user data:', error);
     }
-  }
+  },
 }));

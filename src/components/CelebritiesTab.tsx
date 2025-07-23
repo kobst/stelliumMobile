@@ -52,7 +52,7 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
       }
 
       const currentPage = reset ? 1 : page;
-      
+
       const response = await celebritiesApi.getCelebrities({
         usePagination: true,
         page: currentPage,
@@ -74,7 +74,7 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
         } else {
           setCelebrities(prev => [...prev, ...filteredData]);
         }
-        
+
         setHasMore(response.pagination.hasNext);
         setPage(currentPage + 1);
       }
@@ -101,7 +101,7 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
         lastName: item.lastName,
         dateOfBirth: item.dateOfBirth,
         placeOfBirth: item.placeOfBirth,
-        profession: `Celebrity`, // You might want to add a profession field
+        profession: 'Celebrity', // You might want to add a profession field
         gender: item.gender,
       }}
       isSelected={selectedPerson?._id === item._id}
@@ -122,7 +122,7 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
   );
 
   const renderFooter = () => {
-    if (!loadingMore) return null;
+    if (!loadingMore) {return null;}
     return (
       <View style={styles.footerLoader}>
         <ActivityIndicator size="small" color={colors.primary} />
@@ -153,7 +153,7 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
             onChangeText={setSearchQuery}
           />
         </View>
-        
+
         <View style={styles.filterContainer}>
           <Text style={[styles.filterLabel, { color: colors.onSurfaceVariant }]}>Gender:</Text>
           <TouchableOpacity
@@ -161,8 +161,8 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
             onPress={() => setShowGenderPicker(true)}
           >
             <Text style={[styles.pickerButtonText, { color: colors.onSurface }]}>
-              {genderFilter === 'all' ? 'All' : 
-               genderFilter === 'male' ? 'Male' : 
+              {genderFilter === 'all' ? 'All' :
+               genderFilter === 'male' ? 'Male' :
                genderFilter === 'female' ? 'Female' : 'Other'}
             </Text>
             <Text style={[styles.pickerArrow, { color: colors.primary }]}>▼</Text>

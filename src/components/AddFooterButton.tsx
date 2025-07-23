@@ -26,7 +26,7 @@ const AddFooterButton: React.FC<AddFooterButtonProps> = ({
         style={[
           styles.button,
           { backgroundColor: colors.primary },
-          disabled && { opacity: 0.6 }
+          disabled && { opacity: 0.6 },
         ]}
         onPress={onPress}
         disabled={disabled}

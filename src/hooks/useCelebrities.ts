@@ -22,7 +22,7 @@ const fetchCelebritiesPaginated = async (options: {
     limit = 20,
     search,
     sortBy = 'name',
-    sortOrder = 'asc'
+    sortOrder = 'asc',
   } = options;
 
   const requestBody: any = {
@@ -30,7 +30,7 @@ const fetchCelebritiesPaginated = async (options: {
     page,
     limit,
     sortBy,
-    sortOrder
+    sortOrder,
   };
 
   if (search) {
@@ -63,7 +63,7 @@ export const useCelebrities = (): UseCelebritiesReturn => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -94,7 +94,7 @@ export const useCelebrities = (): UseCelebritiesReturn => {
         limit: 20,
         search: searchTerm,
         sortBy: 'name',
-        sortOrder: 'asc'
+        sortOrder: 'asc',
       });
 
       console.log('Search response:', response);
@@ -119,7 +119,7 @@ export const useCelebrities = (): UseCelebritiesReturn => {
   }, []);
 
   const loadNextPage = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore) {return;}
 
     setLoadingMore(true);
     setError(null);
@@ -131,7 +131,7 @@ export const useCelebrities = (): UseCelebritiesReturn => {
         page: nextPage,
         limit: 20,
         sortBy: 'name',
-        sortOrder: 'asc'
+        sortOrder: 'asc',
       });
 
       console.log('Load next page response:', response);
@@ -141,7 +141,7 @@ export const useCelebrities = (): UseCelebritiesReturn => {
           // Filter out duplicates by checking if celebrity ID already exists
           const existingIds = new Set(prev.map(celebrity => celebrity._id));
           const newCelebrities = response.data.filter(celebrity => !existingIds.has(celebrity._id));
-          
+
           return [...prev, ...newCelebrities];
         });
         setCurrentPage(nextPage);
@@ -169,20 +169,20 @@ export const useCelebrities = (): UseCelebritiesReturn => {
         page: 1,
         limit: 20,
         sortBy: 'name',
-        sortOrder: 'asc'
+        sortOrder: 'asc',
       });
 
       console.log('Refresh response:', response);
 
       if (response && response.success && response.data) {
         // Remove any potential duplicates from the response
-        const uniqueCelebrities = response.data.filter((celebrity, index, self) => 
+        const uniqueCelebrities = response.data.filter((celebrity, index, self) =>
           index === self.findIndex(c => c._id === celebrity._id)
         );
         setCelebrities(uniqueCelebrities);
         setHasMore(response.pagination?.hasNext || uniqueCelebrities.length === 20);
       } else if (response && Array.isArray(response)) {
-        const uniqueCelebrities = response.slice(0, 20).filter((celebrity, index, self) => 
+        const uniqueCelebrities = response.slice(0, 20).filter((celebrity, index, self) =>
           index === self.findIndex(c => c._id === celebrity._id)
         );
         setCelebrities(uniqueCelebrities);
@@ -191,13 +191,13 @@ export const useCelebrities = (): UseCelebritiesReturn => {
         // Try legacy API as fallback
         const legacyResponse = await fetchCelebrities();
         if (legacyResponse && Array.isArray(legacyResponse)) {
-          const uniqueCelebrities = legacyResponse.slice(0, 20).filter((celebrity, index, self) => 
+          const uniqueCelebrities = legacyResponse.slice(0, 20).filter((celebrity, index, self) =>
             index === self.findIndex(c => c._id === celebrity._id)
           );
           setCelebrities(uniqueCelebrities);
           setHasMore(legacyResponse.length > 20);
         } else if (legacyResponse && legacyResponse.success && legacyResponse.data) {
-          const uniqueCelebrities = legacyResponse.data.slice(0, 20).filter((celebrity, index, self) => 
+          const uniqueCelebrities = legacyResponse.data.slice(0, 20).filter((celebrity, index, self) =>
             index === self.findIndex(c => c._id === celebrity._id)
           );
           setCelebrities(uniqueCelebrities);
@@ -227,21 +227,21 @@ export const useCelebrities = (): UseCelebritiesReturn => {
           page: 1,
           limit: 20,
           sortBy: 'name',
-          sortOrder: 'asc'
+          sortOrder: 'asc',
         });
 
         console.log('Initial load response:', response);
 
         if (response && response.success && response.data) {
           // Remove any potential duplicates from the response
-          const uniqueCelebrities = response.data.filter((celebrity, index, self) => 
+          const uniqueCelebrities = response.data.filter((celebrity, index, self) =>
             index === self.findIndex(c => c._id === celebrity._id)
           );
           setCelebrities(uniqueCelebrities);
           setHasMore(response.pagination?.hasNext || uniqueCelebrities.length === 20);
         } else if (response && Array.isArray(response)) {
           // Fallback for legacy response format
-          const uniqueCelebrities = response.slice(0, 20).filter((celebrity, index, self) => 
+          const uniqueCelebrities = response.slice(0, 20).filter((celebrity, index, self) =>
             index === self.findIndex(c => c._id === celebrity._id)
           );
           setCelebrities(uniqueCelebrities);
@@ -250,15 +250,15 @@ export const useCelebrities = (): UseCelebritiesReturn => {
           // Try legacy API as final fallback
           const legacyResponse = await fetchCelebrities();
           console.log('Legacy response:', legacyResponse);
-          
+
           if (legacyResponse && Array.isArray(legacyResponse)) {
-            const uniqueCelebrities = legacyResponse.slice(0, 20).filter((celebrity, index, self) => 
+            const uniqueCelebrities = legacyResponse.slice(0, 20).filter((celebrity, index, self) =>
               index === self.findIndex(c => c._id === celebrity._id)
             );
             setCelebrities(uniqueCelebrities);
             setHasMore(legacyResponse.length > 20);
           } else if (legacyResponse && legacyResponse.success && legacyResponse.data) {
-            const uniqueCelebrities = legacyResponse.data.slice(0, 20).filter((celebrity, index, self) => 
+            const uniqueCelebrities = legacyResponse.data.slice(0, 20).filter((celebrity, index, self) =>
               index === self.findIndex(c => c._id === celebrity._id)
             );
             setCelebrities(uniqueCelebrities);

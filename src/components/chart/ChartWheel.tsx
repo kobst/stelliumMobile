@@ -3,13 +3,13 @@ import { View, StyleSheet } from 'react-native';
 import Svg, { Circle, Line, Text as SvgText, G, Path } from 'react-native-svg';
 import type { ReactElement } from 'react';
 import { useTheme } from '../../theme';
-import { 
-  BirthChart, 
-  BackendPlanet, 
-  BackendHouse, 
+import {
+  BirthChart,
+  BackendPlanet,
+  BackendHouse,
   BackendAspect,
   PlanetName,
-  ZodiacSign 
+  ZodiacSign,
 } from '../../types';
 import {
   CHART_DIMENSIONS,
@@ -42,14 +42,14 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
 
   // Get ascendant degree for proper chart orientation
   const ascendantDegree = useMemo(() => {
-    if (!birthChart?.houses?.length) return 0;
+    if (!birthChart?.houses?.length) {return 0;}
     return birthChart.houses[0]?.degree || 0;
   }, [birthChart?.houses]);
 
   // Render zodiac wheel background
   const renderZodiacWheel = (): ReactElement[] => {
     const elements: ReactElement[] = [];
-    
+
     // Outer circle
     elements.push(
       <Circle
@@ -62,7 +62,7 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
         strokeWidth="2"
       />
     );
-    
+
     // Inner circle
     elements.push(
       <Circle
@@ -82,7 +82,7 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
       // Zodiac signs rotate with ascendant to match birth chart orientation
       const { x: x1, y: y1 } = getCirclePosition(degree, innerRadius, centerX, centerY, ascendantDegree);
       const { x: x2, y: y2 } = getCirclePosition(degree, outerRadius, centerX, centerY, ascendantDegree);
-      
+
       elements.push(
         <Line
           key={`zodiac-line-${i}`}
@@ -94,17 +94,17 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
           strokeWidth="1"
         />
       );
-      
+
       // Zodiac sign symbols - Rotate with ascendant
       const signNames: ZodiacSign[] = [
         'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-        'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+        'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
       ];
-      
+
       const signDegree = degree + 15; // Center of sign
       const signRadius = (innerRadius + outerRadius) / 2;
       const { x: signX, y: signY } = getCirclePosition(signDegree, signRadius, centerX, centerY, ascendantDegree);
-      
+
       elements.push(
         <SvgText
           key={`zodiac-symbol-${i}`}
@@ -125,19 +125,19 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
 
   // Render house cusps
   const renderHouses = (): ReactElement[] | null => {
-    if (!showHouses || !birthChart?.houses?.length) return null;
-    
+    if (!showHouses || !birthChart?.houses?.length) {return null;}
+
     const elements: ReactElement[] = [];
-    
+
     birthChart.houses.forEach((house, index) => {
-      if (!house.degree || isNaN(house.degree)) return;
-      
+      if (!house.degree || isNaN(house.degree)) {return;}
+
       const { x: x1, y: y1 } = getCirclePosition(house.degree, outerRadius, centerX, centerY, ascendantDegree);
       const { x: x2, y: y2 } = getCirclePosition(house.degree, houseRadius, centerX, centerY, ascendantDegree);
-      
+
       // Thicker lines for 1st and 10th houses (Ascendant and Midheaven)
       const isAngular = house.house === 1 || house.house === 10;
-      
+
       elements.push(
         <Line
           key={`house-${house.house}`}
@@ -146,14 +146,14 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
           x2={x2}
           y2={y2}
           stroke={colors.onSurface}
-          strokeWidth={isAngular ? "3" : "1"}
+          strokeWidth={isAngular ? '3' : '1'}
         />
       );
-      
+
       // House numbers
       const houseNumberRadius = houseRadius + 15;
       const { x: numX, y: numY } = getCirclePosition(house.degree + 15, houseNumberRadius, centerX, centerY, ascendantDegree);
-      
+
       elements.push(
         <SvgText
           key={`house-number-${house.house}`}
@@ -168,33 +168,33 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
         </SvgText>
       );
     });
-    
+
     return elements;
   };
 
   // Render planets
   const renderPlanets = (): ReactElement[] | null => {
-    if (!birthChart?.planets?.length) return null;
-    
+    if (!birthChart?.planets?.length) {return null;}
+
     const elements: ReactElement[] = [];
     const filteredPlanets = filterPlanets(birthChart.planets);
-    
+
     // Sort planets by degree to handle overlaps
     const sortedPlanets = [...filteredPlanets].sort((a, b) => a.full_degree - b.full_degree);
-    
+
     sortedPlanets.forEach((planet, index) => {
       const planetColor = PLANET_COLORS[planet.name as PlanetName] || '#ffffff';
-      
+
       // Planet position (with slight offset to avoid overlaps)
       let adjustedRadius = planetRadius;
       const { x: planetX, y: planetY } = getCirclePosition(
-        planet.full_degree, 
-        adjustedRadius, 
-        centerX, 
-        centerY, 
+        planet.full_degree,
+        adjustedRadius,
+        centerX,
+        centerY,
         ascendantDegree
       );
-      
+
       // Planet background circle
       elements.push(
         <Circle
@@ -207,7 +207,7 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
           strokeWidth="2"
         />
       );
-      
+
       // Planet symbol
       elements.push(
         <SvgText
@@ -223,11 +223,11 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
           {getPlanetGlyph(planet.name as PlanetName)}
         </SvgText>
       );
-      
+
       // Planet degree marker on the wheel
       const { x: markerX1, y: markerY1 } = getCirclePosition(planet.full_degree, outerRadius, centerX, centerY, ascendantDegree);
       const { x: markerX2, y: markerY2 } = getCirclePosition(planet.full_degree, outerRadius + 10, centerX, centerY, ascendantDegree);
-      
+
       elements.push(
         <Line
           key={`planet-marker-${planet.name}`}
@@ -240,36 +240,36 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
         />
       );
     });
-    
+
     return elements;
   };
 
   // Render aspect lines
   const renderAspects = (): ReactElement[] | null => {
-    if (!showAspects || !birthChart?.aspects?.length || !birthChart?.planets?.length) return null;
-    
+    if (!showAspects || !birthChart?.aspects?.length || !birthChart?.planets?.length) {return null;}
+
     const elements: ReactElement[] = [];
     const filteredPlanets = filterPlanets(birthChart.planets);
-    
+
     birthChart.aspects.forEach((aspect, index) => {
       // Skip aspects with excluded planets
       if (['South Node', 'Part of Fortune', 'Chiron'].includes(aspect.aspectedPlanet) ||
           ['South Node', 'Part of Fortune', 'Chiron'].includes(aspect.aspectingPlanet)) {
         return;
       }
-      
+
       const aspectColor = getAspectColor(aspect.aspectType);
       const aspectStrength = getAspectStrength(aspect.orb);
-      
+
       // Find planet positions
       const planet1 = filteredPlanets.find(p => p.name === aspect.aspectedPlanet);
       const planet2 = filteredPlanets.find(p => p.name === aspect.aspectingPlanet);
-      
-      if (!planet1 || !planet2) return;
-      
+
+      if (!planet1 || !planet2) {return;}
+
       const { x: x1, y: y1 } = getCirclePosition(planet1.full_degree, innerRadius - 5, centerX, centerY, ascendantDegree);
       const { x: x2, y: y2 } = getCirclePosition(planet2.full_degree, innerRadius - 5, centerX, centerY, ascendantDegree);
-      
+
       elements.push(
         <Line
           key={`aspect-${index}`}
@@ -282,7 +282,7 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
         />
       );
     });
-    
+
     return elements;
   };
 
@@ -292,13 +292,13 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           {/* Background circles and zodiac wheel */}
           {renderZodiacWheel()}
-          
+
           {/* House cusps */}
           {renderHouses()}
-          
+
           {/* Planets */}
           {renderPlanets()}
-          
+
           {/* Aspect lines (drawn last, on top) */}
           {renderAspects()}
         </Svg>

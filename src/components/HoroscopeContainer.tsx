@@ -11,9 +11,9 @@ import {
 import { useStore } from '../store';
 import { horoscopesApi, HoroscopeResponse, CustomHoroscopeResponse, TransitWindowsResponse } from '../api/horoscopes';
 import { TransitEvent, HoroscopeFilter } from '../types';
-import { 
-  getDateRangeForPeriod, 
-  formatDate, 
+import {
+  getDateRangeForPeriod,
+  formatDate,
   formatDateRange,
   getTodayRange,
   getTomorrowRange,
@@ -21,7 +21,7 @@ import {
   getNextWeekRange,
   getCurrentMonthRange,
   getNextMonthRange,
-  dateRangesOverlap 
+  dateRangesOverlap,
 } from '../utils/dateHelpers';
 import { useTheme } from '../theme';
 
@@ -65,19 +65,19 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
   const [horoscopeError, setHoroscopeError] = useState<string | null>(null);
   const [loadedTabs, setLoadedTabs] = useState<Set<HoroscopeFilter>>(new Set());
-  
+
   // Custom horoscope specific state
   const [customTransitWindows, setCustomTransitWindows] = useState<TransitEvent[]>([]);
   const [transitWindowsLoading, setTransitWindowsLoading] = useState(false);
   const [transitWindowsError, setTransitWindowsError] = useState<string | null>(null);
   const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(null);
-  
+
   // Transit filtering state
   const [transitFilters, setTransitFilters] = useState({
     transitingPlanet: '',
     natalPlanet: '',
     dateRange: { start: '', end: '' },
-    showFilters: false
+    showFilters: false,
   });
 
   const { userData } = useStore();
@@ -86,9 +86,9 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   const withTimeout = (promise: Promise<any>, timeoutMs: number = 30000): Promise<any> => {
     return Promise.race([
       promise,
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
-      )
+      ),
     ]);
   };
 
@@ -124,7 +124,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   // Filter transit events based on active tab and filters
   const filteredTransits = useMemo(() => {
     let transitsToFilter: TransitEvent[] = [];
-    
+
     if (activeTab === 'custom') {
       // For custom tab, use customTransitWindows
       transitsToFilter = customTransitWindows;
@@ -132,13 +132,13 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       if (!transitWindows || transitWindows.length === 0) {
         return [];
       }
-      
+
       const dateRange = getDateRangeForPeriod(activeTab, customDateRange || undefined);
-      
+
       transitsToFilter = transitWindows.filter(transit => {
         const transitStart = new Date(transit.start);
         const transitEnd = new Date(transit.end);
-        
+
         return dateRangesOverlap(
           { start: transitStart, end: transitEnd },
           dateRange
@@ -150,33 +150,33 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     if (activeTab === 'custom') {
       transitsToFilter = transitsToFilter.filter(transit => {
         // Filter by transiting planet
-        if (transitFilters.transitingPlanet && 
+        if (transitFilters.transitingPlanet &&
             transit.transitingPlanet.toLowerCase() !== transitFilters.transitingPlanet.toLowerCase()) {
           return false;
         }
-        
+
         // Filter by natal planet (targetPlanet)
         if (transitFilters.natalPlanet && transit.targetPlanet &&
             transit.targetPlanet.toLowerCase() !== transitFilters.natalPlanet.toLowerCase()) {
           return false;
         }
-        
+
         // Filter by date range
         if (transitFilters.dateRange.start || transitFilters.dateRange.end) {
           const transitDate = new Date(transit.exact);
-          
+
           if (transitFilters.dateRange.start) {
             const filterStartDate = new Date(transitFilters.dateRange.start);
-            if (transitDate < filterStartDate) return false;
+            if (transitDate < filterStartDate) {return false;}
           }
-          
+
           if (transitFilters.dateRange.end) {
             const filterEndDate = new Date(transitFilters.dateRange.end);
             filterEndDate.setHours(23, 59, 59, 999); // End of day
-            if (transitDate > filterEndDate) return false;
+            if (transitDate > filterEndDate) {return false;}
           }
         }
-        
+
         return true;
       });
     }
@@ -186,7 +186,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
 
   // Helper function to capitalize aspect names
   const capitalizeAspect = (aspect: string): string => {
-    if (!aspect) return 'N/A';
+    if (!aspect) {return 'N/A';}
     return aspect.charAt(0).toUpperCase() + aspect.slice(1);
   };
 
@@ -207,7 +207,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   const updateFilter = (filterType: string, value: string) => {
     setTransitFilters(prev => ({
       ...prev,
-      [filterType]: value
+      [filterType]: value,
     }));
   };
 
@@ -216,8 +216,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       ...prev,
       dateRange: {
         ...prev.dateRange,
-        [type]: value
-      }
+        [type]: value,
+      },
     }));
   };
 
@@ -226,14 +226,14 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       transitingPlanet: '',
       natalPlanet: '',
       dateRange: { start: '', end: '' },
-      showFilters: false
+      showFilters: false,
     });
   };
 
   const toggleFilters = () => {
     setTransitFilters(prev => ({
       ...prev,
-      showFilters: !prev.showFilters
+      showFilters: !prev.showFilters,
     }));
   };
 
@@ -241,7 +241,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   const showPlanetPicker = (type: 'transiting' | 'natal') => {
     const planets = getUniquePlanets(customTransitWindows, type);
     const options = ['All Planets', ...planets];
-    
+
     Alert.alert(
       `Select ${type === 'transiting' ? 'Transiting' : 'Natal'} Planet`,
       'Choose a planet to filter by:',
@@ -256,8 +256,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
             } else {
               updateFilter('natalPlanet', filterValue);
             }
-          }
-        }))
+          },
+        })),
       ]
     );
   };
@@ -267,19 +267,19 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     if (transit.description) {
       return transit.description;
     }
-    
+
     let description = `${transit.transitingPlanet}`;
-    
+
     // Add sign information
     if (transit.transitingSigns && transit.transitingSigns.length > 1) {
       description += ` (moving from ${transit.transitingSigns[0]} to ${transit.transitingSigns[transit.transitingSigns.length - 1]})`;
     } else if (transit.transitingSign) {
       description += ` in ${transit.transitingSign}`;
     }
-    
+
     if (transit.type === 'transit-to-natal') {
       description += ` ${transit.aspect || ''} natal ${transit.targetPlanet || ''}`;
-      
+
       // Add natal planet's sign and house
       if (transit.targetSign) {
         description += ` in ${transit.targetSign}`;
@@ -289,7 +289,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       }
     } else if (transit.type === 'transit-to-transit') {
       description += ` ${transit.aspect || ''} ${transit.targetPlanet || ''}`;
-      
+
       // Add target planet's sign and house
       if (transit.targetSign) {
         description += ` in ${transit.targetSign}`;
@@ -298,24 +298,24 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
         description += ` in ${transit.targetHouse}th house`;
       }
     }
-    
+
     return description;
   };
 
   // Fetch horoscope for a specific tab with retry capability
   const fetchHoroscopeForTab = async (tab: HoroscopeFilter, isRetry: boolean = false) => {
     const targetUserId = userId || userData?.id;
-    if (!targetUserId || (!isRetry && loadedTabs.has(tab) && horoscopeCache[tab])) return;
-    
+    if (!targetUserId || (!isRetry && loadedTabs.has(tab) && horoscopeCache[tab])) {return;}
+
     setHoroscopeLoading(true);
     if (isRetry) {
       setHoroscopeError(null);
     }
-    
+
     try {
       let startDate: Date | string;
       let type: 'daily' | 'weekly' | 'monthly';
-      
+
       switch (tab) {
         case 'today':
           startDate = getTodayRange().start.toISOString().split('T')[0];
@@ -342,14 +342,14 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           type = 'monthly';
           break;
       }
-      
+
       const horoscope = await getHoroscopeForPeriod(targetUserId, startDate, type);
-      
+
       setHoroscopeCache(prev => ({
         ...prev,
-        [tab]: horoscope
+        [tab]: horoscope,
       }));
-      
+
       setLoadedTabs(prev => new Set([...prev, tab]));
       if (isRetry) {
         setHoroscopeError(null);
@@ -371,7 +371,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   // Fetch transit windows for custom horoscope
   const fetchTransitWindows = async () => {
     const targetUserId = userId || userData?.id;
-    if (!targetUserId) return;
+    if (!targetUserId) {return;}
 
     setTransitWindowsLoading(true);
     setTransitWindowsError(null);
@@ -442,7 +442,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     }
 
     const targetUserId = userId || userData?.id;
-    if (!targetUserId) return;
+    if (!targetUserId) {return;}
 
     setGeneratingCustom(true);
     setCustomHoroscopeError(null);
@@ -585,7 +585,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
                 <Text style={styles.customInterfaceSubtitle}>
                   Select specific transit events below to generate a personalized horoscope interpretation.
                 </Text>
-                
+
                 {/* Date Range Info */}
                 {customDateRange && (
                   <View style={styles.dateRangeInfo}>
@@ -621,7 +621,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
             <Text style={styles.horoscopeDate}>
               {formatDateRange(horoscopeCache[activeTab]!.horoscope.startDate, horoscopeCache[activeTab]!.horoscope.endDate)}
             </Text>
-            
+
             {/* Daily horoscope key transits */}
             {(activeTab === 'today' || activeTab === 'tomorrow') && horoscopeCache[activeTab]?.horoscope.keyTransits && horoscopeCache[activeTab]!.horoscope.keyTransits!.length > 0 && (
               <View style={styles.keyTransitsSection}>
@@ -638,14 +638,14 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
                 ))}
               </View>
             )}
-            
+
             {/* Weekly/Monthly horoscope key themes */}
             {!(activeTab === 'today' || activeTab === 'tomorrow') && horoscopeCache[activeTab]?.horoscope.analysis?.keyThemes && (
               <View style={styles.keyThemesSection}>
                 <Text style={styles.keyThemesTitle}>Key Themes</Text>
                 {horoscopeCache[activeTab]!.horoscope.analysis!.keyThemes!.map((theme, index) => (
                   <Text key={index} style={styles.themeText}>
-                    {theme.transitingPlanet} {theme.aspect} {theme.targetPlanet || ''} 
+                    {theme.transitingPlanet} {theme.aspect} {theme.targetPlanet || ''}
                     {theme.exactDate && ` (${formatDate(theme.exactDate)})`}
                   </Text>
                 ))}
@@ -701,11 +701,11 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
         {activeTab === 'custom' && transitFilters.showFilters && (
           <View style={styles.filtersContainer}>
             <Text style={styles.filtersTitle}>Filter Transit Events</Text>
-            
+
             <View style={styles.filterRow}>
               <Text style={styles.filterLabel}>Transiting Planet:</Text>
               <View style={styles.pickerContainer}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.pickerButton}
                   onPress={() => showPlanetPicker('transiting')}
                 >
@@ -719,7 +719,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
             <View style={styles.filterRow}>
               <Text style={styles.filterLabel}>Natal Planet:</Text>
               <View style={styles.pickerContainer}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.pickerButton}
                   onPress={() => showPlanetPicker('natal')}
                 >
@@ -753,12 +753,12 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
               </Text>
             </TouchableOpacity>
           )}
-          
+
           {(showTransits || activeTab === 'custom') && (
             <View style={styles.transitDetailsContainer}>
               {filteredTransits.length === 0 ? (
                 <Text style={styles.noTransitsText}>
-                  {activeTab === 'custom' 
+                  {activeTab === 'custom'
                     ? 'No transit events found for the selected date range.'
                     : `No significant transits found for ${
                         activeTab === 'thisWeek' ? 'this week' :
@@ -786,7 +786,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
                       <Text style={styles.errorText}>{customHoroscopeError}</Text>
                     )}
                   </View>
-                  
+
                   {filteredTransits.map((transit, index) => (
                     <View key={index} style={styles.transitRow}>
                       <TouchableOpacity

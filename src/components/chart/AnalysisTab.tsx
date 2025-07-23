@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useChart } from '../../hooks/useChart';
+import { useStore } from '../../store';
 import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
 import { useTheme } from '../../theme';
 
@@ -11,65 +12,65 @@ interface AnalysisTabProps {
 // Topic definitions based on frontend guide
 const BROAD_TOPICS = {
   PERSONALITY_IDENTITY: {
-    label: "Self-Expression and Identity",
-    icon: "🌟",
+    label: 'Self-Expression and Identity',
+    icon: '🌟',
     subtopics: {
-      PERSONAL_IDENTITY: "Personal Identity and Self-Image",
-      OUTWARD_EXPRESSION: "Outward Expression and Appearance",
-      INNER_EMOTIONAL_SELF: "Inner Self and Emotional Dynamics",
-      CHALLENGES_SELF_EXPRESSION: "Challenges and Growth of Self-Expression",
-    }
+      PERSONAL_IDENTITY: 'Personal Identity and Self-Image',
+      OUTWARD_EXPRESSION: 'Outward Expression and Appearance',
+      INNER_EMOTIONAL_SELF: 'Inner Self and Emotional Dynamics',
+      CHALLENGES_SELF_EXPRESSION: 'Challenges and Growth of Self-Expression',
+    },
   },
   EMOTIONAL_FOUNDATIONS_HOME: {
-    label: "Emotional Foundations and Home Life",
-    icon: "🏠",
+    label: 'Emotional Foundations and Home Life',
+    icon: '🏠',
     subtopics: {
-      EMOTIONAL_FOUNDATIONS: "Emotional Foundations and Security Needs",
-      FAMILY_DYNAMICS: "Family Dynamics and Past Influences",
-      HOME_ENVIRONMENT: "Home Environment and Preferences",
-      FAMILY_CHALLENGES: "Challenges and Growth in Family Life",
-    }
+      EMOTIONAL_FOUNDATIONS: 'Emotional Foundations and Security Needs',
+      FAMILY_DYNAMICS: 'Family Dynamics and Past Influences',
+      HOME_ENVIRONMENT: 'Home Environment and Preferences',
+      FAMILY_CHALLENGES: 'Challenges and Growth in Family Life',
+    },
   },
   RELATIONSHIPS_SOCIAL: {
-    label: "Relationships and Social Connections",
-    icon: "💕",
+    label: 'Relationships and Social Connections',
+    icon: '💕',
     subtopics: {
-      RELATIONSHIP_DESIRES: "Core Relationship Desires and Boundaries",
-      LOVE_STYLE: "Love Style and Expression",
-      SEXUAL_NATURE: "Sexual Nature and Intimacy",
-      COMMITMENT_APPROACH: "Commitment Approach and Long-Term Vision",
-      RELATIONSHIP_CHALLENGES: "Challenges and Growth in Relationships",
-    }
+      RELATIONSHIP_DESIRES: 'Core Relationship Desires and Boundaries',
+      LOVE_STYLE: 'Love Style and Expression',
+      SEXUAL_NATURE: 'Sexual Nature and Intimacy',
+      COMMITMENT_APPROACH: 'Commitment Approach and Long-Term Vision',
+      RELATIONSHIP_CHALLENGES: 'Challenges and Growth in Relationships',
+    },
   },
   CAREER_PURPOSE_PUBLIC_IMAGE: {
-    label: "Career, Purpose, and Public Image",
-    icon: "🎯",
+    label: 'Career, Purpose, and Public Image',
+    icon: '🎯',
     subtopics: {
-      CAREER_MOTIVATIONS: "Career Motivations and Aspirations",
-      PUBLIC_IMAGE: "Public Image Reputation and Leadership Style",
-      CAREER_CHALLENGES: "Career Challenges and Opportunities",
-      SKILLS_TALENTS: "Skills Talents and Strengths",
-    }
+      CAREER_MOTIVATIONS: 'Career Motivations and Aspirations',
+      PUBLIC_IMAGE: 'Public Image Reputation and Leadership Style',
+      CAREER_CHALLENGES: 'Career Challenges and Opportunities',
+      SKILLS_TALENTS: 'Skills Talents and Strengths',
+    },
   },
   UNCONSCIOUS_SPIRITUALITY: {
-    label: "Unconscious Drives and Spiritual Growth",
-    icon: "🔮",
+    label: 'Unconscious Drives and Spiritual Growth',
+    icon: '🔮',
     subtopics: {
-      PSYCHOLOGICAL_PATTERNS: "Deep Psychological Patterns and Shadow Self",
-      SPIRITUAL_GROWTH: "Spiritual Growth and Higher Purpose",
-      KARMIC_LESSONS: "Karmic Lessons and Past Life Themes",
-      TRANSFORMATIVE_EVENTS: "Transformative Events and Rebirths",
-    }
+      PSYCHOLOGICAL_PATTERNS: 'Deep Psychological Patterns and Shadow Self',
+      SPIRITUAL_GROWTH: 'Spiritual Growth and Higher Purpose',
+      KARMIC_LESSONS: 'Karmic Lessons and Past Life Themes',
+      TRANSFORMATIVE_EVENTS: 'Transformative Events and Rebirths',
+    },
   },
   COMMUNICATION_BELIEFS: {
-    label: "Communication, Learning, and Belief Systems",
-    icon: "💭",
+    label: 'Communication, Learning, and Belief Systems',
+    icon: '💭',
     subtopics: {
-      COMMUNICATION_STYLES: "Communication and Learning Styles",
-      PHILOSOPHICAL_BELIEFS: "Philosophical Beliefs and Personal Worldview",
-      TRAVEL_EXPERIENCES: "Travel and Cross-Cultural Experiences",
-      MENTAL_GROWTH_CHALLENGES: "Challenges to Mental Growth and Adaptability",
-    }
+      COMMUNICATION_STYLES: 'Communication and Learning Styles',
+      PHILOSOPHICAL_BELIEFS: 'Philosophical Beliefs and Personal Worldview',
+      TRAVEL_EXPERIENCES: 'Travel and Cross-Cultural Experiences',
+      MENTAL_GROWTH_CHALLENGES: 'Challenges to Mental Growth and Adaptability',
+    },
   },
 };
 
@@ -81,16 +82,16 @@ interface TopicSectionProps {
   colors: any;
 }
 
-const TopicSection: React.FC<TopicSectionProps> = ({ 
-  topicKey, 
-  topicData, 
-  expanded, 
+const TopicSection: React.FC<TopicSectionProps> = ({
+  topicKey,
+  topicData,
+  expanded,
   onToggle,
-  colors
+  colors,
 }) => {
   const topicConfig = BROAD_TOPICS[topicKey as keyof typeof BROAD_TOPICS];
-  
-  if (!topicConfig || !topicData) return null;
+
+  if (!topicConfig || !topicData) {return null;}
 
   return (
     <View style={[styles.topicSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -111,7 +112,7 @@ const TopicSection: React.FC<TopicSectionProps> = ({
               <Text style={[styles.tensionFlowDescription, { color: colors.onSurface }]}>
                 {topicData.tensionFlow.description}
               </Text>
-              
+
               <View style={styles.tensionMetrics}>
                 <View style={styles.metric}>
                   <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Support Level</Text>
@@ -183,15 +184,15 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
   // No automatic loading state - go straight to checking for analysis data
 
   const subtopicAnalysis = fullAnalysis?.interpretation?.SubtopicAnalysis || {};
-  
-  const availableTopics = Object.keys(subtopicAnalysis).filter(key => 
+
+  const availableTopics = Object.keys(subtopicAnalysis).filter(key =>
     BROAD_TOPICS[key as keyof typeof BROAD_TOPICS]
   );
 
   // Check if analysis is in progress
   const activeWorkflowState = workflowState || creationWorkflowState;
-  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId && 
-    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 && 
+  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId &&
+    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 &&
     !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
 
   if (availableTopics.length === 0) {

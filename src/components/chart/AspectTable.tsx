@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { BackendAspect, AspectType, PlanetName } from '../../types';
-import { 
-  getPlanetGlyph, 
+import {
+  getPlanetGlyph,
   getAspectColor,
-  PLANET_COLORS
+  PLANET_COLORS,
 } from './ChartUtils';
 
 interface AspectTableProps {
@@ -15,7 +15,7 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
   // Filter out aspects with excluded planets
   const filteredAspects = aspects.filter(aspect => {
     const excludedPlanets = ['South Node', 'Part of Fortune', 'Chiron'];
-    return !excludedPlanets.includes(aspect.aspectedPlanet) && 
+    return !excludedPlanets.includes(aspect.aspectedPlanet) &&
            !excludedPlanets.includes(aspect.aspectingPlanet);
   });
 
@@ -53,49 +53,49 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
     const aspectColor = getAspectColor(aspect.aspectType);
     const planet1Color = PLANET_COLORS[aspect.aspectedPlanet as PlanetName] || '#ffffff';
     const planet2Color = PLANET_COLORS[aspect.aspectingPlanet as PlanetName] || '#ffffff';
-    
+
     return (
-      <View key={`${aspect.aspectedPlanet}-${aspect.aspectingPlanet}-${index}`} 
+      <View key={`${aspect.aspectedPlanet}-${aspect.aspectingPlanet}-${index}`}
             style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
-        
+
         {/* First Planet Symbol */}
         <View style={styles.planetCell}>
           <Text style={[styles.planetSymbol, { color: planet1Color }]}>
             {getPlanetGlyph(aspect.aspectedPlanet as PlanetName)}
           </Text>
         </View>
-        
+
         {/* First Planet Name */}
         <View style={styles.nameCell}>
           <Text style={styles.planetName}>{aspect.aspectedPlanet}</Text>
         </View>
-        
+
         {/* Aspect Symbol */}
         <View style={styles.aspectSymbolCell}>
           <Text style={[styles.aspectSymbol, { color: aspectColor }]}>
             {getAspectSymbol(aspect.aspectType)}
           </Text>
         </View>
-        
+
         {/* Aspect Name */}
         <View style={styles.aspectNameCell}>
           <Text style={[styles.aspectName, { color: aspectColor }]}>
             {getAspectName(aspect.aspectType)}
           </Text>
         </View>
-        
+
         {/* Second Planet Symbol */}
         <View style={styles.planetCell}>
           <Text style={[styles.planetSymbol, { color: planet2Color }]}>
             {getPlanetGlyph(aspect.aspectingPlanet as PlanetName)}
           </Text>
         </View>
-        
+
         {/* Second Planet Name */}
         <View style={styles.nameCell}>
           <Text style={styles.planetName}>{aspect.aspectingPlanet}</Text>
         </View>
-        
+
         {/* Orb */}
         <View style={styles.orbCell}>
           <Text style={styles.orb}>{aspect.orb.toFixed(1)}°</Text>
@@ -118,7 +118,7 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Aspects</Text>
-      
+
       {/* Header */}
       <View style={[styles.row, styles.headerRow]}>
         <View style={styles.planetCell}>
@@ -143,7 +143,7 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
           <Text style={styles.headerText}>Orb</Text>
         </View>
       </View>
-      
+
       {/* Aspect Rows */}
       <ScrollView style={styles.scrollView}>
         {filteredAspects.map((aspect, index) => renderAspectRow(aspect, index))}

@@ -2,10 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { PlanetName, ZodiacSign } from '../../types';
 import { useTheme } from '../../theme';
-import { 
-  PLANET_COLORS, 
-  getPlanetGlyph, 
-  getZodiacGlyph, 
+import {
+  PLANET_COLORS,
+  getPlanetGlyph,
+  getZodiacGlyph,
 } from './ChartUtils';
 
 interface SynastryHousePlacementsTableProps {
@@ -29,10 +29,10 @@ interface SynastryHousePlacementsTableProps {
   userBName: string;
 }
 
-const SynastryHousePlacementsTable: React.FC<SynastryHousePlacementsTableProps> = ({ 
-  synastryHousePlacements, 
-  userAName, 
-  userBName 
+const SynastryHousePlacementsTable: React.FC<SynastryHousePlacementsTableProps> = ({
+  synastryHousePlacements,
+  userAName,
+  userBName,
 }) => {
   const { colors } = useTheme();
 
@@ -41,45 +41,45 @@ const SynastryHousePlacementsTable: React.FC<SynastryHousePlacementsTableProps> 
     const position = placement.planetDegree % 30; // Position within sign
     const sourceUser = isAinB ? userAName : userBName;
     const targetUser = isAinB ? userBName : userAName;
-    
+
     return (
-      <View key={`${placement.planet}-${placement.house}-${index}`} 
+      <View key={`${placement.planet}-${placement.house}-${index}`}
             style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
-        
+
         {/* Planet Symbol */}
         <View style={styles.planetCell}>
           <Text style={[styles.planetSymbol, { color: planetColor }]}>
             {getPlanetGlyph(placement.planet as PlanetName)}
           </Text>
         </View>
-        
+
         {/* Planet Name */}
         <View style={styles.nameCell}>
           <Text style={[styles.planetName, { color: colors.onSurface }]}>{placement.planet}</Text>
         </View>
-        
+
         {/* Degree */}
         <View style={styles.degreeCell}>
           <Text style={[styles.degree, { color: colors.onSurface }]}>{position.toFixed(1)}°</Text>
         </View>
-        
+
         {/* Sign Symbol */}
         <View style={styles.symbolCell}>
           <Text style={[styles.signSymbol, { color: colors.primary }]}>
             {getZodiacGlyph(placement.planetSign as ZodiacSign)}
           </Text>
         </View>
-        
+
         {/* Sign Name */}
         <View style={styles.signCell}>
           <Text style={[styles.signName, { color: colors.onSurface }]}>{placement.planetSign}</Text>
         </View>
-        
+
         {/* House */}
         <View style={styles.houseCell}>
           <Text style={[styles.house, { color: colors.onSurfaceVariant }]}>{placement.house}</Text>
         </View>
-        
+
         {/* Description */}
         <View style={styles.descriptionCell}>
           <Text style={[styles.description, { color: colors.onSurfaceVariant }]}>
@@ -91,12 +91,12 @@ const SynastryHousePlacementsTable: React.FC<SynastryHousePlacementsTableProps> 
   };
 
   const renderSection = (placements: any[], title: string, isAinB: boolean) => {
-    if (!placements || placements.length === 0) return null;
+    if (!placements || placements.length === 0) {return null;}
 
     return (
       <View style={[styles.sectionContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>{title}</Text>
-        
+
         {/* Header */}
         <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
           <View style={styles.planetCell}>
@@ -121,7 +121,7 @@ const SynastryHousePlacementsTable: React.FC<SynastryHousePlacementsTableProps> 
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Placement</Text>
           </View>
         </View>
-        
+
         {/* Placement Rows */}
         <ScrollView style={styles.scrollView} nestedScrollEnabled>
           {placements.map((placement, index) => renderPlacementRow(placement, index, isAinB))}
@@ -133,12 +133,12 @@ const SynastryHousePlacementsTable: React.FC<SynastryHousePlacementsTableProps> 
   return (
     <View style={styles.container}>
       {renderSection(
-        synastryHousePlacements.AinB, 
+        synastryHousePlacements.AinB,
         `${userAName}'s Planets in ${userBName}'s Houses`,
         true
       )}
       {renderSection(
-        synastryHousePlacements.BinA, 
+        synastryHousePlacements.BinA,
         `${userBName}'s Planets in ${userAName}'s Houses`,
         false
       )}

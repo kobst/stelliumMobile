@@ -54,7 +54,7 @@ const TransitSelectionScreen: React.FC = () => {
 
   const handleGenerateHoroscope = async () => {
     const selectedTransitsList = transitData.filter(t => selectedTransits.has(t.id));
-    
+
     if (selectedTransitsList.length === 0) {
       Alert.alert('No Transits Selected', 'Please select at least one transit to generate a custom horoscope.');
       return;
@@ -71,7 +71,7 @@ const TransitSelectionScreen: React.FC = () => {
   const renderTransitItem = (transit: TransitEvent) => {
     const isSelected = selectedTransits.has(transit.id);
     const intensity = horoscopeTransformers.getTransitIntensity(transit);
-    
+
     return (
       <TouchableOpacity
         key={transit.id}
@@ -89,7 +89,7 @@ const TransitSelectionScreen: React.FC = () => {
             <Text style={styles.intensityText}>{intensity}</Text>
           </View>
         </View>
-        
+
         <View style={styles.transitDates}>
           <Text style={styles.dateText}>
             Exact: {horoscopeTransformers.formatDate(transit.exactDate)}

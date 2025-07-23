@@ -132,6 +132,30 @@ export interface RelationshipScoredItem {
   clusterWeight?: number;
 }
 
+export interface TensionFlowData {
+  supportDensity: number;
+  challengeDensity: number;
+  polarityRatio: number;
+  quadrant: string;
+  totalAspects: number;
+  supportAspects: number;
+  challengeAspects: number;
+  keystoneAspects?: Array<{
+    nodes: string[];
+    betweenness: number;
+    score: number;
+    edgeType: 'support' | 'challenge' | 'neutral';
+    aspectType: string;
+    description: string;
+  }>;
+  networkMetrics?: {
+    totalPossibleConnections: number;
+    actualConnections: number;
+    connectionDensity: number;
+    averageScore: number;
+  };
+}
+
 export interface ClusterScoreAnalysis {
   scoredItems: RelationshipScoredItem[];
   analysis: string;
@@ -148,13 +172,18 @@ export interface RelationshipAnalysisResponse {
       compositeHousePlacements: number;
     };
   };
-  
+
   // Score analysis with scored items
   scoreAnalysis?: {
     [category: string]: {
       scoredItems: RelationshipScoredItem[];
       analysis: string;
     };
+  };
+
+  // Category-specific tension flow analysis
+  categoryTensionFlowAnalysis?: {
+    [category: string]: TensionFlowData;
   };
 
   // Cluster-based analysis
@@ -290,6 +319,9 @@ export interface EnhancedRelationshipAnalysisResponse {
       analysis: string;
     };
   };
+  categoryTensionFlowAnalysis: {
+    [category: string]: TensionFlowData;
+  };
   clusterAnalysis: {
     Heart: ClusterScoreAnalysis;
     Body: ClusterScoreAnalysis;
@@ -405,24 +437,24 @@ export const relationshipsApi = {
   // Enhanced Direct API - Primary workflow (2-5 seconds)
   // Used for immediate relationship creation with full analysis
   enhancedRelationshipAnalysis: async (
-    userIdA: string, 
+    userIdA: string,
     userIdB: string
   ): Promise<EnhancedRelationshipAnalysisResponse> => {
     return apiClient.post<EnhancedRelationshipAnalysisResponse>('/enhanced-relationship-analysis', {
       userIdA,
-      userIdB
+      userIdB,
     });
   },
 
   // Fetch existing relationship analysis data
   fetchRelationshipAnalysis: async (compositeChartId: string): Promise<RelationshipAnalysisResponse> => {
-    return apiClient.post<RelationshipAnalysisResponse>('/fetchRelationshipAnalysis', { 
-      compositeChartId 
+    return apiClient.post<RelationshipAnalysisResponse>('/fetchRelationshipAnalysis', {
+      compositeChartId,
     });
   },
 
   // Step Functions Workflow Methods (exactly matching frontend)
-  
+
   // Start relationship workflow - Preview mode (scores only)
   // Frontend: await startRelationshipWorkflow(userA._id, userB._id, compositeChart._id, false)
   startRelationshipWorkflow: async (
@@ -435,7 +467,7 @@ export const relationshipsApi = {
       userIdA,
       userIdB,
       compositeChartId,
-      immediate
+      immediate,
     });
   },
 
@@ -446,7 +478,7 @@ export const relationshipsApi = {
   ): Promise<RelationshipWorkflowStartResponse> => {
     return apiClient.post<RelationshipWorkflowStartResponse>('/workflow/relationship/start', {
       compositeChartId,
-      immediate: true
+      immediate: true,
     });
   },
 
@@ -456,7 +488,7 @@ export const relationshipsApi = {
     compositeChartId: string
   ): Promise<RelationshipWorkflowStatusResponse> => {
     return apiClient.post<RelationshipWorkflowStatusResponse>('/workflow/relationship/status', {
-      compositeChartId
+      compositeChartId,
     });
   },
 
@@ -466,7 +498,7 @@ export const relationshipsApi = {
     compositeChartId: string
   ): Promise<RelationshipWorkflowStartResponse> => {
     return apiClient.post<RelationshipWorkflowStartResponse>('/workflow/relationship/resume', {
-      compositeChartId
+      compositeChartId,
     });
   },
 
@@ -480,7 +512,7 @@ export const relationshipsApi = {
     return apiClient.post<string>('/chatForUserRelationship', {
       userId,
       compositeChartId,
-      message
+      message,
     });
   },
 
@@ -506,7 +538,7 @@ export const relationshipsApi = {
       }>;
     }>('/fetchUserChatRelationshipAnalysis', {
       userId,
-      compositeChartId
+      compositeChartId,
     });
   },
 };

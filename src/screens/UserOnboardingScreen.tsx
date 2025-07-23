@@ -47,19 +47,19 @@ const UserOnboardingScreen: React.FC = () => {
 
   const validateForm = (): string[] => {
     const errs: string[] = [];
-    if (!firstName.trim()) errs.push('First name is required');
-    if (!lastName.trim()) errs.push('Last name is required');
-    if (!birthYear || !birthMonth || !birthDay) errs.push('Complete birth date is required');
-    if (!unknownTime && (!birthHour || !birthMinute)) errs.push('Birth time is required');
-    if (!lat || !lon) errs.push('Location is required');
-    if (!gender) errs.push('Gender/Sex is required');
-    
+    if (!firstName.trim()) {errs.push('First name is required');}
+    if (!lastName.trim()) {errs.push('Last name is required');}
+    if (!birthYear || !birthMonth || !birthDay) {errs.push('Complete birth date is required');}
+    if (!unknownTime && (!birthHour || !birthMinute)) {errs.push('Birth time is required');}
+    if (!lat || !lon) {errs.push('Location is required');}
+    if (!gender) {errs.push('Gender/Sex is required');}
+
     // Validate date is real
     if (birthYear && birthMonth && birthDay) {
       const year = parseInt(birthYear);
       const month = parseInt(birthMonth);
       const day = parseInt(birthDay);
-      
+
       if (year < 1900 || year > new Date().getFullYear()) {
         errs.push('Please enter a valid year');
       } else if (month < 1 || month > 12) {
@@ -71,7 +71,7 @@ const UserOnboardingScreen: React.FC = () => {
         }
       }
     }
-    
+
     return errs;
   };
 
@@ -121,7 +121,7 @@ const UserOnboardingScreen: React.FC = () => {
   const handleSubmit = async () => {
     console.log('\n=== FORM SUBMISSION STARTED ===');
     console.log('Current endpoint:', SERVER_URL);
-    
+
     const formErrors = validateForm();
     if (formErrors.length > 0) {
       console.log('Form validation failed:', formErrors);
@@ -134,7 +134,7 @@ const UserOnboardingScreen: React.FC = () => {
       // Convert date fields to frontend format
       const date = `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`;
       console.log('Formatted date:', date);
-      
+
       // Convert time fields to frontend format
       let time = 'unknown';
       if (!unknownTime) {
@@ -148,17 +148,17 @@ const UserOnboardingScreen: React.FC = () => {
         time = `${hour24.toString().padStart(2, '0')}:${birthMinute.padStart(2, '0')}`;
       }
       console.log('Formatted time:', time);
-      
+
       // Calculate timezone offset like frontend
       const timeForTimezone = unknownTime ? '12:00' : time;
       const dateTimeString = `${date}T${timeForTimezone}:00`;
       const dateTime = new Date(dateTimeString);
       const epochTimeSeconds = Math.floor(dateTime.getTime() / 1000);
-      
+
       console.log('\nFetching timezone...');
       console.log('Coordinates:', { lat, lon });
       console.log('Epoch time:', epochTimeSeconds);
-      
+
       const totalOffsetHours = await externalApi.fetchTimeZone(lat!, lon!, epochTimeSeconds);
       console.log('Timezone offset hours:', totalOffsetHours);
 
@@ -168,7 +168,7 @@ const UserOnboardingScreen: React.FC = () => {
         name: `${firstName} ${lastName}`,
         email: '', // Not collected in mobile
         birthYear: parseInt(birthYear),
-        birthMonth: parseInt(birthMonth), 
+        birthMonth: parseInt(birthMonth),
         birthDay: parseInt(birthDay),
         birthHour: !unknownTime ? (amPm === 'AM' ? (parseInt(birthHour) === 12 ? 0 : parseInt(birthHour)) : (parseInt(birthHour) === 12 ? 12 : parseInt(birthHour) + 12)) : 12,
         birthMinute: !unknownTime ? parseInt(birthMinute) : 0,
@@ -185,8 +185,8 @@ const UserOnboardingScreen: React.FC = () => {
           lon: parseFloat(lon!.toString()),
           tzone: parseFloat(totalOffsetHours.toString()),
           gender,
-          unknownTime
-        }
+          unknownTime,
+        },
       };
 
       console.log('\nUser data prepared:', JSON.stringify(userData, null, 2));
@@ -204,9 +204,9 @@ const UserOnboardingScreen: React.FC = () => {
           email: '', // Mobile app doesn't collect email
           lat: lat!,
           lon: lon!,
-          tzone: totalOffsetHours
+          tzone: totalOffsetHours,
         };
-        
+
         console.log('API Payload (Unknown Time):', JSON.stringify(createUserUnknownTimePayload, null, 2));
         response = await usersApi.createUserUnknownTime(createUserUnknownTimePayload);
       } else {
@@ -221,14 +221,14 @@ const UserOnboardingScreen: React.FC = () => {
           lon: lon!,
           tzone: totalOffsetHours,
           gender,
-          unknownTime
+          unknownTime,
         };
-        
+
         console.log('API Payload (Known Time):', JSON.stringify(createUserPayload, null, 2));
         response = await usersApi.createUser(createUserPayload);
       }
       console.log('\nAPI Response:', JSON.stringify(response, null, 2));
-      
+
       // Transform the API response to our User type
       const createdUser = userTransformers.apiResponseToUser(response);
       console.log('\nTransformed user:', JSON.stringify(createdUser, null, 2));
@@ -239,7 +239,7 @@ const UserOnboardingScreen: React.FC = () => {
 
       console.log('Navigation should happen automatically due to conditional rendering');
       console.log('=== FORM SUBMISSION COMPLETED ===\n');
-      
+
     } catch (error: any) {
       console.error('\n=== FORM SUBMISSION ERROR ===');
       console.error('Error details:', error);

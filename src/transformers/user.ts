@@ -22,20 +22,20 @@ export const userTransformers = {
   subjectDocumentToUser: (subject: SubjectDocument): User => {
     console.log('\n=== SUBJECT DOCUMENT TRANSFORMER ===');
     console.log('Raw Subject Document:', JSON.stringify(subject, null, 2));
-    
+
     // Parse date of birth
     const dateOfBirth = new Date(subject.dateOfBirth);
-    
+
     // Parse time if available
     let birthHour = 12;
     let birthMinute = 0;
-    
+
     if (subject.time && !subject.birthTimeUnknown) {
       const [hours, minutes] = subject.time.split(':').map(Number);
       birthHour = hours;
       birthMinute = minutes;
     }
-    
+
     const transformedUser: User = {
       id: subject._id,
       name: `${subject.firstName} ${subject.lastName}`,
@@ -49,10 +49,10 @@ export const userTransformers = {
       timezone: subject.totalOffsetHours.toString(),
       birthChart: subject.birthChart,
     };
-    
+
     console.log('Transformed User:', JSON.stringify(transformedUser, null, 2));
     console.log('====================================\n');
-    
+
     return transformedUser;
   },
 
@@ -60,21 +60,21 @@ export const userTransformers = {
   apiResponseToUser: (apiResponse: any): User => {
     console.log('\n=== USER TRANSFORMER ===');
     console.log('Raw API response:', JSON.stringify(apiResponse, null, 2));
-    
+
     // Handle the actual response structure: response.user contains the user data
     const userData = apiResponse.user || apiResponse;
     const userId = apiResponse.userId || userData.id;
-    
+
     console.log('Extracted userData:', JSON.stringify(userData, null, 2));
     console.log('Extracted userId:', userId);
-    
+
     // Extract birth data - could be nested or flat
     const birthData = userData.birthData || userData;
     console.log('Extracted birthData:', JSON.stringify(birthData, null, 2));
-    
+
     // Extract timezone from various possible locations
     let timezone = birthData.timezone || birthData.tzone;
-    
+
     // If not found in birthData, check the birth chart
     if (!timezone && (userData.birthChart || apiResponse.birthChart)) {
       const chartData = userData.birthChart || apiResponse.birthChart;
@@ -82,11 +82,11 @@ export const userTransformers = {
         timezone = chartData.tzone.toString();
       }
     }
-    
+
     console.log('Timezone extraction:', {
       fromBirthData: birthData.timezone || birthData.tzone,
       fromChart: (userData.birthChart || apiResponse.birthChart)?.tzone,
-      final: timezone
+      final: timezone,
     });
 
     const transformedUser = {
@@ -102,12 +102,12 @@ export const userTransformers = {
       timezone: timezone,
       birthChart: userData.birthChart || apiResponse.birthChart,
     };
-    
+
     console.log('Final transformed user:', JSON.stringify(transformedUser, null, 2));
     console.log('birthLocation:', transformedUser.birthLocation);
     console.log('timezone:', transformedUser.timezone);
     console.log('=======================\n');
-    
+
     return transformedUser;
   },
 
@@ -130,7 +130,7 @@ export const userTransformers = {
     const birthDate = new Date(user.birthYear, user.birthMonth - 1, user.birthDay);
     const age = userTransformers.calculateAge(birthDate);
     const zodiacSign = userTransformers.getZodiacSign(user.birthMonth, user.birthDay);
-    
+
     return {
       id: user.id,
       name: user.name,
@@ -153,11 +153,11 @@ export const userTransformers = {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
+
     return age;
   },
 
@@ -181,7 +181,7 @@ export const userTransformers = {
     for (const sign of signs) {
       const [startMonth, startDay] = sign.start;
       const [endMonth, endDay] = sign.end;
-      
+
       if (
         (month === startMonth && day >= startDay) ||
         (month === endMonth && day <= endDay) ||
@@ -190,7 +190,7 @@ export const userTransformers = {
         return sign.name;
       }
     }
-    
+
     return 'Unknown';
   },
 
@@ -225,11 +225,11 @@ export const userTransformers = {
     if (hour === 12 && minute === 0) {
       return 'Unknown time';
     }
-    
+
     const period = hour >= 12 ? 'PM' : 'AM';
     const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
     const displayMinute = minute.toString().padStart(2, '0');
-    
+
     return `${displayHour}:${displayMinute} ${period}`;
   },
 
@@ -249,35 +249,35 @@ export const userTransformers = {
   // Validate user data
   validateUserData: (user: Partial<User>): { valid: boolean; errors: string[] } => {
     const errors: string[] = [];
-    
+
     if (!user.name || user.name.trim().length < 2) {
       errors.push('Name must be at least 2 characters long');
     }
-    
+
     if (!user.birthYear || user.birthYear < 1900 || user.birthYear > new Date().getFullYear()) {
       errors.push('Please enter a valid birth year');
     }
-    
+
     if (!user.birthMonth || user.birthMonth < 1 || user.birthMonth > 12) {
       errors.push('Please enter a valid birth month');
     }
-    
+
     if (!user.birthDay || user.birthDay < 1 || user.birthDay > 31) {
       errors.push('Please enter a valid birth day');
     }
-    
+
     if (user.birthHour !== undefined && (user.birthHour < 0 || user.birthHour > 23)) {
       errors.push('Birth hour must be between 0 and 23');
     }
-    
+
     if (user.birthMinute !== undefined && (user.birthMinute < 0 || user.birthMinute > 59)) {
       errors.push('Birth minute must be between 0 and 59');
     }
-    
+
     if (!user.birthLocation || user.birthLocation.trim().length < 2) {
       errors.push('Birth location is required');
     }
-    
+
     return {
       valid: errors.length === 0,
       errors,

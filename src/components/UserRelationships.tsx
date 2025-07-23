@@ -38,14 +38,14 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
 
   const loadRelationships = async () => {
     const userId = userData?.userId || userData?.id;
-    
+
     if (!userId) {
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await relationshipsApi.getUserCompositeCharts(userId);
       setRelationships(response);
@@ -82,9 +82,9 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
             setDeletingRelationship(relationship._id);
             try {
               await relationshipsApi.deleteRelationship(relationship._id);
-              
+
               // Remove deleted relationship from local state
-              setRelationships(prevRelationships => 
+              setRelationships(prevRelationships =>
                 prevRelationships.filter(r => r._id !== relationship._id)
               );
 
@@ -92,7 +92,7 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
             } catch (error) {
               console.error('Failed to delete relationship:', error);
               let errorMessage = 'Failed to delete relationship.';
-              
+
               if (error instanceof Error) {
                 if (error.message.includes('Unauthorized')) {
                   errorMessage = 'You do not have permission to delete this relationship.';
@@ -100,7 +100,7 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
                   errorMessage = 'This relationship may have already been deleted.';
                 }
               }
-              
+
               Alert.alert('Error', errorMessage);
             } finally {
               setDeletingRelationship(null);
@@ -122,37 +122,37 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
       // Extract first name from full name (e.g., "test Horoscope3" -> "test")
       userData?.name?.split(' ')[0],
     ].filter(Boolean);
-    
+
     let leftName = item.userA_name;
     let rightName = item.userB_name;
-    
+
     // Check if leftName matches any variation of current user
-    const isLeftNameCurrentUser = currentUserNames.some(name => 
+    const isLeftNameCurrentUser = currentUserNames.some(name =>
       name && leftName && name.toLowerCase() === leftName.toLowerCase()
     );
-    
-    // Check if rightName matches any variation of current user  
+
+    // Check if rightName matches any variation of current user
     const isRightNameCurrentUser = currentUserNames.some(name =>
       name && rightName && name.toLowerCase() === rightName.toLowerCase()
     );
-    
+
     // Replace matching names with "You"
     if (isLeftNameCurrentUser) {
       leftName = 'You';
     }
-    
+
     if (isRightNameCurrentUser) {
       rightName = 'You';
     }
-    
+
     return { leftName, rightName };
   };
 
   const renderRelationshipItem = ({ item }: { item: UserCompositeChart }) => {
     const { leftName, rightName } = getDisplayNames(item);
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.relationshipCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
         onPress={() => handleRelationshipPress(item)}
         activeOpacity={0.8}
@@ -161,16 +161,16 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
           <View style={styles.partnerInfo}>
             <Text style={[styles.partnerName, { color: colors.onSurface }]}>{leftName}</Text>
           </View>
-          
+
           <View style={styles.separator}>
             <Text style={[styles.separatorText, { color: colors.primary }]}>♥</Text>
           </View>
-          
+
           <View style={styles.partnerInfo}>
             <Text style={[styles.partnerName, { color: colors.onSurface }]}>{rightName}</Text>
           </View>
         </View>
-        
+
         <TouchableOpacity
           style={styles.viewButton}
           onPress={() => handleRelationshipPress(item)}
@@ -195,8 +195,8 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.errorSection, { backgroundColor: colors.surface, borderColor: colors.error }]}>
           <Text style={[styles.errorText, { color: colors.error }]}>Error: {error}</Text>
-          <TouchableOpacity 
-            style={[styles.retryButton, { backgroundColor: colors.error }]} 
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: colors.error }]}
             onPress={loadRelationships}
             activeOpacity={0.8}
           >

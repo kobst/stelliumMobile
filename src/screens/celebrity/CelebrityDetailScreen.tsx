@@ -30,10 +30,10 @@ const CelebrityDetailScreen: React.FC = () => {
   const route = useRoute<CelebrityDetailScreenRouteProp>();
   const navigation = useNavigation<CelebrityDetailScreenNavigationProp>();
   const { colors } = useTheme();
-  
+
   const { celebrity } = route.params;
   const { switchToCelebrityContext, navigateBack, activeUserContext } = useStore();
-  
+
   const {
     overview,
     fullAnalysis,
@@ -109,7 +109,7 @@ const CelebrityDetailScreen: React.FC = () => {
         <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.surfaceVariant }]} onPress={handleBackPress}>
           <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        
+
         <View style={styles.celebrityInfo}>
           <Text style={[styles.celebrityName, { color: colors.onSurface }]}>
             {getCelebrityDisplayName(celebrity)}

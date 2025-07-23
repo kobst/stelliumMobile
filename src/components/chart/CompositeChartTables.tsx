@@ -3,13 +3,13 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { CompositeChart } from '../../api/relationships';
 import { PlanetName, AspectType, ZodiacSign } from '../../types';
 import { useTheme } from '../../theme';
-import { 
-  PLANET_COLORS, 
-  getPlanetGlyph, 
-  getZodiacGlyph, 
+import {
+  PLANET_COLORS,
+  getPlanetGlyph,
+  getZodiacGlyph,
   getAspectColor,
   ZODIAC_COLORS,
-  filterPlanets
+  filterPlanets,
 } from './ChartUtils';
 
 interface CompositeChartTablesProps {
@@ -25,7 +25,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
     norm_degree: planet.norm_degree,
     sign: planet.sign,
     house: planet.house,
-    is_retro: false // Composite charts don't have retrograde planets
+    is_retro: false, // Composite charts don't have retrograde planets
   }));
 
   const filteredPlanets = filterPlanets(convertedPlanets);
@@ -65,14 +65,14 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
     const renderPlanetRow = (planet: any, index: number) => {
       const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
       const position = planet.norm_degree;
-      
+
       return (
-        <View 
-          key={planet.name} 
+        <View
+          key={planet.name}
           style={[
-            styles.row, 
+            styles.row,
             index % 2 === 0 ? styles.evenRow : styles.oddRow,
-            { borderBottomColor: colors.strokeSubtle }
+            { borderBottomColor: colors.strokeSubtle },
           ]}
           accessibilityRole="listitem"
           accessibilityLabel={`${planet.name} at ${position.toFixed(1)} degrees ${planet.sign} in house ${planet.house}`}
@@ -83,29 +83,29 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
               {getPlanetGlyph(planet.name as PlanetName)}
             </Text>
           </View>
-          
+
           {/* Planet Name */}
           <View style={styles.nameCell}>
             <Text style={[styles.planetName, { color: colors.onSurface }]}>{planet.name}</Text>
           </View>
-          
+
           {/* Degree in Sign */}
           <View style={styles.degreeCell}>
             <Text style={[styles.degree, { color: colors.onSurface, fontFamily: 'monospace' }]}>{position.toFixed(1)}°</Text>
           </View>
-          
+
           {/* Sign Symbol */}
           <View style={styles.symbolCell}>
             <Text style={[styles.signSymbol, { color: colors.primary }]}>
               {getZodiacGlyph(planet.sign as ZodiacSign)}
             </Text>
           </View>
-          
+
           {/* Sign Name */}
           <View style={styles.signCell}>
             <Text style={[styles.signName, { color: colors.onSurface }]}>{planet.sign}</Text>
           </View>
-          
+
           {/* House */}
           <View style={styles.houseCell}>
             <Text style={[styles.house, { color: colors.onSurfaceVariant }]}>
@@ -119,7 +119,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
     return (
       <View style={[styles.tableContainer, { backgroundColor: colors.surfaceCard, borderColor: colors.strokeSubtle }]}>
         <Text style={[styles.tableTitle, { color: colors.onSurfaceHigh }]}>Composite Planetary Positions</Text>
-        
+
         {/* Header */}
         <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.strokeSubtle }]}>
           <View style={styles.symbolCell}>
@@ -141,9 +141,9 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>House</Text>
           </View>
         </View>
-        
+
         {/* Planet Rows */}
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           accessibilityRole="list"
           accessibilityLabel="Composite planetary positions"
@@ -160,30 +160,30 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
       const position = house.degree % 360; // Normalize degree
       const signPosition = position % 30; // Position within sign
       const signColor = ZODIAC_COLORS[house.sign as ZodiacSign] || colors.primary;
-      
+
       return (
         <View key={house.house} style={[
-          styles.row, 
+          styles.row,
           index % 2 === 0 ? styles.evenRow : styles.oddRow,
-          { borderBottomColor: colors.strokeSubtle }
+          { borderBottomColor: colors.strokeSubtle },
         ]}>
           {/* House Number */}
           <View style={styles.houseNumberCell}>
             <Text style={[styles.houseNumber, { color: colors.onSurface }]}>{house.house}</Text>
           </View>
-          
+
           {/* Sign Symbol */}
           <View style={styles.symbolCell}>
             <Text style={[styles.signSymbol, { color: signColor }]}>
               {house.sign ? getZodiacGlyph(house.sign as ZodiacSign) : '-'}
             </Text>
           </View>
-          
+
           {/* Sign Name */}
           <View style={styles.signCell}>
             <Text style={[styles.signName, { color: colors.onSurface }]}>{house.sign || 'Unknown'}</Text>
           </View>
-          
+
           {/* Degree */}
           <View style={styles.degreeCell}>
             <Text style={[styles.degree, { color: colors.onSurface, fontFamily: 'monospace' }]}>{signPosition.toFixed(1)}°</Text>
@@ -195,7 +195,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
     return (
       <View style={[styles.tableContainer, { backgroundColor: colors.surfaceCard, borderColor: colors.strokeSubtle }]}>
         <Text style={[styles.tableTitle, { color: colors.onSurfaceHigh }]}>Composite House Positions</Text>
-        
+
         {/* Header */}
         <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.strokeSubtle }]}>
           <View style={styles.houseNumberCell}>
@@ -211,7 +211,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Degree</Text>
           </View>
         </View>
-        
+
         {/* House Rows */}
         <ScrollView style={styles.scrollView}>
           {compositeChart.houses.map((house, index) => renderHouseRow(house, index))}
@@ -226,53 +226,53 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
       const aspectColor = getAspectColor(aspect.aspectType as AspectType);
       const planet1Color = PLANET_COLORS[aspect.aspectingPlanet as PlanetName] || colors.onSurface;
       const planet2Color = PLANET_COLORS[aspect.aspectedPlanet as PlanetName] || colors.onSurface;
-      
+
       return (
-        <View key={`${aspect.aspectingPlanet}-${aspect.aspectedPlanet}-${index}`} 
+        <View key={`${aspect.aspectingPlanet}-${aspect.aspectedPlanet}-${index}`}
               style={[
-                styles.row, 
+                styles.row,
                 index % 2 === 0 ? styles.evenRow : styles.oddRow,
-                { borderBottomColor: colors.strokeSubtle }
+                { borderBottomColor: colors.strokeSubtle },
               ]}>
-          
+
           {/* First Planet Symbol */}
           <View style={styles.planetCell}>
             <Text style={[styles.planetSymbol, { color: planet1Color }]}>
               {getPlanetGlyph(aspect.aspectingPlanet as PlanetName)}
             </Text>
           </View>
-          
+
           {/* First Planet Name */}
           <View style={styles.nameCell}>
             <Text style={[styles.planetName, { color: colors.onSurface }]}>{aspect.aspectingPlanet}</Text>
           </View>
-          
+
           {/* Aspect Symbol */}
           <View style={styles.aspectSymbolCell}>
             <Text style={[styles.aspectSymbol, { color: aspectColor }]}>
               {getAspectSymbol(aspect.aspectType)}
             </Text>
           </View>
-          
+
           {/* Aspect Name */}
           <View style={styles.aspectNameCell}>
             <Text style={[styles.aspectName, { color: aspectColor }]}>
               {getAspectName(aspect.aspectType)}
             </Text>
           </View>
-          
+
           {/* Second Planet Symbol */}
           <View style={styles.planetCell}>
             <Text style={[styles.planetSymbol, { color: planet2Color }]}>
               {getPlanetGlyph(aspect.aspectedPlanet as PlanetName)}
             </Text>
           </View>
-          
+
           {/* Second Planet Name */}
           <View style={styles.nameCell}>
             <Text style={[styles.planetName, { color: colors.onSurface }]}>{aspect.aspectedPlanet}</Text>
           </View>
-          
+
           {/* Orb */}
           <View style={styles.orbCell}>
             <Text style={[styles.orb, { color: colors.onSurfaceVariant, fontFamily: 'monospace' }]}>{aspect.orb?.toFixed(1)}°</Text>
@@ -284,7 +284,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
     return (
       <View style={[styles.tableContainer, { backgroundColor: colors.surfaceCard, borderColor: colors.strokeSubtle }]}>
         <Text style={[styles.tableTitle, { color: colors.onSurfaceHigh }]}>Composite Aspects</Text>
-        
+
         {/* Header */}
         <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.strokeSubtle }]}>
           <View style={styles.planetCell}>
@@ -309,7 +309,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Orb</Text>
           </View>
         </View>
-        
+
         {/* Aspect Rows */}
         <ScrollView style={styles.scrollView}>
           {compositeChart.aspects.map((aspect, index) => renderAspectRow(aspect, index))}

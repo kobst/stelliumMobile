@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SynastryAspect } from '../../api/relationships';
 import { AspectType, PlanetName } from '../../types';
 import { useTheme } from '../../theme';
-import { 
-  getPlanetGlyph, 
+import {
+  getPlanetGlyph,
   getAspectColor,
-  PLANET_COLORS
+  PLANET_COLORS,
 } from './ChartUtils';
 
 interface SynastryAspectsTableProps {
@@ -15,10 +15,10 @@ interface SynastryAspectsTableProps {
   userBName: string;
 }
 
-const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({ 
-  aspects, 
-  userAName, 
-  userBName 
+const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
+  aspects,
+  userAName,
+  userBName,
 }) => {
   const { colors } = useTheme();
   const getAspectName = (aspectType: string): string => {
@@ -55,51 +55,51 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
     const aspectColor = getAspectColor(aspect.aspectType as AspectType);
     const planet1Color = PLANET_COLORS[aspect.planet1 as PlanetName] || colors.onSurface;
     const planet2Color = PLANET_COLORS[aspect.planet2 as PlanetName] || colors.onSurface;
-    
+
     return (
-      <View key={`${aspect.planet1}-${aspect.planet2}-${index}`} 
+      <View key={`${aspect.planet1}-${aspect.planet2}-${index}`}
             style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow, { borderBottomColor: colors.border }]}>
-        
+
         {/* User A Planet Symbol */}
         <View style={styles.planetCell}>
           <Text style={[styles.planetSymbol, { color: planet1Color }]}>
             {getPlanetGlyph(aspect.planet1 as PlanetName)}
           </Text>
         </View>
-        
+
         {/* User A Planet Name */}
         <View style={styles.nameCell}>
           <Text style={[styles.planetName, { color: colors.onSurface }]}>{aspect.planet1}</Text>
           <Text style={[styles.userName, { color: colors.primary }]}>({userAName})</Text>
         </View>
-        
+
         {/* Aspect Symbol */}
         <View style={styles.aspectSymbolCell}>
           <Text style={[styles.aspectSymbol, { color: aspectColor }]}>
             {getAspectSymbol(aspect.aspectType)}
           </Text>
         </View>
-        
+
         {/* Aspect Name */}
         <View style={styles.aspectNameCell}>
           <Text style={[styles.aspectName, { color: aspectColor }]}>
             {getAspectName(aspect.aspectType)}
           </Text>
         </View>
-        
+
         {/* User B Planet Symbol */}
         <View style={styles.planetCell}>
           <Text style={[styles.planetSymbol, { color: planet2Color }]}>
             {getPlanetGlyph(aspect.planet2 as PlanetName)}
           </Text>
         </View>
-        
+
         {/* User B Planet Name */}
         <View style={styles.nameCell}>
           <Text style={[styles.planetName, { color: colors.onSurface }]}>{aspect.planet2}</Text>
           <Text style={[styles.userName, { color: colors.primary }]}>({userBName})</Text>
         </View>
-        
+
         {/* Orb */}
         <View style={styles.orbCell}>
           <Text style={[styles.orb, { color: colors.onSurfaceVariant }]}>{aspect.orb?.toFixed(1)}°</Text>
@@ -125,7 +125,7 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
       <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
         Planetary connections between {userAName} and {userBName}
       </Text>
-      
+
       {/* Header */}
       <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
         <View style={styles.planetCell}>
@@ -150,7 +150,7 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
           <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Orb</Text>
         </View>
       </View>
-      
+
       {/* Aspect Rows */}
       <ScrollView style={styles.scrollView}>
         {aspects.map((aspect, index) => renderAspectRow(aspect, index))}

@@ -44,19 +44,19 @@ const GuestOnboardingScreen: React.FC = () => {
 
   const validateForm = (): string[] => {
     const errs: string[] = [];
-    if (!firstName.trim()) errs.push('First name is required');
-    if (!lastName.trim()) errs.push('Last name is required');
-    if (!birthYear || !birthMonth || !birthDay) errs.push('Complete birth date is required');
-    if (!unknownTime && (!birthHour || !birthMinute)) errs.push('Birth time is required');
-    if (!lat || !lon) errs.push('Location is required');
-    if (!gender) errs.push('Gender/Sex is required');
-    
+    if (!firstName.trim()) {errs.push('First name is required');}
+    if (!lastName.trim()) {errs.push('Last name is required');}
+    if (!birthYear || !birthMonth || !birthDay) {errs.push('Complete birth date is required');}
+    if (!unknownTime && (!birthHour || !birthMinute)) {errs.push('Birth time is required');}
+    if (!lat || !lon) {errs.push('Location is required');}
+    if (!gender) {errs.push('Gender/Sex is required');}
+
     // Validate date is real
     if (birthYear && birthMonth && birthDay) {
       const year = parseInt(birthYear);
       const month = parseInt(birthMonth);
       const day = parseInt(birthDay);
-      
+
       if (year < 1900 || year > new Date().getFullYear()) {
         errs.push('Please enter a valid year');
       } else if (month < 1 || month > 12) {
@@ -68,7 +68,7 @@ const GuestOnboardingScreen: React.FC = () => {
         }
       }
     }
-    
+
     return errs;
   };
 
@@ -119,7 +119,7 @@ const GuestOnboardingScreen: React.FC = () => {
     console.log('\n=== GUEST FORM SUBMISSION STARTED ===');
     console.log('Current endpoint:', SERVER_URL);
     console.log('Owner User ID:', userData?.id);
-    
+
     const formErrors = validateForm();
     if (formErrors.length > 0) {
       console.log('Form validation failed:', formErrors);
@@ -133,7 +133,7 @@ const GuestOnboardingScreen: React.FC = () => {
       // Convert date fields to frontend format
       const date = `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`;
       console.log('Formatted date:', date);
-      
+
       // Convert time fields to frontend format
       let time = 'unknown';
       if (!unknownTime) {
@@ -147,17 +147,17 @@ const GuestOnboardingScreen: React.FC = () => {
         time = `${hour24.toString().padStart(2, '0')}:${birthMinute.padStart(2, '0')}`;
       }
       console.log('Formatted time:', time);
-      
+
       // Calculate timezone offset like frontend
       const timeForTimezone = unknownTime ? '12:00' : time;
       const dateTimeString = `${date}T${timeForTimezone}:00`;
       const dateTime = new Date(dateTimeString);
       const epochTimeSeconds = Math.floor(dateTime.getTime() / 1000);
-      
+
       console.log('\nFetching timezone...');
       console.log('Coordinates:', { lat, lon });
       console.log('Epoch time:', epochTimeSeconds);
-      
+
       const totalOffsetHours = await externalApi.fetchTimeZone(lat!, lon!, epochTimeSeconds);
       console.log('Timezone offset hours:', totalOffsetHours);
 
@@ -174,9 +174,9 @@ const GuestOnboardingScreen: React.FC = () => {
           lat: lat!,
           lon: lon!,
           tzone: totalOffsetHours,
-          ownerUserId: userData!.id
+          ownerUserId: userData!.id,
         };
-        
+
         console.log('API Payload (Unknown Time):', JSON.stringify(createGuestUnknownTimePayload, null, 2));
         response = await usersApi.createGuestSubjectUnknownTime(createGuestUnknownTimePayload);
       } else {
@@ -192,23 +192,23 @@ const GuestOnboardingScreen: React.FC = () => {
           tzone: totalOffsetHours,
           gender,
           unknownTime,
-          ownerUserId: userData!.id
+          ownerUserId: userData!.id,
         };
-        
+
         console.log('API Payload (Known Time):', JSON.stringify(createGuestPayload, null, 2));
         response = await usersApi.createGuestSubject(createGuestPayload);
       }
       console.log('\nAPI Response:', JSON.stringify(response, null, 2));
-      
+
       console.log('Guest subject created successfully, navigating back...');
-      
+
       // Call the callback to refresh the parent screen
       if (onGuestCreated) {
         onGuestCreated();
       }
-      
+
       navigation.goBack();
-      
+
     } catch (error: any) {
       console.error('\n=== GUEST FORM SUBMISSION ERROR ===');
       console.error('Error details:', error);
@@ -401,8 +401,8 @@ const GuestOnboardingScreen: React.FC = () => {
           />
         </View>
       </View>
-      <TouchableOpacity 
-        style={[styles.submit, isSubmitting && styles.submitDisabled]} 
+      <TouchableOpacity
+        style={[styles.submit, isSubmitting && styles.submitDisabled]}
         onPress={handleSubmit}
         disabled={isSubmitting}
       >

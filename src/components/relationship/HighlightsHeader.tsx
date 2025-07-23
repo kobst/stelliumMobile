@@ -45,11 +45,11 @@ const HighlightsHeader: React.FC<HighlightsHeaderProps> = ({
   };
 
   const renderScorePill = () => {
-    if (!compositeScore) return null;
+    if (!compositeScore) {return null;}
 
-    const scoreColor = compositeScore >= 80 ? colors.aspectTrine : 
-                     compositeScore >= 60 ? colors.aspectSextile : 
-                     compositeScore >= 40 ? colors.warning : 
+    const scoreColor = compositeScore >= 80 ? colors.aspectTrine :
+                     compositeScore >= 60 ? colors.aspectSextile :
+                     compositeScore >= 40 ? colors.warning :
                      colors.aspectSquare;
 
     return (
@@ -63,9 +63,9 @@ const HighlightsHeader: React.FC<HighlightsHeaderProps> = ({
 
   const renderAspectBadge = (aspect: AspectBadge, index: number) => {
     const aspectColor = getAspectColor(aspect.aspectType);
-    
+
     return (
-      <View 
+      <View
         key={`${aspect.planet1}-${aspect.planet2}-${index}`}
         style={[styles.aspectBadge, { backgroundColor: aspectColor + '15', borderColor: aspectColor + '40' }]}
       >
@@ -81,20 +81,20 @@ const HighlightsHeader: React.FC<HighlightsHeaderProps> = ({
   const displayTensionAspects = tensionAspects.slice(0, 1);
 
   return (
-    <View 
+    <View
       style={[
         styles.container,
-        { 
+        {
           backgroundColor: colors.surfaceElevated,
           borderBottomColor: colors.strokeSubtle,
         },
-        style
+        style,
       ]}
     >
       <View style={styles.content}>
         {/* Score pill */}
         {renderScorePill()}
-        
+
         {/* Aspect badges */}
         <View style={styles.badgesContainer}>
           {displayTopAspects.map((aspect, index) => renderAspectBadge(aspect, index))}

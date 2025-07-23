@@ -144,7 +144,7 @@ const GuestUsersTab: React.FC<GuestUsersTabProps> = ({ selectedPerson, onPersonS
             onChangeText={setSearchQuery}
           />
         </View>
-        
+
         <View style={styles.filterContainer}>
           <Text style={[styles.filterLabel, { color: colors.onSurfaceVariant }]}>Gender:</Text>
           <TouchableOpacity
@@ -152,8 +152,8 @@ const GuestUsersTab: React.FC<GuestUsersTabProps> = ({ selectedPerson, onPersonS
             onPress={() => setShowGenderPicker(true)}
           >
             <Text style={[styles.pickerButtonText, { color: colors.onSurface }]}>
-              {genderFilter === 'all' ? 'All' : 
-               genderFilter === 'male' ? 'Male' : 
+              {genderFilter === 'all' ? 'All' :
+               genderFilter === 'male' ? 'Male' :
                genderFilter === 'female' ? 'Female' : 'Non-binary'}
             </Text>
             <Text style={[styles.pickerArrow, { color: colors.primary }]}>▼</Text>

@@ -87,15 +87,15 @@ export const degreeToRadians = (degree: number): number => {
 export const getZodiacPositionFromDegree = (degree: number): { sign: ZodiacSign; position: number } => {
   const signIndex = Math.floor(degree / 30);
   const position = degree % 30;
-  
+
   const signs: ZodiacSign[] = [
     'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
   ];
-  
+
   return {
     sign: signs[signIndex] || 'Aries',
-    position: Math.round(position * 100) / 100
+    position: Math.round(position * 100) / 100,
   };
 };
 
@@ -127,11 +127,11 @@ export const formatTime = (hour: number, minute: number): string => {
   if (hour === 12 && minute === 0) {
     return 'Unknown time';
   }
-  
+
   const period = hour >= 12 ? 'PM' : 'AM';
   const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   const displayMinute = minute.toString().padStart(2, '0');
-  
+
   return `${displayHour}:${displayMinute} ${period}`;
 };
 
@@ -145,9 +145,9 @@ export const getZodiacGlyph = (signName: ZodiacSign): string => {
 
 // Calculate position on circle for given degree
 export const getCirclePosition = (
-  degree: number, 
-  radius: number, 
-  centerX: number = CHART_DIMENSIONS.centerX, 
+  degree: number,
+  radius: number,
+  centerX: number = CHART_DIMENSIONS.centerX,
   centerY: number = CHART_DIMENSIONS.centerY,
   ascendantDegree: number = 0
 ) => {
@@ -155,12 +155,12 @@ export const getCirclePosition = (
   // - Ascendant should be at 9 o'clock (left side = 180° in math coordinates)
   // - Chart rotates so ascendant is always at 9 o'clock
   // - Degrees proceed counterclockwise from ascendant
-  
+
   // Convert astrological degree to math coordinates
   // Astrological 0° = Math 180° (9 o'clock position)
   const adjustedDegree = (180 - degree + ascendantDegree) % 360;
   const radians = degreeToRadians(adjustedDegree);
-  
+
   return {
     x: centerX + radius * Math.cos(radians),
     y: centerY + radius * Math.sin(radians),
@@ -182,7 +182,7 @@ export const hexToRgba = (hex: string, alpha: number = 1): string => {
 
 // Filter out excluded planets
 export const filterPlanets = (planets: any[]): any[] => {
-  const excludedPlanets = ["South Node", "Part of Fortune"];
+  const excludedPlanets = ['South Node', 'Part of Fortune'];
   return planets.filter(planet => !excludedPlanets.includes(planet.name));
 };
 

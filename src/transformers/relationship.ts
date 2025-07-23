@@ -80,19 +80,19 @@ export const relationshipTransformers = {
 
   // Get color based on score
   getScoreColor: (score: number): string => {
-    if (score >= 85) return '#4CAF50'; // Green - Excellent
-    if (score >= 70) return '#8BC34A'; // Light Green - Good
-    if (score >= 55) return '#FFC107'; // Yellow - Average
-    if (score >= 40) return '#FF9800'; // Orange - Below Average
+    if (score >= 85) {return '#4CAF50';} // Green - Excellent
+    if (score >= 70) {return '#8BC34A';} // Light Green - Good
+    if (score >= 55) {return '#FFC107';} // Yellow - Average
+    if (score >= 40) {return '#FF9800';} // Orange - Below Average
     return '#F44336'; // Red - Challenging
   },
 
   // Get score description
   getScoreDescription: (score: number): string => {
-    if (score >= 85) return 'Excellent';
-    if (score >= 70) return 'Good';
-    if (score >= 55) return 'Average';
-    if (score >= 40) return 'Below Average';
+    if (score >= 85) {return 'Excellent';}
+    if (score >= 70) {return 'Good';}
+    if (score >= 55) {return 'Average';}
+    if (score >= 40) {return 'Below Average';}
     return 'Challenging';
   },
 
@@ -109,10 +109,10 @@ export const relationshipTransformers = {
     challenges: FormattedRelationshipScore[];
   } => {
     const sortedByScore = [...scores].sort((a, b) => b.score - a.score);
-    
+
     const strengths = sortedByScore.filter(score => score.score >= 70).slice(0, 3);
     const challenges = sortedByScore.filter(score => score.score < 55).slice(-3);
-    
+
     return { strengths, challenges };
   },
 
@@ -123,17 +123,17 @@ export const relationshipTransformers = {
     mainChallenge: FormattedRelationshipScore
   ): string => {
     const description = relationshipTransformers.getScoreDescription(overallScore);
-    
+
     let summary = `Your overall compatibility is ${description.toLowerCase()} (${overallScore}%).`;
-    
+
     if (topStrength) {
       summary += ` Your strongest area is ${topStrength.label.toLowerCase()}.`;
     }
-    
+
     if (mainChallenge) {
       summary += ` The main area for growth is ${mainChallenge.label.toLowerCase()}.`;
     }
-    
+
     return summary;
   },
 
@@ -157,7 +157,7 @@ export const relationshipTransformers = {
 
     return aspects.map(aspect => {
       const config = aspectTypes[aspect.aspect] || { type: 'neutral', intensity: 'low' };
-      
+
       return {
         planet1: aspect.planet1,
         planet2: aspect.planet2,
@@ -176,30 +176,30 @@ export const relationshipTransformers = {
   } => {
     const overallScore = scores.reduce((sum, score) => sum + score.score, 0) / scores.length;
     const { strengths, challenges } = relationshipTransformers.getStrengthsAndChallenges(scores);
-    
+
     let general: string;
     const specific: string[] = [];
-    
+
     if (overallScore >= 75) {
-      general = "You have a strong foundation for a lasting relationship. Focus on maintaining your connection and growing together.";
+      general = 'You have a strong foundation for a lasting relationship. Focus on maintaining your connection and growing together.';
     } else if (overallScore >= 60) {
-      general = "Your relationship has good potential with some areas that need attention. Open communication will be key.";
+      general = 'Your relationship has good potential with some areas that need attention. Open communication will be key.';
     } else {
-      general = "This relationship will require significant effort and understanding from both partners to succeed.";
+      general = 'This relationship will require significant effort and understanding from both partners to succeed.';
     }
-    
+
     // Add specific advice based on top challenges
     challenges.forEach(challenge => {
       if (challenge.score < 40) {
         specific.push(`Work on ${challenge.label.toLowerCase()} through honest dialogue and mutual understanding.`);
       }
     });
-    
+
     // Add advice based on strengths
     if (strengths.length > 0) {
       specific.push(`Build on your strength in ${strengths[0].label.toLowerCase()} to support other areas.`);
     }
-    
+
     return { general, specific };
   },
 };

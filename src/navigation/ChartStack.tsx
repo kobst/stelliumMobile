@@ -9,7 +9,7 @@ const Stack = createStackNavigator();
 
 const ChartStack: React.FC = () => {
   const { colors } = useTheme();
-  
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -22,18 +22,18 @@ const ChartStack: React.FC = () => {
         },
       }}
     >
-      <Stack.Screen 
-        name="ChartSelection" 
+      <Stack.Screen
+        name="ChartSelection"
         component={ChartSelectionScreen}
         options={{ title: 'Birth Charts' }}
       />
-      <Stack.Screen 
-        name="ChartMain" 
+      <Stack.Screen
+        name="ChartMain"
         component={ChartScreen}
         options={{ title: 'Birth Chart' }}
       />
-      <Stack.Screen 
-        name="GuestOnboarding" 
+      <Stack.Screen
+        name="GuestOnboarding"
         component={GuestOnboardingScreen}
         options={{ title: 'Add Birth Chart' }}
       />
