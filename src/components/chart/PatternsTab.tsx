@@ -13,17 +13,11 @@ interface PatternsTabProps {
 }
 
 const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
-  const { fullAnalysis, loading, loadFullAnalysis } = useChart(userId);
-  const { userData } = useStore();
+  const { fullAnalysis, loading, loadFullAnalysis, workflowState } = useChart(userId);
+  const { userData, creationWorkflowState } = useStore();
   const { colors } = useTheme();
 
-  // Load analysis on mount if not already loaded
-  React.useEffect(() => {
-    if (!fullAnalysis && !loading) {
-      console.log('PatternsTab - Loading full analysis...');
-      loadFullAnalysis();
-    }
-  }, [fullAnalysis, loading, loadFullAnalysis]);
+  // Don't automatically load analysis - let users trigger it with the button
 
   // Get dominance interpretations from the analysis response
   const getDominanceInterpretations = () => {
@@ -104,25 +98,14 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
     };
   };
 
-  // Fallback UI component for missing analysis
-  const renderMissingAnalysis = () => (
+  // Simple button container for missing analysis
+  const renderAnalysisButton = () => (
     <View style={[styles.missingAnalysisContainer, { backgroundColor: colors.background }]}>
-      <Text style={styles.missingAnalysisIcon}>📊</Text>
-      <Text style={[styles.missingAnalysisTitle, { color: colors.onBackground }]}>Patterns Analysis Not Available</Text>
-      <Text style={[styles.missingAnalysisText, { color: colors.onSurfaceVariant }]}>
-        Complete analysis data is not available for this chart. 
-      </Text>
       <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading patterns analysis...</Text>
-      </View>
-    );
-  }
+  // No automatic loading state - go straight to checking for analysis data
 
   const dominanceInterpretations = getDominanceInterpretations();
   const chartData = getChartPatternData();
@@ -132,9 +115,15 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   const hasInterpretationData = fullAnalysis?.interpretation?.basicAnalysis?.dominance;
   const hasRawData = chartData.elements.length > 0 || chartData.modalities.length > 0;
   
+  // Check if analysis is in progress
+  const activeWorkflowState = workflowState || creationWorkflowState;
+  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId && 
+    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 && 
+    !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
+  
   // Only display patterns if we have interpretation data (regardless of raw data availability)
   if (!hasInterpretationData) {
-    return renderMissingAnalysis();
+    return renderAnalysisButton();
   }
 
   return (

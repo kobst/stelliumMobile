@@ -271,151 +271,242 @@ export interface RelationshipAnalysisResponse {
   userB_name?: string;
 }
 
-export interface RelationshipWorkflowResponse {
+// Enhanced API Response Structure (matches frontend CompositeDashboard_v4)
+export interface EnhancedRelationshipAnalysisResponse {
+  success: boolean;
+  compositeChartId: string;
+  scores: {
+    OVERALL_ATTRACTION_CHEMISTRY: number;
+    EMOTIONAL_SECURITY_CONNECTION: number;
+    SEX_AND_INTIMACY: number;
+    COMMUNICATION_AND_MENTAL_CONNECTION: number;
+    COMMITMENT_LONG_TERM_POTENTIAL: number;
+    KARMIC_LESSONS_GROWTH: number;
+    PRACTICAL_GROWTH_SHARED_GOALS: number;
+  };
+  scoreAnalysis: {
+    [category: string]: {
+      scoredItems: RelationshipScoredItem[];
+      analysis: string;
+    };
+  };
+  clusterAnalysis: {
+    Heart: ClusterScoreAnalysis;
+    Body: ClusterScoreAnalysis;
+    Mind: ClusterScoreAnalysis;
+    Life: ClusterScoreAnalysis;
+    Soul: ClusterScoreAnalysis;
+  };
+  holisticOverview: string;
+  tensionFlowAnalysis: {
+    supportDensity: number;
+    challengeDensity: number;
+    polarityRatio: number;
+    quadrant: string;
+    insight: {
+      quadrant: string;
+      description: string;
+      recommendations: string[];
+    };
+  };
+}
+
+// Frontend-style workflow status response structure
+export interface RelationshipWorkflowStatusResponse {
+  success: boolean;
+  workflowStatus: {
+    status: 'not_started' | 'running' | 'paused_after_scores' | 'completed' | 'error' | 'failed';
+    progress?: {
+      percentage: number;
+      processRelationshipAnalysis?: {
+        status: 'completed' | 'running';
+        completed: number;
+        total: number;
+      };
+    };
+    stepFunctions?: {
+      executionArn: string;
+    };
+  };
+  analysisData?: RelationshipAnalysisResponse;
+  workflowBreakdown?: {
+    needsGeneration: string[];
+    needsVectorization: string[];
+    completed: string[];
+  };
+}
+
+// Step Functions workflow start response
+export interface RelationshipWorkflowStartResponse {
+  success: boolean;
+  workflowId?: string;
+  message?: string;
+  error?: string;
+}
+
+// Simplified interfaces for the hook
+export interface RelationshipWorkflowStatus {
   workflowId: string;
-  status: string;
+  compositeChartId: string;
+  status: 'running' | 'completed' | 'error' | 'paused' | 'unknown';
+  progress: {
+    percentage: number;
+    currentPhase: string;
+    currentStep?: string;
+  };
   isCompleted: boolean;
-  progress?: number;
+  completed?: boolean;
+  error?: string;
+  analysisData?: RelationshipAnalysisResponse;
+}
+
+export interface VectorizationStatus {
+  categories: {
+    OVERALL_ATTRACTION_CHEMISTRY: boolean;
+    EMOTIONAL_SECURITY_CONNECTION: boolean;
+    SEX_AND_INTIMACY: boolean;
+    COMMUNICATION_AND_MENTAL_CONNECTION: boolean;
+    COMMITMENT_LONG_TERM_POTENTIAL: boolean;
+    KARMIC_LESSONS_GROWTH: boolean;
+    PRACTICAL_GROWTH_SHARED_GOALS: boolean;
+  };
+  relationshipAnalysis: boolean;
 }
 
 export const relationshipsApi = {
-  // Create relationship between two users
+  // Legacy methods (keep for backward compatibility)
   createRelationship: async (request: RelationshipCreateRequest): Promise<RelationshipResponse> => {
     return apiClient.post<RelationshipResponse>('/createRelationship', request);
   },
 
-  // Create composite chart profile
   createCompositeChart: async (request: CompositeChartRequest): Promise<{ compositeChartId: string }> => {
     return apiClient.post<{ compositeChartId: string }>('/saveCompositeChartProfile', request);
   },
 
-  // Get relationship compatibility scores
   getRelationshipScore: async (request: RelationshipScoreRequest): Promise<RelationshipScore> => {
     return apiClient.post<RelationshipScore>('/getRelationshipScore', request);
   },
 
-  // Enhanced relationship analysis
-  getEnhancedRelationshipAnalysis: async (
-    userA: User,
-    userB: User
-  ): Promise<{ analysis: any; scores: RelationshipScore }> => {
-    return apiClient.post<{ analysis: any; scores: RelationshipScore }>(
-      '/enhanced-relationship-analysis',
-      { userA, userB }
-    );
-  },
-
-  // Start relationship analysis workflow
-  startRelationshipWorkflow: async (
-    userA: User,
-    userB: User
-  ): Promise<RelationshipWorkflowResponse> => {
-    return apiClient.post<RelationshipWorkflowResponse>('/workflow/relationship/start', {
-      userA,
-      userB,
-    });
-  },
-
-  // Poll relationship analysis status
-  pollRelationshipStatus: async (workflowId: string): Promise<RelationshipWorkflowResponse> => {
-    return apiClient.post<RelationshipWorkflowResponse>('/workflow/relationship/status', {
-      workflowId,
-    });
-  },
-
-  // Generate relationship analysis
-  generateRelationshipAnalysis: async (
-    compositeChartId: string
-  ): Promise<{ analysis: any }> => {
-    return apiClient.post<{ analysis: any }>('/generateRelationshipAnalysis', {
-      compositeChartId,
-    });
-  },
-
-
-  // Process and vectorize relationship analysis
-  processRelationshipAnalysis: async (
-    compositeChartId: string
-  ): Promise<{ success: boolean }> => {
-    let currentCategory: string | null = null;
-    let isComplete = false;
-
-    while (!isComplete) {
-      const response = await apiClient.post<any>('/processRelationshipAnalysis', {
-        compositeChartId,
-        category: currentCategory,
-      });
-
-      if (!response.success) {
-        throw new Error(response.error || 'Relationship analysis processing failed');
-      }
-
-      isComplete = response.isComplete;
-      currentCategory = response.nextCategory;
-    }
-
-    return { success: true };
-  },
-
-  // Get all relationships for a user
   getUserRelationships: async (userId: string): Promise<RelationshipResponse[]> => {
     return apiClient.post<RelationshipResponse[]>('/getUserRelationships', { userId });
   },
 
-  // Delete relationship
   deleteRelationship: async (relationshipId: string): Promise<{ success: boolean }> => {
     return apiClient.delete<{ success: boolean }>(`/relationships/${relationshipId}`);
   },
 
-  // Get user composite charts (existing relationships)
   getUserCompositeCharts: async (ownerUserId: string): Promise<UserCompositeChart[]> => {
     return apiClient.post<UserCompositeChart[]>('/getUserCompositeCharts', { ownerUserId });
   },
 
-  // Fetch relationship analysis data
+
+  // ===== FRONTEND-PROVEN METHODS =====
+
+  // Enhanced Direct API - Primary workflow (2-5 seconds)
+  // Used for immediate relationship creation with full analysis
+  enhancedRelationshipAnalysis: async (
+    userIdA: string, 
+    userIdB: string
+  ): Promise<EnhancedRelationshipAnalysisResponse> => {
+    return apiClient.post<EnhancedRelationshipAnalysisResponse>('/enhanced-relationship-analysis', {
+      userIdA,
+      userIdB
+    });
+  },
+
+  // Fetch existing relationship analysis data
   fetchRelationshipAnalysis: async (compositeChartId: string): Promise<RelationshipAnalysisResponse> => {
-    return apiClient.post<RelationshipAnalysisResponse>('/fetchRelationshipAnalysis', { compositeChartId });
+    return apiClient.post<RelationshipAnalysisResponse>('/fetchRelationshipAnalysis', { 
+      compositeChartId 
+    });
   },
 
-  // Get composite chart data (includes chart structure)
-  getCompositeChart: async (compositeChartId: string): Promise<any> => {
-    return apiClient.get<any>(`/composite-charts/${compositeChartId}`);
+  // Step Functions Workflow Methods (exactly matching frontend)
+  
+  // Start relationship workflow - Preview mode (scores only)
+  // Frontend: await startRelationshipWorkflow(userA._id, userB._id, compositeChart._id, false)
+  startRelationshipWorkflow: async (
+    userIdA: string,
+    userIdB: string,
+    compositeChartId: string,
+    immediate: boolean
+  ): Promise<RelationshipWorkflowStartResponse> => {
+    return apiClient.post<RelationshipWorkflowStartResponse>('/workflow/relationship/start', {
+      userIdA,
+      userIdB,
+      compositeChartId,
+      immediate
+    });
   },
 
-  // Create relationship directly with enhanced analysis
-  createRelationshipDirect: async (userIdA: string, userIdB: string): Promise<{ success: boolean; relationship?: any; error?: string }> => {
-    try {
-      const response = await apiClient.post<any>('/enhanced-relationship-analysis', {
-        userIdA,
-        userIdB
-      });
-      
-      // Transform the response to match expected format
-      if (response.success) {
-        return {
-          success: true,
-          relationship: {
-            compositeChartId: response.compositeChartId,
-            userA: response.userA,
-            userB: response.userB,
-            enhancedAnalysis: response.enhancedAnalysis,
-            profileAnalysis: response.profileAnalysis,
-            // Include chart data for immediate display
-            compositeChart: response.compositeChart,
-            synastryAspects: response.synastryAspects,
-            synastryHousePlacements: response.synastryHousePlacements,
-            metadata: response.metadata
-          }
-        };
-      } else {
-        return {
-          success: false,
-          error: response.error || 'Failed to create relationship'
-        };
-      }
-    } catch (error: any) {
-      console.error('Error creating relationship:', error);
-      throw new Error(error.message || 'Failed to create relationship');
-    }
+  // Start full relationship analysis from existing relationship
+  // Frontend: await startFullRelationshipAnalysis(compositeChart._id)
+  startFullRelationshipAnalysis: async (
+    compositeChartId: string
+  ): Promise<RelationshipWorkflowStartResponse> => {
+    return apiClient.post<RelationshipWorkflowStartResponse>('/workflow/relationship/start', {
+      compositeChartId,
+      immediate: true
+    });
+  },
+
+  // Get relationship workflow status (used for polling)
+  // Frontend: await getRelationshipWorkflowStatus(compositeChart._id)
+  getRelationshipWorkflowStatus: async (
+    compositeChartId: string
+  ): Promise<RelationshipWorkflowStatusResponse> => {
+    return apiClient.post<RelationshipWorkflowStatusResponse>('/workflow/relationship/status', {
+      compositeChartId
+    });
+  },
+
+  // Resume paused relationship workflow
+  // Frontend: await resumeRelationshipWorkflow(compositeChart._id)
+  resumeRelationshipWorkflow: async (
+    compositeChartId: string
+  ): Promise<RelationshipWorkflowStartResponse> => {
+    return apiClient.post<RelationshipWorkflowStartResponse>('/workflow/relationship/resume', {
+      compositeChartId
+    });
+  },
+
+  // Chat API for relationship analysis
+  // Frontend: await chatForUserRelationship(userA._id, compositeChart._id, message)
+  chatForUserRelationship: async (
+    userId: string,
+    compositeChartId: string,
+    message: string
+  ): Promise<string> => {
+    return apiClient.post<string>('/chatForUserRelationship', {
+      userId,
+      compositeChartId,
+      message
+    });
+  },
+
+  // Fetch user chat relationship analysis history
+  // Frontend: await fetchUserChatRelationshipAnalysis(userA._id, compositeChart._id)
+  fetchUserChatRelationshipAnalysis: async (
+    userId: string,
+    compositeChartId: string
+  ): Promise<{
+    success: boolean;
+    chatHistory: Array<{
+      role: 'user' | 'assistant';
+      content: string;
+      timestamp: string;
+    }>;
+  }> => {
+    return apiClient.post<{
+      success: boolean;
+      chatHistory: Array<{
+        role: 'user' | 'assistant';
+        content: string;
+        timestamp: string;
+      }>;
+    }>('/fetchUserChatRelationshipAnalysis', {
+      userId,
+      compositeChartId
+    });
   },
 };

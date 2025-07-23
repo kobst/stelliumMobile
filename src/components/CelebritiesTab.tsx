@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { celebritiesApi, Celebrity } from '../api/celebrities';
 import PersonCard from './PersonCard';
+import { useTheme } from '../theme';
 
 interface CelebritiesTabProps {
   selectedPerson: Celebrity | null;
@@ -19,6 +20,7 @@ interface CelebritiesTabProps {
 }
 
 const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPersonSelect }) => {
+  const { colors } = useTheme();
   const [celebrities, setCelebrities] = useState<Celebrity[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,8 +112,8 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateIcon}>⭐</Text>
-      <Text style={styles.emptyStateTitle}>No Celebrities Found</Text>
-      <Text style={styles.emptyStateText}>
+      <Text style={[styles.emptyStateTitle, { color: colors.onSurface }]}>No Celebrities Found</Text>
+      <Text style={[styles.emptyStateText, { color: colors.onSurfaceVariant }]}>
         {searchQuery || genderFilter !== 'all'
           ? 'Try adjusting your search or filter settings.'
           : 'No celebrities available at the moment.'}
@@ -123,54 +125,54 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
     if (!loadingMore) return null;
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#8b5cf6" />
-        <Text style={styles.footerLoaderText}>Loading more...</Text>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={[styles.footerLoaderText, { color: colors.onSurfaceVariant }]}>Loading more...</Text>
       </View>
     );
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Loading celebrities...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading celebrities...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Search and Filter Controls */}
-      <View style={styles.filtersContainer}>
+      <View style={[styles.filtersContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.searchContainer}>
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { backgroundColor: colors.surfaceVariant, color: colors.onSurface, borderColor: colors.outline }]}
             placeholder="Search celebrities..."
-            placeholderTextColor="#64748b"
+            placeholderTextColor={colors.onSurfaceVariant}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
         
         <View style={styles.filterContainer}>
-          <Text style={styles.filterLabel}>Gender:</Text>
+          <Text style={[styles.filterLabel, { color: colors.onSurfaceVariant }]}>Gender:</Text>
           <TouchableOpacity
-            style={styles.pickerButton}
+            style={[styles.pickerButton, { backgroundColor: colors.surfaceVariant, borderColor: colors.outline }]}
             onPress={() => setShowGenderPicker(true)}
           >
-            <Text style={styles.pickerButtonText}>
+            <Text style={[styles.pickerButtonText, { color: colors.onSurface }]}>
               {genderFilter === 'all' ? 'All' : 
                genderFilter === 'male' ? 'Male' : 
                genderFilter === 'female' ? 'Female' : 'Other'}
             </Text>
-            <Text style={styles.pickerArrow}>▼</Text>
+            <Text style={[styles.pickerArrow, { color: colors.primary }]}>▼</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Results */}
-      <View style={styles.resultsContainer}>
-        <Text style={styles.resultsText}>
+      <View style={[styles.resultsContainer, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.resultsText, { color: colors.onSurfaceVariant }]}>
           {celebrities.length} celebrit{celebrities.length !== 1 ? 'ies' : 'y'} found
           {hasMore && ' (scroll for more)'}
         </Text>
@@ -197,8 +199,8 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
         onRequestClose={() => setShowGenderPicker(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Gender Filter</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.onSurface }]}>Select Gender Filter</Text>
             {[
               { label: 'All', value: 'all' },
               { label: 'Male', value: 'male' },
@@ -209,7 +211,7 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
                 key={option.value}
                 style={[
                   styles.modalOption,
-                  genderFilter === option.value && styles.modalOptionSelected,
+                  genderFilter === option.value && [styles.modalOptionSelected, { backgroundColor: colors.primary }],
                 ]}
                 onPress={() => {
                   setGenderFilter(option.value);
@@ -219,6 +221,7 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
                 <Text
                   style={[
                     styles.modalOptionText,
+                    { color: genderFilter === option.value ? colors.onPrimary : colors.onSurface },
                     genderFilter === option.value && styles.modalOptionTextSelected,
                   ]}
                 >
@@ -227,10 +230,10 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={styles.modalCancelButton}
+              style={[styles.modalCancelButton, { backgroundColor: colors.surfaceVariant }]}
               onPress={() => setShowGenderPicker(false)}
             >
-              <Text style={styles.modalCancelText}>Cancel</Text>
+              <Text style={[styles.modalCancelText, { color: colors.onSurfaceVariant }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -242,54 +245,43 @@ const CelebritiesTab: React.FC<CelebritiesTabProps> = ({ selectedPerson, onPerso
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
   },
   loadingText: {
-    color: '#94a3b8',
     marginTop: 12,
     fontSize: 16,
   },
   filtersContainer: {
     padding: 16,
-    backgroundColor: '#1e293b',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   searchContainer: {
     marginBottom: 12,
   },
   searchInput: {
-    backgroundColor: '#374151',
-    color: '#ffffff',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#4b5563',
   },
   filterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   filterLabel: {
-    color: '#94a3b8',
     fontSize: 14,
     fontWeight: '500',
     marginRight: 12,
   },
   pickerButton: {
     flex: 1,
-    backgroundColor: '#374151',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#4b5563',
     paddingHorizontal: 12,
     paddingVertical: 12,
     flexDirection: 'row',
@@ -297,21 +289,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pickerButtonText: {
-    color: '#ffffff',
     fontSize: 14,
   },
   pickerArrow: {
-    color: '#8b5cf6',
     fontSize: 12,
   },
   resultsContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   resultsText: {
-    color: '#94a3b8',
     fontSize: 12,
   },
   emptyContainer: {
@@ -330,13 +318,11 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 8,
     textAlign: 'center',
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -347,7 +333,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   footerLoaderText: {
-    color: '#94a3b8',
     marginLeft: 8,
     fontSize: 14,
   },
@@ -358,18 +343,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 20,
     margin: 20,
     minWidth: 250,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -380,10 +362,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalOptionSelected: {
-    backgroundColor: '#8b5cf6',
+    // backgroundColor handled inline with theme colors
   },
   modalOptionText: {
-    color: '#ffffff',
     fontSize: 16,
     textAlign: 'center',
   },
@@ -395,10 +376,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#374151',
   },
   modalCancelText: {
-    color: '#94a3b8',
     fontSize: 16,
     textAlign: 'center',
   },

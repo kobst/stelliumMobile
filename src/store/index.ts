@@ -65,6 +65,7 @@ interface StoreState {
   setUserData: (userData: User | null) => void;
   setWorkflowState: (workflowState: Partial<WorkflowState>) => void;
   setAnalysisState: (analysisState: Partial<AnalysisWorkflowState>) => void;
+  setRelationshipWorkflowState: (relationshipState: Partial<RelationshipWorkflowState>) => void;
   setActiveUserContext: (context: User | null) => void;
   switchUserContext: (newUser: User) => void;
   switchToCelebrityContext: (celebrity: Celebrity) => void;
@@ -137,7 +138,11 @@ export const useStore = create<StoreState>((set, get) => ({
     hasScores: false,
     scores: {},
     scoreAnalysis: {},
-    currentRelationship: null
+    startedFromCreation: false,
+    completed: false,
+    currentRelationship: null,
+    isPollingActive: false,
+    activeCompositeChartId: null
   },
 
   loading: false,
@@ -170,6 +175,10 @@ export const useStore = create<StoreState>((set, get) => ({
 
   setAnalysisState: (analysisState) => set((state) => ({
     analysisWorkflowState: { ...state.analysisWorkflowState, ...analysisState }
+  })),
+
+  setRelationshipWorkflowState: (relationshipState) => set((state) => ({
+    relationshipWorkflowState: { ...state.relationshipWorkflowState, ...relationshipState }
   })),
 
   setActiveUserContext: (context) => set({ activeUserContext: context }),

@@ -18,6 +18,7 @@ import SynastryAspectsTable from '../../components/chart/SynastryAspectsTable';
 import CompositeChartTables from '../../components/chart/CompositeChartTables';
 import RadarChart from '../../components/chart/RadarChart';
 import ScoredItemsTable from '../../components/chart/ScoredItemsTable';
+import { CompleteRelationshipAnalysisButton } from '../../components/relationship';
 
 type RelationshipAnalysisScreenRouteProp = RouteProp<{
   RelationshipAnalysis: {
@@ -304,9 +305,10 @@ const RelationshipAnalysisScreen: React.FC = () => {
           <Text style={[styles.missingDataText, { color: colors.onSurfaceVariant }]}>
             Complete your full analysis to unlock detailed compatibility scores and radar chart visualization.
           </Text>
-          <TouchableOpacity style={[styles.completeAnalysisButton, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.completeAnalysisButtonText, { color: colors.onPrimary }]}>Complete Full Analysis</Text>
-          </TouchableOpacity>
+          <CompleteRelationshipAnalysisButton 
+            compositeChartId={relationship._id}
+            onAnalysisComplete={loadAnalysisData}
+          />
         </View>
       )}
     </ScrollView>
@@ -384,9 +386,10 @@ const RelationshipAnalysisScreen: React.FC = () => {
           <Text style={[styles.missingDataText, { color: colors.onSurfaceVariant }]}>
             Complete your full analysis to unlock detailed relationship insights and dynamic analysis.
           </Text>
-          <TouchableOpacity style={[styles.completeAnalysisButton, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.completeAnalysisButtonText, { color: colors.onPrimary }]}>Complete Full Analysis</Text>
-          </TouchableOpacity>
+          <CompleteRelationshipAnalysisButton 
+            compositeChartId={relationship._id}
+            onAnalysisComplete={loadAnalysisData}
+          />
         </View>
       )}
     </ScrollView>
@@ -504,15 +507,11 @@ const RelationshipAnalysisScreen: React.FC = () => {
             </ScrollView>
           </>
         ) : (
-          <View style={[styles.missingDataCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={styles.missingDataIcon}>🔍</Text>
-            <Text style={[styles.missingDataTitle, { color: colors.primary }]}>Detailed Analysis</Text>
-            <Text style={[styles.missingDataText, { color: colors.onSurfaceVariant }]}>
-              Complete your full analysis to unlock detailed category insights across all 7 compatibility areas.
-            </Text>
-            <TouchableOpacity style={[styles.completeAnalysisButton, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.completeAnalysisButtonText, { color: colors.onPrimary }]}>Complete Full Analysis</Text>
-            </TouchableOpacity>
+          <View style={styles.analysisEmptyContainer}>
+            <CompleteRelationshipAnalysisButton 
+              compositeChartId={relationship._id}
+              onAnalysisComplete={loadAnalysisData}
+            />
           </View>
         )}
       </View>
@@ -912,6 +911,12 @@ const styles = StyleSheet.create({
   analysisText: {
     fontSize: 15,
     lineHeight: 24,
+  },
+  analysisEmptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 60,
   },
 });
 

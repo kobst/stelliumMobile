@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useChart } from '../../hooks/useChart';
+import { useStore } from '../../store';
 import { BirthChart } from '../../types';
 import PlanetCard from './PlanetCard';
 import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
@@ -18,7 +19,8 @@ interface PlanetsTabProps {
 }
 
 const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
-  const { fullAnalysis, loading, loadFullAnalysis } = useChart(userId);
+  const { fullAnalysis, loading, loadFullAnalysis, workflowState } = useChart(userId);
+  const { creationWorkflowState } = useStore();
   const { colors } = useTheme();
 
   // Get planet analysis data
@@ -29,43 +31,31 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
     return planets;
   };
 
-  // Load analysis on mount if not already loaded
-  React.useEffect(() => {
-    if (!fullAnalysis && !loading) {
-      console.log('PlanetsTab - Loading full analysis...');
-      loadFullAnalysis();
-    }
-  }, [fullAnalysis, loading, loadFullAnalysis]);
+  // Don't automatically load analysis - let users trigger it with the button
 
-  // Fallback UI component for missing analysis
-  const renderMissingAnalysis = () => (
+  // Simple button container for missing analysis
+  const renderAnalysisButton = () => (
     <View style={[styles.missingAnalysisContainer, { backgroundColor: colors.background }]}>
-      <Text style={styles.missingAnalysisIcon}>🪐</Text>
-      <Text style={[styles.missingAnalysisTitle, { color: colors.onBackground }]}>Planetary Analysis Not Available</Text>
-      <Text style={[styles.missingAnalysisText, { color: colors.onSurfaceVariant }]}>
-        Complete planetary analysis is not available for this chart.
-      </Text>
       <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading planetary analysis...</Text>
-      </View>
-    );
-  }
+  // No automatic loading state - go straight to checking for analysis data
 
   const planetAnalysis = getPlanetAnalysis();
   const availablePlanets = PLANET_ORDER.filter(planet => 
     planetAnalysis[planet] && planetAnalysis[planet].interpretation
   );
 
+  // Check if analysis is in progress
+  const activeWorkflowState = workflowState || creationWorkflowState;
+  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId && 
+    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 && 
+    !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
+
   // Only show planet cards if we have interpretation data
-  // If no planets have interpretations, show the "Complete Full Analysis" screen
   if (availablePlanets.length === 0) {
-    return renderMissingAnalysis();
+    return renderAnalysisButton();
   }
 
   return (

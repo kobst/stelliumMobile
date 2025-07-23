@@ -14,6 +14,7 @@ import { relationshipsApi } from '../../api/relationships';
 import { Celebrity } from '../../api/celebrities';
 import GuestUsersTab from '../../components/GuestUsersTab';
 import CelebritiesTab from '../../components/CelebritiesTab';
+import { useTheme } from '../../theme';
 
 interface GuestUser {
   _id: string;
@@ -35,6 +36,7 @@ interface TabInfo {
 const CreateRelationshipScreen: React.FC = () => {
   const navigation = useNavigation();
   const { userData } = useStore();
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState('guests');
   const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -63,31 +65,37 @@ const CreateRelationshipScreen: React.FC = () => {
     setIsCreating(true);
 
     try {
-      const result = await relationshipsApi.createRelationshipDirect(
+      const result = await relationshipsApi.enhancedRelationshipAnalysis(
         currentUserId,
         selectedPerson._id
       );
 
-      if (result.success && result.relationship) {
+      if (result.success && result.compositeChartId) {
+        console.log('Enhanced relationship analysis result:', result);
+        
         // Transform the response to match UserCompositeChart interface expected by RelationshipAnalysisScreen
         const transformedRelationship = {
-          _id: result.relationship.compositeChartId,
-          userA_name: result.relationship.userA.name,
-          userB_name: result.relationship.userB.name,
-          userA_id: result.relationship.userA.id,
-          userB_id: result.relationship.userB.id,
+          _id: result.compositeChartId,
+          userA_name: userData.name || `${userData.firstName} ${userData.lastName}` || 'You',
+          userB_name: `${selectedPerson.firstName} ${selectedPerson.lastName}`,
+          userA_id: currentUserId,
+          userB_id: selectedPerson._id,
           createdAt: new Date().toISOString(),
-          // Include the enhanced analysis data if available
-          enhancedAnalysis: result.relationship.enhancedAnalysis,
-          profileAnalysis: result.relationship.profileAnalysis,
-          // Include chart data for immediate display
-          compositeChart: result.relationship.compositeChart,
-          synastryAspects: result.relationship.synastryAspects,
-          synastryHousePlacements: result.relationship.synastryHousePlacements,
+          // Include the enhanced analysis data - the API returns these in enhancedAnalysis object
+          scores: result.enhancedAnalysis?.scores,
+          clusterAnalysis: result.enhancedAnalysis?.clusterAnalysis,
+          holisticOverview: result.enhancedAnalysis?.holisticOverview,
+          tensionFlowAnalysis: result.enhancedAnalysis?.tensionFlowAnalysis,
+          scoreAnalysis: result.enhancedAnalysis?.scoreAnalysis,
+          // Include chart data - these are returned at the root level of the response
+          synastryAspects: result.synastryAspects,
+          compositeChart: result.compositeChart,
+          synastryHousePlacements: result.synastryHousePlacements,
+          // Store the entire enhanced analysis for the analysis screen
+          enhancedAnalysis: result.enhancedAnalysis,
           // Add other required fields with default values
           userA_dateOfBirth: '',
           userB_dateOfBirth: '',
-          metadata: result.relationship.metadata,
         };
 
         Alert.alert(
@@ -112,7 +120,7 @@ const CreateRelationshipScreen: React.FC = () => {
           ]
         );
       } else {
-        throw new Error(result.error || 'Failed to create relationship');
+        throw new Error('Failed to create relationship - invalid response');
       }
     } catch (error: any) {
       console.error('Error creating relationship:', error);
@@ -149,26 +157,26 @@ const CreateRelationshipScreen: React.FC = () => {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
         </TouchableOpacity>
         
         <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle}>Create New Relationship</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={[styles.headerTitle, { color: colors.onSurface }]}>Create New Relationship</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
             Choose someone to analyze compatibility with
           </Text>
         </View>
       </View>
 
       {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -179,13 +187,14 @@ const CreateRelationshipScreen: React.FC = () => {
               key={tab.id}
               style={[
                 styles.tab,
-                activeTab === tab.id && styles.activeTab,
+                activeTab === tab.id && [styles.activeTab, { borderBottomColor: colors.primary }],
               ]}
               onPress={() => handleTabSwitch(tab.id)}
             >
               <Text style={[
                 styles.tabText,
-                activeTab === tab.id && styles.activeTabText,
+                { color: colors.onSurfaceVariant },
+                activeTab === tab.id && [styles.activeTabText, { color: colors.primary }],
               ]}>
                 {tab.label}
               </Text>
@@ -201,30 +210,30 @@ const CreateRelationshipScreen: React.FC = () => {
 
       {/* Selection Status and Create Button */}
       {selectedPerson && (
-        <View style={styles.selectionContainer}>
+        <View style={[styles.selectionContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
           <View style={styles.selectionInfo}>
-            <Text style={styles.selectionTitle}>Selected:</Text>
-            <Text style={styles.selectionName}>
+            <Text style={[styles.selectionTitle, { color: colors.onSurfaceVariant }]}>Selected:</Text>
+            <Text style={[styles.selectionName, { color: colors.onSurface }]}>
               {selectedPerson.firstName} {selectedPerson.lastName}
             </Text>
-            <Text style={styles.selectionDetails}>
+            <Text style={[styles.selectionDetails, { color: colors.onSurfaceVariant }]}>
               Born: {new Date(selectedPerson.dateOfBirth).toLocaleDateString()}
               {selectedPerson.placeOfBirth && ` in ${selectedPerson.placeOfBirth}`}
             </Text>
           </View>
           
           <TouchableOpacity
-            style={[styles.createButton, isCreating && styles.createButtonDisabled]}
+            style={[styles.createButton, { backgroundColor: colors.primary }, isCreating && [styles.createButtonDisabled, { backgroundColor: colors.onSurfaceVariant }]]}
             onPress={handleCreateRelationship}
             disabled={isCreating}
           >
             {isCreating ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#ffffff" />
-                <Text style={styles.createButtonText}>Creating...</Text>
+                <ActivityIndicator size="small" color={colors.onPrimary} />
+                <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>Creating...</Text>
               </View>
             ) : (
-              <Text style={styles.createButtonText}>✨ Create Relationship</Text>
+              <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>✨ Create Relationship</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -236,21 +245,17 @@ const CreateRelationshipScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   header: {
-    backgroundColor: '#1e293b',
     padding: 16,
     paddingTop: 50,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   backButton: {
     alignSelf: 'flex-start',
     marginBottom: 12,
   },
   backButtonText: {
-    color: '#8b5cf6',
     fontSize: 16,
     fontWeight: '500',
   },
@@ -258,20 +263,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    color: '#ffffff',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   headerSubtitle: {
-    color: '#94a3b8',
     fontSize: 14,
     textAlign: 'center',
   },
   tabContainer: {
-    backgroundColor: '#1e293b',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   tabScrollContainer: {
     paddingHorizontal: 16,
@@ -283,61 +284,51 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#8b5cf6',
   },
   tabText: {
-    color: '#94a3b8',
     fontSize: 16,
     fontWeight: '500',
   },
   activeTabText: {
-    color: '#8b5cf6',
     fontWeight: '600',
   },
   contentContainer: {
     flex: 1,
   },
   selectionContainer: {
-    backgroundColor: '#1e293b',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
   },
   selectionInfo: {
     marginBottom: 16,
   },
   selectionTitle: {
-    color: '#94a3b8',
     fontSize: 12,
     fontWeight: '500',
     marginBottom: 4,
   },
   selectionName: {
-    color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   selectionDetails: {
-    color: '#94a3b8',
     fontSize: 14,
   },
   createButton: {
-    backgroundColor: '#8b5cf6',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: 'center',
   },
   createButtonDisabled: {
-    backgroundColor: '#6b5b95',
+    opacity: 0.6,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   createButtonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,

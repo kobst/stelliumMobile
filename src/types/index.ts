@@ -72,11 +72,35 @@ export interface AnalysisWorkflowState {
 }
 
 export interface RelationshipWorkflowState {
+  // Core workflow fields (matching frontend pattern)
   isPaused: boolean;
   hasScores: boolean;
-  scores: any;
-  scoreAnalysis: any;
-  currentRelationship: any;
+  scores: { [key: string]: number };
+  scoreAnalysis: { [key: string]: any };
+  startedFromCreation: boolean;
+  completed?: boolean;
+  
+  // Legacy compatibility
+  currentRelationship?: any;
+  
+  // Enhanced workflow fields
+  workflowId?: string;
+  compositeChartId?: string;
+  status?: 'running' | 'completed' | 'error' | 'paused' | 'unknown';
+  progress?: {
+    percentage: number;
+    currentPhase: string;
+    currentStep?: string;
+    tasksCompleted?: number;
+    totalTasks?: number;
+  };
+  isCompleted?: boolean;
+  error?: string;
+  analysisData?: any;
+  
+  // Active polling state (minimal, just to survive remounts)
+  isPollingActive?: boolean;
+  activeCompositeChartId?: string;
 }
 
 export interface UserSubscription {
