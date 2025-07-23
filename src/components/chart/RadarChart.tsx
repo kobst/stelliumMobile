@@ -20,11 +20,11 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
   const { colors } = useTheme();
   const center = size / 2;
   const maxRadius = (size / 2) - 40; // Reduced space for labels
-  
+
   // Cluster information with icons and positions (fixed angles for perfect pentagon)
   const clusters = [
     { key: 'Heart', label: 'Heart', icon: '💗', angle: -90 }, // Top
-    { key: 'Body', label: 'Body', icon: '🔥', angle: -18 }, // Top right  
+    { key: 'Body', label: 'Body', icon: '🔥', angle: -18 }, // Top right
     { key: 'Mind', label: 'Mind', icon: '🧠', angle: 54 }, // Bottom right
     { key: 'Life', label: 'Life', icon: '💎', angle: 126 }, // Bottom left
     { key: 'Soul', label: 'Soul', icon: '🌙', angle: 198 }, // Top left
@@ -58,17 +58,17 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
     const angleRad = cluster.angle * (Math.PI / 180);
     const x = center + labelRadius * Math.cos(angleRad);
     const y = center + labelRadius * Math.sin(angleRad);
-    
+
     // Adjust positioning based on quadrant to center labels properly
     let adjustedX = x;
     let adjustedY = y;
-    
+
     // Top position (Heart)
     if (cluster.angle === -90) {
       adjustedX = x - 22; // Center horizontally
       adjustedY = y - 10; // Move up a bit
     }
-    // Top right (Body) 
+    // Top right (Body)
     else if (cluster.angle === -18) {
       adjustedX = x - 44; // Move left to avoid edge
       adjustedY = y - 15; // Move up
@@ -85,10 +85,10 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
     }
     // Top left (Soul)
     else if (cluster.angle === 198) {
-      adjustedX = x; // Keep x position  
+      adjustedX = x; // Keep x position
       adjustedY = y - 15; // Move up
     }
-    
+
     return { x: adjustedX, y: adjustedY };
   };
 
@@ -186,7 +186,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, size = 280 }) => {
       {clusters.map(cluster => {
         const labelPos = getLabelPosition(cluster);
         const score = data[cluster.key] || 0;
-        
+
         return (
           <View
             key={`label-${cluster.key}`}

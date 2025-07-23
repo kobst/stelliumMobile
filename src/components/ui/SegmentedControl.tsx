@@ -25,11 +25,11 @@ const SegmentedControl: React.FC<SegmentedControlProps> = ({
   const { colors } = useTheme();
 
   return (
-    <View 
+    <View
       style={[
         styles.container,
         { backgroundColor: colors.surfaceVariant, borderColor: colors.strokeSubtle },
-        style
+        style,
       ]}
       accessibilityRole="tablist"
       accessibilityLabel={accessibilityLabel}
@@ -38,7 +38,7 @@ const SegmentedControl: React.FC<SegmentedControlProps> = ({
         const isSelected = value === option.value;
         const isFirst = index === 0;
         const isLast = index === options.length - 1;
-        
+
         return (
           <TouchableOpacity
             key={option.value}
@@ -63,7 +63,7 @@ const SegmentedControl: React.FC<SegmentedControlProps> = ({
                 {
                   color: isSelected ? colors.onAccent : colors.onSurfaceMed,
                   fontWeight: isSelected ? '600' : '500',
-                }
+                },
               ]}
             >
               {option.label}

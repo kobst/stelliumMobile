@@ -115,11 +115,11 @@ export const chartsApi = {
   // Get completed analysis data
   getCompleteAnalysisData: async (userId: string, workflowId: string): Promise<ChartAnalysisResponse> => {
     const response = await apiClient.post<any>('/workflow/get-complete-data', { userId, workflowId });
-    
+
     // Transform the response to match our ChartAnalysisResponse interface
     if (response.success && response.data) {
       const { subject, analysis } = response.data;
-      
+
       return {
         birthChartAnalysisId: analysis._id,
         interpretation: {
@@ -150,7 +150,7 @@ export const chartsApi = {
         patterns: subject.birthChart?.patterns || [],
       };
     }
-    
+
     throw new Error('Invalid response format from workflow/get-complete-data');
   },
 
@@ -166,7 +166,7 @@ export const chartsApi = {
     ];
 
     const results: any = {};
-    
+
     for (const topic of topics) {
       const response = await apiClient.post('/getSubtopicAnalysis', {
         userId,

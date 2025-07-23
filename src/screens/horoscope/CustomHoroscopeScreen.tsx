@@ -71,7 +71,7 @@ const CustomHoroscopeScreen: React.FC = () => {
         <TouchableOpacity style={styles.button} onPress={handleNewSelection}>
           <Text style={styles.buttonText}>Create New Custom Horoscope</Text>
         </TouchableOpacity>
-        
+
         {customHoroscope.createdAt && (
           <Text style={styles.timestamp}>
             Generated on {horoscopeTransformers.formatDate(customHoroscope.createdAt, 'long')}

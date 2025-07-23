@@ -9,7 +9,7 @@ const Stack = createStackNavigator();
 
 const HoroscopeStack: React.FC = () => {
   const { colors } = useTheme();
-  
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -22,18 +22,18 @@ const HoroscopeStack: React.FC = () => {
         },
       }}
     >
-      <Stack.Screen 
-        name="HoroscopeMain" 
+      <Stack.Screen
+        name="HoroscopeMain"
         component={HoroscopeScreen}
         options={{ title: 'Daily Horoscope' }}
       />
-      <Stack.Screen 
-        name="TransitSelection" 
+      <Stack.Screen
+        name="TransitSelection"
         component={TransitSelectionScreen}
         options={{ title: 'Select Transits' }}
       />
-      <Stack.Screen 
-        name="CustomHoroscope" 
+      <Stack.Screen
+        name="CustomHoroscope"
         component={CustomHoroscopeScreen}
         options={{ title: 'Custom Horoscope' }}
       />

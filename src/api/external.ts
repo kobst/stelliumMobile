@@ -26,14 +26,14 @@ export const externalApi = {
     try {
       const response = await fetch(url);
       console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data: TimeZoneResponse = await response.json();
       console.log('Response data:', data);
-      
+
       if (data.status !== 'OK') {
         throw new Error(`Error from TimeZone API: ${data.status}`);
       }

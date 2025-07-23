@@ -82,7 +82,7 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
       items = data.planets.map(p => ({ name: p.name, percentage: p.percentage }));
     }
 
-    if (!Array.isArray(items) || items.length === 0) return null;
+    if (!Array.isArray(items) || items.length === 0) {return null;}
 
     const maxPercentage = Math.max(...items.map(item => item.percentage || 0));
 
@@ -94,17 +94,17 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
               <Text style={[styles.categoryName, { color: colors.onSurface }]}>{item.name}</Text>
               <Text style={[styles.percentageText, { color: colors.onSurface }]}>{item.percentage}%</Text>
             </View>
-            
+
             {/* Progress bar */}
             <View style={[styles.progressBarContainer, { backgroundColor: colors.surfaceVariant }]}>
-              <View 
+              <View
                 style={[
-                  styles.progressBar, 
-                  { 
+                  styles.progressBar,
+                  {
                     width: `${(item.percentage / maxPercentage) * 100}%`,
-                    backgroundColor: getColor(item.name)
-                  }
-                ]} 
+                    backgroundColor: getColor(item.name),
+                  },
+                ]}
               />
             </View>
 
@@ -145,7 +145,7 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
         patternsArray = data.patterns.descriptions.map((desc: string, index: number) => ({
           type: 'general',
           description: desc,
-          id: index
+          id: index,
         }));
       }
     }

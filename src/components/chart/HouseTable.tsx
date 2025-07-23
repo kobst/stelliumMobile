@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { BackendHouse, ZodiacSign } from '../../types';
-import { 
-  getZodiacGlyph, 
+import {
+  getZodiacGlyph,
   getZodiacPositionFromDegree,
-  ZODIAC_COLORS
+  ZODIAC_COLORS,
 } from './ChartUtils';
 
 interface HouseTableProps {
@@ -16,30 +16,30 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
   const hasValidHouses = houses.some(house => !isNaN(house.degree));
 
   const renderHouseRow = (house: BackendHouse, index: number) => {
-    if (isNaN(house.degree)) return null;
-    
+    if (isNaN(house.degree)) {return null;}
+
     const { position } = getZodiacPositionFromDegree(house.degree);
     const signColor = ZODIAC_COLORS[house.sign as ZodiacSign] || '#8b5cf6';
-    
+
     return (
       <View key={house.house} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
         {/* House Number */}
         <View style={styles.houseCell}>
           <Text style={styles.houseNumber}>{house.house}</Text>
         </View>
-        
+
         {/* Sign Symbol */}
         <View style={styles.symbolCell}>
           <Text style={[styles.signSymbol, { color: signColor }]}>
             {house.sign ? getZodiacGlyph(house.sign as ZodiacSign) : '-'}
           </Text>
         </View>
-        
+
         {/* Sign Name */}
         <View style={styles.signCell}>
           <Text style={styles.signName}>{house.sign || 'Unknown'}</Text>
         </View>
-        
+
         {/* Degree */}
         <View style={styles.degreeCell}>
           <Text style={styles.degree}>{position.toFixed(1)}°</Text>
@@ -65,7 +65,7 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>House Positions</Text>
-      
+
       {/* Header */}
       <View style={[styles.row, styles.headerRow]}>
         <View style={styles.houseCell}>
@@ -81,7 +81,7 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
           <Text style={styles.headerText}>Degree</Text>
         </View>
       </View>
-      
+
       {/* House Rows */}
       <ScrollView style={styles.scrollView}>
         {houses

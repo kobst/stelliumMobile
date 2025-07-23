@@ -1,4 +1,4 @@
-import { BroadTopicsEnum, HTTP_POST, CONTENT_TYPE_HEADER, APPLICATION_JSON, ERROR_API_CALL } from "./constants";
+import { BroadTopicsEnum, HTTP_POST, CONTENT_TYPE_HEADER, APPLICATION_JSON, ERROR_API_CALL } from './constants';
 import { REACT_APP_SERVER_URL, REACT_APP_GOOGLE_API_KEY } from '@env';
 
 const SERVER_URL = REACT_APP_SERVER_URL;
@@ -51,7 +51,7 @@ export const postUserProfile = async (birthData: any) => {
 };
 
 export const fetchUser = async (userId: string) => {
-  console.log("fetchUseruserId");
+  console.log('fetchUseruserId');
   console.log(userId);
   try {
     const response = await fetch(`${SERVER_URL}/getUser`, {
@@ -109,8 +109,8 @@ export const fetchComposites = async () => {
 export const handleUserInput = async (userId: string, query: string) => {
   console.log(query);
   try {
-    console.log("query:", query);
-    console.log("userId:", userId);
+    console.log('query:', query);
+    console.log('userId:', userId);
     const response = await fetch(`${SERVER_URL}/handleUserQuery`, {
       method: HTTP_POST,
       headers: {
@@ -132,9 +132,9 @@ export const handleUserInput = async (userId: string, query: string) => {
 };
 
 export const postCreateRelationshipProfile = async (userA: any, userB: any) => {
-  console.log("userA");
+  console.log('userA');
   console.log(userA);
-  console.log("userB");
+  console.log('userB');
   console.log(userB);
   try {
     const response = await fetch(`${SERVER_URL}/createRelationship`, {
@@ -165,7 +165,7 @@ export const createCompositeChartProfile = async (
   synastryAspects: any,
   compositeBirthChart: any,
 ) => {
-  console.log("compositeBirthChart x:");
+  console.log('compositeBirthChart x:');
   console.log(compositeBirthChart);
   try {
     const response = await fetch(`${SERVER_URL}/saveCompositeChartProfile`, {
@@ -200,11 +200,11 @@ export const getRelationshipScore = async (
   compositeChartId: string,
 ) => {
   try {
-    console.log("Calling getRelationshipScore API");
-    console.log("synastryAspects: ", synastryAspects);
-    console.log("compositeChart: ", compositeChart);
-    console.log("birthChart1: ", userA.birthChart);
-    console.log("birthChart2: ", userB.birthChart);
+    console.log('Calling getRelationshipScore API');
+    console.log('synastryAspects: ', synastryAspects);
+    console.log('compositeChart: ', compositeChart);
+    console.log('birthChart1: ', userA.birthChart);
+    console.log('birthChart2: ', userB.birthChart);
     const response = await fetch(`${SERVER_URL}/getRelationshipScore`, {
       method: HTTP_POST,
       headers: {
@@ -224,7 +224,7 @@ export const getRelationshipScore = async (
     }
 
     const relationshipScore = await response.json();
-    console.log("Relationship score received:", relationshipScore);
+    console.log('Relationship score received:', relationshipScore);
     return relationshipScore;
   } catch (error) {
     console.error('Error getting relationship score:', error);
@@ -233,7 +233,7 @@ export const getRelationshipScore = async (
 };
 
 export const generateRelationshipAnalysis = async (compositeChartId: string) => {
-  console.log("compositeChartId: ", compositeChartId);
+  console.log('compositeChartId: ', compositeChartId);
   try {
     const response = await fetch(`${SERVER_URL}/generateRelationshipAnalysis`, {
       method: HTTP_POST,
@@ -241,7 +241,7 @@ export const generateRelationshipAnalysis = async (compositeChartId: string) => 
       body: JSON.stringify({ compositeChartId }),
     });
     const responseData = await response.json();
-    console.log("responseData: ", responseData);
+    console.log('responseData: ', responseData);
     return responseData;
   } catch (error) {
     console.error(ERROR_API_CALL, error);
@@ -250,7 +250,7 @@ export const generateRelationshipAnalysis = async (compositeChartId: string) => 
 };
 
 export const fetchRelationshipAnalysis = async (compositeChartId: string) => {
-  console.log("compositeChartId: ", compositeChartId);
+  console.log('compositeChartId: ', compositeChartId);
   try {
     const response = await fetch(`${SERVER_URL}/fetchRelationshipAnalysis`, {
       method: HTTP_POST,
@@ -266,14 +266,14 @@ export const fetchRelationshipAnalysis = async (compositeChartId: string) => {
 };
 
 export const getShortOverview = async (birthData: any) => {
-  console.log("birthchart: ", birthData);
+  console.log('birthchart: ', birthData);
   try {
     const response = await fetch(`${SERVER_URL}/getShortOverview`, {
       method: HTTP_POST,
       headers: { [CONTENT_TYPE_HEADER]: APPLICATION_JSON },
       body: JSON.stringify({ birthData }),
     });
-    console.log("response", response);
+    console.log('response', response);
     const responseData = await response.json();
     return responseData;
   } catch (error) {
@@ -283,7 +283,7 @@ export const getShortOverview = async (birthData: any) => {
 };
 
 export const getPlanetOverview = async (planetName: string, birthData: any) => {
-  console.log("Sending request with:", { planetName, birthData });
+  console.log('Sending request with:', { planetName, birthData });
   try {
     const response = await fetch(`${SERVER_URL}/getShortOverviewPlanet`, {
       method: HTTP_POST,
@@ -297,17 +297,17 @@ export const getPlanetOverview = async (planetName: string, birthData: any) => {
     }
 
     const rawResponse = await response.text();
-    console.log("Raw response:", rawResponse);
+    console.log('Raw response:', rawResponse);
 
     let responseData;
     try {
       responseData = JSON.parse(rawResponse);
     } catch (parseError) {
-      console.error("Failed to parse JSON response:", parseError);
-      throw new Error("Invalid JSON response from server");
+      console.error('Failed to parse JSON response:', parseError);
+      throw new Error('Invalid JSON response from server');
     }
 
-    console.log("Parsed response data:", responseData);
+    console.log('Parsed response data:', responseData);
     return responseData;
   } catch (error) {
     console.error('Error in getPlanetOverview API call:', error);
@@ -316,14 +316,14 @@ export const getPlanetOverview = async (planetName: string, birthData: any) => {
 };
 
 export const getFullBirthChartAnalysis = async (user: any) => {
-  console.log("user: ", user);
+  console.log('user: ', user);
   try {
     const response = await fetch(`${SERVER_URL}/getBirthChartAnalysis`, {
       method: HTTP_POST,
       headers: { [CONTENT_TYPE_HEADER]: APPLICATION_JSON },
       body: JSON.stringify({ user }),
     });
-    console.log("response", response);
+    console.log('response', response);
     const responseData = await response.json();
     return responseData;
   } catch (error) {
@@ -333,7 +333,7 @@ export const getFullBirthChartAnalysis = async (user: any) => {
 };
 
 export const fetchAnalysis = async (userId: string) => {
-  console.log("userId: ", userId);
+  console.log('userId: ', userId);
   try {
     const response = await fetch(`${SERVER_URL}/fetchAnalysis`, {
       method: HTTP_POST,
@@ -349,7 +349,7 @@ export const fetchAnalysis = async (userId: string) => {
 };
 
 export const generateTopicAnalysis = async (userId: string) => {
-  console.log("Starting topic analysis for user:", userId);
+  console.log('Starting topic analysis for user:', userId);
 
   try {
     const topics = Object.entries(BroadTopicsEnum);
@@ -392,10 +392,10 @@ export const generateTopicAnalysis = async (userId: string) => {
       }
     }
 
-    console.log("All topics and subtopics completed");
+    console.log('All topics and subtopics completed');
     return {
       success: true,
-      message: "Topic analysis completed successfully",
+      message: 'Topic analysis completed successfully',
       results,
     };
   } catch (error) {
@@ -405,7 +405,7 @@ export const generateTopicAnalysis = async (userId: string) => {
 };
 
 export const processAndVectorizeBasicAnalysis = async (userId: string) => {
-  console.log("Starting vectorization for user:", userId);
+  console.log('Starting vectorization for user:', userId);
   let section: string = 'overview';
   let index = 0;
   let isComplete = false;
@@ -440,7 +440,7 @@ export const processAndVectorizeBasicAnalysis = async (userId: string) => {
     }
   }
 
-  console.log("Vectorization complete for user:", userId);
+  console.log('Vectorization complete for user:', userId);
   return { success: true };
 };
 

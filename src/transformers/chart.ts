@@ -90,7 +90,7 @@ export const chartTransformers = {
     return rawAspects.map(aspect => {
       const planet1Data = { degree: 0 }; // Would come from planet lookup
       const planet2Data = { degree: 0 }; // Would come from planet lookup
-      
+
       return {
         planet1: aspect.planet1,
         planet2: aspect.planet2,
@@ -126,7 +126,7 @@ export const chartTransformers = {
   formatDegree: (degree: number, includeMinutes: boolean = true): string => {
     const wholeDegrees = Math.floor(degree);
     const minutes = Math.floor((degree - wholeDegrees) * 60);
-    
+
     if (includeMinutes) {
       return `${wholeDegrees}°${minutes.toString().padStart(2, '0')}'`;
     }
@@ -138,12 +138,12 @@ export const chartTransformers = {
     const signs = [
       'Aries', 'Taurus', 'Gemini', 'Cancer',
       'Leo', 'Virgo', 'Libra', 'Scorpio',
-      'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+      'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
     ];
-    
+
     const signIndex = Math.floor(degree / 30);
     const position = degree % 30;
-    
+
     return {
       sign: signs[signIndex] || 'Unknown',
       position,

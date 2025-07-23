@@ -93,7 +93,7 @@ export const celebritiesApi = {
     if (request.usePagination) {
       return apiClient.post<PaginatedCelebritiesResponse>('/getCelebs', request);
     }
-    
+
     // Legacy behavior - returns array directly
     const response = await apiClient.post<Celebrity[]>('/getCelebs', request);
     return response;
@@ -133,7 +133,7 @@ export const celebritiesApi = {
     const response = await apiClient.post<{ success: boolean; relationships: CelebrityRelationship[] }>('/getCelebrityRelationships', {
       limit,
     });
-    
+
     if (response.success) {
       return response.relationships;
     } else {

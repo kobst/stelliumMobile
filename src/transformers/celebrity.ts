@@ -8,17 +8,17 @@ import { User } from '../types';
 export const celebrityToUser = (celebrity: Celebrity): User => {
   // Create a full name from the celebrity data
   const fullName = `${celebrity.firstName} ${celebrity.lastName}`;
-  
+
   // Parse the date of birth
   const birthDate = new Date(celebrity.dateOfBirth);
   const birthYear = birthDate.getFullYear();
   const birthMonth = birthDate.getMonth() + 1; // getMonth() returns 0-based month
   const birthDay = birthDate.getDate();
-  
+
   // Extract birth time components with defaults
   let birthHour = 12; // Default to noon if not specified
   let birthMinute = 0; // Default to :00 if not specified
-  
+
   if (celebrity.time) {
     const timeParts = celebrity.time.split(':');
     if (timeParts.length >= 2) {
@@ -26,13 +26,13 @@ export const celebrityToUser = (celebrity: Celebrity): User => {
       birthMinute = parseInt(timeParts[1], 10) || 0;
     }
   }
-  
+
   return {
     id: celebrity._id,
     name: fullName,
     email: undefined, // Celebrities don't have email in the public interface
     birthYear,
-    birthMonth, 
+    birthMonth,
     birthDay,
     birthHour,
     birthMinute,
@@ -71,6 +71,6 @@ export const getCelebrityDisplayName = (celebrity: Celebrity): string => {
 export const getCelebritySubtitle = (celebrity: Celebrity): string => {
   const birthDate = new Date(celebrity.dateOfBirth).toLocaleDateString();
   const birthTime = celebrity.time ? ` at ${celebrity.time}` : '';
-  
+
   return `Born ${birthDate}${birthTime} in ${celebrity.placeOfBirth}`;
 };

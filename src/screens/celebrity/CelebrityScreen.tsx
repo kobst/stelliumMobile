@@ -35,7 +35,7 @@ const CelebrityScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('individuals');
   const [searchText, setSearchText] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  
+
   const {
     celebrities,
     searchResults,
@@ -110,8 +110,8 @@ const CelebrityScreen: React.FC = () => {
   );
 
   const renderCelebrityItem = ({ item }: { item: Celebrity }) => (
-    <TouchableOpacity 
-      style={[styles.celebrityItem, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+    <TouchableOpacity
+      style={[styles.celebrityItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={() => handleCelebrityPress(item)}
     >
       <View style={styles.celebrityInfo}>
@@ -159,7 +159,7 @@ const CelebrityScreen: React.FC = () => {
           {activeTab === 'individuals' ? 'Celebrity Birth Charts' : 'Celebrity Relationships'}
         </Text>
         <Text style={[styles.sectionSubtitle, { color: colors.onSurfaceVariant }]}>
-          {activeTab === 'individuals' 
+          {activeTab === 'individuals'
             ? 'Explore the cosmic blueprints of famous personalities'
             : 'Discover your cosmic connections with celebrities'
           }
@@ -192,12 +192,12 @@ const CelebrityScreen: React.FC = () => {
       {activeTab === 'individuals' && (
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
-            {searchText.length > 2 
+            {searchText.length > 2
               ? `Search Results (${searchResults.length})`
               : `Celebrities (${displayData.length})`
             }
           </Text>
-          
+
           {loading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
@@ -207,9 +207,9 @@ const CelebrityScreen: React.FC = () => {
 
           {!loading && displayData.length === 0 && (
             <Text style={[styles.noResultsText, { color: colors.onSurfaceVariant }]}>
-              {searchText.length > 2 
-                ? "No celebrities found matching your search"
-                : "No celebrities available"
+              {searchText.length > 2
+                ? 'No celebrities found matching your search'
+                : 'No celebrities available'
               }
             </Text>
           )}
@@ -219,8 +219,8 @@ const CelebrityScreen: React.FC = () => {
   );
 
   const renderFooter = () => {
-    if (!loadingMore) return null;
-    
+    if (!loadingMore) {return null;}
+
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -234,7 +234,7 @@ const CelebrityScreen: React.FC = () => {
       // Don't load more during search for now
       return;
     }
-    
+
     if (hasMore && !loadingMore && !loading) {
       loadNextPage();
     }

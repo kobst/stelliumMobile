@@ -79,10 +79,10 @@ export interface RelationshipWorkflowState {
   scoreAnalysis: { [key: string]: any };
   startedFromCreation: boolean;
   completed?: boolean;
-  
+
   // Legacy compatibility
   currentRelationship?: any;
-  
+
   // Enhanced workflow fields
   workflowId?: string;
   compositeChartId?: string;
@@ -97,7 +97,7 @@ export interface RelationshipWorkflowState {
   isCompleted?: boolean;
   error?: string;
   analysisData?: any;
-  
+
   // Active polling state (minimal, just to survive remounts)
   isPollingActive?: boolean;
   activeCompositeChartId?: string;
@@ -115,17 +115,17 @@ export type TabName = 'horoscope' | 'chart' | 'relationships' | 'celebrity';
 
 // Backend API Types
 export type PlanetName =
-  | "Sun" | "Moon" | "Mercury" | "Venus" | "Mars"
-  | "Jupiter" | "Saturn" | "Uranus" | "Neptune" | "Pluto"
-  | "Ascendant" | "Midheaven" | "Chiron" | "Node";
+  | 'Sun' | 'Moon' | 'Mercury' | 'Venus' | 'Mars'
+  | 'Jupiter' | 'Saturn' | 'Uranus' | 'Neptune' | 'Pluto'
+  | 'Ascendant' | 'Midheaven' | 'Chiron' | 'Node';
 
 export type ZodiacSign =
-  | "Aries" | "Taurus" | "Gemini" | "Cancer" | "Leo" | "Virgo"
-  | "Libra" | "Scorpio" | "Sagittarius" | "Capricorn" | "Aquarius" | "Pisces";
+  | 'Aries' | 'Taurus' | 'Gemini' | 'Cancer' | 'Leo' | 'Virgo'
+  | 'Libra' | 'Scorpio' | 'Sagittarius' | 'Capricorn' | 'Aquarius' | 'Pisces';
 
 export type AspectType =
-  | "conjunction" | "opposition" | "trine" | "square" | "sextile"
-  | "quincunx" | "semisextile" | "semisquare" | "sesquiquadrate";
+  | 'conjunction' | 'opposition' | 'trine' | 'square' | 'sextile'
+  | 'quincunx' | 'semisextile' | 'semisquare' | 'sesquiquadrate';
 
 // Backend Birth Chart Types
 export interface BackendPlanet {
@@ -155,7 +155,7 @@ export interface BackendHouse {
 
 export interface ElementAnalysis {
   elements: {
-    name: "Fire" | "Earth" | "Air" | "Water";
+    name: 'Fire' | 'Earth' | 'Air' | 'Water';
     planets: PlanetName[];
     count: number;
     points: number;
@@ -166,7 +166,7 @@ export interface ElementAnalysis {
 
 export interface ModalityAnalysis {
   modalities: {
-    name: "Cardinal" | "Fixed" | "Mutable";
+    name: 'Cardinal' | 'Fixed' | 'Mutable';
     planets: PlanetName[];
     count: number;
     percentage: number;
@@ -175,7 +175,7 @@ export interface ModalityAnalysis {
 
 export interface QuadrantAnalysis {
   quadrants: {
-    name: "SouthEast" | "SouthWest" | "NorthWest" | "NorthEast";
+    name: 'SouthEast' | 'SouthWest' | 'NorthWest' | 'NorthEast';
     planets: PlanetName[];
     count: number;
     percentage: number;
@@ -191,7 +191,7 @@ export interface QuadrantAnalysis {
 
 export interface PatternAnalysis {
   patterns: Array<{
-    type: "stellium" | "grand_trine" | "t_square" | "mystic_rectangle" | "grand_cross";
+    type: 'stellium' | 'grand_trine' | 't_square' | 'mystic_rectangle' | 'grand_cross';
     id: string;
     description: string;
     // Additional pattern-specific fields vary by pattern type
@@ -204,7 +204,7 @@ export interface PlanetaryDominanceAnalysis {
     rawScore: number;
     normalizedScore: number;
     percentage: number;
-    strength: "very strong" | "strong" | "moderately strong" | "average" | "weak";
+    strength: 'very strong' | 'strong' | 'moderately strong' | 'average' | 'weak';
     details: {
       signStrength: number;
       housePlacement: number;
@@ -228,7 +228,7 @@ export interface PlanetaryDominanceAnalysis {
 export interface BirthChart {
   date: string;  // "YYYY-M-D" format
   lat: number;   // Latitude
-  lon: number;   // Longitude  
+  lon: number;   // Longitude
   tzone: number; // Timezone offset
   jdUT: number;  // Julian day
 
@@ -255,7 +255,7 @@ export interface SubjectDocument {
   updatedAt: string;  // ISO date string
 
   // Subject classification
-  kind: "accountSelf" | "celebrity" | "guest";
+  kind: 'accountSelf' | 'celebrity' | 'guest';
   ownerUserId: string | null;  // ObjectId as string, null for accountSelf/celebrity
   isCelebrity: boolean;
   isReadOnly: boolean;
@@ -263,14 +263,14 @@ export interface SubjectDocument {
   // Personal information
   firstName: string;
   lastName: string;
-  gender?: "male" | "female" | "other";
+  gender?: 'male' | 'female' | 'other';
   dateOfBirth: string;  // ISO date string or "YYYY-MM-DD" format
   placeOfBirth: string;
 
   // Email (only for accountSelf)
   email?: string;  // Required for accountSelf, absent for celebrity/guest
 
-  // Birth time information  
+  // Birth time information
   time?: string;  // Format: "HH:MM" (24-hour format)
   birthTimeUnknown?: boolean;  // true if birth time is unknown
   totalOffsetHours: number;  // Timezone offset (-12 to +12)

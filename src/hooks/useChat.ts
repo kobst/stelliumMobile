@@ -169,13 +169,13 @@ export const useChat = (
 
     try {
       await chatApi.clearChatHistory(userData.id, context);
-      
+
       if (context) {
         setMessages(prev => prev.filter(msg => msg.context !== context));
       } else {
         setMessages([]);
       }
-      
+
       return true;
     } catch (err) {
       const errorMessage = err instanceof ApiError ? err.message : 'Failed to clear chat history';

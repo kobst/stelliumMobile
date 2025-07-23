@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { 
-  getPlanetGlyph, 
-  getZodiacGlyph, 
+import {
+  getPlanetGlyph,
+  getZodiacGlyph,
   getAspectColor,
-  PLANET_COLORS
+  PLANET_COLORS,
 } from './ChartUtils';
 import { useTheme } from '../../theme';
 
@@ -42,17 +42,17 @@ interface AstrologicalDataParsed {
   }>;
 }
 
-const PlanetCard: React.FC<PlanetCardProps> = ({ 
-  planet, 
-  interpretation, 
+const PlanetCard: React.FC<PlanetCardProps> = ({
+  planet,
+  interpretation,
   description,
-  astrologicalData
+  astrologicalData,
 }) => {
   const { colors } = useTheme();
   // Parse the astrological data JSON
   const parseAstrologicalData = (): AstrologicalDataParsed | null => {
-    if (!astrologicalData) return null;
-    
+    if (!astrologicalData) {return null;}
+
     try {
       return JSON.parse(astrologicalData);
     } catch (error) {
@@ -95,7 +95,7 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
       'Node': '☊',
       'Chiron': '⚷',
     };
-    
+
     return symbols[planetName] || '●';
   };
 
@@ -116,7 +116,7 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
       'Chiron': '#9932CC',   // Dark orchid
       'Node': '#708090',     // Slate gray
     };
-    
+
     return colors[planetName] || '#8b5cf6';
   };
 
@@ -149,7 +149,7 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
                     </Text>
                   </View>
                   <Text style={[styles.positionText, { color: colors.onSurface }]}>
-                    {position.planet} in {position.sign} 
+                    {position.planet} in {position.sign}
                   </Text>
                   <View style={styles.signSymbolContainer}>
                     <Text style={[styles.signSymbol, { color: colors.primary }]}>

@@ -17,7 +17,7 @@ export const useUser = (userId?: string): UseUserReturn => {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { userData, setUserData } = useStore();
 
   const clearError = () => setError(null);
@@ -25,7 +25,7 @@ export const useUser = (userId?: string): UseUserReturn => {
   const fetchUser = async (id: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await usersApi.getUser(id);
       setUser(response);
@@ -42,11 +42,11 @@ export const useUser = (userId?: string): UseUserReturn => {
   const createUser = async (userData: CreateUserRequest): Promise<UserResponse | null> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await usersApi.createUser(userData);
       setUser(response);
-      
+
       // Update global store
       setUserData({
         id: response.id,
@@ -55,7 +55,7 @@ export const useUser = (userId?: string): UseUserReturn => {
         ...response.birthData,
         birthChart: response.birthChart,
       });
-      
+
       return response;
     } catch (err) {
       const errorMessage = err instanceof ApiError ? err.message : 'Failed to create user';
@@ -74,11 +74,11 @@ export const useUser = (userId?: string): UseUserReturn => {
 
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await usersApi.updateUser(user.id, updates);
       setUser(response);
-      
+
       // Update global store if this is the current user
       if (userData?.id === user.id) {
         setUserData({
@@ -86,7 +86,7 @@ export const useUser = (userId?: string): UseUserReturn => {
           ...updates,
         });
       }
-      
+
       return response;
     } catch (err) {
       const errorMessage = err instanceof ApiError ? err.message : 'Failed to update user';
@@ -105,16 +105,16 @@ export const useUser = (userId?: string): UseUserReturn => {
 
     setLoading(true);
     setError(null);
-    
+
     try {
       await usersApi.deleteUser(user.id);
       setUser(null);
-      
+
       // Clear global store if this is the current user
       if (userData?.id === user.id) {
         setUserData(null);
       }
-      
+
       return true;
     } catch (err) {
       const errorMessage = err instanceof ApiError ? err.message : 'Failed to delete user';

@@ -2,18 +2,18 @@ export interface ColorPalette {
   // Primary colors
   primary: string;
   primaryVariant: string;
-  
+
   // Surface colors
   background: string;
   surface: string;
   surfaceVariant: string;
-  
+
   // Content colors
   onBackground: string;
   onSurface: string;
   onSurfaceVariant: string;
   onPrimary: string;
-  
+
   // Semantic colors
   error: string;
   onError: string;
@@ -21,45 +21,47 @@ export interface ColorPalette {
   onSuccess: string;
   warning: string;
   onWarning: string;
-  
+
   // Border and divider colors
   border: string;
   divider: string;
-  
+
   // Interactive states
   ripple: string;
   pressed: string;
-  
+
   // Navigation
   tabBarBackground: string;
   tabBarBorder: string;
   tabBarActive: string;
   tabBarInactive: string;
-  
+
   // Accent colors
   accentPrimary: string;
   accentSecondary: string;
+  accentSupport: string;
+  accentWarning: string;
   onAccent: string;
-  
+
   // Surface variants
   surfaceCard: string;
   surfaceModal: string;
   surfaceElevated: string;
-  
+
   // Elevation shadows
   shadowElev1: string;
   shadowElev2: string;
   shadowNone: string;
-  
+
   // Stroke variants
   strokeSubtle: string;
   strokeMedium: string;
-  
+
   // Text hierarchy
   onSurfaceHigh: string;
   onSurfaceMed: string;
   onSurfaceLow: string;
-  
+
   // Aspect colors (astrological)
   aspectTrine: string;
   aspectSquare: string;
@@ -67,7 +69,7 @@ export interface ColorPalette {
   aspectSextile: string;
   aspectConjunction: string;
   aspectQuincunx: string;
-  
+
   // Zodiac sign colors
   signAries: string;
   signTaurus: string;
@@ -87,18 +89,18 @@ export const darkTheme: ColorPalette = {
   // Primary colors
   primary: '#A07BFF',
   primaryVariant: '#8b5cf6',
-  
+
   // Surface colors
   background: '#0f172a',
   surface: '#1e293b',
   surfaceVariant: '#1a2540',
-  
+
   // Content colors
   onBackground: '#EAF0FF',
   onSurface: '#EAF0FF',
   onSurfaceVariant: '#9BA9C8',
   onPrimary: '#ffffff',
-  
+
   // Semantic colors
   error: '#FF5656',
   onError: '#ffffff',
@@ -106,45 +108,47 @@ export const darkTheme: ColorPalette = {
   onSuccess: '#ffffff',
   warning: '#fbbf24',
   onWarning: '#92400e',
-  
+
   // Border and divider colors
   border: '#1E2B49',
   divider: '#334155',
-  
+
   // Interactive states
   ripple: 'rgba(139, 92, 246, 0.12)',
   pressed: 'rgba(139, 92, 246, 0.08)',
-  
+
   // Navigation
   tabBarBackground: '#1f2937',
   tabBarBorder: '#374151',
   tabBarActive: '#8b5cf6',
   tabBarInactive: '#6b7280',
-  
+
   // Accent colors
   accentPrimary: '#8b5cf6',
   accentSecondary: '#A07BFF',
+  accentSupport: '#10b981',
+  accentWarning: '#f59e0b',
   onAccent: '#ffffff',
-  
+
   // Surface variants
   surfaceCard: '#1e293b',
   surfaceModal: '#374151',
   surfaceElevated: '#475569',
-  
+
   // Elevation shadows
   shadowElev1: 'rgba(0, 0, 0, 0.25)',
   shadowElev2: 'rgba(0, 0, 0, 0.35)',
   shadowNone: 'rgba(0, 0, 0, 0)',
-  
+
   // Stroke variants
   strokeSubtle: '#334155',
   strokeMedium: '#475569',
-  
+
   // Text hierarchy
   onSurfaceHigh: '#EAF0FF',
   onSurfaceMed: '#CBD5E1',
   onSurfaceLow: '#9BA9C8',
-  
+
   // Aspect colors (astrological)
   aspectTrine: '#22c55e',      // Green - harmonious
   aspectSquare: '#ef4444',     // Red - challenging
@@ -152,7 +156,7 @@ export const darkTheme: ColorPalette = {
   aspectSextile: '#3b82f6',    // Blue - supportive
   aspectConjunction: '#8b5cf6', // Purple - intense
   aspectQuincunx: '#eab308',   // Yellow - adjustment
-  
+
   // Zodiac sign colors
   signAries: '#ef4444',        // Fire - Red
   signTaurus: '#22c55e',       // Earth - Green
@@ -172,18 +176,18 @@ export const lightTheme: ColorPalette = {
   // Primary colors
   primary: '#6B4DFF',
   primaryVariant: '#5b3fd1',
-  
+
   // Surface colors
   background: '#FFFFFF',
   surface: '#FFFFFF',
   surfaceVariant: '#F5F7FC',
-  
+
   // Content colors
   onBackground: '#131528',
   onSurface: '#131528',
   onSurfaceVariant: '#4F5A78',
   onPrimary: '#ffffff',
-  
+
   // Semantic colors
   error: '#FF5656',
   onError: '#ffffff',
@@ -191,45 +195,47 @@ export const lightTheme: ColorPalette = {
   onSuccess: '#ffffff',
   warning: '#d97706',
   onWarning: '#ffffff',
-  
+
   // Border and divider colors
   border: '#E1E6F0',
   divider: '#E5E7EB',
-  
+
   // Interactive states
   ripple: 'rgba(107, 77, 255, 0.12)',
   pressed: 'rgba(107, 77, 255, 0.08)',
-  
+
   // Navigation
   tabBarBackground: '#FFFFFF',
   tabBarBorder: '#E1E6F0',
   tabBarActive: '#6B4DFF',
   tabBarInactive: '#6B7280',
-  
+
   // Accent colors
   accentPrimary: '#5b3fd1',
   accentSecondary: '#6B4DFF',
+  accentSupport: '#059669',
+  accentWarning: '#d97706',
   onAccent: '#ffffff',
-  
+
   // Surface variants
   surfaceCard: '#FFFFFF',
   surfaceModal: '#F8FAFC',
   surfaceElevated: '#F1F5F9',
-  
+
   // Elevation shadows
   shadowElev1: 'rgba(0, 0, 0, 0.08)',
   shadowElev2: 'rgba(0, 0, 0, 0.12)',
   shadowNone: 'rgba(0, 0, 0, 0)',
-  
+
   // Stroke variants
   strokeSubtle: '#E2E8F0',
   strokeMedium: '#CBD5E1',
-  
+
   // Text hierarchy
   onSurfaceHigh: '#131528',
   onSurfaceMed: '#334155',
   onSurfaceLow: '#64748B',
-  
+
   // Aspect colors (astrological)
   aspectTrine: '#16a34a',      // Green - harmonious
   aspectSquare: '#dc2626',     // Red - challenging
@@ -237,7 +243,7 @@ export const lightTheme: ColorPalette = {
   aspectSextile: '#2563eb',    // Blue - supportive
   aspectConjunction: '#5b3fd1', // Purple - intense
   aspectQuincunx: '#ca8a04',   // Yellow - adjustment
-  
+
   // Zodiac sign colors
   signAries: '#dc2626',        // Fire - Red
   signTaurus: '#16a34a',       // Earth - Green

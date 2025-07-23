@@ -38,23 +38,23 @@ const CardAccordion: React.FC<CardAccordionProps> = ({
 
   const toggleExpanded = () => {
     const newExpandedState = !isExpanded;
-    
+
     // Configure layout animation
     LayoutAnimation.configureNext({
       duration: 300,
       create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
       update: { type: LayoutAnimation.Types.easeInEaseOut },
     });
-    
+
     setIsExpanded(newExpandedState);
-    
+
     // Animate chevron rotation
     Animated.timing(rotateValue, {
       toValue: newExpandedState ? 1 : 0,
       duration: 300,
       useNativeDriver: true,
     }).start();
-    
+
     if (newExpandedState) {
       if (lazyLoad && !hasLoaded) {
         setHasLoaded(true);
@@ -71,7 +71,7 @@ const CardAccordion: React.FC<CardAccordionProps> = ({
   });
 
   const collapsedHeight = 56;
-  
+
   return (
     <View
       style={[
@@ -82,18 +82,18 @@ const CardAccordion: React.FC<CardAccordionProps> = ({
           shadowColor: isExpanded ? colors.shadowElev1 : colors.shadowNone,
           elevation: isExpanded ? 2 : 0,
         },
-        style
+        style,
       ]}
     >
       {/* Accent bar */}
       <View style={[styles.accentBar, { backgroundColor: colors.accentPrimary }]} />
-      
+
       {/* Header */}
       <TouchableOpacity
         style={[
           styles.header,
           { minHeight: collapsedHeight },
-          !isExpanded && { height: collapsedHeight }
+          !isExpanded && { height: collapsedHeight },
         ]}
         onPress={toggleExpanded}
         accessibilityRole="button"
@@ -118,11 +118,11 @@ const CardAccordion: React.FC<CardAccordionProps> = ({
               </Text>
             )}
           </View>
-          
-          <Animated.View 
+
+          <Animated.View
             style={[
               styles.chevron,
-              { transform: [{ rotate: chevronRotation }] }
+              { transform: [{ rotate: chevronRotation }] },
             ]}
           >
             <Text style={[styles.chevronText, { color: colors.onSurfaceMed }]}>
@@ -131,7 +131,7 @@ const CardAccordion: React.FC<CardAccordionProps> = ({
           </Animated.View>
         </View>
       </TouchableOpacity>
-      
+
       {/* Content */}
       {isExpanded && (
         <View style={styles.content}>

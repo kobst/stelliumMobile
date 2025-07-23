@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { LayoutAnimation } from 'react-native';
 import {
   View,
   Text,
@@ -22,7 +23,8 @@ import AspectColorLegend from '../../components/chart/AspectColorLegend';
 import RadarChart from '../../components/chart/RadarChart';
 import ScoredItemsTable from '../../components/chart/ScoredItemsTable';
 import { CompleteRelationshipAnalysisButton } from '../../components/relationship';
-import { SegmentedControl, CardAccordion } from '../../components/ui';
+import { SegmentedControl, CardAccordion, AccordionCard, ClusterChipRow, TaglineCard, ProgressBar, Bullet, OverviewChipRow } from '../../components/ui';
+import RelationshipTensionFlow from '../../components/relationships/RelationshipTensionFlow';
 
 type RelationshipAnalysisScreenRouteProp = RouteProp<{
   RelationshipAnalysis: {
@@ -61,12 +63,12 @@ const RelationshipAnalysisScreen: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Check if enhanced analysis data is already included in the relationship object (new relationships)
       if ((relationship as any).enhancedAnalysis) {
         // Use the enhanced analysis data that's already included
         const enhancedAnalysis = (relationship as any).enhancedAnalysis;
-        
+
         // Transform enhanced analysis to match RelationshipAnalysisResponse interface
         const transformedAnalysis: RelationshipAnalysisResponse = {
           profileAnalysis: (relationship as any).profileAnalysis || {
@@ -79,8 +81,8 @@ const RelationshipAnalysisScreen: React.FC = () => {
                 Mind: Math.round(enhancedAnalysis.scores?.COMMUNICATION_AND_MENTAL_CONNECTION?.overall || 0),
                 Life: Math.round(enhancedAnalysis.scores?.PRACTICAL_GROWTH_SHARED_GOALS?.overall || 0),
                 Soul: Math.round(enhancedAnalysis.scores?.KARMIC_LESSONS_GROWTH?.overall || 0),
-              }
-            }
+              },
+            },
           },
           scores: enhancedAnalysis.scores,
           // Use the actual holistic overview from the enhanced analysis
@@ -92,9 +94,9 @@ const RelationshipAnalysisScreen: React.FC = () => {
           // Include detailed category analysis if available
           analysis: enhancedAnalysis.analysis,
           // Include score analysis if available
-          scoreAnalysis: enhancedAnalysis.scoreAnalysis
+          scoreAnalysis: enhancedAnalysis.scoreAnalysis,
         };
-        
+
         setAnalysisData(transformedAnalysis);
       } else {
         // Fallback to fetching analysis data (existing relationships)
@@ -107,7 +109,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
           // This allows the Charts tab to work with chart data from the relationship object
         }
       }
-      
+
       // Fetch user birth charts in parallel if we have user IDs
       const userPromises: Promise<any>[] = [];
       if (relationship.userA_id) {
@@ -116,10 +118,10 @@ const RelationshipAnalysisScreen: React.FC = () => {
       if (relationship.userB_id) {
         userPromises.push(usersApi.getUser(relationship.userB_id));
       }
-      
+
       if (userPromises.length > 0) {
         const userResults = await Promise.all(userPromises);
-        
+
         if (relationship.userA_id && userResults[0]) {
           setUserAData(userResults[0]);
         }
@@ -162,11 +164,11 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
   const ChartsTab = () => {
     const hasChartData = relationship && (
-      relationship.synastryAspects || 
-      relationship.compositeChart || 
+      relationship.synastryAspects ||
+      relationship.compositeChart ||
       relationship.synastryHousePlacements
     );
-    
+
     return (
       <View style={styles.chartsContainer}>
         {/* Layer B: Chart Mode Segmented Control */}
@@ -174,7 +176,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
           <SegmentedControl
             options={[
               { label: 'Synastry', value: 'synastry' },
-              { label: 'Composite', value: 'composite' }
+              { label: 'Composite', value: 'composite' },
             ]}
             value={chartMode}
             onChange={handleChartModeChange}
@@ -189,7 +191,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
             options={[
               { label: '🌀 Wheels', value: 'wheels' },
               { label: '📊 Tables', value: 'tables' },
-              { label: '🧩 Placements', value: 'placements' }
+              { label: '🧩 Placements', value: 'placements' },
             ]}
             value={activeSection}
             onChange={handleSectionChange}
@@ -204,9 +206,9 @@ const RelationshipAnalysisScreen: React.FC = () => {
         )}
 
         {/* Layer D: Scrollable Content with Cards */}
-        <ScrollView 
+        <ScrollView
           ref={scrollViewRef}
-          style={styles.scrollContent} 
+          style={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContentContainer}
         >
@@ -282,7 +284,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
                       defaultExpanded={expandedCards.has('synastry-aspects')}
                       onExpand={() => toggleCardExpanded('synastry-aspects')}
                     >
-                      <SynastryAspectsTable 
+                      <SynastryAspectsTable
                         aspects={relationship.synastryAspects}
                         userAName={relationship.userA_name}
                         userBName={relationship.userB_name}
@@ -299,7 +301,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
                       defaultExpanded={expandedCards.has('synastry-placements')}
                       onExpand={() => toggleCardExpanded('synastry-placements')}
                     >
-                      <SynastryHousePlacementsTable 
+                      <SynastryHousePlacementsTable
                         synastryHousePlacements={relationship.synastryHousePlacements}
                         userAName={relationship.userA_name}
                         userBName={relationship.userB_name}
@@ -322,7 +324,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
                       lazyLoad
                     >
                       <View style={styles.wheelContainer}>
-                        <CompositeChartWheel 
+                        <CompositeChartWheel
                           compositeChart={relationship.compositeChart}
                         />
                       </View>
@@ -356,148 +358,323 @@ const RelationshipAnalysisScreen: React.FC = () => {
     );
   };
 
-  const ScoresTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      {analysisData?.profileAnalysis ? (
-        <>
-          {/* Profile Banner */}
-          <View style={[styles.profileBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.profileItem}>
-              <Text style={[styles.profileLabel, { color: colors.onSurfaceVariant }]}>Tier:</Text>
-              <Text style={[styles.profileValue, { color: colors.onSurface }]}>
-                {analysisData.profileAnalysis.profileResult.tier}
-              </Text>
-            </View>
-            <Text style={[styles.profileDivider, { color: colors.border }]}>|</Text>
-            <View style={styles.profileItem}>
-              <Text style={[styles.profileLabel, { color: colors.onSurfaceVariant }]}>Profile:</Text>
-              <Text style={[styles.profileValue, { color: colors.onSurface }]}>
-                {analysisData.profileAnalysis.profileResult.profile}
-              </Text>
-            </View>
-          </View>
+  const ScoresTab = () => {
+    const [expandedCluster, setExpandedCluster] = useState<string | null>(null);
+    const [selectedChipCluster, setSelectedChipCluster] = useState<string | null>(null);
+    const scoresScrollViewRef = useRef<ScrollView>(null);
+    const clusterRefs = useRef<{ [key: string]: View | null }>({});
 
-          {/* Radar Chart */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>💕 Compatibility Scores</Text>
-            <RadarChart 
-              data={analysisData.profileAnalysis.profileResult.clusterScores}
-              size={300}
-            />
-          </View>
+    // Prepare cluster data
+    const clusterData = analysisData?.profileAnalysis ?
+      Object.entries(analysisData.profileAnalysis.profileResult.clusterScores).map(([cluster, score]) => ({
+        id: cluster,
+        emoji: getClusterIcon(cluster),
+        label: cluster,
+        score: Math.round(score),
+      })) : [];
 
-          {/* Cluster Analysis Sections */}
-          {analysisData.clusterAnalysis && Object.entries(analysisData.clusterAnalysis).map(([cluster, data]) => (
-            <View key={cluster} style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
-                {getClusterIcon(cluster)} {cluster} Analysis
-              </Text>
-              <Text style={[styles.clusterAnalysisText, { color: colors.onSurface }]}>
-                {data.analysis}
-              </Text>
-            </View>
-          ))}
-        </>
-      ) : (
+    const handleClusterExpand = (clusterId: string) => {
+      const newExpanded = expandedCluster === clusterId ? null : clusterId;
+      setExpandedCluster(newExpanded);
+
+      // Configure layout animation for smooth transitions
+      LayoutAnimation.configureNext({
+        duration: 300,
+        create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+        update: { type: LayoutAnimation.Types.easeInEaseOut },
+      });
+    };
+
+    const handleChipSelect = (clusterId: string) => {
+      setSelectedChipCluster(clusterId);
+      // Scroll to the selected cluster card
+      if (clusterRefs.current[clusterId]) {
+        clusterRefs.current[clusterId]?.measureLayout(
+          scoresScrollViewRef.current as any,
+          (x, y) => {
+            scoresScrollViewRef.current?.scrollTo({ y: y - 150, animated: true });
+          },
+          () => {}
+        );
+      }
+    };
+
+    if (!analysisData?.profileAnalysis) {
+      return (
         <View style={[styles.missingDataCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={styles.missingDataIcon}>📊</Text>
           <Text style={[styles.missingDataTitle, { color: colors.primary }]}>Compatibility Scores</Text>
           <Text style={[styles.missingDataText, { color: colors.onSurfaceVariant }]}>
             Complete your full analysis to unlock detailed compatibility scores and radar chart visualization.
           </Text>
-          <CompleteRelationshipAnalysisButton 
+          <CompleteRelationshipAnalysisButton
             compositeChartId={relationship._id}
             onAnalysisComplete={loadAnalysisData}
           />
         </View>
-      )}
-    </ScrollView>
-  );
+      );
+    }
 
-  const OverviewTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      {analysisData?.holisticOverview ? (
-        <>
+    return (
+      <View style={styles.scoresContainer}>
+        {/* Sticky Cluster Chip Row */}
+        <ClusterChipRow
+          clusters={clusterData}
+          selectedCluster={selectedChipCluster}
+          onSelectCluster={handleChipSelect}
+          style={styles.stickyChipRow}
+        />
+
+        <ScrollView
+          ref={scoresScrollViewRef}
+          style={styles.tabContent}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scoresScrollContent}
+        >
+          {/* Radar Chart */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>💫 Relationship Overview</Text>
-            <Text style={[styles.overviewText, { color: colors.onSurface }]}>{analysisData.holisticOverview.overview}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>💕 Compatibility Scores</Text>
+            <RadarChart
+              data={analysisData.profileAnalysis.profileResult.clusterScores}
+              size={300}
+            />
           </View>
 
-          {analysisData.holisticOverview.topStrengths && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>✨ Top Strengths</Text>
-              {analysisData.holisticOverview.topStrengths.map((strength, index) => (
-                <View key={index} style={styles.listItem}>
-                  <Text style={[styles.listItemTitle, { color: colors.primary }]}>{strength.name}</Text>
-                  <Text style={[styles.listItemText, { color: colors.onSurfaceVariant }]}>{strength.description}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {analysisData.holisticOverview.keyChallenges && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>⚠️ Key Challenges</Text>
-              {analysisData.holisticOverview.keyChallenges.map((challenge, index) => (
-                <View key={index} style={styles.listItem}>
-                  <Text style={[styles.listItemTitle, { color: colors.primary }]}>{challenge.name}</Text>
-                  <Text style={[styles.listItemText, { color: colors.onSurfaceVariant }]}>{challenge.description}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {analysisData.tensionFlowAnalysis && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>⚖️ Relationship Dynamics</Text>
-              
-              <View style={styles.dynamicsGrid}>
-                <View style={styles.dynamicCard}>
-                  <Text style={styles.dynamicIcon}>🌿</Text>
-                  <Text style={[styles.dynamicLabel, { color: colors.onSurfaceVariant }]}>Support Level</Text>
-                  <Text style={[styles.dynamicValue, { color: colors.onSurface }]}>
-                    {getSupportLevel(analysisData.tensionFlowAnalysis.supportDensity)}
+          {/* Cluster Analysis Sections */}
+          {analysisData.clusterAnalysis && Object.entries(analysisData.clusterAnalysis).map(([cluster, data]) => {
+            const score = Math.round(analysisData.profileAnalysis.profileResult.clusterScores[cluster] || 0);
+            return (
+              <View
+                key={cluster}
+                ref={(ref) => { clusterRefs.current[cluster] = ref; }}
+                collapsable={false}
+              >
+                <AccordionCard
+                  emoji={getClusterIcon(cluster)}
+                  label={`${cluster} Analysis`}
+                  score={score}
+                  isExpanded={expandedCluster === cluster}
+                  onPress={() => handleClusterExpand(cluster)}
+                >
+                  <Text style={[styles.clusterAnalysisText, { color: colors.onSurface }]}>
+                    {data.analysis}
                   </Text>
-                </View>
-                
-                <View style={styles.dynamicCard}>
-                  <Text style={styles.dynamicIcon}>🔥</Text>
-                  <Text style={[styles.dynamicLabel, { color: colors.onSurfaceVariant }]}>Tension Level</Text>
-                  <Text style={[styles.dynamicValue, { color: colors.onSurface }]}>
-                    {getTensionLevel(analysisData.tensionFlowAnalysis.challengeDensity)}
-                  </Text>
-                </View>
-                
-                <View style={styles.dynamicCard}>
-                  <Text style={styles.dynamicIcon}>⚖️</Text>
-                  <Text style={[styles.dynamicLabel, { color: colors.onSurfaceVariant }]}>Balance</Text>
-                  <Text style={[styles.dynamicValue, { color: colors.onSurface }]}>
-                    {getBalanceDescription(analysisData.tensionFlowAnalysis.polarityRatio)}
-                  </Text>
-                </View>
+                </AccordionCard>
               </View>
-            </View>
-          )}
-        </>
-      ) : (
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const OverviewTab = () => {
+    const [openAccordionId, setOpenAccordionId] = useState<string | null>('overview');
+    const [selectedOverviewSection, setSelectedOverviewSection] = useState<string | null>(null);
+    const overviewScrollViewRef = useRef<ScrollView>(null);
+    const overviewSectionRefs = useRef<{ [key: string]: View | null }>({});
+
+    // Derive tagline from top strength
+    const getTagline = (): string => {
+      if (analysisData?.holisticOverview?.topStrengths?.[0]?.name) {
+        const topStrength = analysisData.holisticOverview.topStrengths[0].name;
+        // Map to phrase library - simplified for now
+        const taglinePhrases: { [key: string]: string } = {
+          'Sun exact conjunction Mars': 'Magnetic attraction and fiery chemistry',
+          'Venus close conjunction Mars': 'Passionate love and physical magnetism',
+          'Sun conjunction Mars': 'Dynamic energy and powerful chemistry',
+          'default': 'A unique cosmic connection',
+        };
+        return taglinePhrases[topStrength] || taglinePhrases.default;
+      }
+      return 'A journey of discovery together';
+    };
+
+    // Overview sections for chip navigation
+    const overviewSections = [
+      { id: 'overview', label: 'Overview', emoji: '💫' },
+      { id: 'strengths', label: 'Strengths', emoji: '✨' },
+      { id: 'challenges', label: 'Challenges', emoji: '⚠️' },
+      { id: 'dynamics', label: 'Dynamics', emoji: '⚖️' },
+    ];
+
+    const handleAccordionToggle = (accordionId: string) => {
+      setOpenAccordionId(openAccordionId === accordionId ? null : accordionId);
+
+      // Configure layout animation for smooth transitions
+      LayoutAnimation.configureNext({
+        duration: 300,
+        create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+        update: { type: LayoutAnimation.Types.easeInEaseOut },
+      });
+    };
+
+    const handleOverviewSectionSelect = (sectionId: string) => {
+      setSelectedOverviewSection(sectionId);
+      // Scroll to the selected section
+      if (overviewSectionRefs.current[sectionId]) {
+        overviewSectionRefs.current[sectionId]?.measureLayout(
+          overviewScrollViewRef.current as any,
+          (x, y) => {
+            overviewScrollViewRef.current?.scrollTo({ y: y - 120, animated: true });
+          },
+          () => {}
+        );
+      }
+    };
+
+    if (!analysisData?.holisticOverview) {
+      return (
         <View style={[styles.missingDataCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={styles.missingDataIcon}>💫</Text>
           <Text style={[styles.missingDataTitle, { color: colors.primary }]}>Relationship Overview</Text>
           <Text style={[styles.missingDataText, { color: colors.onSurfaceVariant }]}>
             Complete your full analysis to unlock detailed relationship insights and dynamic analysis.
           </Text>
-          <CompleteRelationshipAnalysisButton 
+          <CompleteRelationshipAnalysisButton
             compositeChartId={relationship._id}
             onAnalysisComplete={loadAnalysisData}
           />
         </View>
-      )}
-    </ScrollView>
-  );
+      );
+    }
+
+    return (
+      <View style={styles.overviewContainer}>
+        {/* Sticky Tagline Card */}
+        <TaglineCard
+          phrase={getTagline()}
+          style={styles.stickyTagline}
+        />
+
+        {/* Overview Section Chip Row */}
+        <OverviewChipRow
+          sections={overviewSections}
+          selectedSection={selectedOverviewSection}
+          onSelectSection={handleOverviewSectionSelect}
+          style={styles.overviewChipRow}
+        />
+
+        <ScrollView
+          ref={overviewScrollViewRef}
+          style={styles.tabContent}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.overviewScrollContent}
+        >
+          {/* 1. Relationship Overview */}
+          <View
+            ref={(ref) => { overviewSectionRefs.current.overview = ref; }}
+            collapsable={false}
+          >
+            <AccordionCard
+              emoji="💫"
+              label="Relationship Overview"
+              score={0} // No score for overview
+              isExpanded={openAccordionId === 'overview'}
+              onPress={() => handleAccordionToggle('overview')}
+            >
+              <Text style={[styles.overviewBodyText, { color: colors.onSurfaceMed }]}>
+                {analysisData.holisticOverview.overview}
+              </Text>
+            </AccordionCard>
+          </View>
+
+          {/* 2. Top Strengths */}
+          {analysisData.holisticOverview.topStrengths && (
+            <View
+              ref={(ref) => { overviewSectionRefs.current.strengths = ref; }}
+              collapsable={false}
+            >
+              <AccordionCard
+                emoji="✨"
+                label="Top Strengths"
+                score={0} // No score for strengths
+                isExpanded={openAccordionId === 'strengths'}
+                onPress={() => handleAccordionToggle('strengths')}
+              >
+                {analysisData.holisticOverview.topStrengths.map((strength, index) => (
+                  <Bullet key={index}>
+                    <Text style={[styles.strengthTitle, { color: colors.onSurfaceHigh }]}>
+                      {strength.name}
+                    </Text>
+                    <Text style={[styles.overviewBodyText, { color: colors.onSurfaceMed }]}>
+                      {strength.description}
+                    </Text>
+                  </Bullet>
+                ))}
+              </AccordionCard>
+            </View>
+          )}
+
+          {/* 3. Key Challenges */}
+          {analysisData.holisticOverview.keyChallenges && (
+            <View
+              ref={(ref) => { overviewSectionRefs.current.challenges = ref; }}
+              collapsable={false}
+            >
+              <AccordionCard
+                emoji="⚠️"
+                label="Key Challenges"
+                score={0} // No score for challenges
+                isExpanded={openAccordionId === 'challenges'}
+                onPress={() => handleAccordionToggle('challenges')}
+              >
+                {analysisData.holisticOverview.keyChallenges.map((challenge, index) => (
+                  <Bullet key={index}>
+                    <Text style={[styles.challengeTitle, { color: colors.onSurfaceHigh }]}>
+                      {challenge.name}
+                    </Text>
+                    <Text style={[styles.overviewBodyText, { color: colors.onSurfaceMed }]}>
+                      {challenge.description}
+                    </Text>
+                  </Bullet>
+                ))}
+              </AccordionCard>
+            </View>
+          )}
+
+          {/* 4. Relationship Dynamics */}
+          {analysisData.tensionFlowAnalysis && (
+            <View
+              ref={(ref) => { overviewSectionRefs.current.dynamics = ref; }}
+              collapsable={false}
+            >
+              <AccordionCard
+                emoji="⚖️"
+                label="Relationship Dynamics"
+                score={0} // No score for dynamics
+                isExpanded={openAccordionId === 'dynamics'}
+                onPress={() => handleAccordionToggle('dynamics')}
+              >
+                <ProgressBar
+                  label="Support Level"
+                  level={getSupportLevel(analysisData.tensionFlowAnalysis.supportDensity)}
+                  fillColor="accentSupport"
+                  icon="🌿"
+                />
+                <ProgressBar
+                  label="Tension Level"
+                  level={getTensionLevel(analysisData.tensionFlowAnalysis.challengeDensity)}
+                  fillColor="accentWarning"
+                  icon="🔥"
+                />
+                <ProgressBar
+                  label="Balance"
+                  level={getBalanceDescription(analysisData.tensionFlowAnalysis.polarityRatio)}
+                  fillColor="accentPrimary"
+                  icon="⚖️"
+                />
+              </AccordionCard>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    );
+  };
 
   const AnalysisTab = () => {
     const [activeAnalysisTab, setActiveAnalysisTab] = useState('OVERALL_ATTRACTION_CHEMISTRY');
-    
+
     const categoryInfo: { [key: string]: { icon: string; name: string } } = {
       'OVERALL_ATTRACTION_CHEMISTRY': { icon: '💫', name: 'Overall Attraction & Chemistry' },
       'EMOTIONAL_SECURITY_CONNECTION': { icon: '🏡', name: 'Emotional Security & Connection' },
@@ -517,8 +694,8 @@ const RelationshipAnalysisScreen: React.FC = () => {
           <>
             {/* Category Tab Navigation */}
             <View style={[styles.analysisTabContainer, { borderBottomColor: colors.border }]}>
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.analysisTabScrollContainer}
               >
@@ -565,6 +742,13 @@ const RelationshipAnalysisScreen: React.FC = () => {
                         />
                       </View>
                     )}
+
+                    {/* Tension Flow Analysis */}
+                    {analysisData?.categoryTensionFlowAnalysis?.[activeAnalysisTab] && (
+                      <RelationshipTensionFlow
+                        tensionFlow={analysisData.categoryTensionFlowAnalysis[activeAnalysisTab]}
+                      />
+                    )}
                   </View>
 
                   {/* Analysis Panels */}
@@ -608,7 +792,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
           </>
         ) : (
           <View style={styles.analysisEmptyContainer}>
-            <CompleteRelationshipAnalysisButton 
+            <CompleteRelationshipAnalysisButton
               compositeChartId={relationship._id}
               onAnalysisComplete={loadAnalysisData}
             />
@@ -630,25 +814,25 @@ const RelationshipAnalysisScreen: React.FC = () => {
   };
 
   const getSupportLevel = (density: number): string => {
-    if (density >= 2.5) return 'Very High';
-    if (density >= 1.5) return 'High';
-    if (density >= 0.8) return 'Moderate';
-    if (density >= 0.3) return 'Low';
+    if (density >= 2.5) {return 'Very High';}
+    if (density >= 1.5) {return 'High';}
+    if (density >= 0.8) {return 'Moderate';}
+    if (density >= 0.3) {return 'Low';}
     return 'Very Low';
   };
 
   const getTensionLevel = (density: number): string => {
-    if (density >= 1.5) return 'Very High';
-    if (density >= 1.0) return 'High';
-    if (density >= 0.5) return 'Moderate';
-    if (density >= 0.1) return 'Low';
+    if (density >= 1.5) {return 'Very High';}
+    if (density >= 1.0) {return 'High';}
+    if (density >= 0.5) {return 'Moderate';}
+    if (density >= 0.1) {return 'Low';}
     return 'Very Low';
   };
 
   const getBalanceDescription = (ratio: number): string => {
-    if (ratio >= 5) return 'Highly Supportive';
-    if (ratio >= 2) return 'More Supportive';
-    if (ratio >= 1) return 'Balanced';
+    if (ratio >= 5) {return 'Highly Supportive';}
+    if (ratio >= 2) {return 'More Supportive';}
+    if (ratio >= 1) {return 'Balanced';}
     return 'More Challenging';
   };
 
@@ -678,7 +862,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
         >
           <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        
+
         <View style={styles.relationshipInfo}>
           <Text style={[styles.relationshipTitle, { color: colors.primary }]}>Relationship Analysis</Text>
           <Text style={[styles.partnerNames, { color: colors.onSurface }]}>
@@ -692,8 +876,8 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
       {/* Tab Navigation */}
       <View style={[styles.tabContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabScrollContainer}
         >
@@ -878,30 +1062,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
-  profileBanner: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileItem: {
-    alignItems: 'center',
-  },
-  profileLabel: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  profileValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  profileDivider: {
-    fontSize: 20,
-    marginHorizontal: 20,
-  },
   clusterAnalysisText: {
     fontSize: 15,
     lineHeight: 24,
@@ -1057,6 +1217,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 60,
+  },
+  // Scores Tab Styles
+  scoresContainer: {
+    flex: 1,
+  },
+  stickyChipRow: {
+    position: 'relative',
+    zIndex: 10,
+  },
+  scoresScrollContent: {
+    paddingBottom: 20,
+  },
+  // Overview Tab Styles
+  overviewContainer: {
+    flex: 1,
+  },
+  stickyTagline: {
+    position: 'relative',
+    zIndex: 9,
+  },
+  overviewChipRow: {
+    position: 'relative',
+    zIndex: 8,
+  },
+  overviewScrollContent: {
+    paddingBottom: 20,
+  },
+  overviewBodyText: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  strengthTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  challengeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
   },
 });
 

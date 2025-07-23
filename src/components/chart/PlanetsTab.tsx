@@ -9,8 +9,8 @@ import { useTheme } from '../../theme';
 
 // Planet order based on frontend guide
 const PLANET_ORDER = [
-  'Sun', 'Moon', 'Ascendant', 'Mercury', 'Venus', 'Mars', 
-  'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Node', 'Midheaven'
+  'Sun', 'Moon', 'Ascendant', 'Mercury', 'Venus', 'Mars',
+  'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Node', 'Midheaven',
 ];
 
 interface PlanetsTabProps {
@@ -43,14 +43,14 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
   // No automatic loading state - go straight to checking for analysis data
 
   const planetAnalysis = getPlanetAnalysis();
-  const availablePlanets = PLANET_ORDER.filter(planet => 
+  const availablePlanets = PLANET_ORDER.filter(planet =>
     planetAnalysis[planet] && planetAnalysis[planet].interpretation
   );
 
   // Check if analysis is in progress
   const activeWorkflowState = workflowState || creationWorkflowState;
-  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId && 
-    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 && 
+  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId &&
+    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 &&
     !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
 
   // Only show planet cards if we have interpretation data

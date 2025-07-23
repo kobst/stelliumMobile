@@ -12,7 +12,7 @@ interface ChartTablesProps {
 
 const ChartTables: React.FC<ChartTablesProps> = ({ birthChart }) => {
   const { colors } = useTheme();
-  
+
   if (!birthChart) {
     return <View style={[styles.container, { backgroundColor: colors.background }]} />;
   }
@@ -23,12 +23,12 @@ const ChartTables: React.FC<ChartTablesProps> = ({ birthChart }) => {
       {birthChart.planets && birthChart.planets.length > 0 && (
         <PlanetTable planets={birthChart.planets} />
       )}
-      
+
       {/* House Positions Table */}
       {birthChart.houses && birthChart.houses.length > 0 && (
         <HouseTable houses={birthChart.houses} />
       )}
-      
+
       {/* Aspects Table */}
       {birthChart.aspects && birthChart.aspects.length > 0 && (
         <AspectTable aspects={birthChart.aspects} />

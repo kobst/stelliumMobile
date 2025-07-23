@@ -9,7 +9,7 @@ const Stack = createStackNavigator();
 
 const RootNavigator: React.FC = () => {
   const { userData } = useStore();
-  
+
   console.log('\n=== NAVIGATION CHECK ===');
   console.log('userData exists:', !!userData);
   if (userData) {
@@ -17,11 +17,11 @@ const RootNavigator: React.FC = () => {
     console.log('userData.birthChart exists:', !!userData.birthChart);
     console.log('Full userData keys:', Object.keys(userData));
   }
-  
+
   const profileComplete = Boolean(
     userData && userData.id && userData.birthChart,
   );
-  
+
   console.log('profileComplete:', profileComplete);
   console.log('Will show:', profileComplete ? 'Main' : 'Onboarding');
   console.log('====================\n');

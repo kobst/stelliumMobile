@@ -65,28 +65,28 @@ const TabNavigator: React.FC = () => {
         },
       }}
     >
-      <Tab.Screen 
-        name="Horoscope" 
+      <Tab.Screen
+        name="Horoscope"
         component={HoroscopeStack}
         options={{ title: 'Horoscope' }}
       />
-      <Tab.Screen 
-        name="Chart" 
+      <Tab.Screen
+        name="Chart"
         component={ChartStack}
         options={{ title: 'Chart' }}
       />
-      <Tab.Screen 
-        name="Relationships" 
+      <Tab.Screen
+        name="Relationships"
         component={RelationshipsStack}
         options={{ title: 'Relationships' }}
       />
-      <Tab.Screen 
-        name="Celebrity" 
+      <Tab.Screen
+        name="Celebrity"
         component={CelebrityStack}
         options={{ title: 'Celebrity' }}
       />
-      <Tab.Screen 
-        name="Settings" 
+      <Tab.Screen
+        name="Settings"
         component={SettingsScreen}
         options={{ title: 'Settings' }}
       />

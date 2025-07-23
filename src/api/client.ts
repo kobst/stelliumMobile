@@ -32,7 +32,7 @@ class ApiClient {
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     };
-    
+
     console.log('\n=== API CLIENT INITIALIZED ===');
     console.log('Base URL:', this.baseURL);
     console.log('Default headers:', this.defaultHeaders);
@@ -64,13 +64,13 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     console.log('\n=== API REQUEST ===');
     console.log('Method:', options.method || 'GET');
     console.log('Full URL:', url);
     console.log('Base URL:', this.baseURL);
     console.log('Endpoint:', endpoint);
-    
+
     const config: RequestInit = {
       ...options,
       headers: {
@@ -78,7 +78,7 @@ class ApiClient {
         ...options.headers,
       },
     };
-    
+
     console.log('Headers:', config.headers);
     if (options.body) {
       console.log('Request body:', options.body);
@@ -87,17 +87,17 @@ class ApiClient {
     try {
       console.log('\nMaking fetch request...');
       const response = await fetch(url, config);
-      
+
       console.log('\n=== API RESPONSE ===');
       console.log('Status:', response.status);
       console.log('Status text:', response.statusText);
       console.log('OK:', response.ok);
       console.log('Headers:', Object.fromEntries(response.headers.entries()));
-      
+
       const result = await this.handleResponse<T>(response);
       console.log('Response data:', JSON.stringify(result, null, 2));
       console.log('==================\n');
-      
+
       return result;
     } catch (error) {
       console.error('\n=== API REQUEST ERROR ===');
@@ -160,13 +160,13 @@ class ApiClient {
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       let attempts = 0;
-      
+
       const pollInterval = setInterval(async () => {
         attempts++;
-        
+
         try {
           const response = await this.post<any>(endpoint, data);
-          
+
           if (response.isCompleted || response.status === 'completed') {
             clearInterval(pollInterval);
             resolve(response);

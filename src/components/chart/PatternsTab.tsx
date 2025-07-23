@@ -114,13 +114,13 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   // Only show pattern cards if we have interpretations, even if raw data exists
   const hasInterpretationData = fullAnalysis?.interpretation?.basicAnalysis?.dominance;
   const hasRawData = chartData.elements.length > 0 || chartData.modalities.length > 0;
-  
+
   // Check if analysis is in progress
   const activeWorkflowState = workflowState || creationWorkflowState;
-  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId && 
-    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 && 
+  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId &&
+    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 &&
     !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
-  
+
   // Only display patterns if we have interpretation data (regardless of raw data availability)
   if (!hasInterpretationData) {
     return renderAnalysisButton();
@@ -134,7 +134,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
           title="Elements"
           data={{
             elements: chartData.elements,
-            interpretation: dominanceInterpretations.elements
+            interpretation: dominanceInterpretations.elements,
           }}
           type="elements"
         />
@@ -144,7 +144,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
           title="Modalities"
           data={{
             modalities: chartData.modalities,
-            interpretation: dominanceInterpretations.modalities
+            interpretation: dominanceInterpretations.modalities,
           }}
           type="modalities"
         />
@@ -154,7 +154,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
           title="Quadrants"
           data={{
             quadrants: chartData.quadrants,
-            interpretation: dominanceInterpretations.quadrants
+            interpretation: dominanceInterpretations.quadrants,
           }}
           type="quadrants"
         />
@@ -164,7 +164,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
           title="Patterns and Structures"
           data={{
             patterns: chartData.patterns,
-            interpretation: dominanceInterpretations.patterns
+            interpretation: dominanceInterpretations.patterns,
           }}
           type="patterns"
         />
@@ -174,7 +174,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
           title="Planetary Dominance"
           data={{
             planets: chartData.planetaryDominance,
-            interpretation: dominanceInterpretations.planetary
+            interpretation: dominanceInterpretations.planetary,
           }}
           type="planetary"
         />

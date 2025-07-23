@@ -79,13 +79,13 @@ const ChartTabNavigator: React.FC<ChartTabNavigatorProps> = ({
               key={tab.key}
               style={[
                 styles.tab,
-                activeTab === tab.key && { backgroundColor: colors.primary }
+                activeTab === tab.key && { backgroundColor: colors.primary },
               ]}
               onPress={() => setActiveTab(tab.key)}
             >
               <Text style={[
                 { color: colors.onSurfaceVariant, fontSize: 14, fontWeight: '500', textAlign: 'center' },
-                activeTab === tab.key && { color: colors.onPrimary, fontWeight: '600' }
+                activeTab === tab.key && { color: colors.onPrimary, fontWeight: '600' },
               ]}>
                 {tab.title}
               </Text>

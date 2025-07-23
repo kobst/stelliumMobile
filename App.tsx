@@ -26,33 +26,33 @@ const App: React.FC = () => {
     // DEVELOPMENT: Bypass Firebase auth and use hardcoded userId
     const initializeWithHardcodedUser = async () => {
       // This should be the _id field from a SubjectDocument in your database
-      const HARDCODED_USER_ID = '687b0c6b1750220ee4092c9c';
-      
+      const HARDCODED_USER_ID = '687dabfa483ae7f0e460b34d';
+
       console.log('\n=== DEVELOPMENT MODE: Using hardcoded userId ===');
       console.log('Hardcoded User ID:', HARDCODED_USER_ID);
       console.log('================================================\n');
-      
+
       try {
         // Fetch user from backend using hardcoded userId
         console.log('Fetching user data from backend...');
         const response = await usersApi.getUser(HARDCODED_USER_ID);
         console.log('Backend response:', response);
-        
+
         // Transform backend SubjectDocument to frontend User format
         const userData = userTransformers.subjectDocumentToUser(response as SubjectDocument);
         console.log('Transformed user data:', userData);
-        
+
         // Create a simulated Firebase user object
         const simulatedFirebaseUser = {
           uid: userData.id,
           displayName: userData.name,
           email: userData.email,
         } as FirebaseAuthTypes.User;
-        
+
         // Set both Firebase user state and store data
         setUser(simulatedFirebaseUser);
         setUserData(userData);
-        
+
         console.log('Successfully initialized with hardcoded user data');
       } catch (error) {
         console.error('Failed to fetch hardcoded user data:', error);

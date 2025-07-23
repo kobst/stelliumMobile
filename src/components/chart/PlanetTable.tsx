@@ -2,13 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { BackendPlanet, PlanetName } from '../../types';
 import { useTheme } from '../../theme';
-import { 
-  PLANET_COLORS, 
-  getPlanetGlyph, 
-  getZodiacGlyph, 
+import {
+  PLANET_COLORS,
+  getPlanetGlyph,
+  getZodiacGlyph,
   formatDegree,
   filterPlanets,
-  getZodiacPositionFromDegree
+  getZodiacPositionFromDegree,
 } from './ChartUtils';
 
 interface PlanetTableProps {
@@ -22,7 +22,7 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
   const renderPlanetRow = (planet: BackendPlanet, index: number) => {
     const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
     const { sign, position } = getZodiacPositionFromDegree(planet.full_degree);
-    
+
     return (
       <View key={planet.name} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow, { borderBottomColor: colors.border }]}>
         {/* Planet Symbol */}
@@ -31,36 +31,36 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
             {getPlanetGlyph(planet.name as PlanetName)}
           </Text>
         </View>
-        
+
         {/* Planet Name */}
         <View style={styles.nameCell}>
           <Text style={[styles.planetName, { color: colors.onSurface }]}>{planet.name}</Text>
         </View>
-        
+
         {/* Degree in Sign */}
         <View style={styles.degreeCell}>
           <Text style={[styles.degree, { color: colors.onSurfaceVariant }]}>{position.toFixed(1)}°</Text>
         </View>
-        
+
         {/* Sign Symbol */}
         <View style={styles.symbolCell}>
           <Text style={[styles.signSymbol, { color: colors.primary }]}>
             {getZodiacGlyph(sign)}
           </Text>
         </View>
-        
+
         {/* Sign Name */}
         <View style={styles.signCell}>
           <Text style={[styles.signName, { color: colors.onSurfaceVariant }]}>{sign}</Text>
         </View>
-        
+
         {/* House */}
         <View style={styles.houseCell}>
           <Text style={[styles.house, { color: colors.onSurfaceVariant }]}>
             {planet.house > 0 ? planet.house : '-'}
           </Text>
         </View>
-        
+
         {/* Retrograde */}
         <View style={styles.retroCell}>
           <Text style={[styles.retro, { color: colors.error }]}>
@@ -74,7 +74,7 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <Text style={[styles.title, { color: colors.onSurface }]}>Planetary Positions</Text>
-      
+
       {/* Header */}
       <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
         <View style={styles.symbolCell}>
@@ -99,7 +99,7 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
           <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>R</Text>
         </View>
       </View>
-      
+
       {/* Planet Rows */}
       <ScrollView style={styles.scrollView}>
         {filteredPlanets.map((planet, index) => renderPlanetRow(planet, index))}

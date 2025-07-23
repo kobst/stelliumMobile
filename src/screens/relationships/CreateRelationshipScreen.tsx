@@ -72,7 +72,7 @@ const CreateRelationshipScreen: React.FC = () => {
 
       if (result.success && result.compositeChartId) {
         console.log('Enhanced relationship analysis result:', result);
-        
+
         // Transform the response to match UserCompositeChart interface expected by RelationshipAnalysisScreen
         const transformedRelationship = {
           _id: result.compositeChartId,
@@ -107,16 +107,16 @@ const CreateRelationshipScreen: React.FC = () => {
               style: 'cancel',
               onPress: () => {
                 navigation.goBack();
-              }
+              },
             },
             {
               text: 'View Analysis',
               onPress: () => {
                 (navigation as any).navigate('RelationshipAnalysis', {
-                  relationship: transformedRelationship
+                  relationship: transformedRelationship,
                 });
-              }
-            }
+              },
+            },
           ]
         );
       } else {
@@ -166,7 +166,7 @@ const CreateRelationshipScreen: React.FC = () => {
         >
           <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        
+
         <View style={styles.headerInfo}>
           <Text style={[styles.headerTitle, { color: colors.onSurface }]}>Create New Relationship</Text>
           <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
@@ -177,8 +177,8 @@ const CreateRelationshipScreen: React.FC = () => {
 
       {/* Tab Navigation */}
       <View style={[styles.tabContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabScrollContainer}
         >
@@ -221,7 +221,7 @@ const CreateRelationshipScreen: React.FC = () => {
               {selectedPerson.placeOfBirth && ` in ${selectedPerson.placeOfBirth}`}
             </Text>
           </View>
-          
+
           <TouchableOpacity
             style={[styles.createButton, { backgroundColor: colors.primary }, isCreating && [styles.createButtonDisabled, { backgroundColor: colors.onSurfaceVariant }]]}
             onPress={handleCreateRelationship}

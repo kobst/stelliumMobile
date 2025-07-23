@@ -9,7 +9,7 @@ const Stack = createStackNavigator();
 
 const RelationshipsStack: React.FC = () => {
   const { colors } = useTheme();
-  
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -22,18 +22,18 @@ const RelationshipsStack: React.FC = () => {
         },
       }}
     >
-      <Stack.Screen 
-        name="RelationshipsMain" 
+      <Stack.Screen
+        name="RelationshipsMain"
         component={RelationshipsScreen}
         options={{ title: 'Relationships' }}
       />
-      <Stack.Screen 
-        name="RelationshipAnalysis" 
+      <Stack.Screen
+        name="RelationshipAnalysis"
         component={RelationshipAnalysisScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen 
-        name="CreateRelationship" 
+      <Stack.Screen
+        name="CreateRelationship"
         component={CreateRelationshipScreen}
         options={{ headerShown: false }}
       />
