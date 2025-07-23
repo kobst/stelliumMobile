@@ -512,36 +512,39 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   ] as const;
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Horoscope Forecast</Text>
-      
-      {/* Tab Navigation */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabContainer}
-        contentContainerStyle={styles.tabContentContainer}
-      >
-        {tabOptions.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[
-              styles.tabButton,
-              activeTab === tab.key && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text
+    <View style={styles.container}>
+      {/* Sticky Tab Navigation */}
+      <View style={styles.stickyTabContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabContainer}
+          contentContainerStyle={styles.tabContentContainer}
+        >
+          {tabOptions.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
               style={[
-                styles.tabButtonText,
-                activeTab === tab.key && styles.activeTabButtonText,
+                styles.tabButton,
+                activeTab === tab.key && styles.activeTabButton,
               ]}
+              onPress={() => setActiveTab(tab.key)}
             >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text
+                style={[
+                  styles.tabButtonText,
+                  activeTab === tab.key && styles.activeTabButtonText,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Scrollable Content */}
+      <ScrollView style={styles.scrollContent}>
 
       {/* Partial Error Indicator */}
       {horoscopeError && hasAnyData && (
@@ -818,7 +821,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           )}
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -827,6 +831,14 @@ const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  stickyTabContainer: {
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  scrollContent: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -850,13 +862,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.error,
     fontSize: 16,
     textAlign: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.onBackground,
-    textAlign: 'center',
-    marginVertical: 16,
   },
   tabContainer: {
     paddingHorizontal: 16,
@@ -890,19 +895,19 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.border,
   },
   horoscopeTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '600',
     color: colors.onSurface,
     marginBottom: 12,
   },
   horoscopeText: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 22,
     color: colors.onSurface,
     marginBottom: 12,
   },
@@ -922,7 +927,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderTopColor: colors.border,
   },
   keyTransitsTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.onSurface,
     marginBottom: 8,
@@ -950,13 +955,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderTopColor: colors.border,
   },
   keyThemesTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.onSurface,
     marginBottom: 8,
   },
   themeText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.onSurface,
     marginBottom: 4,
   },
@@ -1150,29 +1155,29 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.primary,
   },
   customInterfaceTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '600',
     color: colors.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   customInterfaceSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.onSurface,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 16,
   },
   dateRangeInfo: {
     backgroundColor: colors.surfaceVariant,
     borderRadius: 8,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   dateRangeText: {
     fontSize: 12,
