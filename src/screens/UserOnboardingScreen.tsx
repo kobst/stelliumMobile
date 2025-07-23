@@ -204,23 +204,41 @@ const UserOnboardingScreen: React.FC = () => {
       console.log('\nUser data prepared:', JSON.stringify(userData, null, 2));
 
       // Now call the API to create the user
-      console.log('\nCalling createUser API...');
-      const createUserPayload = {
-        firstName,
-        lastName,
-        dateOfBirth: date,
-        placeOfBirth,
-        time,
-        lat: lat!,
-        lon: lon!,
-        tzone: totalOffsetHours,
-        gender,
-        unknownTime
-      };
-      
-      console.log('API Payload:', JSON.stringify(createUserPayload, null, 2));
-      
-      const response = await usersApi.createUser(createUserPayload);
+      let response;
+      if (unknownTime) {
+        console.log('\nCalling createUserUnknownTime API...');
+        const createUserUnknownTimePayload = {
+          firstName,
+          lastName,
+          gender,
+          placeOfBirth,
+          dateOfBirth: date,
+          email: '', // Mobile app doesn't collect email
+          lat: lat!,
+          lon: lon!,
+          tzone: totalOffsetHours
+        };
+        
+        console.log('API Payload (Unknown Time):', JSON.stringify(createUserUnknownTimePayload, null, 2));
+        response = await usersApi.createUserUnknownTime(createUserUnknownTimePayload);
+      } else {
+        console.log('\nCalling createUser API...');
+        const createUserPayload = {
+          firstName,
+          lastName,
+          dateOfBirth: date,
+          placeOfBirth,
+          time,
+          lat: lat!,
+          lon: lon!,
+          tzone: totalOffsetHours,
+          gender,
+          unknownTime
+        };
+        
+        console.log('API Payload (Known Time):', JSON.stringify(createUserPayload, null, 2));
+        response = await usersApi.createUser(createUserPayload);
+      }
       console.log('\nAPI Response:', JSON.stringify(response, null, 2));
       
       // Transform the API response to our User type

@@ -174,24 +174,42 @@ const GuestOnboardingScreen: React.FC = () => {
       console.log('Timezone offset hours:', totalOffsetHours);
 
       // Now call the API to create the guest subject
-      console.log('\nCalling createGuestSubject API...');
-      const createGuestPayload = {
-        firstName,
-        lastName,
-        dateOfBirth: date,
-        placeOfBirth,
-        time,
-        lat: lat!,
-        lon: lon!,
-        tzone: totalOffsetHours,
-        gender,
-        unknownTime,
-        ownerUserId: userData!.id
-      };
-      
-      console.log('API Payload:', JSON.stringify(createGuestPayload, null, 2));
-      
-      const response = await usersApi.createGuestSubject(createGuestPayload);
+      let response;
+      if (unknownTime) {
+        console.log('\nCalling createGuestSubjectUnknownTime API...');
+        const createGuestUnknownTimePayload = {
+          firstName,
+          lastName,
+          gender,
+          placeOfBirth,
+          dateOfBirth: date,
+          lat: lat!,
+          lon: lon!,
+          tzone: totalOffsetHours,
+          ownerUserId: userData!.id
+        };
+        
+        console.log('API Payload (Unknown Time):', JSON.stringify(createGuestUnknownTimePayload, null, 2));
+        response = await usersApi.createGuestSubjectUnknownTime(createGuestUnknownTimePayload);
+      } else {
+        console.log('\nCalling createGuestSubject API...');
+        const createGuestPayload = {
+          firstName,
+          lastName,
+          dateOfBirth: date,
+          placeOfBirth,
+          time,
+          lat: lat!,
+          lon: lon!,
+          tzone: totalOffsetHours,
+          gender,
+          unknownTime,
+          ownerUserId: userData!.id
+        };
+        
+        console.log('API Payload (Known Time):', JSON.stringify(createGuestPayload, null, 2));
+        response = await usersApi.createGuestSubject(createGuestPayload);
+      }
       console.log('\nAPI Response:', JSON.stringify(response, null, 2));
       
       console.log('Guest subject created successfully, navigating back...');

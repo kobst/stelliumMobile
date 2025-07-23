@@ -15,21 +15,30 @@ export interface CreateUserRequest {
 }
 
 export interface CreateUserUnknownTimeRequest {
-  name: string;
-  birthYear: number;
-  birthMonth: number;
-  birthDay: number;
-  birthLocation: string;
-  timezone: string;
-  latitude?: number;
-  longitude?: number;
+  firstName: string;
+  lastName: string;
+  gender: string;
+  placeOfBirth: string;
+  dateOfBirth: string;
+  email: string;
+  lat: number;
+  lon: number;
+  tzone: number;
 }
 
 export interface CreateGuestSubjectRequest extends CreateUserRequest {
   ownerUserId: string;
 }
 
-export interface CreateGuestSubjectUnknownTimeRequest extends CreateUserUnknownTimeRequest {
+export interface CreateGuestSubjectUnknownTimeRequest {
+  firstName: string;
+  lastName: string;
+  gender: string;
+  placeOfBirth: string;
+  dateOfBirth: string;
+  lat: number;
+  lon: number;
+  tzone: number;
   ownerUserId: string;
 }
 
