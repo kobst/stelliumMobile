@@ -67,7 +67,16 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
       const position = planet.norm_degree;
       
       return (
-        <View key={planet.name} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
+        <View 
+          key={planet.name} 
+          style={[
+            styles.row, 
+            index % 2 === 0 ? styles.evenRow : styles.oddRow,
+            { borderBottomColor: colors.strokeSubtle }
+          ]}
+          accessibilityRole="listitem"
+          accessibilityLabel={`${planet.name} at ${position.toFixed(1)} degrees ${planet.sign} in house ${planet.house}`}
+        >
           {/* Planet Symbol */}
           <View style={styles.symbolCell}>
             <Text style={[styles.planetSymbol, { color: planetColor }]}>
@@ -82,7 +91,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
           
           {/* Degree in Sign */}
           <View style={styles.degreeCell}>
-            <Text style={[styles.degree, { color: colors.onSurface }]}>{position.toFixed(1)}°</Text>
+            <Text style={[styles.degree, { color: colors.onSurface, fontFamily: 'monospace' }]}>{position.toFixed(1)}°</Text>
           </View>
           
           {/* Sign Symbol */}
@@ -108,11 +117,11 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
     };
 
     return (
-      <View style={[styles.tableContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.tableTitle, { color: colors.onSurface }]}>Composite Planetary Positions</Text>
+      <View style={[styles.tableContainer, { backgroundColor: colors.surfaceCard, borderColor: colors.strokeSubtle }]}>
+        <Text style={[styles.tableTitle, { color: colors.onSurfaceHigh }]}>Composite Planetary Positions</Text>
         
         {/* Header */}
-        <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
+        <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.strokeSubtle }]}>
           <View style={styles.symbolCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☽</Text>
           </View>
@@ -134,7 +143,11 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
         </View>
         
         {/* Planet Rows */}
-        <ScrollView style={styles.scrollView}>
+        <ScrollView 
+          style={styles.scrollView}
+          accessibilityRole="list"
+          accessibilityLabel="Composite planetary positions"
+        >
           {filteredPlanets.map((planet, index) => renderPlanetRow(planet, index))}
         </ScrollView>
       </View>
@@ -149,7 +162,11 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
       const signColor = ZODIAC_COLORS[house.sign as ZodiacSign] || colors.primary;
       
       return (
-        <View key={house.house} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
+        <View key={house.house} style={[
+          styles.row, 
+          index % 2 === 0 ? styles.evenRow : styles.oddRow,
+          { borderBottomColor: colors.strokeSubtle }
+        ]}>
           {/* House Number */}
           <View style={styles.houseNumberCell}>
             <Text style={[styles.houseNumber, { color: colors.onSurface }]}>{house.house}</Text>
@@ -169,18 +186,18 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
           
           {/* Degree */}
           <View style={styles.degreeCell}>
-            <Text style={[styles.degree, { color: colors.onSurface }]}>{signPosition.toFixed(1)}°</Text>
+            <Text style={[styles.degree, { color: colors.onSurface, fontFamily: 'monospace' }]}>{signPosition.toFixed(1)}°</Text>
           </View>
         </View>
       );
     };
 
     return (
-      <View style={[styles.tableContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.tableTitle, { color: colors.onSurface }]}>Composite House Positions</Text>
+      <View style={[styles.tableContainer, { backgroundColor: colors.surfaceCard, borderColor: colors.strokeSubtle }]}>
+        <Text style={[styles.tableTitle, { color: colors.onSurfaceHigh }]}>Composite House Positions</Text>
         
         {/* Header */}
-        <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
+        <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.strokeSubtle }]}>
           <View style={styles.houseNumberCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>House</Text>
           </View>
@@ -212,7 +229,11 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
       
       return (
         <View key={`${aspect.aspectingPlanet}-${aspect.aspectedPlanet}-${index}`} 
-              style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
+              style={[
+                styles.row, 
+                index % 2 === 0 ? styles.evenRow : styles.oddRow,
+                { borderBottomColor: colors.strokeSubtle }
+              ]}>
           
           {/* First Planet Symbol */}
           <View style={styles.planetCell}>
@@ -254,18 +275,18 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
           
           {/* Orb */}
           <View style={styles.orbCell}>
-            <Text style={[styles.orb, { color: colors.onSurfaceVariant }]}>{aspect.orb?.toFixed(1)}°</Text>
+            <Text style={[styles.orb, { color: colors.onSurfaceVariant, fontFamily: 'monospace' }]}>{aspect.orb?.toFixed(1)}°</Text>
           </View>
         </View>
       );
     };
 
     return (
-      <View style={[styles.tableContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.tableTitle, { color: colors.onSurface }]}>Composite Aspects</Text>
+      <View style={[styles.tableContainer, { backgroundColor: colors.surfaceCard, borderColor: colors.strokeSubtle }]}>
+        <Text style={[styles.tableTitle, { color: colors.onSurfaceHigh }]}>Composite Aspects</Text>
         
         {/* Header */}
-        <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
+        <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.strokeSubtle }]}>
           <View style={styles.planetCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☽</Text>
           </View>
@@ -311,16 +332,13 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   tableContainer: {
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   tableTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -332,11 +350,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     paddingHorizontal: 2,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#334155',
+    borderBottomWidth: 1,
   },
   headerRow: {
-    backgroundColor: '#374151',
     borderRadius: 6,
     marginBottom: 4,
     borderBottomWidth: 0,
