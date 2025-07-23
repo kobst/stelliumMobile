@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
+import { useTheme } from '../../theme';
 
 interface CompleteFullAnalysisButtonProps {
   userId?: string;
@@ -20,6 +21,7 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
   userId,
   onAnalysisComplete,
 }) => {
+  const { colors } = useTheme();
   const { userData, activeUserContext, creationWorkflowState } = useStore();
   const { 
     startAnalysisWorkflow, 
@@ -31,7 +33,6 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
   
   const [workflowStarted, setWorkflowStarted] = useState(false);
   const [progressState, setProgressState] = useState<ProgressState>({});
-  const [progressAnimation] = useState(new Animated.Value(0));
 
   // Track workflow progress - use store state for cross-tab synchronization
   useEffect(() => {
@@ -57,12 +58,6 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
         setWorkflowStarted(true);
       }
 
-      // Animate progress bar
-      Animated.timing(progressAnimation, {
-        toValue: progressPercentage / 100,
-        duration: 500,
-        useNativeDriver: false,
-      }).start();
 
       // Handle completion
       if (isCompleted) {
@@ -74,7 +69,7 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
         onAnalysisComplete?.();
       }
     }
-  }, [workflowState, creationWorkflowState, progressAnimation, loadFullAnalysis, onAnalysisComplete]);
+  }, [workflowState, creationWorkflowState, loadFullAnalysis, onAnalysisComplete]);
 
   const getPhaseDescription = (progress: number): string => {
     if (progress < 20) return "Initializing analysis...";
@@ -121,155 +116,160 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
            (progressState.progress !== undefined && progressState.progress > 0 && !progressState.isCompleted);
   };
 
-  const renderProgressBar = () => {
-    if (!workflowStarted || progressState.progress === undefined) return null;
 
+  // Don't show anything if already completed
+  if (progressState.isCompleted) {
+    return null;
+  }
+
+  // Show inline loading state when analysis is in progress
+  if (workflowStarted && progressState.progress !== undefined && progressState.progress > 0) {
     return (
-      <View style={styles.progressContainer}>
-        <View style={styles.progressBarBackground}>
-          <Animated.View 
-            style={[
-              styles.progressBarFill,
-              {
-                width: progressAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%'],
-                }),
-              },
-            ]}
-          />
-        </View>
-        <Text style={styles.progressText}>
-          {Math.round(progressState.progress || 0)}% - {progressState.currentPhase}
+      <View style={styles.inlineLoadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
+        <Text style={[styles.inlineLoadingTitle, { color: colors.onSurface }]}>Generating Your Detailed Analysis</Text>
+        <Text style={[styles.inlineLoadingSubtitle, { color: colors.onSurfaceVariant }]}>
+          We're creating your comprehensive 360° life analysis with insights across all major life areas.
         </Text>
+        <Text style={[styles.inlineLoadingTime, { color: colors.onSurfaceVariant }]}>
+          This typically takes 1-2 minutes...
+        </Text>
+        {progressState.progress > 0 && (
+          <View style={[styles.progressContainer, { backgroundColor: colors.surfaceVariant }]}>
+            <Text style={[styles.progressText, { color: colors.primary }]}>
+              {Math.round(progressState.progress)}% Complete
+            </Text>
+          </View>
+        )}
       </View>
     );
-  };
+  }
 
-  const renderCompletionBanner = () => {
-    if (!progressState.isCompleted) return null;
-
+  // Show error state
+  if (error) {
     return (
-      <View style={styles.completionBanner}>
-        <Text style={styles.completionIcon}>🎉</Text>
-        <Text style={styles.completionText}>Analysis Complete!</Text>
-        <Text style={styles.completionSubtext}>Your full birth chart analysis is now available</Text>
+      <View style={styles.inlineErrorContainer}>
+        <Text style={styles.errorIcon}>❌</Text>
+        <Text style={[styles.errorTitle, { color: colors.error }]}>Analysis Failed</Text>
+        <Text style={[styles.errorText, { color: colors.onSurfaceVariant }]}>
+          We encountered an error generating your analysis. Please try again.
+        </Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: colors.error }]}
+          onPress={handleStartAnalysis}
+        >
+          <Text style={[styles.retryButtonText, { color: colors.onError }]}>Retry Analysis</Text>
+        </TouchableOpacity>
       </View>
     );
-  };
+  }
 
+  // Default state - show the button
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        style={[
-          styles.button,
-          isButtonDisabled() && styles.buttonDisabled,
-        ]}
-        onPress={handleStartAnalysis}
-        disabled={isButtonDisabled()}
-      >
-        <Text style={[
-          styles.buttonText,
-          isButtonDisabled() && styles.buttonTextDisabled,
-        ]}>
-          {getButtonText()}
-        </Text>
-      </TouchableOpacity>
-
-      {renderProgressBar()}
-      {renderCompletionBanner()}
-
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-    </View>
+    <TouchableOpacity
+      style={[
+        styles.button,
+        { backgroundColor: colors.primary },
+        isButtonDisabled() && [styles.buttonDisabled, { backgroundColor: colors.onSurfaceVariant }],
+      ]}
+      onPress={handleStartAnalysis}
+      disabled={isButtonDisabled()}
+    >
+      <Text style={[
+        styles.buttonText,
+        { color: colors.onPrimary },
+        isButtonDisabled() && { color: colors.onSurface },
+      ]}>
+        {getButtonText()}
+      </Text>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
   button: {
-    backgroundColor: '#4f46e5',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
-    minWidth: 200,
     alignItems: 'center',
+    marginTop: 20,
   },
   buttonDisabled: {
-    backgroundColor: '#6b7280',
     opacity: 0.6,
   },
   buttonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
-  buttonTextDisabled: {
-    color: '#d1d5db',
+
+  // Inline loading state
+  inlineLoadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+  },
+  spinner: {
+    marginBottom: 16,
+  },
+  inlineLoadingTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  inlineLoadingSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  inlineLoadingTime: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   progressContainer: {
     marginTop: 16,
-    width: '100%',
-    alignItems: 'center',
-  },
-  progressBarBackground: {
-    width: '80%',
-    height: 8,
-    backgroundColor: '#374151',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#10b981',
-    borderRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
   },
   progressText: {
-    color: '#d1d5db',
     fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  completionBanner: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#065f46',
-    borderRadius: 8,
-    alignItems: 'center',
-    width: '90%',
-  },
-  completionIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  completionText: {
-    color: '#10b981',
-    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 4,
-  },
-  completionSubtext: {
-    color: '#6ee7b7',
-    fontSize: 14,
     textAlign: 'center',
   },
-  errorContainer: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#7f1d1d',
-    borderRadius: 8,
-    width: '90%',
+
+  // Inline error state
+  inlineErrorContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+  },
+  errorIcon: {
+    fontSize: 32,
+    marginBottom: 12,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   errorText: {
-    color: '#fca5a5',
     fontSize: 14,
     textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

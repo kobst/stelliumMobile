@@ -156,17 +156,12 @@ const TopicSection: React.FC<TopicSectionProps> = ({
 };
 
 const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
-  const { fullAnalysis, loading, loadFullAnalysis } = useChart(userId);
+  const { fullAnalysis, loading, loadFullAnalysis, workflowState } = useChart(userId);
+  const { creationWorkflowState } = useStore();
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const { colors } = useTheme();
 
-  // Load analysis on mount if not already loaded
-  React.useEffect(() => {
-    if (!fullAnalysis && !loading) {
-      console.log('AnalysisTab - Loading full analysis...');
-      loadFullAnalysis();
-    }
-  }, [fullAnalysis, loading, loadFullAnalysis]);
+  // Don't automatically load analysis - let users trigger it with the button
 
   const toggleTopic = (topicKey: string) => {
     const newExpanded = new Set(expandedTopics);
@@ -178,25 +173,14 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
     setExpandedTopics(newExpanded);
   };
 
-  // Fallback UI component for missing analysis
-  const renderMissingAnalysis = () => (
+  // Simple button container for missing analysis
+  const renderAnalysisButton = () => (
     <View style={[styles.missingAnalysisContainer, { backgroundColor: colors.background }]}>
-      <Text style={styles.missingAnalysisIcon}>🌍</Text>
-      <Text style={[styles.missingAnalysisTitle, { color: colors.onBackground }]}>360° Analysis Not Available</Text>
-      <Text style={[styles.missingAnalysisText, { color: colors.onSurfaceVariant }]}>
-        Complete life analysis is not available for this chart.
-      </Text>
       <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading 360° analysis...</Text>
-      </View>
-    );
-  }
+  // No automatic loading state - go straight to checking for analysis data
 
   const subtopicAnalysis = fullAnalysis?.interpretation?.SubtopicAnalysis || {};
   
@@ -204,8 +188,14 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
     BROAD_TOPICS[key as keyof typeof BROAD_TOPICS]
   );
 
+  // Check if analysis is in progress
+  const activeWorkflowState = workflowState || creationWorkflowState;
+  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId && 
+    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 && 
+    !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
+
   if (availableTopics.length === 0) {
-    return renderMissingAnalysis();
+    return renderAnalysisButton();
   }
 
   return (
