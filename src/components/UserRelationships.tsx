@@ -111,61 +111,75 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
     );
   };
 
-  const renderRelationshipItem = ({ item }: { item: UserCompositeChart }) => (
-    <TouchableOpacity 
-      style={[styles.relationshipCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      onPress={() => handleRelationshipPress(item)}
-    >
-      <View style={styles.relationshipHeader}>
-        <Text style={[styles.relationshipTitle, { color: colors.primary }]}>Your Relationship</Text>
-        <Text style={[styles.createdDate, { color: colors.onSurfaceVariant }]}>
-          {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
-      </View>
-      
-      <View style={styles.partnerPair}>
-        <View style={styles.partnerInfo}>
-          <Text style={[styles.partnerName, { color: colors.onSurface }]}>{item.userA_name}</Text>
-          <Text style={[styles.partnerDOB, { color: colors.onSurfaceVariant }]}>
-            {new Date(item.userA_dateOfBirth).toLocaleDateString()}
-          </Text>
+  // Helper function to determine user display names
+  const getDisplayNames = (item: UserCompositeChart) => {
+    // Get current user's name variations for comparison
+    const currentUserNames = [
+      userData?.name,
+      userData?.firstName,
+      `${userData?.firstName} ${userData?.lastName}`.trim(),
+      userData?.email?.split('@')[0],
+      // Extract first name from full name (e.g., "test Horoscope3" -> "test")
+      userData?.name?.split(' ')[0],
+    ].filter(Boolean);
+    
+    let leftName = item.userA_name;
+    let rightName = item.userB_name;
+    
+    // Check if leftName matches any variation of current user
+    const isLeftNameCurrentUser = currentUserNames.some(name => 
+      name && leftName && name.toLowerCase() === leftName.toLowerCase()
+    );
+    
+    // Check if rightName matches any variation of current user  
+    const isRightNameCurrentUser = currentUserNames.some(name =>
+      name && rightName && name.toLowerCase() === rightName.toLowerCase()
+    );
+    
+    // Replace matching names with "You"
+    if (isLeftNameCurrentUser) {
+      leftName = 'You';
+    }
+    
+    if (isRightNameCurrentUser) {
+      rightName = 'You';
+    }
+    
+    return { leftName, rightName };
+  };
+
+  const renderRelationshipItem = ({ item }: { item: UserCompositeChart }) => {
+    const { leftName, rightName } = getDisplayNames(item);
+    
+    return (
+      <TouchableOpacity 
+        style={[styles.relationshipCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={() => handleRelationshipPress(item)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.partnerPair}>
+          <View style={styles.partnerInfo}>
+            <Text style={[styles.partnerName, { color: colors.onSurface }]}>{leftName}</Text>
+          </View>
+          
+          <View style={styles.separator}>
+            <Text style={[styles.separatorText, { color: colors.primary }]}>♥</Text>
+          </View>
+          
+          <View style={styles.partnerInfo}>
+            <Text style={[styles.partnerName, { color: colors.onSurface }]}>{rightName}</Text>
+          </View>
         </View>
         
-        <View style={styles.separator}>
-          <Text style={[styles.separatorText, { color: colors.primary }]}>♥</Text>
-        </View>
-        
-        <View style={styles.partnerInfo}>
-          <Text style={[styles.partnerName, { color: colors.onSurface }]}>{item.userB_name}</Text>
-          <Text style={[styles.partnerDOB, { color: colors.onSurfaceVariant }]}>
-            {new Date(item.userB_dateOfBirth).toLocaleDateString()}
-          </Text>
-        </View>
-      </View>
-      
-      <View style={[styles.actionsContainer, { borderTopColor: colors.border }]}>
         <TouchableOpacity
           style={styles.viewButton}
           onPress={() => handleRelationshipPress(item)}
         >
-          <Text style={[styles.viewButtonText, { color: colors.primary }]}>View Analysis →</Text>
+          <Text style={[styles.viewButtonText, { color: colors.primary }]}>View Analysis</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[
-            styles.deleteButton,
-            deletingRelationship === item._id && styles.deleteButtonDisabled
-          ]}
-          onPress={() => handleDeleteRelationship(item)}
-          disabled={deletingRelationship === item._id}
-        >
-          <Text style={styles.deleteButtonText}>
-            {deletingRelationship === item._id ? 'Deleting...' : 'Delete'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -181,8 +195,12 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.errorSection, { backgroundColor: colors.surface, borderColor: colors.error }]}>
           <Text style={[styles.errorText, { color: colors.error }]}>Error: {error}</Text>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.error }]} onPress={loadRelationships}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+          <TouchableOpacity 
+            style={[styles.retryButton, { backgroundColor: colors.error }]} 
+            onPress={loadRelationships}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.retryButtonText, { color: colors.onError }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -192,23 +210,24 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {relationships.length === 0 ? (
-        <View style={[styles.noResultsContainer, { backgroundColor: colors.background }]}>
-          <Text style={[styles.noResultsText, { color: colors.onSurfaceVariant }]}>
-            No relationships found.
-          </Text>
-          <Text style={[styles.noResultsSubtext, { color: colors.onSurfaceVariant }]}>
-            Your created relationships will appear here.
-          </Text>
+        <View style={[styles.emptyStateContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.emptyStateCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.emptyStateIcon, { color: colors.primary }]}>💫</Text>
+            <Text style={[styles.emptyStateTitle, { color: colors.onSurface }]}>
+              No Relationships Yet
+            </Text>
+            <Text style={[styles.emptyStateText, { color: colors.onSurfaceVariant }]}>
+              Create your first compatibility analysis to explore cosmic connections and relationship insights.
+            </Text>
+          </View>
         </View>
       ) : (
         <View style={styles.relationshipsList}>
-          <View style={styles.listContainer}>
-            {relationships.map((item) => (
-              <View key={item._id}>
-                {renderRelationshipItem({ item })}
-              </View>
-            ))}
-          </View>
+          {relationships.map((item) => (
+            <View key={item._id}>
+              {renderRelationshipItem({ item })}
+            </View>
+          ))}
         </View>
       )}
     </View>
@@ -229,46 +248,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 12,
   },
-  noResultsContainer: {
+  // Empty state with illustration + CTA
+  emptyStateContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: 24,
   },
-  noResultsText: {
-    fontSize: 16,
-    textAlign: 'center',
+  emptyStateCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: 'center',
+    maxWidth: 320,
+    width: '100%',
+  },
+  emptyStateIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 17,
+    fontWeight: '600',
     marginBottom: 8,
-  },
-  noResultsSubtext: {
-    fontSize: 14,
     textAlign: 'center',
-    fontStyle: 'italic',
+  },
+  emptyStateText: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   relationshipsList: {
     flex: 1,
   },
-  listContainer: {
-    padding: 16,
-  },
+  // Updated card visuals: 8px radius, no inner divider
   relationshipCard: {
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     marginBottom: 12,
     padding: 16,
-  },
-  relationshipHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  relationshipTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  createdDate: {
-    fontSize: 12,
   },
   partnerPair: {
     flexDirection: 'row',
@@ -282,11 +300,6 @@ const styles = StyleSheet.create({
   partnerName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  partnerDOB: {
-    fontSize: 12,
     textAlign: 'center',
   },
   separator: {
@@ -296,16 +309,7 @@ const styles = StyleSheet.create({
   separatorText: {
     fontSize: 20,
   },
-  actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    gap: 12,
-  },
   viewButton: {
-    flex: 1,
     alignItems: 'center',
     paddingVertical: 8,
   },
@@ -313,25 +317,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  deleteButton: {
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  deleteButtonDisabled: {
-    backgroundColor: '#6c757d',
-    opacity: 0.6,
-  },
-  deleteButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
   errorSection: {
     margin: 16,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     alignItems: 'center',
   },
@@ -343,10 +332,9 @@ const styles = StyleSheet.create({
   retryButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   retryButtonText: {
-    color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
   },

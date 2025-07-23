@@ -39,13 +39,10 @@ const HoroscopeScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Welcome Section */}
-      <View style={[styles.welcomeSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.welcomeText, { color: colors.onSurface }]}>Hello, {userData.name}!</Text>
-        <Text style={[styles.welcomeSubtitle, { color: colors.onSurfaceVariant }]}>
-          Your personalized horoscope based on your birth chart
-        </Text>
-      </View>
+      {/* Greeting Subtitle */}
+      <Text style={[styles.greetingSubtitle, { color: colors.onSurfaceVariant }]}>
+        Hello, {userData.name}
+      </Text>
 
       {/* Horoscope Container */}
       <HoroscopeContainer
@@ -62,20 +59,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  welcomeSection: {
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  welcomeSubtitle: {
+  greetingSubtitle: {
     fontSize: 14,
-    lineHeight: 20,
+    textAlign: 'center',
+    paddingVertical: 8,
   },
   errorText: {
     fontSize: 16,

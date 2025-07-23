@@ -15,6 +15,8 @@ import { usersApi, PaginatedUserSubjectsResponse } from '../../api';
 import { SubjectDocument } from '../../types';
 import { userTransformers } from '../../transformers/user';
 import { useTheme } from '../../theme';
+import AddFooterButton from '../../components/AddFooterButton';
+import UpgradeBanner from '../../components/UpgradeBanner';
 
 const ChartSelectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -146,47 +148,54 @@ const ChartSelectionScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]} 
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          tintColor={colors.primary}
-        />
-      }
-      onScroll={({ nativeEvent }) => {
-        const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-        const paddingToBottom = 20;
-        if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
-          handleLoadMore();
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
         }
-      }}
-      scrollEventThrottle={400}
-    >
-      <Text style={[styles.header, { color: colors.onBackground }]}>My Birth Chart</Text>
-      
-      {/* Logged-in User's Chart - Expanded */}
-      <TouchableOpacity
-        style={[styles.chartCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}
-        onPress={() => handleSelectChart(null)}
+        onScroll={({ nativeEvent }) => {
+          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+          const paddingToBottom = 20;
+          if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
+            handleLoadMore();
+          }
+        }}
+        scrollEventThrottle={400}
       >
-        <View style={styles.chartHeader}>
-          <Text style={[styles.chartQuestion, { color: colors.onSurfaceVariant }]}>How is my day?</Text>
-          <View style={styles.expandedContent}>
-            <View style={[styles.chartCircle, { borderColor: colors.primary, backgroundColor: colors.background }]}>
-              <Text style={styles.zodiacSymbol}>
-                {getZodiacIcon(userData.birthMonth, userData.birthDay)}
-              </Text>
-            </View>
-            <Text style={[styles.chartLabel, { color: colors.onSurface }]}>Birth Chart</Text>
-          </View>
+      {/* My Birth Chart Section */}
+      <Text style={[styles.header, { color: colors.onSurface }]}>My Birth Chart</Text>
+      
+      {/* Compact My Birth Chart Row */}
+      <TouchableOpacity
+        style={[styles.compactChartCard, { backgroundColor: colors.surface }]}
+        onPress={() => handleSelectChart(null)}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.compactChartAvatar, { backgroundColor: colors.surfaceVariant }]}>
+          <Text style={[styles.compactZodiacSymbol, { color: colors.primary }]}>
+            {getZodiacIcon(userData.birthMonth, userData.birthDay)}
+          </Text>
         </View>
+        <View style={styles.compactChartInfo}>
+          <Text style={[styles.compactChartTitle, { color: colors.onSurface }]}>Birth Chart</Text>
+          <Text style={[styles.compactChartSubtitle, { color: colors.onSurfaceVariant }]}>
+            {userData.name} • {userData.birthMonth}/{userData.birthDay}/{userData.birthYear}
+          </Text>
+        </View>
+        <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
       </TouchableOpacity>
 
+      {/* Divider */}
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
       {/* Friends & Family Section */}
-      <Text style={[styles.sectionHeader, { color: colors.onBackground }]}>Friends & Family</Text>
+      <Text style={[styles.sectionHeader, { color: colors.onSurface }]}>Friends & Family</Text>
       
       {loading ? (
         <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
@@ -201,8 +210,9 @@ const ChartSelectionScreen: React.FC = () => {
             return (
               <TouchableOpacity
                 key={subject._id}
-                style={[styles.guestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.guestCard, { backgroundColor: colors.surface }]}
                 onPress={() => handleSelectChart(subject)}
+                activeOpacity={0.8}
               >
                 <View style={[styles.guestAvatar, { backgroundColor: colors.surfaceVariant }]}>
                   <Text style={[styles.avatarText, { color: colors.onSurfaceVariant }]}>
@@ -221,24 +231,25 @@ const ChartSelectionScreen: React.FC = () => {
                     })} - {subject.placeOfBirth}
                   </Text>
                 </View>
-                <Text style={styles.guestZodiac}>{zodiacSign}</Text>
+                <Text style={[styles.guestZodiac, { color: colors.primary }]}>{zodiacSign}</Text>
               </TouchableOpacity>
             );
           })}
         </>
       )}
 
-      {/* Add New Birth Chart Button */}
-      <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={handleAddNewChart}>
-        <Text style={[styles.addButtonIcon, { color: colors.primary }]}>+</Text>
-        <Text style={[styles.addButtonText, { color: colors.primary }]}>Add New Birth Chart</Text>
-      </TouchableOpacity>
+        {/* Loading indicator for pagination */}
+        {loading && !refreshing && guestSubjects.length > 0 && (
+          <ActivityIndicator size="small" color={colors.primary} style={styles.paginationLoader} />
+        )}
+      </ScrollView>
 
-      {/* Loading indicator for pagination */}
-      {loading && !refreshing && guestSubjects.length > 0 && (
-        <ActivityIndicator size="small" color={colors.primary} style={styles.paginationLoader} />
-      )}
-    </ScrollView>
+      {/* Footer Button */}
+      <AddFooterButton
+        title="+ Add New Birth Chart"
+        onPress={handleAddNewChart}
+      />
+    </View>
   );
 };
 
@@ -246,49 +257,59 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   content: {
     padding: 16,
-    paddingBottom: 40,
   },
   header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  chartCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 2,
-  },
-  chartHeader: {
-    alignItems: 'center',
-  },
-  chartQuestion: {
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  expandedContent: {
-    alignItems: 'center',
-  },
-  chartCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: 17,
+    fontWeight: '600',
     marginBottom: 12,
   },
-  zodiacSymbol: {
-    fontSize: 48,
+  // Compact My Birth Chart Row (96px height)
+  compactChartCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 96,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
-  chartLabel: {
-    fontSize: 18,
+  compactChartAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  compactZodiacSymbol: {
+    fontSize: 32,
+  },
+  compactChartInfo: {
+    flex: 1,
+  },
+  compactChartTitle: {
+    fontSize: 17,
     fontWeight: '600',
+    marginBottom: 4,
+  },
+  compactChartSubtitle: {
+    fontSize: 15,
+  },
+  chevron: {
+    fontSize: 24,
+    fontWeight: '300',
+  },
+  // Divider using strokeSubtle equivalent
+  divider: {
+    height: 1,
+    marginBottom: 24,
   },
   sectionHeader: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     marginBottom: 16,
   },
@@ -298,7 +319,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
   },
   guestAvatar: {
     width: 48,
@@ -309,7 +329,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   avatarText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
   guestInfo: {
@@ -326,24 +346,6 @@ const styles = StyleSheet.create({
   guestZodiac: {
     fontSize: 24,
     marginLeft: 12,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 12,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-  },
-  addButtonIcon: {
-    fontSize: 24,
-    marginRight: 8,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
   loader: {
     marginVertical: 32,
