@@ -13,6 +13,7 @@ import { externalApi } from '../api';
 import { usersApi } from '../api';
 import { useStore } from '../store';
 import { userTransformers } from '../transformers/user';
+import { useTheme } from '../theme';
 
 const GOOGLE_API = process.env.REACT_APP_GOOGLE_API_KEY;
 const SERVER_URL = process.env.REACT_APP_SERVER_URL;
@@ -22,23 +23,10 @@ console.log('SERVER_URL:', SERVER_URL);
 console.log('GOOGLE_API_KEY:', GOOGLE_API ? 'Set' : 'Not set');
 console.log('========================');
 
-// RadioButton component
-const RadioButton: React.FC<{
-  selected: boolean;
-  onPress: () => void;
-  label: string;
-}> = ({ selected, onPress, label }) => (
-  <TouchableOpacity style={styles.radioContainer} onPress={onPress}>
-    <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
-      {selected && <View style={styles.radioInner} />}
-    </View>
-    <Text style={styles.radioLabel}>{label}</Text>
-  </TouchableOpacity>
-);
-
 const UserOnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
   const { setUserData } = useStore();
+  const { colors } = useTheme();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -261,6 +249,22 @@ const UserOnboardingScreen: React.FC = () => {
     }
   };
 
+  const styles = createStyles(colors);
+
+  // RadioButton component
+  const RadioButton: React.FC<{
+    selected: boolean;
+    onPress: () => void;
+    label: string;
+  }> = ({ selected, onPress, label }) => (
+    <TouchableOpacity style={styles.radioContainer} onPress={onPress}>
+      <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
+        {selected && <View style={styles.radioInner} />}
+      </View>
+      <Text style={styles.radioLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.header}>Hello Stellium!</Text>
@@ -270,14 +274,14 @@ const UserOnboardingScreen: React.FC = () => {
           <TextInput
             style={[styles.input, styles.nameInput]}
             placeholder="First Name"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.onSurfaceVariant}
             value={firstName}
             onChangeText={setFirstName}
           />
           <TextInput
             style={[styles.input, styles.nameInput]}
             placeholder="Last Name"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.onSurfaceVariant}
             value={lastName}
             onChangeText={setLastName}
           />
@@ -308,7 +312,7 @@ const UserOnboardingScreen: React.FC = () => {
           <TextInput
             style={[styles.input, styles.dateInput]}
             placeholder="YYYY"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.onSurfaceVariant}
             value={birthYear}
             onChangeText={(text) => {
               if (/^\d{0,4}$/.test(text)) {
@@ -321,7 +325,7 @@ const UserOnboardingScreen: React.FC = () => {
           <TextInput
             style={[styles.input, styles.dateInput]}
             placeholder="MM"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.onSurfaceVariant}
             value={birthMonth}
             onChangeText={(text) => {
               if (/^\d{0,2}$/.test(text) && (text === '' || (parseInt(text) >= 1 && parseInt(text) <= 12))) {
@@ -334,7 +338,7 @@ const UserOnboardingScreen: React.FC = () => {
           <TextInput
             style={[styles.input, styles.dateInput]}
             placeholder="DD"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.onSurfaceVariant}
             value={birthDay}
             onChangeText={(text) => {
               if (/^\d{0,2}$/.test(text) && (text === '' || parseInt(text) <= 31)) {
@@ -366,7 +370,7 @@ const UserOnboardingScreen: React.FC = () => {
               <TextInput
                 style={[styles.input, styles.timeInput]}
                 placeholder="HH"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.onSurfaceVariant}
                 value={birthHour}
                 onChangeText={(text) => {
                   if (/^\d{0,2}$/.test(text) && (text === '' || (parseInt(text) >= 1 && parseInt(text) <= 12))) {
@@ -380,7 +384,7 @@ const UserOnboardingScreen: React.FC = () => {
               <TextInput
                 style={[styles.input, styles.timeInput]}
                 placeholder="MM"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.onSurfaceVariant}
                 value={birthMinute}
                 onChangeText={(text) => {
                   if (/^\d{0,2}$/.test(text) && (text === '' || parseInt(text) <= 59)) {
@@ -440,24 +444,25 @@ const UserOnboardingScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f172a' },
+const createStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16 },
   header: {
-    color: 'white',
+    color: colors.onBackground,
     fontWeight: 'bold',
     fontSize: 24,
     textAlign: 'center',
     marginBottom: 20,
   },
   formGroup: { marginBottom: 16 },
-  label: { color: 'white', marginBottom: 8, fontSize: 16 },
+  label: { color: colors.onBackground, marginBottom: 8, fontSize: 16 },
   input: {
     borderWidth: 1,
-    borderColor: 'white',
+    borderColor: colors.border,
     borderRadius: 4,
     padding: 12,
-    color: 'white',
+    color: colors.onSurface,
+    backgroundColor: colors.surface,
     marginBottom: 8,
     fontSize: 16,
   },
@@ -487,7 +492,7 @@ const styles = StyleSheet.create({
     width: 60,
   },
   timeSeparator: {
-    color: 'white',
+    color: colors.onBackground,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -511,40 +516,41 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioOuterSelected: {
-    borderColor: '#3b82f6',
+    borderColor: colors.primary,
   },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.primary,
   },
   radioLabel: {
-    color: 'white',
+    color: colors.onBackground,
     fontSize: 16,
   },
   submit: {
-    backgroundColor: 'white',
+    backgroundColor: colors.primary,
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 20,
   },
-  submitText: { color: 'black', fontWeight: 'bold', fontSize: 16 },
+  submitText: { color: colors.onPrimary, fontWeight: 'bold', fontSize: 16 },
   suggestion: {
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: colors.divider,
+    backgroundColor: colors.surface,
   },
-  suggestionText: { color: 'white' },
+  suggestionText: { color: colors.onSurface },
   errorContainer: { marginTop: 12 },
-  errorText: { color: '#ef4444', fontSize: 14 },
+  errorText: { color: colors.error, fontSize: 14 },
 });
 
 export default UserOnboardingScreen;
