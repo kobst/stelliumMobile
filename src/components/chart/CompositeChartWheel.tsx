@@ -1,50 +1,49 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
-import Svg, { Circle, Line, Text as SvgText, G, Path } from 'react-native-svg';
+import { View, Text, StyleSheet } from 'react-native';
+import Svg, { Circle, Line, Text as SvgText, G } from 'react-native-svg';
 import type { ReactElement } from 'react';
 import { useTheme } from '../../theme';
-import { 
-  BirthChart, 
-  BackendPlanet, 
-  BackendHouse, 
-  BackendAspect,
-  PlanetName,
-  ZodiacSign 
-} from '../../types';
+import { PlanetName, ZodiacSign } from '../../types';
+import { CompositeChart } from '../../api/relationships';
 import {
   CHART_DIMENSIONS,
   PLANET_COLORS,
   ZODIAC_COLORS,
   getCirclePosition,
-  getAspectColor,
   getPlanetGlyph,
   getZodiacGlyph,
   filterPlanets,
-  getAspectStrength,
-  hexToRgba,
 } from './ChartUtils';
 
-interface ChartWheelProps {
-  birthChart?: BirthChart;
-  showAspects?: boolean;
-  showHouses?: boolean;
-  rotation?: number;
+interface CompositeChartWheelProps {
+  compositeChart: CompositeChart;
+  title?: string;
 }
 
-const ChartWheel: React.FC<ChartWheelProps> = ({
-  birthChart,
-  showAspects = true,
-  showHouses = true,
-  rotation = 0,
+const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
+  compositeChart,
+  title,
 }) => {
   const { colors } = useTheme();
   const { size, centerX, centerY, outerRadius, innerRadius, planetRadius, houseRadius } = CHART_DIMENSIONS;
 
-  // Get ascendant degree for proper chart orientation
+  // Get ascendant degree from the first house for proper chart orientation
   const ascendantDegree = useMemo(() => {
-    if (!birthChart?.houses?.length) return 0;
-    return birthChart.houses[0]?.degree || 0;
-  }, [birthChart?.houses]);
+    if (!compositeChart.houses?.length) return 0;
+    return compositeChart.houses[0]?.degree || 0;
+  }, [compositeChart.houses]);
+
+  // Convert composite chart planets to BackendPlanet format for filtering
+  const convertedPlanets = useMemo(() => {
+    return compositeChart.planets.map(planet => ({
+      name: planet.name,
+      full_degree: planet.full_degree,
+      norm_degree: planet.norm_degree,
+      sign: planet.sign,
+      house: planet.house,
+      is_retro: false // Composite charts don't have retrograde planets
+    }));
+  }, [compositeChart.planets]);
 
   // Render zodiac wheel background
   const renderZodiacWheel = (): ReactElement[] => {
@@ -76,10 +75,9 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
       />
     );
 
-    // Zodiac sign divisions (12 houses of 30° each) - Rotate with ascendant
+    // Zodiac sign divisions (12 houses of 30° each)
     for (let i = 0; i < 12; i++) {
       const degree = i * 30;
-      // Zodiac signs rotate with ascendant to match birth chart orientation
       const { x: x1, y: y1 } = getCirclePosition(degree, innerRadius, centerX, centerY, ascendantDegree);
       const { x: x2, y: y2 } = getCirclePosition(degree, outerRadius, centerX, centerY, ascendantDegree);
       
@@ -95,13 +93,13 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
         />
       );
       
-      // Zodiac sign symbols - Rotate with ascendant
+      // Zodiac sign symbols
       const signNames: ZodiacSign[] = [
         'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
         'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
       ];
       
-      const signDegree = degree + 15; // Center of sign
+      const signDegree = degree + 15;
       const signRadius = (innerRadius + outerRadius) / 2;
       const { x: signX, y: signY } = getCirclePosition(signDegree, signRadius, centerX, centerY, ascendantDegree);
       
@@ -125,18 +123,18 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
 
   // Render house cusps
   const renderHouses = (): ReactElement[] | null => {
-    if (!showHouses || !birthChart?.houses?.length) return null;
+    if (!compositeChart.houses?.length) return null;
     
     const elements: ReactElement[] = [];
     
-    birthChart.houses.forEach((house, index) => {
+    compositeChart.houses.forEach((house) => {
       if (!house.degree || isNaN(house.degree)) return;
       
       const { x: x1, y: y1 } = getCirclePosition(house.degree, outerRadius, centerX, centerY, ascendantDegree);
       const { x: x2, y: y2 } = getCirclePosition(house.degree, houseRadius, centerX, centerY, ascendantDegree);
       
-      // Thicker lines for 1st and 10th houses (Ascendant and Midheaven)
-      const isAngular = house.house === 1 || house.house === 10;
+      const houseNumber = parseInt(house.house);
+      const isAngular = houseNumber === 1 || houseNumber === 4 || houseNumber === 7 || houseNumber === 10;
       
       elements.push(
         <Line
@@ -172,49 +170,44 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
     return elements;
   };
 
-  // Render planets
-  const renderPlanets = (): ReactElement[] | null => {
-    if (!birthChart?.planets?.length) return null;
+  // Render composite planets
+  const renderCompositePlanets = (): ReactElement[] | null => {
+    if (!compositeChart.planets?.length) return null;
     
     const elements: ReactElement[] = [];
-    const filteredPlanets = filterPlanets(birthChart.planets);
+    const filteredPlanets = filterPlanets(convertedPlanets);
     
-    // Sort planets by degree to handle overlaps
-    const sortedPlanets = [...filteredPlanets].sort((a, b) => a.full_degree - b.full_degree);
-    
-    sortedPlanets.forEach((planet, index) => {
-      const planetColor = PLANET_COLORS[planet.name as PlanetName] || '#ffffff';
+    filteredPlanets.forEach((planet) => {
+      const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
       
-      // Planet position (with slight offset to avoid overlaps)
-      let adjustedRadius = planetRadius;
       const { x: planetX, y: planetY } = getCirclePosition(
         planet.full_degree, 
-        adjustedRadius, 
+        planetRadius, 
         centerX, 
         centerY, 
         ascendantDegree
       );
       
-      // Planet background circle
+      // Planet background circle with composite-specific styling
       elements.push(
         <Circle
-          key={`planet-bg-${planet.name}`}
+          key={`composite-planet-bg-${planet.name}`}
           cx={planetX}
           cy={planetY}
-          r="12"
-          fill={colors.background + 'CC'}
+          r="14"
+          fill={colors.background + 'DD'}
           stroke={planetColor}
-          strokeWidth="2"
+          strokeWidth="2.5"
         />
       );
       
       // Planet symbol
       elements.push(
         <SvgText
-          key={`planet-${planet.name}`}
+          key={`composite-planet-${planet.name}`}
           x={planetX}
           y={planetY}
-          fontSize="14"
+          fontSize="16"
           fill={planetColor}
           textAnchor="middle"
           alignmentBaseline="middle"
@@ -226,59 +219,17 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
       
       // Planet degree marker on the wheel
       const { x: markerX1, y: markerY1 } = getCirclePosition(planet.full_degree, outerRadius, centerX, centerY, ascendantDegree);
-      const { x: markerX2, y: markerY2 } = getCirclePosition(planet.full_degree, outerRadius + 10, centerX, centerY, ascendantDegree);
+      const { x: markerX2, y: markerY2 } = getCirclePosition(planet.full_degree, outerRadius + 12, centerX, centerY, ascendantDegree);
       
       elements.push(
         <Line
-          key={`planet-marker-${planet.name}`}
+          key={`composite-planet-marker-${planet.name}`}
           x1={markerX1}
           y1={markerY1}
           x2={markerX2}
           y2={markerY2}
           stroke={planetColor}
-          strokeWidth="2"
-        />
-      );
-    });
-    
-    return elements;
-  };
-
-  // Render aspect lines
-  const renderAspects = (): ReactElement[] | null => {
-    if (!showAspects || !birthChart?.aspects?.length || !birthChart?.planets?.length) return null;
-    
-    const elements: ReactElement[] = [];
-    const filteredPlanets = filterPlanets(birthChart.planets);
-    
-    birthChart.aspects.forEach((aspect, index) => {
-      // Skip aspects with excluded planets
-      if (['South Node', 'Part of Fortune', 'Chiron'].includes(aspect.aspectedPlanet) ||
-          ['South Node', 'Part of Fortune', 'Chiron'].includes(aspect.aspectingPlanet)) {
-        return;
-      }
-      
-      const aspectColor = getAspectColor(aspect.aspectType);
-      const aspectStrength = getAspectStrength(aspect.orb);
-      
-      // Find planet positions
-      const planet1 = filteredPlanets.find(p => p.name === aspect.aspectedPlanet);
-      const planet2 = filteredPlanets.find(p => p.name === aspect.aspectingPlanet);
-      
-      if (!planet1 || !planet2) return;
-      
-      const { x: x1, y: y1 } = getCirclePosition(planet1.full_degree, innerRadius - 5, centerX, centerY, ascendantDegree);
-      const { x: x2, y: y2 } = getCirclePosition(planet2.full_degree, innerRadius - 5, centerX, centerY, ascendantDegree);
-      
-      elements.push(
-        <Line
-          key={`aspect-${index}`}
-          x1={x1}
-          y1={y1}
-          x2={x2}
-          y2={y2}
-          stroke={hexToRgba(aspectColor, aspectStrength * 0.8)}
-          strokeWidth={aspectStrength * 2}
+          strokeWidth="2.5"
         />
       );
     });
@@ -288,6 +239,8 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {title && <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>}
+      
       <View style={styles.chartContainer}>
         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           {/* Background circles and zodiac wheel */}
@@ -296,12 +249,17 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
           {/* House cusps */}
           {renderHouses()}
           
-          {/* Planets */}
-          {renderPlanets()}
-          
-          {/* Aspect lines (drawn last, on top) */}
-          {renderAspects()}
+          {/* Composite planets */}
+          {renderCompositePlanets()}
         </Svg>
+      </View>
+      
+      {/* Legend */}
+      <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendIndicator, { backgroundColor: colors.primary + '33', borderColor: colors.primary }]} />
+          <Text style={[styles.legendText, { color: colors.onSurfaceVariant }]}>Composite Chart Planets</Text>
+        </View>
       </View>
     </View>
   );
@@ -315,10 +273,35 @@ const styles = StyleSheet.create({
     margin: 8,
     borderWidth: 1,
   },
+  title: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
   chartContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendIndicator: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2.5,
+  },
+  legendText: {
+    fontSize: 12,
+  },
 });
 
-export default ChartWheel;
+export default CompositeChartWheel;

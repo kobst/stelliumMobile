@@ -35,6 +35,52 @@ export interface ColorPalette {
   tabBarBorder: string;
   tabBarActive: string;
   tabBarInactive: string;
+  
+  // Accent colors
+  accentPrimary: string;
+  accentSecondary: string;
+  onAccent: string;
+  
+  // Surface variants
+  surfaceCard: string;
+  surfaceModal: string;
+  surfaceElevated: string;
+  
+  // Elevation shadows
+  shadowElev1: string;
+  shadowElev2: string;
+  shadowNone: string;
+  
+  // Stroke variants
+  strokeSubtle: string;
+  strokeMedium: string;
+  
+  // Text hierarchy
+  onSurfaceHigh: string;
+  onSurfaceMed: string;
+  onSurfaceLow: string;
+  
+  // Aspect colors (astrological)
+  aspectTrine: string;
+  aspectSquare: string;
+  aspectOpposition: string;
+  aspectSextile: string;
+  aspectConjunction: string;
+  aspectQuincunx: string;
+  
+  // Zodiac sign colors
+  signAries: string;
+  signTaurus: string;
+  signGemini: string;
+  signCancer: string;
+  signLeo: string;
+  signVirgo: string;
+  signLibra: string;
+  signScorpio: string;
+  signSagittarius: string;
+  signCapricorn: string;
+  signAquarius: string;
+  signPisces: string;
 }
 
 export const darkTheme: ColorPalette = {
@@ -74,6 +120,52 @@ export const darkTheme: ColorPalette = {
   tabBarBorder: '#374151',
   tabBarActive: '#8b5cf6',
   tabBarInactive: '#6b7280',
+  
+  // Accent colors
+  accentPrimary: '#8b5cf6',
+  accentSecondary: '#A07BFF',
+  onAccent: '#ffffff',
+  
+  // Surface variants
+  surfaceCard: '#1e293b',
+  surfaceModal: '#374151',
+  surfaceElevated: '#475569',
+  
+  // Elevation shadows
+  shadowElev1: 'rgba(0, 0, 0, 0.25)',
+  shadowElev2: 'rgba(0, 0, 0, 0.35)',
+  shadowNone: 'rgba(0, 0, 0, 0)',
+  
+  // Stroke variants
+  strokeSubtle: '#334155',
+  strokeMedium: '#475569',
+  
+  // Text hierarchy
+  onSurfaceHigh: '#EAF0FF',
+  onSurfaceMed: '#CBD5E1',
+  onSurfaceLow: '#9BA9C8',
+  
+  // Aspect colors (astrological)
+  aspectTrine: '#22c55e',      // Green - harmonious
+  aspectSquare: '#ef4444',     // Red - challenging
+  aspectOpposition: '#f97316', // Orange - tension
+  aspectSextile: '#3b82f6',    // Blue - supportive
+  aspectConjunction: '#8b5cf6', // Purple - intense
+  aspectQuincunx: '#eab308',   // Yellow - adjustment
+  
+  // Zodiac sign colors
+  signAries: '#ef4444',        // Fire - Red
+  signTaurus: '#22c55e',       // Earth - Green
+  signGemini: '#eab308',       // Air - Yellow
+  signCancer: '#06b6d4',       // Water - Cyan
+  signLeo: '#f97316',          // Fire - Orange
+  signVirgo: '#84cc16',        // Earth - Lime
+  signLibra: '#ec4899',        // Air - Pink
+  signScorpio: '#dc2626',      // Water - Dark Red
+  signSagittarius: '#a855f7',  // Fire - Purple
+  signCapricorn: '#059669',    // Earth - Emerald
+  signAquarius: '#0ea5e9',     // Air - Sky
+  signPisces: '#8b5cf6',       // Water - Violet
 };
 
 export const lightTheme: ColorPalette = {
@@ -113,6 +205,52 @@ export const lightTheme: ColorPalette = {
   tabBarBorder: '#E1E6F0',
   tabBarActive: '#6B4DFF',
   tabBarInactive: '#6B7280',
+  
+  // Accent colors
+  accentPrimary: '#5b3fd1',
+  accentSecondary: '#6B4DFF',
+  onAccent: '#ffffff',
+  
+  // Surface variants
+  surfaceCard: '#FFFFFF',
+  surfaceModal: '#F8FAFC',
+  surfaceElevated: '#F1F5F9',
+  
+  // Elevation shadows
+  shadowElev1: 'rgba(0, 0, 0, 0.08)',
+  shadowElev2: 'rgba(0, 0, 0, 0.12)',
+  shadowNone: 'rgba(0, 0, 0, 0)',
+  
+  // Stroke variants
+  strokeSubtle: '#E2E8F0',
+  strokeMedium: '#CBD5E1',
+  
+  // Text hierarchy
+  onSurfaceHigh: '#131528',
+  onSurfaceMed: '#334155',
+  onSurfaceLow: '#64748B',
+  
+  // Aspect colors (astrological)
+  aspectTrine: '#16a34a',      // Green - harmonious
+  aspectSquare: '#dc2626',     // Red - challenging
+  aspectOpposition: '#ea580c', // Orange - tension
+  aspectSextile: '#2563eb',    // Blue - supportive
+  aspectConjunction: '#5b3fd1', // Purple - intense
+  aspectQuincunx: '#ca8a04',   // Yellow - adjustment
+  
+  // Zodiac sign colors
+  signAries: '#dc2626',        // Fire - Red
+  signTaurus: '#16a34a',       // Earth - Green
+  signGemini: '#ca8a04',       // Air - Yellow
+  signCancer: '#0891b2',       // Water - Cyan
+  signLeo: '#ea580c',          // Fire - Orange
+  signVirgo: '#65a30d',        // Earth - Lime
+  signLibra: '#db2777',        // Air - Pink
+  signScorpio: '#b91c1c',      // Water - Dark Red
+  signSagittarius: '#9333ea',  // Fire - Purple
+  signCapricorn: '#047857',    // Earth - Emerald
+  signAquarius: '#0284c7',     // Air - Sky
+  signPisces: '#5b3fd1',       // Water - Violet
 };
 
 export type ThemeMode = 'light' | 'dark' | 'system';

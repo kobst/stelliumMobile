@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,9 +16,13 @@ import { SubjectDocument } from '../../types';
 import SynastryChartWheel from '../../components/chart/SynastryChartWheel';
 import SynastryAspectsTable from '../../components/chart/SynastryAspectsTable';
 import CompositeChartTables from '../../components/chart/CompositeChartTables';
+import CompositeChartWheel from '../../components/chart/CompositeChartWheel';
+import SynastryHousePlacementsTable from '../../components/chart/SynastryHousePlacementsTable';
+import AspectColorLegend from '../../components/chart/AspectColorLegend';
 import RadarChart from '../../components/chart/RadarChart';
 import ScoredItemsTable from '../../components/chart/ScoredItemsTable';
 import { CompleteRelationshipAnalysisButton } from '../../components/relationship';
+import { SegmentedControl, CardAccordion } from '../../components/ui';
 
 type RelationshipAnalysisScreenRouteProp = RouteProp<{
   RelationshipAnalysis: {
@@ -37,8 +41,12 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const { relationship } = route.params;
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [activeTab, setActiveTab] = useState('charts');
+  const [chartMode, setChartMode] = useState<'synastry' | 'composite'>('synastry');
+  const [activeSection, setActiveSection] = useState<'wheels' | 'tables' | 'placements'>('wheels');
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['synastry-a']));
   const [analysisData, setAnalysisData] = useState<RelationshipAnalysisResponse | null>(null);
   const [userAData, setUserAData] = useState<SubjectDocument | null>(null);
   const [userBData, setUserBData] = useState<SubjectDocument | null>(null);
@@ -127,132 +135,224 @@ const RelationshipAnalysisScreen: React.FC = () => {
     }
   };
 
+  // Helper functions
+  const toggleCardExpanded = (cardId: string) => {
+    const newExpanded = new Set(expandedCards);
+    if (expandedCards.has(cardId)) {
+      newExpanded.delete(cardId);
+    } else {
+      newExpanded.add(cardId);
+    }
+    setExpandedCards(newExpanded);
+  };
+
+  const handleChartModeChange = (newMode: 'synastry' | 'composite') => {
+    setChartMode(newMode);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    // Reset expanded cards when switching modes
+    const defaultCard = newMode === 'synastry' ? 'synastry-a' : 'composite-wheel';
+    setExpandedCards(new Set([defaultCard]));
+  };
+
+  const handleSectionChange = (section: 'wheels' | 'tables' | 'placements') => {
+    setActiveSection(section);
+    // Scroll to appropriate section - will implement refs later if needed
+  };
+
+
   const ChartsTab = () => {
-    // Chart data should always come from the relationship object
     const hasChartData = relationship && (
       relationship.synastryAspects || 
       relationship.compositeChart || 
       relationship.synastryHousePlacements
     );
-    const chartData = hasChartData ? relationship : null;
-
+    
     return (
-      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-        {hasChartData && chartData ? (
-          <>
-            {/* Synastry Chart A */}
-            <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.sectionTitle, { color: colors.primary }]}>📊 Synastry Chart A</Text>
-              <Text style={[styles.sectionSubtitle, { color: colors.onSurfaceVariant }]}>
-                {relationship.userA_name}'s chart with {relationship.userB_name}'s planetary influences
-              </Text>
-              {userAData?.birthChart && userBData?.birthChart ? (
-                <SynastryChartWheel
-                  basePlanets={userAData.birthChart.planets}
-                  baseHouses={userAData.birthChart.houses}
-                  transitPlanets={userBData.birthChart.planets}
-                  baseName={relationship.userA_name}
-                  transitName={relationship.userB_name}
-                />
-              ) : (
-                <View style={styles.placeholder}>
-                  <Text style={[styles.placeholderText, { color: colors.onSurface }]}>Loading Chart Data...</Text>
-                  <Text style={[styles.placeholderSubtext, { color: colors.onSurfaceVariant }]}>
-                    {!userAData && `Fetching ${relationship.userA_name}'s birth chart...`}
-                    {!userBData && `Fetching ${relationship.userB_name}'s birth chart...`}
-                  </Text>
-                </View>
-              )}
-            </View>
+      <View style={styles.chartsContainer}>
+        {/* Layer B: Chart Mode Segmented Control */}
+        <View style={[styles.chartModeContainer, { backgroundColor: colors.background }]}>
+          <SegmentedControl
+            options={[
+              { label: 'Synastry', value: 'synastry' },
+              { label: 'Composite', value: 'composite' }
+            ]}
+            value={chartMode}
+            onChange={handleChartModeChange}
+            style={styles.chartModeControl}
+            accessibilityLabel="Chart mode selection"
+          />
+        </View>
 
-            {/* Synastry Chart B */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>📊 Synastry Chart B</Text>
-              <Text style={styles.sectionSubtitle}>
-                {relationship.userB_name}'s chart with {relationship.userA_name}'s planetary influences
-              </Text>
-              {userAData?.birthChart && userBData?.birthChart ? (
-                <SynastryChartWheel
-                  basePlanets={userBData.birthChart.planets}
-                  baseHouses={userBData.birthChart.houses}
-                  transitPlanets={userAData.birthChart.planets}
-                  baseName={relationship.userB_name}
-                  transitName={relationship.userA_name}
-                />
-              ) : (
-                <View style={styles.placeholder}>
-                  <Text style={[styles.placeholderText, { color: colors.onSurface }]}>Loading Chart Data...</Text>
-                  <Text style={[styles.placeholderSubtext, { color: colors.onSurfaceVariant }]}>
-                    {!userAData && `Fetching ${relationship.userA_name}'s birth chart...`}
-                    {!userBData && `Fetching ${relationship.userB_name}'s birth chart...`}
-                  </Text>
-                </View>
-              )}
-            </View>
+        {/* Layer C: Section Index */}
+        <View style={[styles.sectionChipsContainer, { backgroundColor: colors.background, borderBottomColor: colors.strokeSubtle }]}>
+          <SegmentedControl
+            options={[
+              { label: '🌀 Wheels', value: 'wheels' },
+              { label: '📊 Tables', value: 'tables' },
+              { label: '🧩 Placements', value: 'placements' }
+            ]}
+            value={activeSection}
+            onChange={handleSectionChange}
+            style={styles.sectionControl}
+            accessibilityLabel="Chart section selection"
+          />
+        </View>
 
-            {/* Composite Chart */}
-            {(chartData as any).compositeChart && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>🌟 Composite Chart</Text>
-                <Text style={styles.sectionSubtitle}>
-                  Midpoint chart representing your combined energies
-                </Text>
-                <CompositeChartTables compositeChart={(chartData as any).compositeChart} />
-              </View>
-            )}
-
-            {/* Synastry Aspects */}
-            {(chartData as any).synastryAspects && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>🔗 Synastry Aspects</Text>
-                <Text style={styles.sectionSubtitle}>
-                  Planetary connections between your charts
-                </Text>
-                <SynastryAspectsTable 
-                  aspects={(chartData as any).synastryAspects}
-                  userAName={relationship.userA_name}
-                  userBName={relationship.userB_name}
-                />
-              </View>
-            )}
-          </>
-        ) : (
-          <>
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>📊 Synastry Charts</Text>
-              <Text style={styles.sectionSubtitle}>
-                Birth chart comparisons with planetary overlays
-              </Text>
-              <View style={styles.placeholder}>
-                <Text style={[styles.placeholderText, { color: colors.onSurface }]}>Synastry Charts</Text>
-                <Text style={[styles.placeholderSubtext, { color: colors.onSurfaceVariant }]}>Chart data not available in analysis response</Text>
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>🌟 Composite Chart</Text>
-              <Text style={styles.sectionSubtitle}>
-                Midpoint chart representing your combined energies
-              </Text>
-              <View style={styles.placeholder}>
-                <Text style={[styles.placeholderText, { color: colors.onSurface }]}>Composite Chart</Text>
-                <Text style={[styles.placeholderSubtext, { color: colors.onSurfaceVariant }]}>Chart data not available in analysis response</Text>
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>🔗 Synastry Aspects</Text>
-              <Text style={styles.sectionSubtitle}>
-                Planetary connections between your charts
-              </Text>
-              <View style={styles.placeholder}>
-                <Text style={[styles.placeholderText, { color: colors.onSurface }]}>Synastry Aspects Table</Text>
-                <Text style={[styles.placeholderSubtext, { color: colors.onSurfaceVariant }]}>Aspect data not available in analysis response</Text>
-              </View>
-            </View>
-          </>
+        {/* Aspect Color Legend for Tables Section */}
+        {activeSection === 'tables' && (
+          <AspectColorLegend compact />
         )}
-      </ScrollView>
+
+        {/* Layer D: Scrollable Content with Cards */}
+        <ScrollView 
+          ref={scrollViewRef}
+          style={styles.scrollContent} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContentContainer}
+        >
+          {hasChartData ? (
+            <>
+              {chartMode === 'synastry' && (
+                <>
+                  {/* Synastry Wheels Section */}
+                  {(activeSection === 'wheels' || activeSection === 'tables') && (
+                    <>
+                      <CardAccordion
+                        title="Synastry Chart A"
+                        subtitle={`${relationship.userA_name}'s chart with ${relationship.userB_name}'s influences`}
+                        headerIcon="📊"
+                        defaultExpanded={expandedCards.has('synastry-a')}
+                        onExpand={() => toggleCardExpanded('synastry-a')}
+                        lazyLoad
+                      >
+                        {userAData?.birthChart && userBData?.birthChart ? (
+                          <View style={styles.wheelContainer}>
+                            <SynastryChartWheel
+                              basePlanets={userAData.birthChart.planets}
+                              baseHouses={userAData.birthChart.houses}
+                              transitPlanets={userBData.birthChart.planets}
+                              baseName={relationship.userA_name}
+                              transitName={relationship.userB_name}
+                            />
+                          </View>
+                        ) : (
+                          <View style={styles.loadingContainer}>
+                            <Text style={[styles.loadingText, { color: colors.onSurfaceMed }]}>
+                              Loading chart data...
+                            </Text>
+                          </View>
+                        )}
+                      </CardAccordion>
+
+                      <CardAccordion
+                        title="Synastry Chart B"
+                        subtitle={`${relationship.userB_name}'s chart with ${relationship.userA_name}'s influences`}
+                        headerIcon="📊"
+                        defaultExpanded={expandedCards.has('synastry-b')}
+                        onExpand={() => toggleCardExpanded('synastry-b')}
+                        lazyLoad
+                      >
+                        {userAData?.birthChart && userBData?.birthChart ? (
+                          <View style={styles.wheelContainer}>
+                            <SynastryChartWheel
+                              basePlanets={userBData.birthChart.planets}
+                              baseHouses={userBData.birthChart.houses}
+                              transitPlanets={userAData.birthChart.planets}
+                              baseName={relationship.userB_name}
+                              transitName={relationship.userA_name}
+                            />
+                          </View>
+                        ) : (
+                          <View style={styles.loadingContainer}>
+                            <Text style={[styles.loadingText, { color: colors.onSurfaceMed }]}>
+                              Loading chart data...
+                            </Text>
+                          </View>
+                        )}
+                      </CardAccordion>
+                    </>
+                  )}
+
+                  {/* Synastry Tables Section */}
+                  {activeSection === 'tables' && relationship.synastryAspects && (
+                    <CardAccordion
+                      title="Synastry Aspects"
+                      subtitle="Planetary connections between your charts"
+                      headerIcon="🔗"
+                      defaultExpanded={expandedCards.has('synastry-aspects')}
+                      onExpand={() => toggleCardExpanded('synastry-aspects')}
+                    >
+                      <SynastryAspectsTable 
+                        aspects={relationship.synastryAspects}
+                        userAName={relationship.userA_name}
+                        userBName={relationship.userB_name}
+                      />
+                    </CardAccordion>
+                  )}
+
+                  {/* Synastry Placements Section */}
+                  {activeSection === 'placements' && relationship.synastryHousePlacements && (
+                    <CardAccordion
+                      title="Synastry House Placements"
+                      subtitle="How your planets fall in each other's houses"
+                      headerIcon="🏠"
+                      defaultExpanded={expandedCards.has('synastry-placements')}
+                      onExpand={() => toggleCardExpanded('synastry-placements')}
+                    >
+                      <SynastryHousePlacementsTable 
+                        synastryHousePlacements={relationship.synastryHousePlacements}
+                        userAName={relationship.userA_name}
+                        userBName={relationship.userB_name}
+                      />
+                    </CardAccordion>
+                  )}
+                </>
+              )}
+
+              {chartMode === 'composite' && (
+                <>
+                  {/* Composite Wheels Section */}
+                  {activeSection === 'wheels' && relationship.compositeChart && (
+                    <CardAccordion
+                      title="Composite Chart"
+                      subtitle="Midpoint chart representing your combined energies"
+                      headerIcon="🌟"
+                      defaultExpanded={expandedCards.has('composite-wheel')}
+                      onExpand={() => toggleCardExpanded('composite-wheel')}
+                      lazyLoad
+                    >
+                      <View style={styles.wheelContainer}>
+                        <CompositeChartWheel 
+                          compositeChart={relationship.compositeChart}
+                        />
+                      </View>
+                    </CardAccordion>
+                  )}
+
+                  {/* Composite Tables Section */}
+                  {activeSection === 'tables' && relationship.compositeChart && (
+                    <CardAccordion
+                      title="Composite Chart Tables"
+                      subtitle="Detailed planetary positions, houses, and aspects"
+                      headerIcon="📊"
+                      defaultExpanded={expandedCards.has('composite-tables')}
+                      onExpand={() => toggleCardExpanded('composite-tables')}
+                    >
+                      <CompositeChartTables compositeChart={relationship.compositeChart} />
+                    </CardAccordion>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={[styles.noDataText, { color: colors.onSurfaceMed }]}>
+                Chart data not available
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </View>
     );
   };
 
@@ -648,6 +748,46 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     marginTop: 12,
+  },
+  // New Charts Tab styles
+  chartsContainer: {
+    flex: 1,
+  },
+  chartModeContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  chartModeControl: {
+    // Styles handled by SegmentedControl component
+  },
+  sectionChipsContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  sectionControl: {
+    // Styles handled by SegmentedControl component
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    padding: 16,
+  },
+  wheelContainer: {
+    alignItems: 'center',
+    padding: 8,
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  noDataText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
   header: {
     padding: 16,
