@@ -6,12 +6,14 @@ import {
   getZodiacPositionFromDegree,
   ZODIAC_COLORS,
 } from './ChartUtils';
+import { useTheme } from '../../theme/useTheme';
 
 interface HouseTableProps {
   houses: BackendHouse[];
 }
 
 const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
+  const { colors } = useTheme();
   // Check if birth time is unknown (houses will have NaN degrees)
   const hasValidHouses = houses.some(house => !isNaN(house.degree));
 
@@ -22,10 +24,10 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
     const signColor = ZODIAC_COLORS[house.sign as ZodiacSign] || '#8b5cf6';
 
     return (
-      <View key={house.house} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
+      <View key={house.house} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow, { borderBottomColor: colors.border }]}>
         {/* House Number */}
         <View style={styles.houseCell}>
-          <Text style={styles.houseNumber}>{house.house}</Text>
+          <Text style={[styles.houseNumber, { color: colors.text }]}>{house.house}</Text>
         </View>
 
         {/* Sign Symbol */}
@@ -37,12 +39,12 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
 
         {/* Sign Name */}
         <View style={styles.signCell}>
-          <Text style={styles.signName}>{house.sign || 'Unknown'}</Text>
+          <Text style={[styles.signName, { color: colors.text }]}>{house.sign || 'Unknown'}</Text>
         </View>
 
         {/* Degree */}
         <View style={styles.degreeCell}>
-          <Text style={styles.degree}>{position.toFixed(1)}°</Text>
+          <Text style={[styles.degree, { color: colors.textSecondary }]}>{position.toFixed(1)}°</Text>
         </View>
       </View>
     );
@@ -50,10 +52,10 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
 
   if (!hasValidHouses) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>House Positions</Text>
-        <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>
+      <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>House Positions</Text>
+        <View style={[styles.noDataContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
             House data not available{'\n'}
             (Unknown birth time)
           </Text>
@@ -63,22 +65,22 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>House Positions</Text>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={[styles.title, { color: colors.text }]}>House Positions</Text>
 
       {/* Header */}
-      <View style={[styles.row, styles.headerRow]}>
+      <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceSecondary }]}>
         <View style={styles.houseCell}>
-          <Text style={styles.headerText}>House</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>House</Text>
         </View>
         <View style={styles.symbolCell}>
-          <Text style={styles.headerText}>♈</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>♈</Text>
         </View>
         <View style={styles.signCell}>
-          <Text style={styles.headerText}>Sign</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>Sign</Text>
         </View>
         <View style={styles.degreeCell}>
-          <Text style={styles.headerText}>Degree</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>Degree</Text>
         </View>
       </View>
 
@@ -94,17 +96,14 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 16,
     margin: 8,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -117,10 +116,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#334155',
   },
   headerRow: {
-    backgroundColor: '#374151',
     borderRadius: 6,
     marginBottom: 4,
     borderBottomWidth: 0,
@@ -129,7 +126,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   oddRow: {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: 'rgba(128, 128, 128, 0.05)',
   },
   houseCell: {
     width: 60,
@@ -150,13 +147,11 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94a3b8',
     textAlign: 'center',
   },
   houseNumber: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffffff',
   },
   signSymbol: {
     fontSize: 20,
@@ -164,24 +159,19 @@ const styles = StyleSheet.create({
   },
   signName: {
     fontSize: 14,
-    color: '#e2e8f0',
   },
   degree: {
     fontSize: 12,
-    color: '#94a3b8',
   },
   noDataContainer: {
     padding: 32,
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#334155',
     borderStyle: 'dashed',
   },
   noDataText: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 20,
   },
