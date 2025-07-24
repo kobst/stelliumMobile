@@ -6,12 +6,14 @@ import {
   getAspectColor,
   PLANET_COLORS,
 } from './ChartUtils';
+import { useTheme } from '../../theme/useTheme';
 
 interface AspectTableProps {
   aspects: BackendAspect[];
 }
 
 const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
+  const { colors } = useTheme();
   // Filter out aspects with excluded planets
   const filteredAspects = aspects.filter(aspect => {
     const excludedPlanets = ['South Node', 'Part of Fortune', 'Chiron'];
@@ -56,7 +58,7 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
 
     return (
       <View key={`${aspect.aspectedPlanet}-${aspect.aspectingPlanet}-${index}`}
-            style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
+            style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow, { borderBottomColor: colors.border }]}>
 
         {/* First Planet Symbol */}
         <View style={styles.planetCell}>
@@ -67,7 +69,7 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
 
         {/* First Planet Name */}
         <View style={styles.nameCell}>
-          <Text style={styles.planetName}>{aspect.aspectedPlanet}</Text>
+          <Text style={[styles.planetName, { color: colors.text }]}>{aspect.aspectedPlanet}</Text>
         </View>
 
         {/* Aspect Symbol */}
@@ -93,12 +95,12 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
 
         {/* Second Planet Name */}
         <View style={styles.nameCell}>
-          <Text style={styles.planetName}>{aspect.aspectingPlanet}</Text>
+          <Text style={[styles.planetName, { color: colors.text }]}>{aspect.aspectingPlanet}</Text>
         </View>
 
         {/* Orb */}
         <View style={styles.orbCell}>
-          <Text style={styles.orb}>{aspect.orb.toFixed(1)}°</Text>
+          <Text style={[styles.orb, { color: colors.textSecondary }]}>{aspect.orb.toFixed(1)}°</Text>
         </View>
       </View>
     );
@@ -106,41 +108,41 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
 
   if (filteredAspects.length === 0) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Aspects</Text>
-        <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No aspects found</Text>
+      <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Aspects</Text>
+        <View style={[styles.noDataContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No aspects found</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Aspects</Text>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={[styles.title, { color: colors.text }]}>Aspects</Text>
 
       {/* Header */}
-      <View style={[styles.row, styles.headerRow]}>
+      <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceSecondary }]}>
         <View style={styles.planetCell}>
-          <Text style={styles.headerText}>☽</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>☽</Text>
         </View>
         <View style={styles.nameCell}>
-          <Text style={styles.headerText}>Planet</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>Planet</Text>
         </View>
         <View style={styles.aspectSymbolCell}>
-          <Text style={styles.headerText}>◦</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>◦</Text>
         </View>
         <View style={styles.aspectNameCell}>
-          <Text style={styles.headerText}>Aspect</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>Aspect</Text>
         </View>
         <View style={styles.planetCell}>
-          <Text style={styles.headerText}>☉</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>☉</Text>
         </View>
         <View style={styles.nameCell}>
-          <Text style={styles.headerText}>Planet</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>Planet</Text>
         </View>
         <View style={styles.orbCell}>
-          <Text style={styles.headerText}>Orb</Text>
+          <Text style={[styles.headerText, { color: colors.textSecondary }]}>Orb</Text>
         </View>
       </View>
 
@@ -154,17 +156,14 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1e293b',
     borderRadius: 12,
     padding: 16,
     margin: 8,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ffffff',
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -177,10 +176,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 2,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#334155',
   },
   headerRow: {
-    backgroundColor: '#374151',
     borderRadius: 6,
     marginBottom: 4,
     borderBottomWidth: 0,
@@ -189,7 +186,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   oddRow: {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: 'rgba(128, 128, 128, 0.05)',
   },
   planetCell: {
     width: 30,
@@ -214,7 +211,6 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#94a3b8',
     textAlign: 'center',
   },
   planetSymbol: {
@@ -223,7 +219,6 @@ const styles = StyleSheet.create({
   },
   planetName: {
     fontSize: 11,
-    color: '#e2e8f0',
   },
   aspectSymbol: {
     fontSize: 14,
@@ -235,20 +230,16 @@ const styles = StyleSheet.create({
   },
   orb: {
     fontSize: 10,
-    color: '#94a3b8',
   },
   noDataContainer: {
     padding: 32,
     alignItems: 'center',
-    backgroundColor: '#0f172a',
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#334155',
     borderStyle: 'dashed',
   },
   noDataText: {
     fontSize: 14,
-    color: '#94a3b8',
     textAlign: 'center',
   },
 });
