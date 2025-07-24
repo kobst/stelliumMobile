@@ -30,8 +30,8 @@ const CelebrityStack: React.FC = () => {
         name="CelebrityDetail"
         component={CelebrityDetailScreen}
         options={{
-          title: 'Celebrity Chart',
-          headerShown: false, // Using custom header in component
+          title: 'Celebrity Birth Charts',
+          headerShown: true,
         }}
       />
     </Stack.Navigator>

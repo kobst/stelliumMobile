@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
@@ -11,6 +10,9 @@ import { BirthChart } from '../../types';
 import ChartWheel from './ChartWheel';
 import ChartTables from './ChartTables';
 import { useTheme } from '../../theme';
+import { StickySegment } from '../navigation/StickySegment';
+import { AnalysisHeader } from '../navigation/AnalysisHeader';
+import { SectionSubtitle } from '../navigation/SectionSubtitle';
 
 interface ChartContainerProps {
   birthChart?: BirthChart;
@@ -19,6 +21,7 @@ interface ChartContainerProps {
   userName?: string;
   userId?: string;
   overview?: string | null;
+  showNavigation?: boolean; // Controls whether to show internal navigation
 }
 
 const ChartContainer: React.FC<ChartContainerProps> = ({
@@ -28,10 +31,15 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   userName,
   userId,
   overview,
+  showNavigation = false,
 }) => {
   const { colors } = useTheme();
-  const [showAspects, setShowAspects] = useState(true);
-  const [showHouses, setShowHouses] = useState(true);
+  const [activeSubTab, setActiveSubTab] = useState('wheel');
+
+  const chartSubTabs = [
+    { label: 'Wheel', value: 'wheel' },
+    { label: 'Tables', value: 'tables' },
+  ];
 
   // Determine if we have complete chart data
   const hasChartData = birthChart &&
@@ -56,46 +64,28 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
     );
   }
 
-  return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={true}>
-
-      {/* Chart Controls */}
-      {/* Chart Options */}
-      {hasChartData && (
-        <View style={[styles.chartOptions, { backgroundColor: colors.surface }]}>
-          <TouchableOpacity
-            style={styles.optionButton}
-            onPress={() => setShowAspects(!showAspects)}
-          >
-            <Text style={[
-              { fontSize: 12, color: colors.onSurfaceVariant },
-              showAspects && { color: colors.primary, fontWeight: '500' },
-            ]}>
-              {showAspects ? '✓' : '○'} Aspects
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.optionButton}
-            onPress={() => setShowHouses(!showHouses)}
-          >
-            <Text style={[
-              { fontSize: 12, color: colors.onSurfaceVariant },
-              showHouses && { color: colors.primary, fontWeight: '500' },
-            ]}>
-              {showHouses ? '✓' : '○'} Houses
-            </Text>
-          </TouchableOpacity>
+  const renderContent = () => {
+    if (!hasChartData) {
+      return (
+        <View style={[styles.noDataContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>
+            📊 No birth chart data available
+          </Text>
+          <Text style={[styles.noDataSubtext, { color: colors.onSurfaceVariant }]}>
+            Chart data will appear here once loaded from the backend
+          </Text>
         </View>
-      )}
+      );
+    }
 
-      {/* Main Content */}
-      {hasChartData ? (
-        <View>
+    if (activeSubTab === 'wheel') {
+      return (
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
           <View style={[styles.chartSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <ChartWheel
               birthChart={birthChart}
-              showAspects={showAspects}
-              showHouses={showHouses}
+              showAspects={true}
+              showHouses={true}
             />
           </View>
 
@@ -106,23 +96,76 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
               <Text style={[styles.overviewText, { color: colors.onSurface }]}>{overview}</Text>
             </View>
           )}
-        </View>
-      ) : (
-        <View style={[styles.noDataContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>
-            📊 No birth chart data available
-          </Text>
-          <Text style={[styles.noDataSubtext, { color: colors.onSurfaceVariant }]}>
-            Chart data will appear here once loaded from the backend
-          </Text>
-        </View>
+        </ScrollView>
+      );
+    } else {
+      // Tables view
+      return (
+        <ChartTables birthChart={birthChart} />
+      );
+    }
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Analysis Header - only show when showNavigation is true */}
+      {showNavigation && (
+        <AnalysisHeader
+          title={userName || 'Birth Chart'}
+          subtitle="Birth Chart"
+        />
       )}
-    </ScrollView>
+
+      {/* Section Subtitle - only show when showNavigation is true */}
+      {showNavigation && (
+        <SectionSubtitle
+          icon="🌀"
+          title="Interactive Wheel"
+          desc="Visual chart & data tables"
+        />
+      )}
+
+      {/* Sub Navigation - only show when showNavigation is true */}
+      {showNavigation && hasChartData && (
+        <StickySegment
+          items={chartSubTabs}
+          selectedValue={activeSubTab}
+          onChange={setActiveSubTab}
+        />
+      )}
+
+      {/* Content */}
+      <View style={styles.contentContainer}>
+        {showNavigation ? renderContent() : (
+          // When not showing navigation, always show wheel view (for use in ChartScreen)
+          <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
+            <View style={[styles.chartSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <ChartWheel
+                birthChart={birthChart}
+                showAspects={true}
+                showHouses={true}
+              />
+            </View>
+
+            {/* Overview Section */}
+            {overview && (
+              <View style={[styles.overviewSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[styles.overviewTitle, { color: colors.primary }]}>Chart Overview</Text>
+                <Text style={[styles.overviewText, { color: colors.onSurface }]}>{overview}</Text>
+              </View>
+            )}
+          </ScrollView>
+        )}
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  contentContainer: {
     flex: 1,
   },
   loadingContainer: {
@@ -150,16 +193,6 @@ const styles = StyleSheet.create({
   errorSubtext: {
     fontSize: 14,
     textAlign: 'center',
-  },
-  chartOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    borderRadius: 8,
-    padding: 8,
-  },
-  optionButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
   },
   chartSection: {
     alignItems: 'center',

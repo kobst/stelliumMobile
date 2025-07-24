@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '400',
     marginBottom: 4,
   },
