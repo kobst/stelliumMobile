@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
   StyleSheet,
-  Dimensions,
 } from 'react-native';
 import { BirthChart } from '../../types';
 import ChartContainer from './ChartContainer';
+import ChartTables from './ChartTables';
 import PatternsTab from './PatternsTab';
 import PlanetsTab from './PlanetsTab';
 import AnalysisTab from './AnalysisTab';
 import { useTheme } from '../../theme';
+import { AnalysisHeader } from '../navigation/AnalysisHeader';
+import { TopTabBar } from '../navigation/TopTabBar';
+import { SectionSubtitle } from '../navigation/SectionSubtitle';
+import { StickySegment } from '../navigation/StickySegment';
 
 interface ChartTabNavigatorProps {
   birthChart?: BirthChart;
@@ -21,14 +22,8 @@ interface ChartTabNavigatorProps {
   userName?: string;
   userId?: string;
   overview?: string | null;
+  birthInfo?: string;
 }
-
-const tabs = [
-  { key: 'chart', title: 'Chart' },
-  { key: 'patterns', title: 'Patterns and Dominance' },
-  { key: 'planets', title: 'Planets' },
-  { key: 'analysis', title: '360 Analysis' },
-];
 
 const ChartTabNavigator: React.FC<ChartTabNavigatorProps> = ({
   birthChart,
@@ -37,23 +32,68 @@ const ChartTabNavigator: React.FC<ChartTabNavigatorProps> = ({
   userName,
   userId,
   overview,
+  birthInfo,
 }) => {
-  const [activeTab, setActiveTab] = useState('chart');
   const { colors } = useTheme();
+  const [activeTab, setActiveTab] = useState('chart');
+  const [activeSubTab, setActiveSubTab] = useState('wheel');
 
-  const renderTabContent = () => {
+  const topTabs = [
+    { label: 'Chart', routeName: 'chart' },
+    { label: 'Patterns & Dominance', routeName: 'patterns' },
+    { label: 'Planets', routeName: 'planets' },
+    { label: '360 Analysis', routeName: 'analysis' },
+  ];
+
+  const chartSubTabs = [
+    { label: 'Wheel', value: 'wheel' },
+    { label: 'Tables', value: 'tables' },
+  ];
+
+  const getSectionSubtitle = () => {
     switch (activeTab) {
       case 'chart':
-        return (
-          <ChartContainer
-            birthChart={birthChart}
-            loading={loading}
-            error={error}
-            userName={userName}
-            userId={userId}
-            overview={overview}
-          />
-        );
+        return {
+          icon: '🌀',
+          title: 'Interactive Wheel',
+          desc: 'Visual chart & data tables'
+        };
+      case 'patterns':
+        return {
+          icon: '♾️',
+          title: 'Patterns & Dominance',
+          desc: 'Key planetary patterns and chart rulerships'
+        };
+      case 'planets':
+        return null; // Keep existing
+      case 'analysis':
+        return null; // Keep existing
+      default:
+        return null;
+    }
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'chart':
+        if (activeSubTab === 'wheel') {
+          return (
+            <ChartContainer
+              birthChart={birthChart}
+              loading={loading}
+              error={error}
+              userName={userName}
+              userId={userId}
+              overview={overview}
+              showNavigation={false}
+            />
+          );
+        } else {
+          // Tables view - use ChartTables component directly
+          return (
+            <ChartTables birthChart={birthChart} />
+          );
+        }
       case 'patterns':
         return <PatternsTab userId={userId} birthChart={birthChart} />;
       case 'planets':
@@ -61,42 +101,46 @@ const ChartTabNavigator: React.FC<ChartTabNavigatorProps> = ({
       case 'analysis':
         return <AnalysisTab userId={userId} />;
       default:
-        return <ChartContainer birthChart={birthChart} loading={loading} error={error} userName={userName} userId={userId} overview={overview} />;
+        return null;
     }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Tab Navigation */}
-      <View style={[styles.tabContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabScrollContent}
-        >
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[
-                styles.tab,
-                activeTab === tab.key && { backgroundColor: colors.primary },
-              ]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Text style={[
-                { color: colors.onSurfaceVariant, fontSize: 14, fontWeight: '500', textAlign: 'center' },
-                activeTab === tab.key && { color: colors.onPrimary, fontWeight: '600' },
-              ]}>
-                {tab.title}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {/* Analysis Header */}
+      <AnalysisHeader
+        title={userName || 'Unknown'}
+        subtitle={birthInfo || 'Birth Chart'}
+      />
 
-      {/* Tab Content */}
+      {/* Top Tab Bar */}
+      <TopTabBar
+        items={topTabs}
+        activeRoute={activeTab}
+        onTabPress={setActiveTab}
+      />
+
+      {/* Section Subtitle */}
+      {getSectionSubtitle() && (
+        <SectionSubtitle
+          icon={getSectionSubtitle()!.icon}
+          title={getSectionSubtitle()!.title}
+          desc={getSectionSubtitle()!.desc}
+        />
+      )}
+
+      {/* Sub Navigation (only for Chart tab) */}
+      {activeTab === 'chart' && (
+        <StickySegment
+          items={chartSubTabs}
+          selectedValue={activeSubTab}
+          onChange={setActiveSubTab}
+        />
+      )}
+
+      {/* Content */}
       <View style={styles.contentContainer}>
-        {renderTabContent()}
+        {renderContent()}
       </View>
     </View>
   );
@@ -105,21 +149,6 @@ const ChartTabNavigator: React.FC<ChartTabNavigatorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  tabContainer: {
-    borderBottomWidth: 1,
-  },
-  tabScrollContent: {
-    paddingHorizontal: 16,
-  },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginRight: 8,
-    borderRadius: 8,
-    minHeight: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   contentContainer: {
     flex: 1,

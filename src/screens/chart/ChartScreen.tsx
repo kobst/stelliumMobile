@@ -56,6 +56,51 @@ const ChartScreen: React.FC = () => {
     { label: 'Tables', value: 'tables' },
   ];
 
+  // Create birth info string for regular users
+  const getBirthInfo = (subject: any): string => {
+    if (!subject) return 'Birth Chart';
+    
+    try {
+      // Handle different date formats
+      let birthDate: Date;
+      if (subject.dateOfBirth) {
+        // SubjectDocument type
+        birthDate = new Date(subject.dateOfBirth);
+      } else if (subject.birthYear && subject.birthMonth && subject.birthDay) {
+        // User type
+        birthDate = new Date(subject.birthYear, subject.birthMonth - 1, subject.birthDay);
+      } else {
+        return 'Birth Chart';
+      }
+      
+      const formattedDate = birthDate.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      
+      // Handle time information
+      let timeString = '';
+      if (subject.time && !subject.birthTimeUnknown) {
+        timeString = ` at ${subject.time}`;
+      } else if (subject.birthHour !== undefined && subject.birthMinute !== undefined && 
+                 !(subject.birthHour === 12 && subject.birthMinute === 0)) {
+        const hour = subject.birthHour === 0 ? 12 : subject.birthHour > 12 ? subject.birthHour - 12 : subject.birthHour;
+        const minute = subject.birthMinute.toString().padStart(2, '0');
+        const period = subject.birthHour >= 12 ? 'PM' : 'AM';
+        timeString = ` at ${hour}:${minute} ${period}`;
+      }
+      
+      // Handle location
+      const location = subject.placeOfBirth || subject.birthLocation;
+      const locationString = location ? ` in ${location}` : '';
+      
+      return `Born ${formattedDate}${timeString}${locationString}`;
+    } catch (error) {
+      return 'Birth Chart';
+    }
+  };
+
 
   useEffect(() => {
     if (subject?.birthChart) {
@@ -130,7 +175,7 @@ const ChartScreen: React.FC = () => {
       {/* Analysis Header */}
       <AnalysisHeader
         title={subject?.name || 'Unknown'}
-        subtitle="Birth Chart"
+        subtitle={getBirthInfo(subject)}
       />
 
       {/* Top Tab Bar */}

@@ -104,22 +104,6 @@ const CelebrityDetailScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Custom Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.surfaceVariant }]} onPress={handleBackPress}>
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
-        </TouchableOpacity>
-
-        <View style={styles.celebrityInfo}>
-          <Text style={[styles.celebrityName, { color: colors.onSurface }]}>
-            {getCelebrityDisplayName(celebrity)}
-          </Text>
-          <Text style={[styles.celebritySubtitle, { color: colors.onSurfaceVariant }]}>
-            {getCelebritySubtitle(celebrity)}
-          </Text>
-        </View>
-      </View>
-
       {/* Chart Tab Navigator */}
       <ChartTabNavigator
         birthChart={activeUserContext?.birthChart}
@@ -128,6 +112,7 @@ const CelebrityDetailScreen: React.FC = () => {
         userName={getCelebrityDisplayName(celebrity)}
         userId={celebrity._id}
         overview={overview}
+        birthInfo={getCelebritySubtitle(celebrity)}
       />
 
       {/* Error Handling */}
@@ -162,26 +147,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-  },
-  header: {
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  backButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  celebrityInfo: {
-    alignItems: 'center',
   },
   celebrityName: {
     fontSize: 24,
