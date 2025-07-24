@@ -1,41 +1,36 @@
 import React, { useState, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, Text } from 'react-native';
-import { BirthChart } from '../../types';
 import { useTheme } from '../../theme';
-import PlanetTable from './PlanetTable';
-import HouseTable from './HouseTable';
-import AspectTable from './AspectTable';
+import CompositeChartTables from './CompositeChartTables';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-interface ChartTablesProps {
-  birthChart?: BirthChart;
+interface CompositeTablesProps {
+  compositeChart: any;
 }
 
-const ChartTables: React.FC<ChartTablesProps> = ({ birthChart }) => {
+const CompositeTables: React.FC<CompositeTablesProps> = ({ compositeChart }) => {
   const { colors } = useTheme();
   const [currentPage, setCurrentPage] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  if (!birthChart) {
-    return <View style={[styles.container, { backgroundColor: colors.background }]} />;
+  if (!compositeChart) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.noDataContainer}>
+          <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>
+            No composite chart data available
+          </Text>
+        </View>
+      </View>
+    );
   }
 
   const pages = [
     {
-      title: 'Houses',
-      component: birthChart.houses && birthChart.houses.length > 0 ? (
-        <HouseTable houses={birthChart.houses} />
-      ) : (
-        <View style={styles.noDataContainer}>
-          <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>No house data available</Text>
-        </View>
-      ),
-    },
-    {
       title: 'Planets',
-      component: birthChart.planets && birthChart.planets.length > 0 ? (
-        <PlanetTable planets={birthChart.planets} />
+      component: compositeChart.planets && compositeChart.planets.length > 0 ? (
+        <CompositeChartTables compositeChart={compositeChart} showOnlyPlanets={true} />
       ) : (
         <View style={styles.noDataContainer}>
           <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>No planet data available</Text>
@@ -43,9 +38,19 @@ const ChartTables: React.FC<ChartTablesProps> = ({ birthChart }) => {
       ),
     },
     {
+      title: 'Houses',
+      component: compositeChart.houses && compositeChart.houses.length > 0 ? (
+        <CompositeChartTables compositeChart={compositeChart} showOnlyHouses={true} />
+      ) : (
+        <View style={styles.noDataContainer}>
+          <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>No house data available</Text>
+        </View>
+      ),
+    },
+    {
       title: 'Aspects',
-      component: birthChart.aspects && birthChart.aspects.length > 0 ? (
-        <AspectTable aspects={birthChart.aspects} />
+      component: compositeChart.aspects && compositeChart.aspects.length > 0 ? (
+        <CompositeChartTables compositeChart={compositeChart} showOnlyAspects={true} />
       ) : (
         <View style={styles.noDataContainer}>
           <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>No aspect data available</Text>
@@ -143,4 +148,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChartTables;
+export default CompositeTables;

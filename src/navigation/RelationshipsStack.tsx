@@ -30,7 +30,7 @@ const RelationshipsStack: React.FC = () => {
       <Stack.Screen
         name="RelationshipAnalysis"
         component={RelationshipAnalysisScreen}
-        options={{ headerShown: false }}
+        options={{ title: 'Relationship Analysis' }}
       />
       <Stack.Screen
         name="CreateRelationship"

@@ -30,7 +30,6 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   overview,
 }) => {
   const { colors } = useTheme();
-  const [showTables, setShowTables] = useState(false);
   const [showAspects, setShowAspects] = useState(true);
   const [showHouses, setShowHouses] = useState(true);
 
@@ -59,93 +58,55 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={true}>
-      {/* User Info Header */}
-      {userName && (
-        <View style={[styles.userInfoSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.userName, { color: colors.onSurface }]}>Birth Chart: {userName}</Text>
-          {userId && <Text style={[styles.userId, { color: colors.onSurfaceVariant }]}>ID: {userId}</Text>}
+
+      {/* Chart Controls */}
+      {/* Chart Options */}
+      {hasChartData && (
+        <View style={[styles.chartOptions, { backgroundColor: colors.surface }]}>
+          <TouchableOpacity
+            style={styles.optionButton}
+            onPress={() => setShowAspects(!showAspects)}
+          >
+            <Text style={[
+              { fontSize: 12, color: colors.onSurfaceVariant },
+              showAspects && { color: colors.primary, fontWeight: '500' },
+            ]}>
+              {showAspects ? '✓' : '○'} Aspects
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.optionButton}
+            onPress={() => setShowHouses(!showHouses)}
+          >
+            <Text style={[
+              { fontSize: 12, color: colors.onSurfaceVariant },
+              showHouses && { color: colors.primary, fontWeight: '500' },
+            ]}>
+              {showHouses ? '✓' : '○'} Houses
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
-      {/* Chart Controls */}
-      <View style={styles.controlsSection}>
-        <View style={[styles.viewToggle, { backgroundColor: colors.surface }]}>
-          <TouchableOpacity
-            style={[styles.toggleButton, !showTables && { backgroundColor: colors.primary }]}
-            onPress={() => setShowTables(false)}
-          >
-            <Text style={[
-              { color: colors.onSurfaceVariant, fontSize: 14, fontWeight: '500' },
-              !showTables && { color: colors.onPrimary },
-            ]}>
-              Chart Wheel
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleButton, showTables && { backgroundColor: colors.primary }]}
-            onPress={() => setShowTables(true)}
-          >
-            <Text style={[
-              { color: colors.onSurfaceVariant, fontSize: 14, fontWeight: '500' },
-              showTables && { color: colors.onPrimary },
-            ]}>
-              Data Tables
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Chart Options */}
-        {!showTables && hasChartData && (
-          <View style={[styles.chartOptions, { backgroundColor: colors.surface }]}>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={() => setShowAspects(!showAspects)}
-            >
-              <Text style={[
-                { fontSize: 12, color: colors.onSurfaceVariant },
-                showAspects && { color: colors.primary, fontWeight: '500' },
-              ]}>
-                {showAspects ? '✓' : '○'} Aspects
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={() => setShowHouses(!showHouses)}
-            >
-              <Text style={[
-                { fontSize: 12, color: colors.onSurfaceVariant },
-                showHouses && { color: colors.primary, fontWeight: '500' },
-              ]}>
-                {showHouses ? '✓' : '○'} Houses
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
       {/* Main Content */}
       {hasChartData ? (
-        showTables ? (
-          <ChartTables birthChart={birthChart} />
-        ) : (
-          <View>
-            <View style={[styles.chartSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ChartWheel
-                birthChart={birthChart}
-                showAspects={showAspects}
-                showHouses={showHouses}
-              />
-            </View>
-
-            {/* Overview Section */}
-            {overview && (
-              <View style={[styles.overviewSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[styles.overviewTitle, { color: colors.primary }]}>Chart Overview</Text>
-                <Text style={[styles.overviewText, { color: colors.onSurface }]}>{overview}</Text>
-              </View>
-            )}
+        <View>
+          <View style={[styles.chartSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <ChartWheel
+              birthChart={birthChart}
+              showAspects={showAspects}
+              showHouses={showHouses}
+            />
           </View>
-        )
+
+          {/* Overview Section */}
+          {overview && (
+            <View style={[styles.overviewSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.overviewTitle, { color: colors.primary }]}>Chart Overview</Text>
+              <Text style={[styles.overviewText, { color: colors.onSurface }]}>{overview}</Text>
+            </View>
+          )}
+        </View>
       ) : (
         <View style={[styles.noDataContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>
@@ -189,37 +150,6 @@ const styles = StyleSheet.create({
   errorSubtext: {
     fontSize: 14,
     textAlign: 'center',
-  },
-  userInfoSection: {
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  userId: {
-    fontSize: 12,
-  },
-  controlsSection: {
-    margin: 16,
-    marginTop: 0,
-  },
-  viewToggle: {
-    flexDirection: 'row',
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 12,
-  },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignItems: 'center',
   },
   chartOptions: {
     flexDirection: 'row',
