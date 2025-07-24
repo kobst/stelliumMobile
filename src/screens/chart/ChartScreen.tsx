@@ -7,14 +7,24 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { useStore } from '../../store';
 import { useChart } from '../../hooks/useChart';
 import { ChartTabNavigator } from '../../components';
 import { useTheme } from '../../theme';
+import { AnalysisHeader } from '../../components/navigation/AnalysisHeader';
+import { TopTabBar } from '../../components/navigation/TopTabBar';
+import { StickySegment } from '../../components/navigation/StickySegment';
+import { SectionSubtitle } from '../../components/navigation/SectionSubtitle';
+import ChartContainer from '../../components/chart/ChartContainer';
+import ChartTables from '../../components/chart/ChartTables';
+import PatternsTab from '../../components/chart/PatternsTab';
+import PlanetsTab from '../../components/chart/PlanetsTab';
+import AnalysisTab from '../../components/chart/AnalysisTab';
 
 const ChartScreen: React.FC = () => {
   const route = useRoute<any>();
+  const navigation = useNavigation();
   const { userData } = useStore();
   const { colors } = useTheme();
 
@@ -30,12 +40,51 @@ const ChartScreen: React.FC = () => {
     clearError,
   } = useChart(subject?.id);
 
+  // Navigation state
+  const [activeTab, setActiveTab] = useState('chart');
+  const [activeSubTab, setActiveSubTab] = useState('wheel');
+
+  const topTabs = [
+    { label: 'Chart', routeName: 'chart' },
+    { label: 'Patterns & Dominance', routeName: 'patterns' },
+    { label: 'Planets', routeName: 'planets' },
+    { label: '360 Analysis', routeName: 'analysis' },
+  ];
+
+  const chartSubTabs = [
+    { label: 'Wheel', value: 'wheel' },
+    { label: 'Tables', value: 'tables' },
+  ];
+
 
   useEffect(() => {
     if (subject?.birthChart) {
       loadFullAnalysis();
     }
   }, [subject?.birthChart, loadFullAnalysis]);
+
+  const getSectionSubtitle = () => {
+    switch (activeTab) {
+      case 'chart':
+        return {
+          icon: '🌀',
+          title: 'Interactive Wheel',
+          desc: 'Visual chart & data tables'
+        };
+      case 'patterns':
+        return {
+          icon: '♾️',
+          title: 'Patterns & Dominance',
+          desc: 'Key planetary patterns and chart rulerships'
+        };
+      case 'planets':
+        return null; // Keep existing
+      case 'analysis':
+        return null; // Keep existing
+      default:
+        return null;
+    }
+  };
 
   if (!subject) {
     return (
@@ -45,17 +94,74 @@ const ChartScreen: React.FC = () => {
     );
   }
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'chart':
+        if (activeSubTab === 'wheel') {
+          return (
+            <ChartContainer
+              birthChart={subject?.birthChart}
+              loading={chartLoading}
+              error={chartError}
+              userName={subject?.name}
+              userId={subject?.id}
+              overview={overview}
+            />
+          );
+        } else {
+          // Tables view - import and use the actual ChartTables component
+          return (
+            <ChartTables birthChart={subject?.birthChart} />
+          );
+        }
+      case 'patterns':
+        return <PatternsTab userId={subject?.id} birthChart={subject?.birthChart} />;
+      case 'planets':
+        return <PlanetsTab userId={subject?.id} birthChart={subject?.birthChart} />;
+      case 'analysis':
+        return <AnalysisTab userId={subject?.id} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Birth Chart Tab Navigator */}
-      <ChartTabNavigator
-        birthChart={subject?.birthChart}
-        loading={chartLoading}
-        error={chartError}
-        userName={subject?.name}
-        userId={subject?.id}
-        overview={overview}
+      {/* Analysis Header */}
+      <AnalysisHeader
+        title={subject?.name || 'Unknown'}
+        subtitle="Birth Chart"
       />
+
+      {/* Top Tab Bar */}
+      <TopTabBar
+        items={topTabs}
+        activeRoute={activeTab}
+        onTabPress={setActiveTab}
+      />
+
+      {/* Section Subtitle */}
+      {getSectionSubtitle() && (
+        <SectionSubtitle
+          icon={getSectionSubtitle()!.icon}
+          title={getSectionSubtitle()!.title}
+          desc={getSectionSubtitle()!.desc}
+        />
+      )}
+
+      {/* Sub Navigation (only for Chart tab) */}
+      {activeTab === 'chart' && (
+        <StickySegment
+          items={chartSubTabs}
+          selectedValue={activeSubTab}
+          onChange={setActiveSubTab}
+        />
+      )}
+
+      {/* Content */}
+      <View style={styles.contentContainer}>
+        {renderContent()}
+      </View>
 
       {/* Error Handling */}
       {chartError && (
@@ -72,6 +178,9 @@ const ChartScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  contentContainer: {
     flex: 1,
   },
   errorSection: {

@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
+  Dimensions,
 } from 'react-native';
-import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+
+const { width: screenWidth } = Dimensions.get('window');
+import { RouteProp, useRoute } from '@react-navigation/native';
 import { useTheme } from '../../theme';
 import { relationshipsApi, UserCompositeChart, RelationshipAnalysisResponse } from '../../api/relationships';
 import { usersApi } from '../../api/users';
@@ -19,12 +21,18 @@ import SynastryAspectsTable from '../../components/chart/SynastryAspectsTable';
 import CompositeChartTables from '../../components/chart/CompositeChartTables';
 import CompositeChartWheel from '../../components/chart/CompositeChartWheel';
 import SynastryHousePlacementsTable from '../../components/chart/SynastryHousePlacementsTable';
+import SynastryTables from '../../components/chart/SynastryTables';
+import CompositeTables from '../../components/chart/CompositeTables';
 import AspectColorLegend from '../../components/chart/AspectColorLegend';
 import RadarChart from '../../components/chart/RadarChart';
 import ScoredItemsTable from '../../components/chart/ScoredItemsTable';
 import { CompleteRelationshipAnalysisButton } from '../../components/relationship';
-import { SegmentedControl, CardAccordion, AccordionCard, ClusterChipRow, TaglineCard, ProgressBar, Bullet, OverviewChipRow } from '../../components/ui';
+import { CardAccordion, AccordionCard, ClusterChipRow, TaglineCard, ProgressBar, Bullet, OverviewChipRow } from '../../components/ui';
 import RelationshipTensionFlow from '../../components/relationships/RelationshipTensionFlow';
+import { AnalysisHeader } from '../../components/navigation/AnalysisHeader';
+import { TopTabBar } from '../../components/navigation/TopTabBar';
+import { StickySegment } from '../../components/navigation/StickySegment';
+import { SectionSubtitle } from '../../components/navigation/SectionSubtitle';
 
 type RelationshipAnalysisScreenRouteProp = RouteProp<{
   RelationshipAnalysis: {
@@ -32,22 +40,28 @@ type RelationshipAnalysisScreenRouteProp = RouteProp<{
   };
 }, 'RelationshipAnalysis'>;
 
-interface TabInfo {
-  id: string;
-  label: string;
-  component: React.ReactNode;
-}
 
 const RelationshipAnalysisScreen: React.FC = () => {
   const route = useRoute<RelationshipAnalysisScreenRouteProp>();
-  const navigation = useNavigation();
   const { colors } = useTheme();
   const { relationship } = route.params;
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [activeTab, setActiveTab] = useState('charts');
-  const [chartMode, setChartMode] = useState<'synastry' | 'composite'>('synastry');
-  const [activeSection, setActiveSection] = useState<'wheels' | 'tables' | 'placements'>('wheels');
+  const [chartSubTab, setChartSubTab] = useState('synastry-wheels');
+  const [synastryWheelsPage, setSynastryWheelsPage] = useState(0);
+
+  const handleSynastryWheelsScroll = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const pageIndex = Math.round(contentOffsetX / screenWidth);
+    setSynastryWheelsPage(pageIndex);
+  };
+
+  // Reset wheels page when switching between chart sub-tabs
+  useEffect(() => {
+    setSynastryWheelsPage(0);
+  }, [chartSubTab]);
+
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['synastry-a']));
   const [analysisData, setAnalysisData] = useState<RelationshipAnalysisResponse | null>(null);
   const [userAData, setUserAData] = useState<SubjectDocument | null>(null);
@@ -55,9 +69,47 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Navigation configuration
+  const topTabs = [
+    { label: 'Charts', routeName: 'charts' },
+    { label: 'Scores', routeName: 'scores' },
+    { label: 'Overview', routeName: 'overview' },
+    { label: '360 Analysis', routeName: 'guidance' },
+  ];
+
+  const chartSubTabs = [
+    { label: 'Synastry Wheels', value: 'synastry-wheels' },
+    { label: 'Synastry Tables', value: 'synastry-tables' },
+    { label: 'Composite Wheels', value: 'composite-wheels' },
+    { label: 'Composite Tables', value: 'composite-tables' },
+  ];
+
+  const getSectionSubtitle = () => {
+    switch (activeTab) {
+      case 'charts':
+        return {
+          icon: '📊',
+          title: 'Interactive Charts',
+          desc: 'Synastry & composite chart wheels, tables, and placements',
+        };
+      case 'scores':
+        return {
+          icon: '💕',
+          title: 'Compatibility Analysis',
+          desc: 'Detailed compatibility scores across all relationship dimensions',
+        };
+      case 'overview':
+        return null; // Keep existing like Birth Chart
+      case 'guidance':
+        return null; // Keep existing like Birth Chart
+      default:
+        return null;
+    }
+  };
+
   useEffect(() => {
     loadAnalysisData();
-  }, []);
+  }, [loadAnalysisData]);
 
   const loadAnalysisData = async () => {
     try {
@@ -148,18 +200,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
     setExpandedCards(newExpanded);
   };
 
-  const handleChartModeChange = (newMode: 'synastry' | 'composite') => {
-    setChartMode(newMode);
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-    // Reset expanded cards when switching modes
-    const defaultCard = newMode === 'synastry' ? 'synastry-a' : 'composite-wheel';
-    setExpandedCards(new Set([defaultCard]));
-  };
-
-  const handleSectionChange = (section: 'wheels' | 'tables' | 'placements') => {
-    setActiveSection(section);
-    // Scroll to appropriate section - will implement refs later if needed
-  };
 
 
   const ChartsTab = () => {
@@ -169,191 +209,135 @@ const RelationshipAnalysisScreen: React.FC = () => {
       relationship.synastryHousePlacements
     );
 
+    const renderSynastryWheels = () => {
+      if (!userAData?.birthChart || !userBData?.birthChart) {
+        return (
+          <View style={styles.noDataContainer}>
+            <Text style={[styles.noDataText, { color: colors.onSurfaceMed }]}>
+              Loading chart data...
+            </Text>
+          </View>
+        );
+      }
+
+      const pages = [relationship.userA_name, relationship.userB_name];
+      
+      return (
+        <View style={styles.pageContainer}>
+          <ScrollView
+            key="synastry-wheels-scroll"
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleSynastryWheelsScroll}
+            style={styles.horizontalScroll}
+          >
+            <View style={styles.chartPage}>
+              <Text style={[styles.chartTitle, { color: colors.onSurface }]}>
+                {relationship.userA_name}'s Chart
+              </Text>
+              <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
+                with {relationship.userB_name}'s influences
+              </Text>
+              <View style={styles.wheelContainer}>
+                <SynastryChartWheel
+                  basePlanets={userAData.birthChart.planets}
+                  baseHouses={userAData.birthChart.houses}
+                  transitPlanets={userBData.birthChart.planets}
+                  baseName={relationship.userA_name}
+                  transitName={relationship.userB_name}
+                />
+              </View>
+            </View>
+            
+            <View style={styles.chartPage}>
+              <Text style={[styles.chartTitle, { color: colors.onSurface }]}>
+                {relationship.userB_name}'s Chart
+              </Text>
+              <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
+                with {relationship.userA_name}'s influences
+              </Text>
+              <View style={styles.wheelContainer}>
+                <SynastryChartWheel
+                  basePlanets={userBData.birthChart.planets}
+                  baseHouses={userBData.birthChart.houses}
+                  transitPlanets={userAData.birthChart.planets}
+                  baseName={relationship.userB_name}
+                  transitName={relationship.userA_name}
+                />
+              </View>
+            </View>
+          </ScrollView>
+          
+          {/* Page Control Dots */}
+          <View style={styles.pageControl}>
+            {pages.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: colors.primary,
+                    opacity: synastryWheelsPage === index ? 1.0 : 0.3,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+      );
+    };
+
+    const renderSynastryTables = () => {
+      return <SynastryTables relationship={relationship} />;
+    };
+
+    const renderCompositeWheels = () => {
+      if (!relationship.compositeChart) {
+        return (
+          <View style={styles.noDataContainer}>
+            <Text style={[styles.noDataText, { color: colors.onSurfaceMed }]}>
+              No composite chart data available
+            </Text>
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.singleChartContainer}>
+          <Text style={[styles.chartTitle, { color: colors.onSurface }]}>Composite Chart</Text>
+          <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
+            Midpoint chart representing your combined energies
+          </Text>
+          <View style={styles.wheelContainer}>
+            <CompositeChartWheel compositeChart={relationship.compositeChart} />
+          </View>
+        </View>
+      );
+    };
+
+    const renderCompositeTables = () => {
+      return <CompositeTables compositeChart={relationship.compositeChart} />;
+    };
+
     return (
       <View style={styles.chartsContainer}>
-        {/* Layer B: Chart Mode Segmented Control */}
-        <View style={[styles.chartModeContainer, { backgroundColor: colors.background }]}>
-          <SegmentedControl
-            options={[
-              { label: 'Synastry', value: 'synastry' },
-              { label: 'Composite', value: 'composite' },
-            ]}
-            value={chartMode}
-            onChange={handleChartModeChange}
-            style={styles.chartModeControl}
-            accessibilityLabel="Chart mode selection"
-          />
-        </View>
-
-        {/* Layer C: Section Index */}
-        <View style={[styles.sectionChipsContainer, { backgroundColor: colors.background, borderBottomColor: colors.strokeSubtle }]}>
-          <SegmentedControl
-            options={[
-              { label: '🌀 Wheels', value: 'wheels' },
-              { label: '📊 Tables', value: 'tables' },
-              { label: '🧩 Placements', value: 'placements' },
-            ]}
-            value={activeSection}
-            onChange={handleSectionChange}
-            style={styles.sectionControl}
-            accessibilityLabel="Chart section selection"
-          />
-        </View>
-
-        {/* Aspect Color Legend for Tables Section */}
-        {activeSection === 'tables' && (
-          <AspectColorLegend compact />
-        )}
-
-        {/* Layer D: Scrollable Content with Cards */}
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContentContainer}
-        >
-          {hasChartData ? (
-            <>
-              {chartMode === 'synastry' && (
-                <>
-                  {/* Synastry Wheels Section */}
-                  {(activeSection === 'wheels' || activeSection === 'tables') && (
-                    <>
-                      <CardAccordion
-                        title="Synastry Chart A"
-                        subtitle={`${relationship.userA_name}'s chart with ${relationship.userB_name}'s influences`}
-                        headerIcon="📊"
-                        defaultExpanded={expandedCards.has('synastry-a')}
-                        onExpand={() => toggleCardExpanded('synastry-a')}
-                        lazyLoad
-                      >
-                        {userAData?.birthChart && userBData?.birthChart ? (
-                          <View style={styles.wheelContainer}>
-                            <SynastryChartWheel
-                              basePlanets={userAData.birthChart.planets}
-                              baseHouses={userAData.birthChart.houses}
-                              transitPlanets={userBData.birthChart.planets}
-                              baseName={relationship.userA_name}
-                              transitName={relationship.userB_name}
-                            />
-                          </View>
-                        ) : (
-                          <View style={styles.loadingContainer}>
-                            <Text style={[styles.loadingText, { color: colors.onSurfaceMed }]}>
-                              Loading chart data...
-                            </Text>
-                          </View>
-                        )}
-                      </CardAccordion>
-
-                      <CardAccordion
-                        title="Synastry Chart B"
-                        subtitle={`${relationship.userB_name}'s chart with ${relationship.userA_name}'s influences`}
-                        headerIcon="📊"
-                        defaultExpanded={expandedCards.has('synastry-b')}
-                        onExpand={() => toggleCardExpanded('synastry-b')}
-                        lazyLoad
-                      >
-                        {userAData?.birthChart && userBData?.birthChart ? (
-                          <View style={styles.wheelContainer}>
-                            <SynastryChartWheel
-                              basePlanets={userBData.birthChart.planets}
-                              baseHouses={userBData.birthChart.houses}
-                              transitPlanets={userAData.birthChart.planets}
-                              baseName={relationship.userB_name}
-                              transitName={relationship.userA_name}
-                            />
-                          </View>
-                        ) : (
-                          <View style={styles.loadingContainer}>
-                            <Text style={[styles.loadingText, { color: colors.onSurfaceMed }]}>
-                              Loading chart data...
-                            </Text>
-                          </View>
-                        )}
-                      </CardAccordion>
-                    </>
-                  )}
-
-                  {/* Synastry Tables Section */}
-                  {activeSection === 'tables' && relationship.synastryAspects && (
-                    <CardAccordion
-                      title="Synastry Aspects"
-                      subtitle="Planetary connections between your charts"
-                      headerIcon="🔗"
-                      defaultExpanded={expandedCards.has('synastry-aspects')}
-                      onExpand={() => toggleCardExpanded('synastry-aspects')}
-                    >
-                      <SynastryAspectsTable
-                        aspects={relationship.synastryAspects}
-                        userAName={relationship.userA_name}
-                        userBName={relationship.userB_name}
-                      />
-                    </CardAccordion>
-                  )}
-
-                  {/* Synastry Placements Section */}
-                  {activeSection === 'placements' && relationship.synastryHousePlacements && (
-                    <CardAccordion
-                      title="Synastry House Placements"
-                      subtitle="How your planets fall in each other's houses"
-                      headerIcon="🏠"
-                      defaultExpanded={expandedCards.has('synastry-placements')}
-                      onExpand={() => toggleCardExpanded('synastry-placements')}
-                    >
-                      <SynastryHousePlacementsTable
-                        synastryHousePlacements={relationship.synastryHousePlacements}
-                        userAName={relationship.userA_name}
-                        userBName={relationship.userB_name}
-                      />
-                    </CardAccordion>
-                  )}
-                </>
-              )}
-
-              {chartMode === 'composite' && (
-                <>
-                  {/* Composite Wheels Section */}
-                  {activeSection === 'wheels' && relationship.compositeChart && (
-                    <CardAccordion
-                      title="Composite Chart"
-                      subtitle="Midpoint chart representing your combined energies"
-                      headerIcon="🌟"
-                      defaultExpanded={expandedCards.has('composite-wheel')}
-                      onExpand={() => toggleCardExpanded('composite-wheel')}
-                      lazyLoad
-                    >
-                      <View style={styles.wheelContainer}>
-                        <CompositeChartWheel
-                          compositeChart={relationship.compositeChart}
-                        />
-                      </View>
-                    </CardAccordion>
-                  )}
-
-                  {/* Composite Tables Section */}
-                  {activeSection === 'tables' && relationship.compositeChart && (
-                    <CardAccordion
-                      title="Composite Chart Tables"
-                      subtitle="Detailed planetary positions, houses, and aspects"
-                      headerIcon="📊"
-                      defaultExpanded={expandedCards.has('composite-tables')}
-                      onExpand={() => toggleCardExpanded('composite-tables')}
-                    >
-                      <CompositeChartTables compositeChart={relationship.compositeChart} />
-                    </CardAccordion>
-                  )}
-                </>
-              )}
-            </>
-          ) : (
+        <View style={styles.contentArea}>
+          {!hasChartData ? (
             <View style={styles.noDataContainer}>
               <Text style={[styles.noDataText, { color: colors.onSurfaceMed }]}>
                 Chart data not available
               </Text>
             </View>
+          ) : (
+            <>
+              {chartSubTab === 'synastry-wheels' && renderSynastryWheels()}
+              {chartSubTab === 'synastry-tables' && renderSynastryTables()}
+              {chartSubTab === 'composite-wheels' && renderCompositeWheels()}
+              {chartSubTab === 'composite-tables' && renderCompositeTables()}
+            </>
           )}
-        </ScrollView>
+        </View>
       </View>
     );
   };
@@ -673,7 +657,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
   };
 
   const AnalysisTab = () => {
-    const [activeAnalysisTab, setActiveAnalysisTab] = useState('OVERALL_ATTRACTION_CHEMISTRY');
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
     const categoryInfo: { [key: string]: { icon: string; name: string } } = {
       'OVERALL_ATTRACTION_CHEMISTRY': { icon: '💫', name: 'Overall Attraction & Chemistry' },
@@ -686,110 +670,95 @@ const RelationshipAnalysisScreen: React.FC = () => {
     };
 
     const analysisCategories = analysisData?.analysis ? Object.keys(analysisData.analysis) : [];
-    const currentCategoryData = analysisData?.analysis?.[activeAnalysisTab];
+    
+    const toggleCategory = (category: string) => {
+      const newExpanded = new Set(expandedCategories);
+      if (newExpanded.has(category)) {
+        newExpanded.delete(category);
+      } else {
+        newExpanded.add(category);
+      }
+      setExpandedCategories(newExpanded);
+    };
 
     return (
-      <View style={styles.analysisContainer}>
+      <ScrollView style={[styles.analysisContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
         {analysisData?.analysis && analysisCategories.length > 0 ? (
-          <>
-            {/* Category Tab Navigation */}
-            <View style={[styles.analysisTabContainer, { borderBottomColor: colors.border }]}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.analysisTabScrollContainer}
-              >
-                {analysisCategories.map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[
-                      styles.analysisTab,
-                      activeAnalysisTab === category && [styles.activeAnalysisTab, { borderBottomColor: colors.primary }],
-                    ]}
-                    onPress={() => setActiveAnalysisTab(category)}
-                  >
-                    <Text style={[styles.analysisTabIcon, { color: colors.onSurface }]}>
-                      {categoryInfo[category]?.icon || '📊'}
-                    </Text>
-                    <Text style={[
-                      styles.analysisTabText,
-                      { color: colors.onSurfaceVariant },
-                      activeAnalysisTab === category && [styles.activeAnalysisTabText, { color: colors.primary }],
-                    ]}>
-                      {categoryInfo[category]?.name || category.replace(/_/g, ' ')}
-                    </Text>
+          <View style={styles.analysisContent}>
+            {analysisCategories.map((category) => {
+              const categoryData = analysisData.analysis[category];
+              const isExpanded = expandedCategories.has(category);
+              
+              return (
+                <View key={category} style={[styles.categorySection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <TouchableOpacity style={styles.categoryHeader} onPress={() => toggleCategory(category)}>
+                    <View style={styles.categoryHeaderContent}>
+                      <Text style={styles.categoryIcon}>{categoryInfo[category]?.icon || '📊'}</Text>
+                      <Text style={[styles.categoryTitle, { color: colors.onSurface }]}>
+                        {categoryInfo[category]?.name || category.replace(/_/g, ' ')}
+                      </Text>
+                    </View>
+                    <Text style={[styles.expandIcon, { color: colors.primary }]}>{isExpanded ? '▼' : '▶'}</Text>
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
 
-            {/* Category Content */}
-            <ScrollView style={styles.analysisCategoryContent} showsVerticalScrollIndicator={false}>
-              {currentCategoryData ? (
-                <>
-                  {/* Category Header */}
-                  <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
-                      {categoryInfo[activeAnalysisTab]?.icon || '📊'} {categoryInfo[activeAnalysisTab]?.name || activeAnalysisTab}
-                    </Text>
-                    {analysisData?.scoreAnalysis?.[activeAnalysisTab]?.scoredItems && (
-                      <View style={[styles.relevantPositionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                        <Text style={[styles.relevantPositionTitle, { color: colors.onSurface }]}>🎯 Most Significant Factors</Text>
-                        <ScoredItemsTable
-                          scoredItems={analysisData.scoreAnalysis[activeAnalysisTab].scoredItems}
-                          userAName={relationship.userA_name || 'User A'}
-                          userBName={relationship.userB_name || 'User B'}
-                        />
+                  {isExpanded && categoryData && (
+                    <View style={[styles.categoryContent, { borderTopColor: colors.border }]}>
+                      {/* Most Significant Factors */}
+                      {analysisData?.scoreAnalysis?.[category]?.scoredItems && (
+                        <View style={[styles.factorsSection, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
+                          <Text style={[styles.factorsTitle, { color: colors.primary }]}>🎯 Most Significant Factors</Text>
+                          <ScoredItemsTable
+                            scoredItems={analysisData.scoreAnalysis[category].scoredItems}
+                            userAName={relationship.userA_name || 'User A'}
+                            userBName={relationship.userB_name || 'User B'}
+                          />
+                        </View>
+                      )}
+
+                      {/* Tension Flow Analysis */}
+                      {analysisData?.categoryTensionFlowAnalysis?.[category] && (
+                        <View style={[styles.tensionFlowSection, { borderBottomColor: colors.border }]}>
+                          <RelationshipTensionFlow
+                            tensionFlow={analysisData.categoryTensionFlowAnalysis[category]}
+                          />
+                        </View>
+                      )}
+
+                      {/* Analysis Panels */}
+                      <View style={styles.panelsSection}>
+                        {categoryData.panels.synastry && (
+                          <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
+                            <Text style={[styles.panelTitle, { color: colors.primary }]}>🔗 Synastry Analysis</Text>
+                            <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                              {categoryData.panels.synastry}
+                            </Text>
+                          </View>
+                        )}
+
+                        {categoryData.panels.composite && (
+                          <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
+                            <Text style={[styles.panelTitle, { color: colors.primary }]}>🌟 Composite Analysis</Text>
+                            <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                              {categoryData.panels.composite}
+                            </Text>
+                          </View>
+                        )}
+
+                        {categoryData.panels.fullAnalysis && (
+                          <View style={styles.analysisPanelLast}>
+                            <Text style={[styles.panelTitle, { color: colors.primary }]}>🔍 Full Analysis</Text>
+                            <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                              {categoryData.panels.fullAnalysis}
+                            </Text>
+                          </View>
+                        )}
                       </View>
-                    )}
-
-                    {/* Tension Flow Analysis */}
-                    {analysisData?.categoryTensionFlowAnalysis?.[activeAnalysisTab] && (
-                      <RelationshipTensionFlow
-                        tensionFlow={analysisData.categoryTensionFlowAnalysis[activeAnalysisTab]}
-                      />
-                    )}
-                  </View>
-
-                  {/* Analysis Panels */}
-                  {currentCategoryData.panels.synastry && (
-                    <View style={styles.section}>
-                      <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>🔗 Synastry Analysis</Text>
-                      <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                        {currentCategoryData.panels.synastry}
-                      </Text>
                     </View>
                   )}
-
-                  {currentCategoryData.panels.composite && (
-                    <View style={styles.section}>
-                      <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>🌟 Composite Analysis</Text>
-                      <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                        {currentCategoryData.panels.composite}
-                      </Text>
-                    </View>
-                  )}
-
-                  {currentCategoryData.panels.fullAnalysis && (
-                    <View style={styles.section}>
-                      <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>🔍 Full Analysis</Text>
-                      <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                        {currentCategoryData.panels.fullAnalysis}
-                      </Text>
-                    </View>
-                  )}
-                </>
-              ) : (
-                <View style={[styles.missingDataCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={styles.missingDataIcon}>📊</Text>
-                  <Text style={[styles.missingDataTitle, { color: colors.primary }]}>Analysis Loading</Text>
-                  <Text style={[styles.missingDataText, { color: colors.onSurfaceVariant }]}>
-                    Analysis data for this category is being prepared.
-                  </Text>
                 </View>
-              )}
-            </ScrollView>
-          </>
+              );
+            })}
+          </View>
         ) : (
           <View style={styles.analysisEmptyContainer}>
             <CompleteRelationshipAnalysisButton
@@ -798,7 +767,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
             />
           </View>
         )}
-      </View>
+      </ScrollView>
     );
   };
 
@@ -836,12 +805,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
     return 'More Challenging';
   };
 
-  const tabs: TabInfo[] = [
-    { id: 'charts', label: 'Charts', component: <ChartsTab /> },
-    { id: 'scores', label: 'Scores', component: <ScoresTab /> },
-    { id: 'overview', label: 'Overview', component: <OverviewTab /> },
-    { id: 'analysis', label: 'Analysis', component: <AnalysisTab /> },
-  ];
 
   if (loading) {
     return (
@@ -852,59 +815,57 @@ const RelationshipAnalysisScreen: React.FC = () => {
     );
   }
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'charts':
+        return <ChartsTab />;
+      case 'scores':
+        return <ScoresTab />;
+      case 'overview':
+        return <OverviewTab />;
+      case 'guidance':
+        return <AnalysisTab />;
+      default:
+        return <ChartsTab />;
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>← Back</Text>
-        </TouchableOpacity>
+      {/* Analysis Header */}
+      <AnalysisHeader
+        title={`${relationship.userA_name} & ${relationship.userB_name}`}
+        subtitle="Relationship Analysis"
+      />
 
-        <View style={styles.relationshipInfo}>
-          <Text style={[styles.relationshipTitle, { color: colors.primary }]}>Relationship Analysis</Text>
-          <Text style={[styles.partnerNames, { color: colors.onSurface }]}>
-            {relationship.userA_name} & {relationship.userB_name}
-          </Text>
-          <Text style={[styles.createdDate, { color: colors.onSurfaceVariant }]}>
-            Created {relationship.createdAt ? new Date(relationship.createdAt).toLocaleDateString() : 'Invalid Date'}
-          </Text>
-        </View>
-      </View>
+      {/* Top Tab Bar */}
+      <TopTabBar
+        items={topTabs}
+        activeRoute={activeTab}
+        onTabPress={setActiveTab}
+      />
 
-      {/* Tab Navigation */}
-      <View style={[styles.tabContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabScrollContainer}
-        >
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab.id}
-              style={[
-                styles.tab,
-                activeTab === tab.id && [styles.activeTab, { borderBottomColor: colors.primary }],
-              ]}
-              onPress={() => setActiveTab(tab.id)}
-            >
-              <Text style={[
-                styles.tabText,
-                { color: colors.onSurfaceVariant },
-                activeTab === tab.id && [styles.activeTabText, { color: colors.primary }],
-              ]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {/* Section Subtitle */}
+      {getSectionSubtitle() && (
+        <SectionSubtitle
+          icon={getSectionSubtitle()!.icon}
+          title={getSectionSubtitle()!.title}
+          desc={getSectionSubtitle()!.desc}
+        />
+      )}
 
-      {/* Tab Content */}
+      {/* Sub Navigation (only for Charts tab) */}
+      {activeTab === 'charts' && (
+        <StickySegment
+          items={chartSubTabs}
+          selectedValue={chartSubTab}
+          onChange={setChartSubTab}
+        />
+      )}
+
+      {/* Content */}
       <View style={styles.contentContainer}>
-        {tabs.find(tab => tab.id === activeTab)?.component}
+        {renderContent()}
       </View>
 
       {error && (
@@ -933,31 +894,69 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 12,
   },
-  // New Charts Tab styles
+  // Charts Tab styles
   chartsContainer: {
     flex: 1,
   },
-  chartModeContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  chartModeControl: {
-    // Styles handled by SegmentedControl component
-  },
-  sectionChipsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  sectionControl: {
-    // Styles handled by SegmentedControl component
-  },
-  scrollContent: {
+  contentArea: {
     flex: 1,
   },
-  scrollContentContainer: {
+  horizontalScroll: {
+    flex: 1,
+  },
+  chartPage: {
+    width: screenWidth,
     padding: 16,
+    alignItems: 'center',
+  },
+  tablePage: {
+    width: screenWidth,
+    padding: 16,
+  },
+  singleChartContainer: {
+    flex: 1,
+    padding: 16,
+    alignItems: 'center',
+  },
+  singleTableContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  pageContainer: {
+    flex: 1,
+  },
+  pageControl: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingBottom: 20,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: 4,
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  chartSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  tableTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  tableSubtitle: {
+    fontSize: 14,
+    marginBottom: 16,
   },
   wheelContainer: {
     alignItems: 'center',
@@ -972,56 +971,6 @@ const styles = StyleSheet.create({
   noDataText: {
     fontSize: 16,
     textAlign: 'center',
-  },
-  header: {
-    padding: 16,
-    paddingTop: 50,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  relationshipInfo: {
-    alignItems: 'center',
-  },
-  relationshipTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  partnerNames: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  createdDate: {
-    fontSize: 14,
-  },
-  tabContainer: {
-    borderBottomWidth: 1,
-  },
-  tabScrollContainer: {
-    paddingHorizontal: 16,
-  },
-  tab: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginRight: 4,
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    fontWeight: '600',
   },
   contentContainer: {
     flex: 1,
@@ -1165,58 +1114,80 @@ const styles = StyleSheet.create({
   analysisContainer: {
     flex: 1,
   },
-  analysisTabContainer: {
-    borderBottomWidth: 1,
-  },
-  analysisTabScrollContainer: {
-    paddingHorizontal: 16,
-  },
-  analysisTab: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginRight: 8,
-    alignItems: 'center',
-    minWidth: 120,
-  },
-  activeAnalysisTab: {
-    borderBottomWidth: 2,
-  },
-  analysisTabIcon: {
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  analysisTabText: {
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  activeAnalysisTabText: {
-    fontWeight: '600',
-  },
-  analysisCategoryContent: {
-    flex: 1,
+  analysisContent: {
     padding: 16,
   },
-  relevantPositionCard: {
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 12,
+  categorySection: {
+    borderRadius: 12,
     borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
   },
-  relevantPositionTitle: {
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  categoryHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  categoryIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  categoryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  expandIcon: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 12,
+  },
+  categoryContent: {
+    borderTopWidth: 1,
+  },
+  factorsSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  factorsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  tensionFlowSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  panelsSection: {
+    padding: 16,
+  },
+  analysisPanel: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  panelTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  analysisPanelLast: {
+    marginBottom: 0,
   },
   analysisText: {
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 20,
   },
   analysisEmptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 60,
+    padding: 32,
   },
   // Scores Tab Styles
   scoresContainer: {

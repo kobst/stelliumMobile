@@ -14,9 +14,17 @@ import {
 
 interface CompositeChartTablesProps {
   compositeChart: CompositeChart;
+  showOnlyPlanets?: boolean;
+  showOnlyHouses?: boolean;
+  showOnlyAspects?: boolean;
 }
 
-const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeChart }) => {
+const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ 
+  compositeChart, 
+  showOnlyPlanets = false,
+  showOnlyHouses = false,
+  showOnlyAspects = false 
+}) => {
   const { colors } = useTheme();
   // Convert composite chart planets to BackendPlanet format for filtering
   const convertedPlanets = compositeChart.planets.map(planet => ({
@@ -320,9 +328,16 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ compositeCh
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {renderPlanetTable()}
-      {renderHouseTable()}
-      {renderAspectsTable()}
+      {showOnlyPlanets && renderPlanetTable()}
+      {showOnlyHouses && renderHouseTable()}
+      {showOnlyAspects && renderAspectsTable()}
+      {!showOnlyPlanets && !showOnlyHouses && !showOnlyAspects && (
+        <>
+          {renderPlanetTable()}
+          {renderHouseTable()}
+          {renderAspectsTable()}
+        </>
+      )}
     </View>
   );
 };
