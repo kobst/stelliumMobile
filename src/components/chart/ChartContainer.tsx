@@ -120,7 +120,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
       {showNavigation && (
         <SectionSubtitle
           icon="🌀"
-          title="Interactive Wheel"
+          title=""
           desc="Visual chart & data tables"
         />
       )}

@@ -13,6 +13,7 @@ interface PlanetCardProps {
   interpretation?: string;
   description?: string;
   astrologicalData?: string;
+  hideHeader?: boolean;
 }
 
 interface AstrologicalDataParsed {
@@ -47,6 +48,7 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
   interpretation,
   description,
   astrologicalData,
+  hideHeader = false,
 }) => {
   const { colors } = useTheme();
   // Parse the astrological data JSON
@@ -121,18 +123,19 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {/* Planet Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View style={[styles.symbolContainer, { backgroundColor: getPlanetColor(planet) + '20' }]}>
-          <Text style={[styles.symbol, { color: getPlanetColor(planet) }]}>
-            {getPlanetSymbol(planet)}
+    <View style={[hideHeader ? styles.cardNoBorder : styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {!hideHeader && (
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <View style={[styles.symbolContainer, { backgroundColor: getPlanetColor(planet) + '20' }]}>
+            <Text style={[styles.symbol, { color: getPlanetColor(planet) }]}>
+              {getPlanetSymbol(planet)}
+            </Text>
+          </View>
+          <Text style={[styles.planetName, { color: getPlanetColor(planet) }]}>
+            {planet}
           </Text>
         </View>
-        <Text style={[styles.planetName, { color: getPlanetColor(planet) }]}>
-          {planet}
-        </Text>
-      </View>
+      )}
 
       {/* Astrological Data Section (if available) */}
       {parsedData ? (
@@ -247,6 +250,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 12,
+    overflow: 'hidden',
+  },
+  cardNoBorder: {
     overflow: 'hidden',
   },
   header: {

@@ -33,9 +33,10 @@ interface PatternCardProps {
   title: string;
   data: PatternData;
   type: 'elements' | 'modalities' | 'quadrants' | 'patterns' | 'planetary';
+  hideHeader?: boolean;
 }
 
-const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
+const PatternCard: React.FC<PatternCardProps> = ({ title, data, type, hideHeader = false }) => {
   const { colors } = useTheme();
   const getElementColor = (name: string) => {
     switch (name) {
@@ -188,11 +189,13 @@ const PatternCard: React.FC<PatternCardProps> = ({ title, data, type }) => {
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={styles.icon}>{getCardIcon()}</Text>
-        <Text style={[styles.title, { color: colors.primary }]}>{title}</Text>
-      </View>
+    <View style={[hideHeader ? styles.cardNoBorder : styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {!hideHeader && (
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={styles.icon}>{getCardIcon()}</Text>
+          <Text style={[styles.title, { color: colors.primary }]}>{title}</Text>
+        </View>
+      )}
 
       <View style={styles.content}>
         {type === 'patterns' ? renderPatterns() : renderDistributionBars()}
@@ -213,6 +216,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 16,
+    overflow: 'hidden',
+  },
+  cardNoBorder: {
     overflow: 'hidden',
   },
   header: {

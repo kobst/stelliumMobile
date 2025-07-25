@@ -204,9 +204,8 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
       <View style={styles.content}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerTitle, { color: colors.primary }]}>🌍 360° Life Analysis</Text>
           <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
-            Comprehensive analysis across all major life areas
+            Comprehensive analysis across all life areas
           </Text>
         </View>
 

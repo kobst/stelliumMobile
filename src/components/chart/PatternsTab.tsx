@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
@@ -16,6 +16,21 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   const { fullAnalysis, loading, loadFullAnalysis, workflowState } = useChart(userId);
   const { userData, creationWorkflowState } = useStore();
   const { colors } = useTheme();
+  
+  // State to track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  
+  const toggleSection = (sectionName: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionName)) {
+        newSet.delete(sectionName);
+      } else {
+        newSet.add(sectionName);
+      }
+      return newSet;
+    });
+  };
 
   // Don't automatically load analysis - let users trigger it with the button
 
@@ -98,6 +113,45 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
     };
   };
 
+  // Expandable Pattern Section Component
+  const ExpandablePatternSection = ({ title, data, type, icon }: { 
+    title: string; 
+    data: any; 
+    type: string;
+    icon: string;
+  }) => {
+    const isExpanded = expandedSections.has(type);
+    
+    return (
+      <View style={[styles.sectionContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <TouchableOpacity 
+          style={styles.sectionHeader} 
+          onPress={() => toggleSection(type)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.sectionHeaderContent}>
+            <Text style={styles.sectionIcon}>{icon}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>{title}</Text>
+          </View>
+          <Text style={[styles.expandIcon, { color: colors.primary }]}>
+            {isExpanded ? '▼' : '▶'}
+          </Text>
+        </TouchableOpacity>
+        
+        {isExpanded && (
+          <View style={[styles.sectionContent, { borderTopColor: colors.border }]}>
+            <PatternCard
+              title={title}
+              data={data}
+              type={type as any}
+              hideHeader={true}
+            />
+          </View>
+        )}
+      </View>
+    );
+  };
+  
   // Simple button container for missing analysis
   const renderAnalysisButton = () => (
     <View style={[styles.missingAnalysisContainer, { backgroundColor: colors.background }]}>
@@ -129,9 +183,10 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Elements Card */}
-        <PatternCard
+        {/* Elements Section */}
+        <ExpandablePatternSection
           title="Elements"
+          icon="🔥"
           data={{
             elements: chartData.elements,
             interpretation: dominanceInterpretations.elements,
@@ -139,9 +194,10 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
           type="elements"
         />
 
-        {/* Modalities Card */}
-        <PatternCard
+        {/* Modalities Section */}
+        <ExpandablePatternSection
           title="Modalities"
+          icon="♻️"
           data={{
             modalities: chartData.modalities,
             interpretation: dominanceInterpretations.modalities,
@@ -149,9 +205,10 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
           type="modalities"
         />
 
-        {/* Quadrants Card */}
-        <PatternCard
+        {/* Quadrants Section */}
+        <ExpandablePatternSection
           title="Quadrants"
+          icon="🧭"
           data={{
             quadrants: chartData.quadrants,
             interpretation: dominanceInterpretations.quadrants,
@@ -159,9 +216,10 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
           type="quadrants"
         />
 
-        {/* Patterns and Structures Card */}
-        <PatternCard
+        {/* Patterns and Structures Section */}
+        <ExpandablePatternSection
           title="Patterns and Structures"
+          icon="✨"
           data={{
             patterns: chartData.patterns,
             interpretation: dominanceInterpretations.patterns,
@@ -169,9 +227,10 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
           type="patterns"
         />
 
-        {/* Planetary Dominance Card */}
-        <PatternCard
+        {/* Planetary Dominance Section */}
+        <ExpandablePatternSection
           title="Planetary Dominance"
+          icon="🪐"
           data={{
             planets: chartData.planetaryDominance,
             interpretation: dominanceInterpretations.planetary,
@@ -249,6 +308,38 @@ const styles = StyleSheet.create({
   completeAnalysisButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  sectionContainer: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  sectionHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  sectionIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  expandIcon: {
+    fontSize: 12,
+    marginLeft: 8,
+  },
+  sectionContent: {
+    borderTopWidth: 1,
   },
 });
 
