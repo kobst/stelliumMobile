@@ -157,9 +157,18 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
         onPress={() => handleRelationshipPress(item)}
         activeOpacity={0.8}
       >
+        <View style={styles.relationshipHeader}>
+          <Text style={[styles.createdDate, { color: colors.onSurfaceVariant }]}>
+            {new Date(item.createdAt).toLocaleDateString()}
+          </Text>
+        </View>
+
         <View style={styles.partnerPair}>
           <View style={styles.partnerInfo}>
             <Text style={[styles.partnerName, { color: colors.onSurface }]}>{leftName}</Text>
+            <Text style={[styles.partnerDOB, { color: colors.onSurfaceVariant }]}>
+              {new Date(item.userA_dateOfBirth).toLocaleDateString()}
+            </Text>
           </View>
 
           <View style={styles.separator}>
@@ -168,6 +177,9 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
 
           <View style={styles.partnerInfo}>
             <Text style={[styles.partnerName, { color: colors.onSurface }]}>{rightName}</Text>
+            <Text style={[styles.partnerDOB, { color: colors.onSurfaceVariant }]}>
+              {new Date(item.userB_dateOfBirth).toLocaleDateString()}
+            </Text>
           </View>
         </View>
 
@@ -288,6 +300,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 16,
   },
+  relationshipHeader: {
+    alignItems: 'flex-end',
+    marginBottom: 8,
+  },
+  createdDate: {
+    fontSize: 12,
+  },
   partnerPair: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -300,6 +319,11 @@ const styles = StyleSheet.create({
   partnerName: {
     fontSize: 16,
     fontWeight: '600',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  partnerDOB: {
+    fontSize: 12,
     textAlign: 'center',
   },
   separator: {
