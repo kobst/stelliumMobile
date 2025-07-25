@@ -16,7 +16,7 @@ export const SectionSubtitle: React.FC<SectionSubtitleProps> = ({ icon, title, d
       <View style={styles.content}>
         <Text style={styles.icon}>{icon}</Text>
         <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: colors.accentPrimary }]}>{title}</Text>
+          {title ? <Text style={[styles.title, { color: colors.accentPrimary }]}>{title}</Text> : null}
           <Text style={[styles.desc, { color: colors.onSurfaceMed }]}>{desc}</Text>
         </View>
       </View>

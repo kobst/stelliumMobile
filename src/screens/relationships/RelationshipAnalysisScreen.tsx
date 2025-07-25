@@ -89,19 +89,27 @@ const RelationshipAnalysisScreen: React.FC = () => {
       case 'charts':
         return {
           icon: '📊',
-          title: 'Interactive Charts',
+          title: '',
           desc: 'Synastry & composite chart wheels, tables, and placements',
         };
       case 'scores':
         return {
           icon: '💕',
-          title: 'Compatibility Analysis',
+          title: '',
           desc: 'Detailed compatibility scores across all relationship dimensions',
         };
       case 'overview':
-        return null; // Keep existing like Birth Chart
+        return {
+          icon: '💫',
+          title: '',
+          desc: 'Short analysis of the relationship',
+        };
       case 'guidance':
-        return null; // Keep existing like Birth Chart
+        return {
+          icon: '🔮',
+          title: '',
+          desc: 'Comprehensive analysis across important relationship areas',
+        };
       default:
         return null;
     }

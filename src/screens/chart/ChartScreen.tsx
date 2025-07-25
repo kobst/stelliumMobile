@@ -113,14 +113,14 @@ const ChartScreen: React.FC = () => {
       case 'chart':
         return {
           icon: '🌀',
-          title: 'Interactive Wheel',
+          title: '',
           desc: 'Visual chart & data tables'
         };
       case 'patterns':
         return {
           icon: '♾️',
-          title: 'Patterns & Dominance',
-          desc: 'Key planetary patterns and chart rulerships'
+          title: '',
+          desc: 'Key planetary patterns & rulerships'
         };
       case 'planets':
         return null; // Keep existing
