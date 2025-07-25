@@ -2,6 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import CelebrityScreen from '../screens/celebrity/CelebrityScreen';
 import CelebrityDetailScreen from '../screens/celebrity/CelebrityDetailScreen';
+import RelationshipAnalysisScreen from '../screens/relationships/RelationshipAnalysisScreen';
 import { useTheme } from '../theme';
 
 const Stack = createStackNavigator();
@@ -31,6 +32,14 @@ const CelebrityStack: React.FC = () => {
         component={CelebrityDetailScreen}
         options={{
           title: 'Celebrity Birth Charts',
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen
+        name="CelebrityRelationshipAnalysis"
+        component={RelationshipAnalysisScreen}
+        options={{
+          title: 'Celebrity Relationship Analysis',
           headerShown: true,
         }}
       />

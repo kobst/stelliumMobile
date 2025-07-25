@@ -533,12 +533,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
     return (
       <View style={styles.overviewContainer}>
-        {/* Sticky Tagline Card */}
-        <TaglineCard
-          phrase={getTagline()}
-          style={styles.stickyTagline}
-        />
-
         {/* Overview Section Chip Row */}
         <OverviewChipRow
           sections={overviewSections}
@@ -843,7 +837,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
       {/* Analysis Header */}
       <AnalysisHeader
         title={`${relationship.userA_name} & ${relationship.userB_name}`}
-        subtitle="Relationship Analysis"
+        subtitle={relationship.isCelebrityRelationship ? 'Celebrity Relationship Analysis' : 'Relationship Analysis'}
       />
 
       {/* Top Tab Bar */}

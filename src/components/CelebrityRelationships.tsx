@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,67 +6,142 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  ScrollView,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../store';
 import { useTheme } from '../theme';
+import { UserCompositeChart, relationshipsApi } from '../api/relationships';
 import { celebritiesApi, CelebrityRelationship } from '../api/celebrities';
 
 interface CelebrityRelationshipsProps {
-  onCelebrityPress?: (celebrity: any) => void;
+  _onCelebrityPress?: (celebrity: any) => void;
 }
 
-const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ onCelebrityPress }) => {
+const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ _onCelebrityPress }) => {
   const { userData } = useStore();
   const { colors } = useTheme();
-  const [relationships, setRelationships] = useState<CelebrityRelationship[]>([]);
+  const navigation = useNavigation();
+  const [relationships, setRelationships] = useState<UserCompositeChart[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadRelationships();
-  }, []);
+  }, [loadRelationships]);
 
-  const loadRelationships = async () => {
+  const loadRelationships = useCallback(async () => {
+    const userId = userData?.userId || userData?.id;
+
+    console.log('Loading celebrity relationships for user ID:', userId);
+    console.log('User data:', userData);
+
+    if (!userId) {
+      console.log('No user ID found, aborting...');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const response = await celebritiesApi.getCelebrityRelationships(50);
-      setRelationships(response);
+      // Fetch all user composite charts
+      const allRelationships = await relationshipsApi.getUserCompositeCharts(userId);
+      
+      console.log('All relationships:', allRelationships);
+      console.log('Total relationships found:', allRelationships.length);
+      
+      // Check if any have the celebrity flag
+      const withCelebrityFlag = allRelationships.filter(r => r.isCelebrityRelationship === true);
+      console.log('Relationships with isCelebrityRelationship=true:', withCelebrityFlag);
+      
+      // For debugging, let's see what properties each relationship has
+      allRelationships.forEach((rel, index) => {
+        console.log(`Relationship ${index}:`, {
+          _id: rel._id,
+          userA_name: rel.userA_name,
+          userB_name: rel.userB_name,
+          isCelebrityRelationship: rel.isCelebrityRelationship,
+          userA_id: rel.userA_id,
+          userB_id: rel.userB_id,
+        });
+      });
+
+      // Filter for celebrity relationships only
+      const celebrityRelationships = allRelationships.filter(
+        relationship => relationship.isCelebrityRelationship === true
+      );
+
+      console.log('Filtered celebrity relationships:', celebrityRelationships.length);
+      
+      // If no celebrity relationships found via the filter, try the original API
+      let finalRelationships = celebrityRelationships;
+      
+      if (celebrityRelationships.length === 0) {
+        console.log('No celebrity relationships found in composite charts, trying original API...');
+        try {
+          const originalCelebrityRels = await celebritiesApi.getCelebrityRelationships(50);
+          console.log('Original celebrity relationships API returned:', originalCelebrityRels.length);
+          
+          if (originalCelebrityRels[0]) {
+            const sample = originalCelebrityRels[0] as any;
+            console.log('Sample original relationship with all fields:', {
+              ...sample,
+              hasSync: !!sample.synastryAspects,
+              hasComposite: !!sample.compositeChart,
+              hasHousePlacements: !!sample.synastryHousePlacements,
+            });
+          }
+          
+          // Transform original celebrity relationships to UserCompositeChart format
+          if (originalCelebrityRels.length > 0) {
+            finalRelationships = originalCelebrityRels.map((cel: any): UserCompositeChart => ({
+              _id: cel._id,
+              userA_name: cel.userA_name,
+              userB_name: cel.userB_name,
+              userA_dateOfBirth: cel.userA_dateOfBirth,
+              userB_dateOfBirth: cel.userB_dateOfBirth,
+              createdAt: cel.createdAt,
+              userA_id: cel.userA_id,
+              userB_id: cel.userB_id,
+              updatedAt: cel.updatedAt,
+              isCelebrityRelationship: true,
+              // Include chart data fields if they exist in the response
+              synastryAspects: cel.synastryAspects,
+              compositeChart: cel.compositeChart,
+              synastryHousePlacements: cel.synastryHousePlacements,
+            }));
+            console.log('Transformed celebrity relationships:', finalRelationships.length);
+          }
+        } catch (originalErr) {
+          console.log('Original celebrity API also failed:', originalErr);
+        }
+      }
+      
+      setRelationships(finalRelationships);
     } catch (err) {
       console.error('Failed to load celebrity relationships:', err);
       setError('Failed to load celebrity relationships');
     } finally {
       setLoading(false);
     }
-  };
+  }, [userData]);
 
-  const getFullName = (item: CelebrityRelationship, userType: 'A' | 'B') => {
+  const getFullName = (item: UserCompositeChart, userType: 'A' | 'B') => {
     if (userType === 'A') {
-      // If we have separate first/last name fields, use them
-      if (item.userA_firstName && item.userA_lastName) {
-        return `${item.userA_firstName} ${item.userA_lastName}`;
-      }
-      // Otherwise use the full name field
       return item.userA_name;
     } else {
-      // If we have separate first/last name fields, use them
-      if (item.userB_firstName && item.userB_lastName) {
-        return `${item.userB_firstName} ${item.userB_lastName}`;
-      }
-      // Otherwise use the full name field
       return item.userB_name;
     }
   };
 
-  const renderRelationshipItem = ({ item }: { item: CelebrityRelationship }) => (
+  const handleRelationshipPress = (item: UserCompositeChart) => {
+    navigation.navigate('CelebrityRelationshipAnalysis' as any, { relationship: item });
+  };
+
+  const renderRelationshipItem = ({ item }: { item: UserCompositeChart }) => (
     <TouchableOpacity
       style={[styles.relationshipCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      onPress={() => {
-        // Future: Navigate to relationship analysis
-        console.log('Selected relationship:', item);
-      }}
+      onPress={() => handleRelationshipPress(item)}
     >
       <View style={styles.relationshipHeader}>
         <Text style={[styles.relationshipTitle, { color: colors.primary }]}>Celebrity Relationship</Text>
