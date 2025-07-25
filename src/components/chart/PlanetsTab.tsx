@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
 import { BirthChart } from '../../types';
@@ -124,12 +124,31 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
   
   // Simple button container for missing analysis
   const renderAnalysisButton = () => (
-    <View style={[styles.missingAnalysisContainer, { backgroundColor: colors.background }]}>
-      <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
-    </View>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
+            Detailed interpretations for each planet
+          </Text>
+        </View>
+
+        <View style={styles.missingAnalysisContainer}>
+          <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
+        </View>
+      </View>
+    </ScrollView>
   );
 
-  // No automatic loading state - go straight to checking for analysis data
+  // Show loading state first to prevent flash of button before data loads
+  if (loading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading analysis...</Text>
+      </View>
+    );
+  }
 
   const planetAnalysis = getPlanetAnalysis();
   const availablePlanets = PLANET_ORDER.filter(planet =>
@@ -139,11 +158,10 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
   // Check if analysis is in progress
   const activeWorkflowState = workflowState || creationWorkflowState;
   const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId &&
-    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 &&
     !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
 
-  // Only show planet cards if we have interpretation data
-  if (availablePlanets.length === 0) {
+  // Always show button if no data OR if analysis is in progress (prevents flickering during workflow)
+  if (availablePlanets.length === 0 || isAnalysisInProgress) {
     return renderAnalysisButton();
   }
 
