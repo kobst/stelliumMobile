@@ -98,8 +98,14 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
     }
   };
 
+  // Check for any active workflow state (local or global)
+  const activeWorkflowState = workflowState || creationWorkflowState;
+  const hasActiveWorkflow = workflowStarted || 
+                           chartLoading || 
+                           (activeWorkflowState && activeWorkflowState.workflowId && !activeWorkflowState.completed && !activeWorkflowState.isCompleted);
+
   const getButtonText = (): string => {
-    if (chartLoading || workflowStarted) {
+    if (hasActiveWorkflow) {
       if (progressState.progress && progressState.progress > 0) {
         return 'Analysis in Progress...';
       }
@@ -110,20 +116,15 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
 
   const isButtonDisabled = (): boolean => {
     const targetUserId = userId || activeUserContext?.id || userData?.id;
-    return chartLoading ||
-           !targetUserId ||
-           workflowStarted ||
-           (progressState.progress !== undefined && progressState.progress > 0 && !progressState.isCompleted);
+    return !targetUserId || hasActiveWorkflow;
   };
 
 
-  // Don't show anything if already completed
-  if (progressState.isCompleted) {
-    return null;
-  }
+  // The parent component (tabs) should determine when to show this button
+  // based on whether analysis data exists. We only hide during active workflow.
 
   // Show inline loading state when analysis is in progress
-  if (workflowStarted && progressState.progress !== undefined && progressState.progress > 0) {
+  if (hasActiveWorkflow) {
     return (
       <View style={styles.inlineLoadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
@@ -134,13 +135,6 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
         <Text style={[styles.inlineLoadingTime, { color: colors.onSurfaceVariant }]}>
           This typically takes 1-2 minutes...
         </Text>
-        {progressState.progress > 0 && (
-          <View style={[styles.progressContainer, { backgroundColor: colors.surfaceVariant }]}>
-            <Text style={[styles.progressText, { color: colors.primary }]}>
-              {Math.round(progressState.progress)}% Complete
-            </Text>
-          </View>
-        )}
       </View>
     );
   }

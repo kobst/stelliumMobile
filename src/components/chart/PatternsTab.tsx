@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
 import { BirthChart } from '../../types';
@@ -154,12 +154,24 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   
   // Simple button container for missing analysis
   const renderAnalysisButton = () => (
-    <View style={[styles.missingAnalysisContainer, { backgroundColor: colors.background }]}>
-      <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
-    </View>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
+        <View style={styles.missingAnalysisContainer}>
+          <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
+        </View>
+      </View>
+    </ScrollView>
   );
 
-  // No automatic loading state - go straight to checking for analysis data
+  // Show loading state first to prevent flash of button before data loads
+  if (loading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading analysis...</Text>
+      </View>
+    );
+  }
 
   const dominanceInterpretations = getDominanceInterpretations();
   const chartData = getChartPatternData();
@@ -172,11 +184,10 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   // Check if analysis is in progress
   const activeWorkflowState = workflowState || creationWorkflowState;
   const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId &&
-    activeWorkflowState.progress !== undefined && activeWorkflowState.progress > 0 &&
     !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
 
-  // Only display patterns if we have interpretation data (regardless of raw data availability)
-  if (!hasInterpretationData) {
+  // Always show button if no data OR if analysis is in progress (prevents flickering during workflow)
+  if (!hasInterpretationData || isAnalysisInProgress) {
     return renderAnalysisButton();
   }
 
@@ -249,6 +260,15 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+  },
+  header: {
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
