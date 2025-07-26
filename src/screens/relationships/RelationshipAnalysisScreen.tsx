@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { LayoutAnimation } from 'react-native';
 import {
   View,
@@ -27,6 +27,7 @@ import AspectColorLegend from '../../components/chart/AspectColorLegend';
 import RadarChart from '../../components/chart/RadarChart';
 import ScoredItemsTable from '../../components/chart/ScoredItemsTable';
 import { CompleteRelationshipAnalysisButton } from '../../components/relationship';
+import RelationshipAnalysisTab from '../../components/relationship/RelationshipAnalysisTab';
 import { CardAccordion, AccordionCard, ClusterChipRow, TaglineCard, ProgressBar, Bullet, OverviewChipRow } from '../../components/ui';
 import RelationshipTensionFlow from '../../components/relationships/RelationshipTensionFlow';
 import { AnalysisHeader } from '../../components/navigation/AnalysisHeader';
@@ -68,6 +69,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const [userBData, setUserBData] = useState<SubjectDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
 
   // Navigation configuration
   const topTabs = [
@@ -115,17 +117,18 @@ const RelationshipAnalysisScreen: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    loadAnalysisData();
-  }, [loadAnalysisData]);
+  const loadAnalysisData = useCallback(async () => {
+    // Prevent reloading if we've already loaded data for this relationship
+    if (hasLoadedData) {
+      return;
+    }
 
-  const loadAnalysisData = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
       // Check if enhanced analysis data is already included in the relationship object (new relationships)
       if ((relationship as any).enhancedAnalysis) {
+        // Don't show loading if we already have the data locally
+        setLoading(false); // Ensure loading is false when we have local data
+        setError(null);
         // Use the enhanced analysis data that's already included
         const enhancedAnalysis = (relationship as any).enhancedAnalysis;
 
@@ -158,15 +161,22 @@ const RelationshipAnalysisScreen: React.FC = () => {
         };
 
         setAnalysisData(transformedAnalysis);
+        setHasLoadedData(true);
       } else {
+        // Only show loading when we need to fetch data from API
+        setLoading(true);
+        setError(null);
+        
         // Fallback to fetching analysis data (existing relationships)
         try {
           const analysisResult = await relationshipsApi.fetchRelationshipAnalysis(relationship._id);
           setAnalysisData(analysisResult);
+          setHasLoadedData(true);
         } catch (fetchError) {
           console.log('No existing analysis data found, continuing without analysis data');
           // Don't set error state - just continue without analysis data
           // This allows the Charts tab to work with chart data from the relationship object
+          setHasLoadedData(true); // Mark as loaded even if no data found
         }
       }
 
@@ -195,7 +205,14 @@ const RelationshipAnalysisScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [relationship._id, hasLoadedData]);
+
+  useEffect(() => {
+    // Reset loading state when relationship changes
+    setHasLoadedData(false);
+    setLoading(true);
+    loadAnalysisData();
+  }, [relationship._id]); // Only reload when the relationship ID changes
 
   // Helper functions
   const toggleCardExpanded = (cardId: string) => {
@@ -353,6 +370,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const ScoresTab = () => {
     const [expandedCluster, setExpandedCluster] = useState<string | null>(null);
     const [selectedChipCluster, setSelectedChipCluster] = useState<string | null>(null);
+    const [isAnimating, setIsAnimating] = useState(false);
     const scoresScrollViewRef = useRef<ScrollView>(null);
     const clusterRefs = useRef<{ [key: string]: View | null }>({});
 
@@ -366,29 +384,59 @@ const RelationshipAnalysisScreen: React.FC = () => {
       })) : [];
 
     const handleClusterExpand = (clusterId: string) => {
+      // Prevent rapid-fire clicks during animations
+      if (isAnimating) return;
+      
+      setIsAnimating(true);
       const newExpanded = expandedCluster === clusterId ? null : clusterId;
       setExpandedCluster(newExpanded);
 
-      // Configure layout animation for smooth transitions
+      // Update chip selection to match expanded card
+      if (newExpanded) {
+        setSelectedChipCluster(newExpanded);
+      }
+
+      // Configure layout animation for smooth transitions (with reduced duration to prevent conflicts)
       LayoutAnimation.configureNext({
-        duration: 300,
+        duration: 200,
         create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
         update: { type: LayoutAnimation.Types.easeInEaseOut },
       });
+
+      // Reset animation flag after animation completes
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 250);
     };
 
     const handleChipSelect = (clusterId: string) => {
+      // Prevent operation during animations
+      if (isAnimating) return;
+      
       setSelectedChipCluster(clusterId);
-      // Scroll to the selected cluster card
-      if (clusterRefs.current[clusterId]) {
-        clusterRefs.current[clusterId]?.measureLayout(
-          scoresScrollViewRef.current as any,
-          (x, y) => {
-            scoresScrollViewRef.current?.scrollTo({ y: y - 150, animated: true });
-          },
-          () => {}
-        );
+      
+      // Expand the selected cluster if it's not already expanded
+      if (expandedCluster !== clusterId) {
+        setExpandedCluster(clusterId);
+        LayoutAnimation.configureNext({
+          duration: 200,
+          create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+          update: { type: LayoutAnimation.Types.easeInEaseOut },
+        });
       }
+      
+      // Delay scroll operation to prevent conflicts with layout animations
+      setTimeout(() => {
+        if (clusterRefs.current[clusterId]) {
+          clusterRefs.current[clusterId]?.measureLayout(
+            scoresScrollViewRef.current as any,
+            (x, y) => {
+              scoresScrollViewRef.current?.scrollTo({ y: y - 150, animated: true });
+            },
+            () => {}
+          );
+        }
+      }, 250); // Wait for layout animations to complete
     };
 
     if (!analysisData?.profileAnalysis) {
@@ -402,6 +450,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
           <CompleteRelationshipAnalysisButton
             compositeChartId={relationship._id}
             onAnalysisComplete={loadAnalysisData}
+            hasAnalysisData={false}
           />
         </View>
       );
@@ -526,6 +575,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
           <CompleteRelationshipAnalysisButton
             compositeChartId={relationship._id}
             onAnalysisComplete={loadAnalysisData}
+            hasAnalysisData={false}
           />
         </View>
       );
@@ -658,120 +708,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
     );
   };
 
-  const AnalysisTab = () => {
-    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-
-    const categoryInfo: { [key: string]: { icon: string; name: string } } = {
-      'OVERALL_ATTRACTION_CHEMISTRY': { icon: '💫', name: 'Overall Attraction & Chemistry' },
-      'EMOTIONAL_SECURITY_CONNECTION': { icon: '🏡', name: 'Emotional Security & Connection' },
-      'SEX_AND_INTIMACY': { icon: '🔥', name: 'Sex & Intimacy' },
-      'COMMUNICATION_AND_MENTAL_CONNECTION': { icon: '💬', name: 'Communication & Mental Connection' },
-      'COMMITMENT_LONG_TERM_POTENTIAL': { icon: '💍', name: 'Commitment & Long-term Potential' },
-      'KARMIC_LESSONS_GROWTH': { icon: '🌟', name: 'Karmic Lessons & Growth' },
-      'PRACTICAL_GROWTH_SHARED_GOALS': { icon: '🎯', name: 'Practical Growth & Shared Goals' },
-    };
-
-    const analysisCategories = analysisData?.analysis ? Object.keys(analysisData.analysis) : [];
-    
-    const toggleCategory = (category: string) => {
-      const newExpanded = new Set(expandedCategories);
-      if (newExpanded.has(category)) {
-        newExpanded.delete(category);
-      } else {
-        newExpanded.add(category);
-      }
-      setExpandedCategories(newExpanded);
-    };
-
-    return (
-      <ScrollView style={[styles.analysisContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
-        {analysisData?.analysis && analysisCategories.length > 0 ? (
-          <View style={styles.analysisContent}>
-            {analysisCategories.map((category) => {
-              const categoryData = analysisData.analysis[category];
-              const isExpanded = expandedCategories.has(category);
-              
-              return (
-                <View key={category} style={[styles.categorySection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <TouchableOpacity style={styles.categoryHeader} onPress={() => toggleCategory(category)}>
-                    <View style={styles.categoryHeaderContent}>
-                      <Text style={styles.categoryIcon}>{categoryInfo[category]?.icon || '📊'}</Text>
-                      <Text style={[styles.categoryTitle, { color: colors.onSurface }]}>
-                        {categoryInfo[category]?.name || category.replace(/_/g, ' ')}
-                      </Text>
-                    </View>
-                    <Text style={[styles.expandIcon, { color: colors.primary }]}>{isExpanded ? '▼' : '▶'}</Text>
-                  </TouchableOpacity>
-
-                  {isExpanded && categoryData && (
-                    <View style={[styles.categoryContent, { borderTopColor: colors.border }]}>
-                      {/* Most Significant Factors */}
-                      {analysisData?.scoreAnalysis?.[category]?.scoredItems && (
-                        <View style={[styles.factorsSection, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
-                          <Text style={[styles.factorsTitle, { color: colors.primary }]}>🎯 Most Significant Factors</Text>
-                          <ScoredItemsTable
-                            scoredItems={analysisData.scoreAnalysis[category].scoredItems}
-                            userAName={relationship.userA_name || 'User A'}
-                            userBName={relationship.userB_name || 'User B'}
-                          />
-                        </View>
-                      )}
-
-                      {/* Tension Flow Analysis */}
-                      {analysisData?.categoryTensionFlowAnalysis?.[category] && (
-                        <View style={[styles.tensionFlowSection, { borderBottomColor: colors.border }]}>
-                          <RelationshipTensionFlow
-                            tensionFlow={analysisData.categoryTensionFlowAnalysis[category]}
-                          />
-                        </View>
-                      )}
-
-                      {/* Analysis Panels */}
-                      <View style={styles.panelsSection}>
-                        {categoryData.panels.synastry && (
-                          <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
-                            <Text style={[styles.panelTitle, { color: colors.primary }]}>🔗 Synastry Analysis</Text>
-                            <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                              {categoryData.panels.synastry}
-                            </Text>
-                          </View>
-                        )}
-
-                        {categoryData.panels.composite && (
-                          <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
-                            <Text style={[styles.panelTitle, { color: colors.primary }]}>🌟 Composite Analysis</Text>
-                            <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                              {categoryData.panels.composite}
-                            </Text>
-                          </View>
-                        )}
-
-                        {categoryData.panels.fullAnalysis && (
-                          <View style={styles.analysisPanelLast}>
-                            <Text style={[styles.panelTitle, { color: colors.primary }]}>🔍 Full Analysis</Text>
-                            <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                              {categoryData.panels.fullAnalysis}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        ) : (
-          <View style={styles.analysisEmptyContainer}>
-            <CompleteRelationshipAnalysisButton
-              compositeChartId={relationship._id}
-              onAnalysisComplete={loadAnalysisData}
-            />
-          </View>
-        )}
-      </ScrollView>
-    );
-  };
 
   const getClusterIcon = (cluster: string): string => {
     const icons: { [key: string]: string } = {
@@ -826,7 +762,14 @@ const RelationshipAnalysisScreen: React.FC = () => {
       case 'overview':
         return <OverviewTab />;
       case 'guidance':
-        return <AnalysisTab />;
+        return (
+          <RelationshipAnalysisTab
+            analysisData={analysisData}
+            relationshipId={relationship._id}
+            onAnalysisComplete={loadAnalysisData}
+            loading={loading}
+          />
+        );
       default:
         return <ChartsTab />;
     }
