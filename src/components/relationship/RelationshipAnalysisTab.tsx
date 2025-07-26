@@ -65,7 +65,7 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
             const isExpanded = expandedCategories.has(category);
 
             return (
-              <View key={category} style={[styles.analysisCategory, { borderBottomColor: colors.border }]}>
+              <View key={category} style={[styles.analysisCategory, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <TouchableOpacity
                   style={styles.categoryHeader}
                   onPress={() => toggleCategory(category)}
@@ -80,7 +80,7 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
                 </TouchableOpacity>
 
                 {isExpanded && (
-                  <View style={styles.categoryContent}>
+                  <View style={[styles.categoryContent, { borderTopColor: colors.border }]}>
                     {/* Overall Score */}
                     {categoryData.overallScore !== undefined && (
                       <View style={[styles.scoreSection, { borderBottomColor: colors.border }]}>
@@ -156,15 +156,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   analysisCategory: {
-    borderBottomWidth: 1,
-    marginBottom: 16,
-    paddingBottom: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
   },
   categoryHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    justifyContent: 'space-between',
+    padding: 16,
   },
   categoryHeaderLeft: {
     flexDirection: 'row',
@@ -172,28 +173,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryIcon: {
-    fontSize: 24,
+    fontSize: 20,
     marginRight: 12,
   },
   categoryTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     flex: 1,
   },
   expandIcon: {
-    fontSize: 24,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   categoryContent: {
-    paddingLeft: 36,
+    borderTopWidth: 1,
+    borderTopColor: 'inherit',
   },
   scoreSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    padding: 16,
     borderBottomWidth: 1,
-    marginBottom: 16,
   },
   scoreLabel: {
     fontSize: 16,
@@ -204,16 +205,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   tensionFlowSection: {
+    padding: 16,
     borderBottomWidth: 1,
-    marginBottom: 16,
-    paddingBottom: 16,
   },
   panelsSection: {
-    gap: 16,
+    padding: 16,
   },
   analysisPanel: {
-    borderBottomWidth: 1,
+    marginBottom: 16,
     paddingBottom: 16,
+    borderBottomWidth: 1,
   },
   analysisPanelLast: {
     // No border bottom for last panel
