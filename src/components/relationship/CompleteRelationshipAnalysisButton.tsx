@@ -5,7 +5,7 @@ import { useStore } from '../../store';
 
 interface CompleteRelationshipAnalysisButtonProps {
   compositeChartId: string;
-  onAnalysisComplete?: () => void;
+  onAnalysisComplete?: (analysisData?: any) => void;
   hideParentContent?: boolean;
   hasAnalysisData?: boolean;
 }
@@ -20,6 +20,7 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
 
   // Hook state
   const {
+    analysisData,
     error,
     isStartingAnalysis,
     isPolling,
@@ -38,9 +39,9 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
   useEffect(() => {
     // Handle completion
     if (workflowComplete || relationshipWorkflowState.completed) {
-      onAnalysisComplete?.();
+      onAnalysisComplete?.(analysisData);
     }
-  }, [workflowComplete, relationshipWorkflowState.completed, onAnalysisComplete]);
+  }, [workflowComplete, relationshipWorkflowState.completed, onAnalysisComplete, analysisData]);
 
   const handleStartAnalysis = async () => {
     if (!compositeChartId || isAnalysisInProgress) {return;}

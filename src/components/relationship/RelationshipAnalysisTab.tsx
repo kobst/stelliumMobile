@@ -8,7 +8,7 @@ import RelationshipTensionFlow from '../relationships/RelationshipTensionFlow';
 interface RelationshipAnalysisTabProps {
   analysisData: RelationshipAnalysisResponse | null;
   relationshipId: string;
-  onAnalysisComplete: () => void;
+  onAnalysisComplete: (analysisData?: any) => void;
   loading?: boolean;
 }
 
@@ -140,7 +140,7 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
           <CompleteRelationshipAnalysisButton
             compositeChartId={relationshipId}
             onAnalysisComplete={onAnalysisComplete}
-            hasAnalysisData={false}
+            hasAnalysisData={!!(analysisData?.analysis && analysisCategories.length > 0)}
           />
         </View>
       )}

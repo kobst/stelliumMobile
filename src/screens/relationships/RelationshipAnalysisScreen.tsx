@@ -449,7 +449,13 @@ const RelationshipAnalysisScreen: React.FC = () => {
           </Text>
           <CompleteRelationshipAnalysisButton
             compositeChartId={relationship._id}
-            onAnalysisComplete={loadAnalysisData}
+            onAnalysisComplete={(completedAnalysisData) => {
+              if (completedAnalysisData) {
+                setAnalysisData(completedAnalysisData);
+              } else {
+                loadAnalysisData();
+              }
+            }}
             hasAnalysisData={false}
           />
         </View>
@@ -574,7 +580,13 @@ const RelationshipAnalysisScreen: React.FC = () => {
           </Text>
           <CompleteRelationshipAnalysisButton
             compositeChartId={relationship._id}
-            onAnalysisComplete={loadAnalysisData}
+            onAnalysisComplete={(completedAnalysisData) => {
+              if (completedAnalysisData) {
+                setAnalysisData(completedAnalysisData);
+              } else {
+                loadAnalysisData();
+              }
+            }}
             hasAnalysisData={false}
           />
         </View>
@@ -766,7 +778,13 @@ const RelationshipAnalysisScreen: React.FC = () => {
           <RelationshipAnalysisTab
             analysisData={analysisData}
             relationshipId={relationship._id}
-            onAnalysisComplete={loadAnalysisData}
+            onAnalysisComplete={(completedAnalysisData) => {
+              if (completedAnalysisData) {
+                setAnalysisData(completedAnalysisData);
+              } else {
+                loadAnalysisData();
+              }
+            }}
             loading={loading}
           />
         );
