@@ -7,11 +7,13 @@ interface CompleteRelationshipAnalysisButtonProps {
   compositeChartId: string;
   onAnalysisComplete?: () => void;
   hideParentContent?: boolean;
+  hasAnalysisData?: boolean;
 }
 
 const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisButtonProps> = ({
   compositeChartId,
   onAnalysisComplete,
+  hasAnalysisData = false,
 }) => {
   // Store state (minimal, only for scores and completion)
   const { relationshipWorkflowState } = useStore();
@@ -50,8 +52,8 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
     }
   };
 
-  // Don't show anything if already completed
-  if (workflowComplete || relationshipWorkflowState.completed) {
+  // Don't show anything if already completed AND we have analysis data
+  if ((workflowComplete || relationshipWorkflowState.completed) && hasAnalysisData) {
     return null;
   }
 
