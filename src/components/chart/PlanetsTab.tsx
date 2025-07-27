@@ -20,8 +20,7 @@ interface PlanetsTabProps {
 }
 
 const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
-  const { fullAnalysis, loading, loadFullAnalysis, workflowState } = useChart(userId);
-  const { creationWorkflowState } = useStore();
+  const { fullAnalysis, loading, loadFullAnalysis, hasAnalysisData } = useChart(userId);
   const { colors } = useTheme();
   
   // State to track which planets are expanded
@@ -150,20 +149,15 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
     );
   }
 
+  // Show button if no analysis data available
+  if (!hasAnalysisData) {
+    return renderAnalysisButton();
+  }
+
   const planetAnalysis = getPlanetAnalysis();
   const availablePlanets = PLANET_ORDER.filter(planet =>
     planetAnalysis[planet] && planetAnalysis[planet].interpretation
   );
-
-  // Check if analysis is in progress
-  const activeWorkflowState = workflowState || creationWorkflowState;
-  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId &&
-    !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
-
-  // Always show button if no data OR if analysis is in progress (prevents flickering during workflow)
-  if (availablePlanets.length === 0 || isAnalysisInProgress) {
-    return renderAnalysisButton();
-  }
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>

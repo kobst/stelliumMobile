@@ -13,6 +13,7 @@ export interface UseChartReturn {
   workflowState: AnalysisWorkflowResponse | null;
   loading: boolean;
   error: string | null;
+  hasAnalysisData: boolean;
   loadOverview: () => Promise<void>;
   loadFullAnalysis: () => Promise<void>;
   startAnalysisWorkflow: () => Promise<void>;
@@ -225,12 +226,20 @@ export const useChart = (userId?: string): UseChartReturn => {
     }
   }, [userData?.id, fullAnalysis, loading, loadFullAnalysis]);
 
+  // Check for meaningful analysis data (not just basic overview)
+  const hasAnalysisData = Boolean(
+    fullAnalysis?.interpretation?.SubtopicAnalysis ||
+    fullAnalysis?.interpretation?.basicAnalysis?.planets ||
+    fullAnalysis?.interpretation?.basicAnalysis?.dominance
+  );
+
   return {
     overview,
     fullAnalysis,
     workflowState,
     loading,
     error,
+    hasAnalysisData,
     loadOverview,
     loadFullAnalysis,
     startAnalysisWorkflow,

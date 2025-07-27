@@ -13,7 +13,7 @@ interface PatternsTabProps {
 }
 
 const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
-  const { fullAnalysis, loading, loadFullAnalysis, workflowState } = useChart(userId);
+  const { fullAnalysis, loading, loadFullAnalysis, hasAnalysisData } = useChart(userId);
   const { userData, creationWorkflowState } = useStore();
   const { colors } = useTheme();
   
@@ -177,19 +177,12 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   const chartData = getChartPatternData();
 
   // Check if we have BOTH raw data AND interpretation data
-  // Only show pattern cards if we have interpretations, even if raw data exists
-  const hasInterpretationData = fullAnalysis?.interpretation?.basicAnalysis?.dominance;
-  const hasRawData = chartData.elements.length > 0 || chartData.modalities.length > 0;
-
-  // Check if analysis is in progress
-  const activeWorkflowState = workflowState || creationWorkflowState;
-  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId &&
-    !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
-
-  // Always show button if no data OR if analysis is in progress (prevents flickering during workflow)
-  if (!hasInterpretationData || isAnalysisInProgress) {
+  // Show button if no analysis data available
+  if (!hasAnalysisData) {
     return renderAnalysisButton();
   }
+
+  const hasRawData = chartData.elements.length > 0 || chartData.modalities.length > 0;
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
