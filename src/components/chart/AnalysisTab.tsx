@@ -157,8 +157,7 @@ const TopicSection: React.FC<TopicSectionProps> = ({
 };
 
 const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
-  const { fullAnalysis, loading, loadFullAnalysis, workflowState } = useChart(userId);
-  const { creationWorkflowState } = useStore();
+  const { fullAnalysis, loading, loadFullAnalysis, hasAnalysisData } = useChart(userId);
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const { colors } = useTheme();
 
@@ -202,21 +201,15 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
     );
   }
 
-  const subtopicAnalysis = fullAnalysis?.interpretation?.SubtopicAnalysis || {};
+  // Show button if no analysis data available
+  if (!hasAnalysisData) {
+    return renderAnalysisButton();
+  }
 
+  const subtopicAnalysis = fullAnalysis?.interpretation?.SubtopicAnalysis || {};
   const availableTopics = Object.keys(subtopicAnalysis).filter(key =>
     BROAD_TOPICS[key as keyof typeof BROAD_TOPICS]
   );
-
-  // Check if analysis is in progress
-  const activeWorkflowState = workflowState || creationWorkflowState;
-  const isAnalysisInProgress = activeWorkflowState && activeWorkflowState.workflowId &&
-    !activeWorkflowState.completed && !activeWorkflowState.isCompleted;
-
-  // Always show button if no data OR if analysis is in progress (prevents flickering during workflow)
-  if (availableTopics.length === 0 || isAnalysisInProgress) {
-    return renderAnalysisButton();
-  }
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
