@@ -110,7 +110,7 @@ const TopicSection: React.FC<TopicSectionProps> = ({
             <View style={[styles.tensionFlowSection, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
               <Text style={[styles.tensionFlowTitle, { color: colors.primary }]}>⚡ Energy Pattern</Text>
               <Text style={[styles.tensionFlowDescription, { color: colors.onSurface }]}>
-                {topicData.tensionFlow.description}
+                {topicData.tensionFlow.llmAnalysis || topicData.tensionFlow.description}
               </Text>
 
               <View style={styles.tensionMetrics}>
@@ -139,7 +139,7 @@ const TopicSection: React.FC<TopicSectionProps> = ({
           {/* Subtopics */}
           <View style={styles.subtopicsSection}>
             <Text style={[styles.subtopicsTitle, { color: colors.primary }]}>Analysis Areas</Text>
-            {Object.entries(topicData.subtopics || {}).map(([subtopicKey, content]) => (
+            {Object.entries(topicData.editedSubtopics || topicData.subtopics || {}).map(([subtopicKey, content]) => (
               <View key={subtopicKey} style={[styles.subtopic, { borderBottomColor: colors.border }]}>
                 <Text style={[styles.subtopicTitle, { color: colors.onSurface }]}>
                   {topicConfig.subtopics[subtopicKey] || subtopicKey.replace(/_/g, ' ')}
