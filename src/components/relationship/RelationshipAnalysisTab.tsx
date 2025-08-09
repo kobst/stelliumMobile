@@ -91,6 +91,67 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
                       </View>
                     )}
 
+                    {/* Category Dynamics Metrics */}
+                    {analysisData?.dynamics?.[category] && (
+                      <View style={[styles.metricsSection, { borderBottomColor: colors.border }]}>
+                        <Text style={[styles.metricsTitle, { color: colors.onSurface }]}>📊 Category Metrics</Text>
+                        <View style={styles.metricsGrid}>
+                          <View style={styles.metricRow}>
+                            <View style={styles.metricItem}>
+                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Support</Text>
+                              <Text style={[styles.metricValue, { color: colors.primary }]}>
+                                {analysisData.dynamics[category].supportPct}%
+                              </Text>
+                            </View>
+                            <View style={styles.metricItem}>
+                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Challenge</Text>
+                              <Text style={[styles.metricValue, { color: colors.error }]}>
+                                {analysisData.dynamics[category].challengePct}%
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.metricRow}>
+                            <View style={styles.metricItem}>
+                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Heat</Text>
+                              <Text style={[styles.metricValue, { color: colors.secondary }]}>
+                                {analysisData.dynamics[category].heatPct}%
+                              </Text>
+                            </View>
+                            <View style={styles.metricItem}>
+                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Activity</Text>
+                              <Text style={[styles.metricValue, { color: colors.onSurface }]}>
+                                {analysisData.dynamics[category].activityPct}%
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.metricRow}>
+                            <View style={styles.metricItem}>
+                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Quadrant</Text>
+                              <Text style={[styles.metricValue, { color: colors.primary }]}>
+                                {analysisData.dynamics[category].quadrant}
+                              </Text>
+                            </View>
+                            <View style={styles.metricItem}>
+                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Spark Elements</Text>
+                              <Text style={[styles.metricValue, { color: colors.secondary }]}>
+                                {analysisData.dynamics[category].sparkElements}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Daily Dynamics - Metrics Interpretation */}
+                    {categoryData.v3MetricsInterpretation && (
+                      <View style={[styles.dailyDynamicsSection, { borderBottomColor: colors.border }]}>
+                        <Text style={[styles.panelTitle, { color: colors.primary }]}>📊 Daily Dynamics</Text>
+                        <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                          {categoryData.v3MetricsInterpretation}
+                        </Text>
+                      </View>
+                    )}
+
                     {/* Tension Flow Analysis */}
                     {analysisData?.categoryTensionFlowAnalysis?.[category] && (
                       <View style={[styles.tensionFlowSection, { borderBottomColor: colors.border }]}>
@@ -120,11 +181,11 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
                         </View>
                       )}
 
-                      {categoryData.panels.fullAnalysis && (
+                      {categoryData.panels.partnerPerspectives && (
                         <View style={styles.analysisPanelLast}>
-                          <Text style={[styles.panelTitle, { color: colors.primary }]}>🔍 Full Analysis</Text>
+                          <Text style={[styles.panelTitle, { color: colors.primary }]}>👥 Partner Perspectives</Text>
                           <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                            {categoryData.panels.fullAnalysis}
+                            {categoryData.panels.partnerPerspectives}
                           </Text>
                         </View>
                       )}
@@ -244,6 +305,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 16,
     textAlign: 'center',
+  },
+  // Metrics table styles
+  metricsSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  metricsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  metricsGrid: {
+    gap: 8,
+  },
+  metricRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  metricItem: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+  },
+  metricLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  metricValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  // Daily Dynamics section (placed after metrics)
+  dailyDynamicsSection: {
+    padding: 16,
+    borderBottomWidth: 1,
   },
 });
 

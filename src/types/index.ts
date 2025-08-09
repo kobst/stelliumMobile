@@ -80,6 +80,10 @@ export interface RelationshipWorkflowState {
   startedFromCreation: boolean;
   completed?: boolean;
 
+  // V3 Analysis Data
+  v3Analysis?: any; // V3Analysis type from relationships.ts
+  v3Metrics?: any;  // V3Metrics type from relationships.ts
+
   // Legacy compatibility
   currentRelationship?: any;
 

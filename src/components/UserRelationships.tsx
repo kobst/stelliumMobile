@@ -58,6 +58,8 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
   };
 
   const handleRelationshipPress = (relationship: UserCompositeChart) => {
+    console.log('Existing relationship data:', relationship);
+    console.log('Existing relationship v2Analysis:', relationship.v2Analysis);
     if (onRelationshipPress) {
       onRelationshipPress(relationship);
     } else {
