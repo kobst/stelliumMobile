@@ -1,36 +1,79 @@
 import { apiClient } from './client';
-import { User } from '../types';
 
-export interface RelationshipCreateRequest {
-  userA: User;
-  userB: User;
+// V3 Relationship Analysis Types
+export interface V3ClusterScore {
+  score: number; // 0-1 normalized percentile
+  analysis: string;
 }
 
-export interface RelationshipResponse {
+export interface V3Clusters {
+  Harmony: V3ClusterScore;
+  Passion: V3ClusterScore;
+  Connection: V3ClusterScore;
+  Growth: V3ClusterScore;
+  Stability: V3ClusterScore;
+}
+
+export interface KeystoneAspect {
+  description: string;
+  score: number;
+  category: string;
+  isKeystone: true;
+  impact: 'high' | 'medium' | 'low';
+}
+
+export interface CategoryData {
+  category: string;
+  cluster: string;
+  score: number;
+  valence: -1 | 0 | 1; // challenge, neutral, support
+  weight: number;
+  intensity: number;
+  centrality: number;
+  isKeystone: boolean;
+  keystoneRank?: number; // 1-5 if keystone
+  spark?: boolean;
+  sparkType?: 'sexual' | 'transformative' | 'intellectual' | 'emotional' | 'power';
+  starRating: number; // 0-5
+}
+
+export interface ConsolidatedScoredItem {
   id: string;
-  userA: User;
-  userB: User;
-  synastryAspects: any[];
-  compositeBirthChart: any;
-  createdAt: string;
+  source: 'synastry' | 'composite' | 'synastryHousePlacement' | 'compositeHousePlacement';
+  type: 'aspect' | 'housePlacement';
+  description: string;
+  aspect?: string;
+  orb?: number;
+  planet1?: string;
+  planet2?: string;
+  planet1Sign?: string;
+  planet2Sign?: string;
+  pairKey?: string;
+  code?: string;
+  categoryData: CategoryData[];
+  overallCentrality: number;
+  isOverallKeystone: boolean;
+  maxStarRating: number;
 }
 
-export interface RelationshipScoreRequest {
-  synastryAspects: any[];
-  compositeChart: any;
-  userA: User;
-  userB: User;
-  compositeChartId: string;
+export interface V3Analysis {
+  clusters: V3Clusters;
+  tier: string;
+  profile: string;
+  keystoneAspects: KeystoneAspect[];
+  initialOverview: string;
+  consolidatedScoredItems: ConsolidatedScoredItem[];
+  version: 'v3.0';
 }
 
-export interface RelationshipScore {
-  OVERALL_ATTRACTION_CHEMISTRY: { score: number; analysis: string };
-  EMOTIONAL_SECURITY_CONNECTION: { score: number; analysis: string };
-  COMMUNICATION_LEARNING: { score: number; analysis: string };
-  VALUES_GOALS_DIRECTION: { score: number; analysis: string };
-  INTIMACY_SEXUALITY: { score: number; analysis: string };
-  LONG_TERM_STABILITY: { score: number; analysis: string };
-  SPIRITUAL_GROWTH: { score: number; analysis: string };
+export interface V3Metrics {
+  [category: string]: {
+    supportPct: number;
+    challengePct: number;
+    heatPct: number;
+    activityPct: number;
+    quadrant: 'Easy-going' | 'Dynamic' | 'Hot-button' | 'Flat';
+  };
 }
 
 export interface CompositeChartRequest {
@@ -59,6 +102,9 @@ export interface UserCompositeChart {
   isCelebrityRelationship?: boolean;
   ownerUserId?: string;
   updatedAt?: string;
+// V3 Analysis Data
+  v2Analysis?: V3Analysis;
+  v2Metrics?: V3Metrics;
 }
 
 export interface SynastryAspect {
@@ -112,187 +158,64 @@ export interface CompositeChart {
   hasAccurateBirthTimes: boolean;
 }
 
-export interface RelationshipScoredItem {
-  score: number;
-  source: 'synastry' | 'composite' | 'synastryHousePlacement' | 'compositeHousePlacement';
-  type: 'aspect' | 'housePlacement';
-  reason: string;
-  description: string;
-  aspect?: string;
-  orb?: number;
-  pairKey?: string;
-  planet1Sign?: string;
-  planet2Sign?: string;
-  planet1House?: number;
-  planet2House?: number;
-  planet?: string;
-  house?: number;
-  direction?: string;
-  category?: string;
-  clusterWeight?: number;
+// Step Functions Full Analysis Types
+export interface CategoryAnalysisPanel {
+  relevantPosition: string;
+  panels: {
+    synastry: string;
+    composite: string;
+    partnerPerspectives: string;
+  };
+  v3MetricsInterpretation: string;
+  generatedAt: string;
 }
 
-export interface TensionFlowData {
-  supportDensity: number;
-  challengeDensity: number;
-  polarityRatio: number;
-  quadrant: string;
-  totalAspects: number;
-  supportAspects: number;
-  challengeAspects: number;
-  keystoneAspects?: Array<{
-    nodes: string[];
-    betweenness: number;
-    score: number;
-    edgeType: 'support' | 'challenge' | 'neutral';
-    aspectType: string;
-    description: string;
-  }>;
-  networkMetrics?: {
-    totalPossibleConnections: number;
-    actualConnections: number;
-    connectionDensity: number;
-    averageScore: number;
+export interface FullAnalysisData {
+  analysis: {
+    OVERALL_ATTRACTION_CHEMISTRY: CategoryAnalysisPanel;
+    EMOTIONAL_SECURITY_CONNECTION: CategoryAnalysisPanel;
+    SEX_AND_INTIMACY: CategoryAnalysisPanel;
+    COMMUNICATION_AND_MENTAL_CONNECTION: CategoryAnalysisPanel;
+    COMMITMENT_LONG_TERM_POTENTIAL: CategoryAnalysisPanel;
+    KARMIC_LESSONS_GROWTH: CategoryAnalysisPanel;
+    PRACTICAL_GROWTH_SHARED_GOALS: CategoryAnalysisPanel;
+  };
+  vectorizationStatus: {
+    categories: {
+      [key: string]: boolean;
+    };
+    isComplete: boolean;
   };
 }
 
-export interface ClusterScoreAnalysis {
-  scoredItems: RelationshipScoredItem[];
-  analysis: string;
+// Enhanced Relationship Analysis Response (Workflow 1)
+export interface EnhancedRelationshipAnalysisResponse {
+  success: boolean;
+  compositeChartId: string;
+  userA: { id: string; name: string };
+  userB: { id: string; name: string };
+v2Analysis: V3Analysis; // Despite the name, this is V3 data
+  v2Metrics: V3Metrics;
+compositeChart: CompositeChart;
+  synastryAspects: SynastryAspect[];
+  synastryHousePlacements: SynastryHousePlacements;
+metadata: {
+    processingTime: string;
+    clustersAnalyzed: number;
+    totalKeystoneAspects: number;
+    workflowType: 'v2-enhanced-keystones';
+  };
 }
 
+// Full Analysis Response (Workflow 2)
 export interface RelationshipAnalysisResponse {
-  // Core scoring data
-  scores?: {
-    [category: string]: {
-      overall: number;
-      synastry: number;
-      composite: number;
-      synastryHousePlacements: number;
-      compositeHousePlacements: number;
-    };
-  };
-
-  // Score analysis with scored items
-  scoreAnalysis?: {
-    [category: string]: {
-      scoredItems: RelationshipScoredItem[];
-      analysis: string;
-    };
-  };
-
-  // Category-specific tension flow analysis
-  categoryTensionFlowAnalysis?: {
-    [category: string]: TensionFlowData;
-  };
-
-  // Cluster-based analysis
-  clusterAnalysis?: {
-    Heart: ClusterScoreAnalysis;
-    Body: ClusterScoreAnalysis;
-    Mind: ClusterScoreAnalysis;
-    Life: ClusterScoreAnalysis;
-    Soul: ClusterScoreAnalysis;
-  } | null;
-
-  // Holistic overview
-  holisticOverview?: {
-    topStrengths: RelationshipScoredItem[];
-    keyChallenges: RelationshipScoredItem[];
-    overview: string;
-  } | null;
-
-  // Profile analysis
-  profileAnalysis?: {
-    profileResult: {
-      tier: string;
-      profile: string;
-      clusterScores: Record<string, number>;
-      statistics: {
-        avg: number;
-        high: number;
-        low: number;
-        spread: number;
-        stdev: number;
-        dominantClusters: string[];
-        laggingClusters: string[];
-      };
-      uniformity: string;
-      explanation: string;
-      confidence: number;
-    };
-    rawCategoryScores: Record<string, number>;
-    generatedAt: string;
-    version: string;
-  } | null;
-
-  // Tension flow analysis
-  tensionFlowAnalysis?: {
-    supportDensity: number;
-    challengeDensity: number;
-    polarityRatio: number;
-    quadrant: string;
-    totalAspects: number;
-    supportAspects: number;
-    challengeAspects: number;
-    keystoneAspects: any[];
-    networkMetrics: any;
-    insight: {
-      quadrant: string;
-      polarityRatio: number;
-      description: string;
-      recommendations: string[];
-    };
-  } | null;
-
-  // Category analysis (7 detailed category analyses)
-  analysis?: {
-    [category: string]: {
-      relevantPosition: string;
-      panels: {
-        synastry: string;
-        composite: string;
-        fullAnalysis: string;
-      };
-      generatedAt: string;
-    };
-  };
-
-  // Debug information
-  debug?: {
-    inputSummary: {
-      compositeChartId: string;
-      userAId: string;
-      userBId: string;
-      userAName: string;
-      userBName: string;
-    };
-    patterns: {
-      totalItems: number;
-      topStrengthsCount: number;
-      keyChallengesCount: number;
-    };
-    categoryDistribution: {
-      strongestCategories: Array<{
-        category: string;
-        score: number;
-      }>;
-      weakestCategories: Array<{
-        category: string;
-        score: number;
-      }>;
-      averageScore: number;
-    };
-    clusterItemCounts: Record<string, number>;
-    tensionFlow: {
-      quadrant: string;
-      supportDensity: number;
-      challengeDensity: number;
-      keystoneAspectsCount: number;
-    };
-  };
-
-  // Chart data from the composite chart document
+  // V3 Analysis from Workflow 1
+  v2Analysis?: V3Analysis;
+  v2Metrics?: V3Metrics;
+// Full Analysis from Workflow 2
+  analysis?: FullAnalysisData['analysis'];
+  vectorizationStatus?: FullAnalysisData['vectorizationStatus'];
+// Chart data
   synastryAspects?: SynastryAspect[];
   synastryHousePlacements?: SynastryHousePlacements;
   compositeChart?: CompositeChart;
@@ -300,75 +223,22 @@ export interface RelationshipAnalysisResponse {
   userB_name?: string;
 }
 
-// Enhanced API Response Structure (matches frontend CompositeDashboard_v4)
-export interface EnhancedRelationshipAnalysisResponse {
-  success: boolean;
-  compositeChartId: string;
-  scores: {
-    OVERALL_ATTRACTION_CHEMISTRY: number;
-    EMOTIONAL_SECURITY_CONNECTION: number;
-    SEX_AND_INTIMACY: number;
-    COMMUNICATION_AND_MENTAL_CONNECTION: number;
-    COMMITMENT_LONG_TERM_POTENTIAL: number;
-    KARMIC_LESSONS_GROWTH: number;
-    PRACTICAL_GROWTH_SHARED_GOALS: number;
-  };
-  scoreAnalysis: {
-    [category: string]: {
-      scoredItems: RelationshipScoredItem[];
-      analysis: string;
-    };
-  };
-  categoryTensionFlowAnalysis: {
-    [category: string]: TensionFlowData;
-  };
-  clusterAnalysis: {
-    Heart: ClusterScoreAnalysis;
-    Body: ClusterScoreAnalysis;
-    Mind: ClusterScoreAnalysis;
-    Life: ClusterScoreAnalysis;
-    Soul: ClusterScoreAnalysis;
-  };
-  holisticOverview: string;
-  tensionFlowAnalysis: {
-    supportDensity: number;
-    challengeDensity: number;
-    polarityRatio: number;
-    quadrant: string;
-    insight: {
-      quadrant: string;
-      description: string;
-      recommendations: string[];
-    };
-  };
-}
 
-// Frontend-style workflow status response structure
+// Workflow Status Response
 export interface RelationshipWorkflowStatusResponse {
   success: boolean;
   workflowStatus: {
     status: 'not_started' | 'running' | 'paused_after_scores' | 'completed' | 'error' | 'failed';
     progress?: {
       percentage: number;
-      processRelationshipAnalysis?: {
-        status: 'completed' | 'running';
-        completed: number;
-        total: number;
-      };
-    };
-    stepFunctions?: {
-      executionArn: string;
+      completed: number;
+      total: number;
     };
   };
   analysisData?: RelationshipAnalysisResponse;
-  workflowBreakdown?: {
-    needsGeneration: string[];
-    needsVectorization: string[];
-    completed: string[];
-  };
 }
 
-// Step Functions workflow start response
+// Workflow Start Response
 export interface RelationshipWorkflowStartResponse {
   success: boolean;
   workflowId?: string;
@@ -376,114 +246,47 @@ export interface RelationshipWorkflowStartResponse {
   error?: string;
 }
 
-// Simplified interfaces for the hook
-export interface RelationshipWorkflowStatus {
-  workflowId: string;
-  compositeChartId: string;
-  status: 'running' | 'completed' | 'error' | 'paused' | 'unknown';
-  progress: {
-    percentage: number;
-    currentPhase: string;
-    currentStep?: string;
-  };
-  isCompleted: boolean;
-  completed?: boolean;
-  error?: string;
-  analysisData?: RelationshipAnalysisResponse;
-}
-
-export interface VectorizationStatus {
-  categories: {
-    OVERALL_ATTRACTION_CHEMISTRY: boolean;
-    EMOTIONAL_SECURITY_CONNECTION: boolean;
-    SEX_AND_INTIMACY: boolean;
-    COMMUNICATION_AND_MENTAL_CONNECTION: boolean;
-    COMMITMENT_LONG_TERM_POTENTIAL: boolean;
-    KARMIC_LESSONS_GROWTH: boolean;
-    PRACTICAL_GROWTH_SHARED_GOALS: boolean;
-  };
-  relationshipAnalysis: boolean;
-}
-
 export const relationshipsApi = {
-  // Legacy methods (keep for backward compatibility)
-  createRelationship: async (request: RelationshipCreateRequest): Promise<RelationshipResponse> => {
-    return apiClient.post<RelationshipResponse>('/createRelationship', request);
-  },
-
-  createCompositeChart: async (request: CompositeChartRequest): Promise<{ compositeChartId: string }> => {
-    return apiClient.post<{ compositeChartId: string }>('/saveCompositeChartProfile', request);
-  },
-
-  getRelationshipScore: async (request: RelationshipScoreRequest): Promise<RelationshipScore> => {
-    return apiClient.post<RelationshipScore>('/getRelationshipScore', request);
-  },
-
-  getUserRelationships: async (userId: string): Promise<RelationshipResponse[]> => {
-    return apiClient.post<RelationshipResponse[]>('/getUserRelationships', { userId });
-  },
-
-  deleteRelationship: async (relationshipId: string): Promise<{ success: boolean }> => {
-    return apiClient.delete<{ success: boolean }>(`/relationships/${relationshipId}`);
-  },
-
-  getUserCompositeCharts: async (ownerUserId: string): Promise<UserCompositeChart[]> => {
-    return apiClient.post<UserCompositeChart[]>('/getUserCompositeCharts', { ownerUserId });
-  },
-
-
-  // ===== FRONTEND-PROVEN METHODS =====
-
-  // Enhanced Direct API - Primary workflow (2-5 seconds)
-  // Used for immediate relationship creation with full analysis
+  // Workflow 1: Enhanced Relationship Analysis with V3 (30-60 seconds)
   enhancedRelationshipAnalysis: async (
     userIdA: string,
-    userIdB: string
+    userIdB: string,
+    ownerUserId?: string,
+    celebRelationship: boolean = false
   ): Promise<EnhancedRelationshipAnalysisResponse> => {
     return apiClient.post<EnhancedRelationshipAnalysisResponse>('/enhanced-relationship-analysis', {
       userIdA,
       userIdB,
+      ownerUserId,
+      celebRelationship,
     });
   },
 
-  // Fetch existing relationship analysis data
-  fetchRelationshipAnalysis: async (compositeChartId: string): Promise<RelationshipAnalysisResponse> => {
-    return apiClient.post<RelationshipAnalysisResponse>('/fetchRelationshipAnalysis', {
-      compositeChartId,
-    });
-  },
-
-  // Step Functions Workflow Methods (exactly matching frontend)
-
-  // Start relationship workflow - Preview mode (scores only)
-  // Frontend: await startRelationshipWorkflow(userA._id, userB._id, compositeChart._id, false)
-  startRelationshipWorkflow: async (
-    userIdA: string,
-    userIdB: string,
+  // Workflow 2: Start Step Functions Full Analysis
+  startFullRelationshipAnalysis: async (
     compositeChartId: string,
-    immediate: boolean
+    immediate: boolean = true
   ): Promise<RelationshipWorkflowStartResponse> => {
     return apiClient.post<RelationshipWorkflowStartResponse>('/workflow/relationship/start', {
-      userIdA,
-      userIdB,
       compositeChartId,
       immediate,
     });
   },
 
-  // Start full relationship analysis from existing relationship
-  // Frontend: await startFullRelationshipAnalysis(compositeChart._id)
-  startFullRelationshipAnalysis: async (
-    compositeChartId: string
+  // Auto-create relationship and start analysis in one call
+  startRelationshipAnalysisWithAutoCreation: async (
+    userIdA: string,
+    userIdB: string,
+    immediate: boolean = true
   ): Promise<RelationshipWorkflowStartResponse> => {
     return apiClient.post<RelationshipWorkflowStartResponse>('/workflow/relationship/start', {
-      compositeChartId,
-      immediate: true,
+      userIdA,
+      userIdB,
+      immediate,
     });
   },
 
-  // Get relationship workflow status (used for polling)
-  // Frontend: await getRelationshipWorkflowStatus(compositeChart._id)
+  // Get workflow status for polling
   getRelationshipWorkflowStatus: async (
     compositeChartId: string
   ): Promise<RelationshipWorkflowStatusResponse> => {
@@ -492,8 +295,7 @@ export const relationshipsApi = {
     });
   },
 
-  // Resume paused relationship workflow
-  // Frontend: await resumeRelationshipWorkflow(compositeChart._id)
+  // Resume paused workflow
   resumeRelationshipWorkflow: async (
     compositeChartId: string
   ): Promise<RelationshipWorkflowStartResponse> => {
@@ -502,22 +304,39 @@ export const relationshipsApi = {
     });
   },
 
+  // Fetch existing relationship analysis
+  fetchRelationshipAnalysis: async (compositeChartId: string): Promise<RelationshipAnalysisResponse> => {
+    return apiClient.post<RelationshipAnalysisResponse>('/fetchRelationshipAnalysis', {
+      compositeChartId,
+    });
+  },
+
+  // User's composite charts list
+  getUserCompositeCharts: async (ownerUserId: string): Promise<UserCompositeChart[]> => {
+    return apiClient.post<UserCompositeChart[]>('/getUserCompositeCharts', { ownerUserId });
+  },
+
+  // Delete relationship
+  deleteRelationship: async (relationshipId: string): Promise<{ success: boolean }> => {
+    return apiClient.delete<{ success: boolean }>(`/relationships/${relationshipId}`);
+  },
+
   // Chat API for relationship analysis
-  // Frontend: await chatForUserRelationship(userA._id, compositeChart._id, message)
   chatForUserRelationship: async (
     userId: string,
     compositeChartId: string,
-    message: string
+    message: string,
+    selectedElements?: ConsolidatedScoredItem[]
   ): Promise<string> => {
     return apiClient.post<string>('/chatForUserRelationship', {
       userId,
       compositeChartId,
       message,
+      selectedElements,
     });
   },
 
-  // Fetch user chat relationship analysis history
-  // Frontend: await fetchUserChatRelationshipAnalysis(userA._id, compositeChart._id)
+  // Fetch chat history
   fetchUserChatRelationshipAnalysis: async (
     userId: string,
     compositeChartId: string

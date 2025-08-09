@@ -28,8 +28,10 @@ import RadarChart from '../../components/chart/RadarChart';
 import ScoredItemsTable from '../../components/chart/ScoredItemsTable';
 import { CompleteRelationshipAnalysisButton } from '../../components/relationship';
 import RelationshipAnalysisTab from '../../components/relationship/RelationshipAnalysisTab';
+import V3ClusterRadar from '../../components/relationship/V3ClusterRadar';
+import KeystoneAspectsHighlight from '../../components/relationship/KeystoneAspectsHighlight';
+import ConsolidatedItemsGrid from '../../components/relationship/ConsolidatedItemsGrid';
 import { CardAccordion, AccordionCard, ClusterChipRow, TaglineCard, ProgressBar, Bullet, OverviewChipRow } from '../../components/ui';
-import RelationshipTensionFlow from '../../components/relationships/RelationshipTensionFlow';
 import { AnalysisHeader } from '../../components/navigation/AnalysisHeader';
 import { TopTabBar } from '../../components/navigation/TopTabBar';
 import { StickySegment } from '../../components/navigation/StickySegment';
@@ -46,6 +48,9 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const route = useRoute<RelationshipAnalysisScreenRouteProp>();
   const { colors } = useTheme();
   const { relationship } = route.params;
+  
+  console.log('RelationshipAnalysisScreen loaded with relationship:', relationship);
+  console.log('Relationship has v2Analysis:', !!relationship.v2Analysis);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [activeTab, setActiveTab] = useState('charts');
@@ -64,12 +69,12 @@ const RelationshipAnalysisScreen: React.FC = () => {
   }, [chartSubTab]);
 
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['synastry-a']));
-  const [analysisData, setAnalysisData] = useState<RelationshipAnalysisResponse | null>(null);
   const [userAData, setUserAData] = useState<SubjectDocument | null>(null);
   const [userBData, setUserBData] = useState<SubjectDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasLoadedData, setHasLoadedData] = useState(false);
+  const [analysisData, setAnalysisData] = useState<RelationshipAnalysisResponse | null>(null);
 
   // Navigation configuration
   const topTabs = [
@@ -124,62 +129,23 @@ const RelationshipAnalysisScreen: React.FC = () => {
     }
 
     try {
-      // Check if enhanced analysis data is already included in the relationship object (new relationships)
-      if ((relationship as any).enhancedAnalysis) {
-        // Don't show loading if we already have the data locally
-        setLoading(false); // Ensure loading is false when we have local data
-        setError(null);
-        // Use the enhanced analysis data that's already included
-        const enhancedAnalysis = (relationship as any).enhancedAnalysis;
-
-        // Transform enhanced analysis to match RelationshipAnalysisResponse interface
-        const transformedAnalysis: RelationshipAnalysisResponse = {
-          profileAnalysis: (relationship as any).profileAnalysis || {
-            profileResult: {
-              tier: 'Enhanced',
-              profile: 'Compatibility Analysis',
-              clusterScores: {
-                Heart: Math.round(enhancedAnalysis.scores?.EMOTIONAL_SECURITY_CONNECTION?.overall || 0),
-                Body: Math.round(enhancedAnalysis.scores?.SEX_AND_INTIMACY?.overall || 0),
-                Mind: Math.round(enhancedAnalysis.scores?.COMMUNICATION_AND_MENTAL_CONNECTION?.overall || 0),
-                Life: Math.round(enhancedAnalysis.scores?.PRACTICAL_GROWTH_SHARED_GOALS?.overall || 0),
-                Soul: Math.round(enhancedAnalysis.scores?.KARMIC_LESSONS_GROWTH?.overall || 0),
-              },
-            },
-          },
-          scores: enhancedAnalysis.scores,
-          // Use the actual holistic overview from the enhanced analysis
-          holisticOverview: enhancedAnalysis.holisticOverview,
-          // Include tension flow analysis from the enhanced analysis
-          tensionFlowAnalysis: enhancedAnalysis.tensionFlowAnalysis,
-          // Include cluster analysis if available
-          clusterAnalysis: enhancedAnalysis.clusterAnalysis,
-          // Include detailed category analysis if available
-          analysis: enhancedAnalysis.analysis,
-          // Include score analysis if available
-          scoreAnalysis: enhancedAnalysis.scoreAnalysis,
-        };
-
-        setAnalysisData(transformedAnalysis);
-        setHasLoadedData(true);
-      } else {
-        // Only show loading when we need to fetch data from API
-        setLoading(true);
-        setError(null);
-        
-        // Fallback to fetching analysis data (existing relationships)
-        try {
-          const analysisResult = await relationshipsApi.fetchRelationshipAnalysis(relationship._id);
-          setAnalysisData(analysisResult);
-          setHasLoadedData(true);
-        } catch (fetchError) {
-          console.log('No existing analysis data found, continuing without analysis data');
-          // Don't set error state - just continue without analysis data
-          // This allows the Charts tab to work with chart data from the relationship object
-          setHasLoadedData(true); // Mark as loaded even if no data found
-        }
+      setError(null);
+      
+      // Fetch the full relationship analysis document
+      const fullAnalysisData = await relationshipsApi.fetchRelationshipAnalysis(relationship._id);
+      console.log('Full analysis data loaded:', fullAnalysisData);
+      
+      // Store the full analysis data for the 360 Analysis tab
+      setAnalysisData(fullAnalysisData);
+      console.log('Set analysisData in state:', !!fullAnalysisData.analysis);
+      
+      // Update the relationship object with the V3 data
+      if (fullAnalysisData.v2Analysis) {
+        (relationship as any).v2Analysis = fullAnalysisData.v2Analysis;
+        (relationship as any).v2Metrics = fullAnalysisData.v2Metrics;
+        console.log('Updated relationship with V3 data - clusters:', Object.keys(fullAnalysisData.v2Analysis.clusters));
       }
-
+      
       // Fetch user birth charts in parallel if we have user IDs
       const userPromises: Promise<any>[] = [];
       if (relationship.userA_id) {
@@ -199,9 +165,11 @@ const RelationshipAnalysisScreen: React.FC = () => {
           setUserBData(userResults[userResults.length - 1]);
         }
       }
+
+      setHasLoadedData(true);
     } catch (err) {
-      console.error('Failed to load relationship analysis:', err);
-      setError('Failed to load relationship analysis');
+      console.error('Failed to load analysis data:', err);
+      setError('Failed to load analysis data');
     } finally {
       setLoading(false);
     }
@@ -368,392 +336,131 @@ const RelationshipAnalysisScreen: React.FC = () => {
   };
 
   const ScoresTab = () => {
-    const [expandedCluster, setExpandedCluster] = useState<string | null>(null);
-    const [selectedChipCluster, setSelectedChipCluster] = useState<string | null>(null);
-    const [isAnimating, setIsAnimating] = useState(false);
-    const scoresScrollViewRef = useRef<ScrollView>(null);
-    const clusterRefs = useRef<{ [key: string]: View | null }>({});
+    console.log('Relationship object:', relationship);
+    console.log('V2Analysis:', relationship.v2Analysis);
+    const v3Analysis = relationship.v2Analysis;
+    const consolidatedItems = v3Analysis?.consolidatedScoredItems || [];
 
-    // Prepare cluster data
-    const clusterData = analysisData?.profileAnalysis ?
-      Object.entries(analysisData.profileAnalysis.profileResult.clusterScores).map(([cluster, score]) => ({
-        id: cluster,
-        emoji: getClusterIcon(cluster),
-        label: cluster,
-        score: Math.round(score),
-      })) : [];
-
-    const handleClusterExpand = (clusterId: string) => {
-      // Prevent rapid-fire clicks during animations
-      if (isAnimating) return;
-      
-      setIsAnimating(true);
-      const newExpanded = expandedCluster === clusterId ? null : clusterId;
-      setExpandedCluster(newExpanded);
-
-      // Update chip selection to match expanded card
-      if (newExpanded) {
-        setSelectedChipCluster(newExpanded);
-      }
-
-      // Configure layout animation for smooth transitions (with reduced duration to prevent conflicts)
-      LayoutAnimation.configureNext({
-        duration: 200,
-        create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-        update: { type: LayoutAnimation.Types.easeInEaseOut },
-      });
-
-      // Reset animation flag after animation completes
-      setTimeout(() => {
-        setIsAnimating(false);
-      }, 250);
-    };
-
-    const handleChipSelect = (clusterId: string) => {
-      // Prevent operation during animations
-      if (isAnimating) return;
-      
-      setSelectedChipCluster(clusterId);
-      
-      // Expand the selected cluster if it's not already expanded
-      if (expandedCluster !== clusterId) {
-        setExpandedCluster(clusterId);
-        LayoutAnimation.configureNext({
-          duration: 200,
-          create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-          update: { type: LayoutAnimation.Types.easeInEaseOut },
-        });
-      }
-      
-      // Delay scroll operation to prevent conflicts with layout animations
-      setTimeout(() => {
-        if (clusterRefs.current[clusterId]) {
-          clusterRefs.current[clusterId]?.measureLayout(
-            scoresScrollViewRef.current as any,
-            (x, y) => {
-              scoresScrollViewRef.current?.scrollTo({ y: y - 150, animated: true });
-            },
-            () => {}
-          );
-        }
-      }, 250); // Wait for layout animations to complete
-    };
-
-    if (!analysisData?.profileAnalysis) {
+    if (!v3Analysis) {
       return (
         <View style={[styles.missingDataCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={styles.missingDataIcon}>📊</Text>
-          <Text style={[styles.missingDataTitle, { color: colors.primary }]}>Compatibility Scores</Text>
+          <Text style={styles.missingDataIcon}>⚠️</Text>
+          <Text style={[styles.missingDataTitle, { color: colors.error }]}>Data Loading Error</Text>
           <Text style={[styles.missingDataText, { color: colors.onSurfaceVariant }]}>
-            Complete your full analysis to unlock detailed compatibility scores and radar chart visualization.
+            V3 analysis data is missing. This should not happen for new relationships.
           </Text>
-          <CompleteRelationshipAnalysisButton
-            compositeChartId={relationship._id}
-            onAnalysisComplete={(completedAnalysisData) => {
-              if (completedAnalysisData) {
-                setAnalysisData(completedAnalysisData);
-              } else {
-                loadAnalysisData();
-              }
-            }}
-            hasAnalysisData={false}
-          />
         </View>
       );
     }
 
     return (
-      <View style={styles.scoresContainer}>
-        {/* Sticky Cluster Chip Row */}
-        <ClusterChipRow
-          clusters={clusterData}
-          selectedCluster={selectedChipCluster}
-          onSelectCluster={handleChipSelect}
-          style={styles.stickyChipRow}
+      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+        {/* V3 Cluster Radar */}
+        <V3ClusterRadar
+          clusters={v3Analysis.clusters}
+          tier={v3Analysis.tier}
+          profile={v3Analysis.profile}
         />
 
-        <ScrollView
-          ref={scoresScrollViewRef}
-          style={styles.tabContent}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scoresScrollContent}
-        >
-          {/* Radar Chart */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>💕 Compatibility Scores</Text>
-            <RadarChart
-              data={analysisData.profileAnalysis.profileResult.clusterScores}
-              size={300}
-            />
-          </View>
+        {/* Keystone Aspects */}
+        <KeystoneAspectsHighlight
+          keystoneAspects={v3Analysis.keystoneAspects}
+          onAspectPress={(aspect) => {
+            console.log('Keystone aspect pressed:', aspect);
+          }}
+        />
 
-          {/* Cluster Analysis Sections */}
-          {analysisData.clusterAnalysis && Object.entries(analysisData.clusterAnalysis).map(([cluster, data]) => {
-            const score = Math.round(analysisData.profileAnalysis.profileResult.clusterScores[cluster] || 0);
-            return (
-              <View
-                key={cluster}
-                ref={(ref) => { clusterRefs.current[cluster] = ref; }}
-                collapsable={false}
-              >
-                <AccordionCard
-                  emoji={getClusterIcon(cluster)}
-                  label={`${cluster} Analysis`}
-                  score={score}
-                  isExpanded={expandedCluster === cluster}
-                  onPress={() => handleClusterExpand(cluster)}
-                >
-                  <Text style={[styles.clusterAnalysisText, { color: colors.onSurface }]}>
-                    {data.analysis}
-                  </Text>
-                </AccordionCard>
-              </View>
-            );
-          })}
-        </ScrollView>
-      </View>
+        {/* Consolidated Items Grid */}
+        <ConsolidatedItemsGrid
+          consolidatedItems={consolidatedItems}
+          onItemPress={(item) => {
+            console.log('Consolidated item pressed:', item);
+          }}
+        />
+      </ScrollView>
     );
   };
 
   const OverviewTab = () => {
-    const [openAccordionId, setOpenAccordionId] = useState<string | null>('overview');
-    const [selectedOverviewSection, setSelectedOverviewSection] = useState<string | null>(null);
-    const overviewScrollViewRef = useRef<ScrollView>(null);
-    const overviewSectionRefs = useRef<{ [key: string]: View | null }>({});
-
-    // Derive tagline from top strength
-    const getTagline = (): string => {
-      if (analysisData?.holisticOverview?.topStrengths?.[0]?.name) {
-        const topStrength = analysisData.holisticOverview.topStrengths[0].name;
-        // Map to phrase library - simplified for now
-        const taglinePhrases: { [key: string]: string } = {
-          'Sun exact conjunction Mars': 'Magnetic attraction and fiery chemistry',
-          'Venus close conjunction Mars': 'Passionate love and physical magnetism',
-          'Sun conjunction Mars': 'Dynamic energy and powerful chemistry',
-          'default': 'A unique cosmic connection',
-        };
-        return taglinePhrases[topStrength] || taglinePhrases.default;
-      }
-      return 'A journey of discovery together';
-    };
-
-    // Overview sections for chip navigation
-    const overviewSections = [
-      { id: 'overview', label: 'Overview', emoji: '💫' },
-      { id: 'strengths', label: 'Strengths', emoji: '✨' },
-      { id: 'challenges', label: 'Challenges', emoji: '⚠️' },
-      { id: 'dynamics', label: 'Dynamics', emoji: '⚖️' },
-    ];
-
-    const handleAccordionToggle = (accordionId: string) => {
-      setOpenAccordionId(openAccordionId === accordionId ? null : accordionId);
-
-      // Configure layout animation for smooth transitions
-      LayoutAnimation.configureNext({
-        duration: 300,
-        create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-        update: { type: LayoutAnimation.Types.easeInEaseOut },
-      });
-    };
-
-    const handleOverviewSectionSelect = (sectionId: string) => {
-      setSelectedOverviewSection(sectionId);
-      // Scroll to the selected section
-      if (overviewSectionRefs.current[sectionId]) {
-        overviewSectionRefs.current[sectionId]?.measureLayout(
-          overviewScrollViewRef.current as any,
-          (x, y) => {
-            overviewScrollViewRef.current?.scrollTo({ y: y - 120, animated: true });
-          },
-          () => {}
-        );
-      }
-    };
-
-    if (!analysisData?.holisticOverview) {
+    console.log('OverviewTab - Relationship object:', relationship);
+    console.log('OverviewTab - V2Analysis:', relationship.v2Analysis);
+    const v3Analysis = relationship.v2Analysis;
+    
+    if (!v3Analysis) {
       return (
         <View style={[styles.missingDataCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={styles.missingDataIcon}>💫</Text>
-          <Text style={[styles.missingDataTitle, { color: colors.primary }]}>Relationship Overview</Text>
+          <Text style={styles.missingDataIcon}>⚠️</Text>
+          <Text style={[styles.missingDataTitle, { color: colors.error }]}>Data Loading Error</Text>
           <Text style={[styles.missingDataText, { color: colors.onSurfaceVariant }]}>
-            Complete your full analysis to unlock detailed relationship insights and dynamic analysis.
+            V3 analysis data is missing. This should not happen for new relationships.
           </Text>
-          <CompleteRelationshipAnalysisButton
-            compositeChartId={relationship._id}
-            onAnalysisComplete={(completedAnalysisData) => {
-              if (completedAnalysisData) {
-                setAnalysisData(completedAnalysisData);
-              } else {
-                loadAnalysisData();
-              }
-            }}
-            hasAnalysisData={false}
-          />
         </View>
       );
     }
 
     return (
-      <View style={styles.overviewContainer}>
-        {/* Overview Section Chip Row */}
-        <OverviewChipRow
-          sections={overviewSections}
-          selectedSection={selectedOverviewSection}
-          onSelectSection={handleOverviewSectionSelect}
-          style={styles.overviewChipRow}
-        />
+      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+        {/* Relationship Header */}
+        <View style={[styles.overviewHeader, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.relationshipTier, { color: colors.primary }]}>
+            {v3Analysis.tier} Relationship
+          </Text>
+          <Text style={[styles.relationshipProfile, { color: colors.onSurface }]}>
+            {v3Analysis.profile}
+          </Text>
+        </View>
 
-        <ScrollView
-          ref={overviewScrollViewRef}
-          style={styles.tabContent}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.overviewScrollContent}
-        >
-          {/* 1. Relationship Overview */}
-          <View
-            ref={(ref) => { overviewSectionRefs.current.overview = ref; }}
-            collapsable={false}
-          >
-            <AccordionCard
-              emoji="💫"
-              label="Relationship Overview"
-              score={0} // No score for overview
-              isExpanded={openAccordionId === 'overview'}
-              onPress={() => handleAccordionToggle('overview')}
-            >
-              <Text style={[styles.overviewBodyText, { color: colors.onSurfaceMed }]}>
-                {analysisData.holisticOverview.overview}
+        {/* Initial Overview */}
+        <View style={[styles.overviewCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.overviewTitle, { color: colors.onSurface }]}>
+            💫 Relationship Overview
+          </Text>
+          <Text style={[styles.overviewText, { color: colors.onSurfaceVariant }]}>
+            {v3Analysis.initialOverview}
+          </Text>
+        </View>
+
+        {/* V3 Clusters Summary */}
+        <View style={[styles.clustersCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.clustersTitle, { color: colors.onSurface }]}>
+            🎵 Cluster Highlights
+          </Text>
+          {Object.entries(v3Analysis.clusters).map(([clusterName, clusterData]) => (
+            <View key={clusterName} style={styles.clusterRow}>
+              <Text style={[styles.clusterName, { color: colors.onSurface }]}>
+                {clusterName}
               </Text>
-            </AccordionCard>
+              <Text style={[styles.clusterScore, { color: colors.primary }]}>
+                {clusterData.score > 1 ? Math.round(clusterData.score) : Math.round(clusterData.score * 100)}%
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Top Keystone Aspects */}
+        {v3Analysis.keystoneAspects.length > 0 && (
+          <View style={[styles.keystonesCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.keystonesTitle, { color: colors.onSurface }]}>
+              ⭐️ Key Influences
+            </Text>
+            {v3Analysis.keystoneAspects.slice(0, 3).map((aspect, index) => (
+              <View key={index} style={styles.keystoneRow}>
+                <Text style={[styles.keystoneDescription, { color: colors.onSurfaceVariant }]}>
+                  {aspect.description}
+                </Text>
+                <Text style={[styles.keystoneScore, { color: colors.secondary }]}>
+                  {aspect.score.toFixed(1)}
+                </Text>
+              </View>
+            ))}
           </View>
-
-          {/* 2. Top Strengths */}
-          {analysisData.holisticOverview.topStrengths && (
-            <View
-              ref={(ref) => { overviewSectionRefs.current.strengths = ref; }}
-              collapsable={false}
-            >
-              <AccordionCard
-                emoji="✨"
-                label="Top Strengths"
-                score={0} // No score for strengths
-                isExpanded={openAccordionId === 'strengths'}
-                onPress={() => handleAccordionToggle('strengths')}
-              >
-                {analysisData.holisticOverview.topStrengths.map((strength, index) => (
-                  <Bullet key={index}>
-                    <Text style={[styles.strengthTitle, { color: colors.onSurfaceHigh }]}>
-                      {strength.name}
-                    </Text>
-                    <Text style={[styles.overviewBodyText, { color: colors.onSurfaceMed }]}>
-                      {strength.description}
-                    </Text>
-                  </Bullet>
-                ))}
-              </AccordionCard>
-            </View>
-          )}
-
-          {/* 3. Key Challenges */}
-          {analysisData.holisticOverview.keyChallenges && (
-            <View
-              ref={(ref) => { overviewSectionRefs.current.challenges = ref; }}
-              collapsable={false}
-            >
-              <AccordionCard
-                emoji="⚠️"
-                label="Key Challenges"
-                score={0} // No score for challenges
-                isExpanded={openAccordionId === 'challenges'}
-                onPress={() => handleAccordionToggle('challenges')}
-              >
-                {analysisData.holisticOverview.keyChallenges.map((challenge, index) => (
-                  <Bullet key={index}>
-                    <Text style={[styles.challengeTitle, { color: colors.onSurfaceHigh }]}>
-                      {challenge.name}
-                    </Text>
-                    <Text style={[styles.overviewBodyText, { color: colors.onSurfaceMed }]}>
-                      {challenge.description}
-                    </Text>
-                  </Bullet>
-                ))}
-              </AccordionCard>
-            </View>
-          )}
-
-          {/* 4. Relationship Dynamics */}
-          {analysisData.tensionFlowAnalysis && (
-            <View
-              ref={(ref) => { overviewSectionRefs.current.dynamics = ref; }}
-              collapsable={false}
-            >
-              <AccordionCard
-                emoji="⚖️"
-                label="Relationship Dynamics"
-                score={0} // No score for dynamics
-                isExpanded={openAccordionId === 'dynamics'}
-                onPress={() => handleAccordionToggle('dynamics')}
-              >
-                <ProgressBar
-                  label="Support Level"
-                  level={getSupportLevel(analysisData.tensionFlowAnalysis.supportDensity)}
-                  fillColor="accentSupport"
-                  icon="🌿"
-                />
-                <ProgressBar
-                  label="Tension Level"
-                  level={getTensionLevel(analysisData.tensionFlowAnalysis.challengeDensity)}
-                  fillColor="accentWarning"
-                  icon="🔥"
-                />
-                <ProgressBar
-                  label="Balance"
-                  level={getBalanceDescription(analysisData.tensionFlowAnalysis.polarityRatio)}
-                  fillColor="accentPrimary"
-                  icon="⚖️"
-                />
-              </AccordionCard>
-            </View>
-          )}
-        </ScrollView>
-      </View>
+        )}
+      </ScrollView>
     );
   };
 
 
-  const getClusterIcon = (cluster: string): string => {
-    const icons: { [key: string]: string } = {
-      Heart: '💗',
-      Body: '🔥',
-      Mind: '🧠',
-      Life: '💎',
-      Soul: '🌙',
-    };
-    return icons[cluster] || '💫';
-  };
-
-  const getSupportLevel = (density: number): string => {
-    if (density >= 2.5) {return 'Very High';}
-    if (density >= 1.5) {return 'High';}
-    if (density >= 0.8) {return 'Moderate';}
-    if (density >= 0.3) {return 'Low';}
-    return 'Very Low';
-  };
-
-  const getTensionLevel = (density: number): string => {
-    if (density >= 1.5) {return 'Very High';}
-    if (density >= 1.0) {return 'High';}
-    if (density >= 0.5) {return 'Moderate';}
-    if (density >= 0.1) {return 'Low';}
-    return 'Very Low';
-  };
-
-  const getBalanceDescription = (ratio: number): string => {
-    if (ratio >= 5) {return 'Highly Supportive';}
-    if (ratio >= 2) {return 'More Supportive';}
-    if (ratio >= 1) {return 'Balanced';}
-    return 'More Challenging';
-  };
+  // Legacy helper functions removed - no longer needed for V3
 
 
   if (loading) {
@@ -779,11 +486,11 @@ const RelationshipAnalysisScreen: React.FC = () => {
             analysisData={analysisData}
             relationshipId={relationship._id}
             onAnalysisComplete={(completedAnalysisData) => {
-              if (completedAnalysisData) {
-                setAnalysisData(completedAnalysisData);
-              } else {
-                loadAnalysisData();
-              }
+              console.log('Analysis completed, refreshing data...');
+              // Reset the loaded data flag to force a refresh
+              setHasLoadedData(false);
+              setAnalysisData(null); // Clear existing data to trigger loading state
+              loadAnalysisData();
             }}
             loading={loading}
           />
@@ -1192,6 +899,92 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 4,
+  },
+  // V3 Overview Tab Styles
+  overviewHeader: {
+    padding: 20,
+    borderRadius: 12,
+    margin: 16,
+    alignItems: 'center',
+  },
+  relationshipTier: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  relationshipProfile: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  overviewCard: {
+    padding: 16,
+    borderRadius: 12,
+    margin: 16,
+  },
+  overviewTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  clustersCard: {
+    padding: 16,
+    borderRadius: 12,
+    margin: 16,
+  },
+  clustersTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  clusterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  clusterName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  clusterScore: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  keystonesCard: {
+    padding: 16,
+    borderRadius: 12,
+    margin: 16,
+  },
+  keystonesTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  keystoneRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  keystoneDescription: {
+    fontSize: 14,
+    flex: 1,
+    marginRight: 8,
+  },
+  keystoneScore: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  upgradeButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  upgradeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

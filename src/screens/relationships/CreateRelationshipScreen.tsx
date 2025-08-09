@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../../store';
-import { relationshipsApi } from '../../api/relationships';
+import { relationshipsApi, UserCompositeChart } from '../../api/relationships';
 import { Celebrity } from '../../api/celebrities';
 import GuestUsersTab from '../../components/GuestUsersTab';
 import CelebritiesTab from '../../components/CelebritiesTab';
@@ -67,40 +67,39 @@ const CreateRelationshipScreen: React.FC = () => {
     try {
       const result = await relationshipsApi.enhancedRelationshipAnalysis(
         currentUserId,
-        selectedPerson._id
+        selectedPerson._id,
+        currentUserId // ownerUserId
       );
 
       if (result.success && result.compositeChartId) {
-        console.log('Enhanced relationship analysis result:', result);
+        console.log('V3 Enhanced relationship analysis result:', result);
+        console.log('result.v2Analysis:', result.v2Analysis);
+        console.log('result.v2Analysis keys:', result.v2Analysis ? Object.keys(result.v2Analysis) : 'undefined');
 
-        // Transform the response to match UserCompositeChart interface expected by RelationshipAnalysisScreen
-        const transformedRelationship = {
+        // Direct V3 integration - no transformation needed
+        const v3Relationship: UserCompositeChart = {
           _id: result.compositeChartId,
-          userA_name: userData.name || `${userData.firstName} ${userData.lastName}` || 'You',
-          userB_name: `${selectedPerson.firstName} ${selectedPerson.lastName}`,
-          userA_id: currentUserId,
-          userB_id: selectedPerson._id,
-          createdAt: new Date().toISOString(),
-          // Include the enhanced analysis data - the API returns these in enhancedAnalysis object
-          scores: result.enhancedAnalysis?.scores,
-          clusterAnalysis: result.enhancedAnalysis?.clusterAnalysis,
-          holisticOverview: result.enhancedAnalysis?.holisticOverview,
-          tensionFlowAnalysis: result.enhancedAnalysis?.tensionFlowAnalysis,
-          scoreAnalysis: result.enhancedAnalysis?.scoreAnalysis,
-          // Include chart data - these are returned at the root level of the response
+          userA_name: result.userA.name,
+          userB_name: result.userB.name,
+          userA_id: result.userA.id,
+          userB_id: result.userB.id,
+          createdAt: result.metadata.processingTime,
+          userA_dateOfBirth: '',
+          userB_dateOfBirth: '',
+          
+          // V3 Analysis Data
+          v2Analysis: result.v2Analysis,
+          v2Metrics: result.v2Metrics,
+          
+          // Chart Data
           synastryAspects: result.synastryAspects,
           compositeChart: result.compositeChart,
           synastryHousePlacements: result.synastryHousePlacements,
-          // Store the entire enhanced analysis for the analysis screen
-          enhancedAnalysis: result.enhancedAnalysis,
-          // Add other required fields with default values
-          userA_dateOfBirth: '',
-          userB_dateOfBirth: '',
         };
 
         Alert.alert(
           'Success!',
-          `Relationship with ${selectedPerson.firstName} ${selectedPerson.lastName} created successfully!`,
+          `${result.v2Analysis.tier} relationship with ${selectedPerson.firstName} ${selectedPerson.lastName} created! Your profile: ${result.v2Analysis.profile}`,
           [
             {
               text: 'Back to Relationships',
@@ -112,8 +111,10 @@ const CreateRelationshipScreen: React.FC = () => {
             {
               text: 'View Analysis',
               onPress: () => {
+                console.log('Navigating with v3Relationship:', v3Relationship);
+                console.log('v3Relationship.v2Analysis:', v3Relationship.v2Analysis);
                 (navigation as any).navigate('RelationshipAnalysis', {
-                  relationship: transformedRelationship,
+                  relationship: v3Relationship,
                 });
               },
             },
@@ -123,7 +124,7 @@ const CreateRelationshipScreen: React.FC = () => {
         throw new Error('Failed to create relationship - invalid response');
       }
     } catch (error: any) {
-      console.error('Error creating relationship:', error);
+      console.error('Error creating V3 relationship:', error);
       Alert.alert(
         'Error',
         error.message || 'Failed to create relationship. Please try again.'
