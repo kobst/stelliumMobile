@@ -360,4 +360,71 @@ export const relationshipsApi = {
       compositeChartId,
     });
   },
+
+  // Enhanced Chat API - Frontend Integration
+  
+  // Enhanced chat for relationship with element selection support
+  enhancedChatForRelationship: async (
+    compositeChartId: string,
+    requestBody: {
+      query?: string;
+      selectedElements?: ConsolidatedScoredItem[];
+    }
+  ): Promise<{
+    success: boolean;
+    answer: string;
+    chatHistoryResult: any;
+    analysisId?: string;
+    vectorized: boolean;
+    mode: 'chat' | 'custom' | 'hybrid';
+  }> => {
+    return apiClient.post<{
+      success: boolean;
+      answer: string;
+      chatHistoryResult: any;
+      analysisId?: string;
+      vectorized: boolean;
+      mode: 'chat' | 'custom' | 'hybrid';
+    }>(`/relationships/${compositeChartId}/enhanced-chat`, requestBody);
+  },
+
+  // Fetch enhanced chat history for relationship
+  fetchRelationshipEnhancedChatHistory: async (
+    compositeChartId: string,
+    limit?: number
+  ): Promise<{
+    success: boolean;
+    chatHistory: Array<{
+      role: 'user' | 'assistant';
+      content: string;
+      timestamp: string;
+      metadata?: {
+        mode?: 'chat' | 'custom' | 'hybrid';
+        selectedElements?: ConsolidatedScoredItem[];
+        elementCount?: number;
+      };
+    }>;
+    messageCount: number;
+  }> => {
+    let endpoint = `/relationships/${compositeChartId}/chat-history`;
+    if (limit !== undefined) {
+      endpoint += `?limit=${limit}`;
+    }
+    
+    console.log('Fetching chat history from endpoint:', endpoint);
+    return apiClient.get<{
+      success: boolean;
+      chatHistory: Array<{
+        role: 'user' | 'assistant';
+        content: string;
+        timestamp: string;
+        metadata?: {
+          mode?: 'chat' | 'custom' | 'hybrid';
+          selectedElements?: ConsolidatedScoredItem[];
+          elementCount?: number;
+        };
+      }>;
+      messageCount: number;
+    }>(endpoint);
+  },
 };

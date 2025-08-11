@@ -8,6 +8,7 @@ interface ConsolidatedItemsGridProps {
   keystoneAspects?: KeystoneAspect[];
   onItemPress?: (item: ConsolidatedScoredItem) => void;
   selectedItems?: ConsolidatedScoredItem[];
+  onChatAboutItem?: (item: ConsolidatedScoredItem) => void;
 }
 
 type FilterType = 'keystones' | 'sparks' | 'topSupports' | 'topChallenges';
@@ -148,6 +149,7 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
   keystoneAspects = [],
   onItemPress,
   selectedItems = [],
+  onChatAboutItem,
 }) => {
   const { colors } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>('keystones');
@@ -364,6 +366,19 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
             { backgroundColor: getValenceColor(topCategory.valence) }
           ]} />
         </View>
+
+        {/* Chat About This Button */}
+        {onChatAboutItem && (
+          <TouchableOpacity
+            style={[styles.chatButton, { backgroundColor: colors.secondary }]}
+            onPress={(e) => {
+              e.stopPropagation();
+              onChatAboutItem(item);
+            }}
+          >
+            <Text style={[styles.chatButtonText, { color: colors.onSecondary }]}>💬 Chat</Text>
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     );
   };
@@ -585,6 +600,17 @@ const styles = StyleSheet.create({
   keystoneText: {
     fontSize: 14,
     color: '#8B4513',
+  },
+  chatButton: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  chatButtonText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
 });
 

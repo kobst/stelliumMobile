@@ -11,6 +11,7 @@ interface RelationshipAnalysisTabProps {
   relationshipId: string;
   onAnalysisComplete: (analysisData?: any) => void;
   loading?: boolean;
+  onChatAboutItem?: (item: any) => void;
 }
 
 const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
@@ -18,6 +19,7 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
   relationshipId,
   onAnalysisComplete,
   loading = false,
+  onChatAboutItem,
 }) => {
   const { colors } = useTheme();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -138,6 +140,7 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
                         onItemPress={(item) => {
                           console.log('Category item pressed:', item);
                         }}
+                        onChatAboutItem={onChatAboutItem}
                       />
                     )}
 
