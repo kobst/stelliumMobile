@@ -4,6 +4,7 @@ import { useTheme } from '../../theme';
 import { RelationshipAnalysisResponse } from '../../api/relationships';
 import CompleteRelationshipAnalysisButton from './CompleteRelationshipAnalysisButton';
 import RelationshipTensionFlow from '../relationships/RelationshipTensionFlow';
+import CategoryHighlights from './CategoryHighlights';
 
 interface RelationshipAnalysisTabProps {
   analysisData: RelationshipAnalysisResponse | null;
@@ -124,28 +125,31 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
                               </Text>
                             </View>
                           </View>
-                          <View style={styles.metricRow}>
-                            <View style={styles.metricItem}>
-                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Quadrant</Text>
-                              <Text style={[styles.metricValue, { color: colors.primary }]}>
-                                {analysisData.dynamics[category].quadrant}
-                              </Text>
-                            </View>
-                            <View style={styles.metricItem}>
-                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Spark Elements</Text>
-                              <Text style={[styles.metricValue, { color: colors.secondary }]}>
-                                {analysisData.dynamics[category].sparkElements}
-                              </Text>
-                            </View>
-                          </View>
                         </View>
                       </View>
+                    )}
+
+                    {/* Category Highlights */}
+                    {analysisData?.v2Analysis?.consolidatedScoredItems && (
+                      <CategoryHighlights
+                        consolidatedItems={analysisData.v2Analysis.consolidatedScoredItems}
+                        keystoneAspects={analysisData.dynamics?.[category]?.keystone || []}
+                        targetCategory={category}
+                        onItemPress={(item) => {
+                          console.log('Category item pressed:', item);
+                        }}
+                      />
                     )}
 
                     {/* Daily Dynamics - Metrics Interpretation */}
                     {categoryData.v3MetricsInterpretation && (
                       <View style={[styles.dailyDynamicsSection, { borderBottomColor: colors.border }]}>
                         <Text style={[styles.panelTitle, { color: colors.primary }]}>📊 Daily Dynamics</Text>
+                        {analysisData?.dynamics?.[category] && (
+                          <Text style={[styles.quadrantText, { color: colors.onSurfaceVariant }]}>
+                            Quadrant: {analysisData.dynamics[category].quadrant}
+                          </Text>
+                        )}
                         <Text style={[styles.analysisText, { color: colors.onSurface }]}>
                           {categoryData.v3MetricsInterpretation}
                         </Text>
@@ -344,6 +348,12 @@ const styles = StyleSheet.create({
   dailyDynamicsSection: {
     padding: 16,
     borderBottomWidth: 1,
+  },
+  quadrantText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 8,
+    marginBottom: 12,
   },
 });
 

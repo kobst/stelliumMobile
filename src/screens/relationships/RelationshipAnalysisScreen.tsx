@@ -340,6 +340,12 @@ const RelationshipAnalysisScreen: React.FC = () => {
     console.log('V2Analysis:', relationship.v2Analysis);
     const v3Analysis = relationship.v2Analysis;
     const consolidatedItems = v3Analysis?.consolidatedScoredItems || [];
+    
+    // Debug keystone data
+    console.log('Consolidated items count:', consolidatedItems.length);
+    console.log('Keystone aspects count:', v3Analysis?.keystoneAspects?.length || 0);
+    const keystoneItemsCount = consolidatedItems.filter(item => item.isOverallKeystone).length;
+    console.log('Consolidated items with isOverallKeystone=true:', keystoneItemsCount);
 
     if (!v3Analysis) {
       return (
@@ -362,17 +368,10 @@ const RelationshipAnalysisScreen: React.FC = () => {
           profile={v3Analysis.profile}
         />
 
-        {/* Keystone Aspects */}
-        <KeystoneAspectsHighlight
-          keystoneAspects={v3Analysis.keystoneAspects}
-          onAspectPress={(aspect) => {
-            console.log('Keystone aspect pressed:', aspect);
-          }}
-        />
-
         {/* Consolidated Items Grid */}
         <ConsolidatedItemsGrid
           consolidatedItems={consolidatedItems}
+          keystoneAspects={v3Analysis.keystoneAspects || []}
           onItemPress={(item) => {
             console.log('Consolidated item pressed:', item);
           }}
