@@ -13,7 +13,7 @@ import {
 const { width: screenWidth } = Dimensions.get('window');
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { useTheme } from '../../theme';
-import { relationshipsApi, UserCompositeChart, RelationshipAnalysisResponse } from '../../api/relationships';
+import { relationshipsApi, UserCompositeChart, RelationshipAnalysisResponse, ConsolidatedScoredItem } from '../../api/relationships';
 import { usersApi } from '../../api/users';
 import { SubjectDocument } from '../../types';
 import SynastryChartWheel from '../../components/chart/SynastryChartWheel';
@@ -28,6 +28,7 @@ import RadarChart from '../../components/chart/RadarChart';
 import ScoredItemsTable from '../../components/chart/ScoredItemsTable';
 import { CompleteRelationshipAnalysisButton } from '../../components/relationship';
 import RelationshipAnalysisTab from '../../components/relationship/RelationshipAnalysisTab';
+import RelationshipChatTab from '../../components/relationship/RelationshipChatTab';
 import V3ClusterRadar from '../../components/relationship/V3ClusterRadar';
 import KeystoneAspectsHighlight from '../../components/relationship/KeystoneAspectsHighlight';
 import ConsolidatedItemsGrid from '../../components/relationship/ConsolidatedItemsGrid';
@@ -75,6 +76,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [analysisData, setAnalysisData] = useState<RelationshipAnalysisResponse | null>(null);
+  const [preSelectedChatItems, setPreSelectedChatItems] = useState<ConsolidatedScoredItem[]>([]);
 
   // Navigation configuration
   const topTabs = [
@@ -82,6 +84,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
     { label: 'Scores', routeName: 'scores' },
     { label: 'Overview', routeName: 'overview' },
     { label: '360 Analysis', routeName: 'guidance' },
+    { label: 'Chat', routeName: 'chat' },
   ];
 
   const chartSubTabs = [
@@ -116,6 +119,12 @@ const RelationshipAnalysisScreen: React.FC = () => {
           icon: '🔮',
           title: '',
           desc: 'Comprehensive analysis across important relationship areas',
+        };
+      case 'chat':
+        return {
+          icon: '💬',
+          title: '',
+          desc: 'Ask questions and get personalized insights about your relationship',
         };
       default:
         return null;
@@ -191,6 +200,20 @@ const RelationshipAnalysisScreen: React.FC = () => {
       newExpanded.add(cardId);
     }
     setExpandedCards(newExpanded);
+  };
+
+  // Handler for "Chat about this" functionality
+  const handleChatAboutItem = (item: ConsolidatedScoredItem) => {
+    setPreSelectedChatItems([item]);
+    setActiveTab('chat');
+  };
+
+  // Clear preselected items when switching tabs
+  const handleTabPress = (tab: string) => {
+    if (tab !== 'chat') {
+      setPreSelectedChatItems([]);
+    }
+    setActiveTab(tab);
   };
 
 
@@ -375,6 +398,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
           onItemPress={(item) => {
             console.log('Consolidated item pressed:', item);
           }}
+          onChatAboutItem={handleChatAboutItem}
         />
       </ScrollView>
     );
@@ -492,6 +516,18 @@ const RelationshipAnalysisScreen: React.FC = () => {
               loadAnalysisData();
             }}
             loading={loading}
+            onChatAboutItem={handleChatAboutItem}
+          />
+        );
+      case 'chat':
+        const v3Analysis = relationship.v2Analysis;
+        const consolidatedItems = v3Analysis?.consolidatedScoredItems || [];
+        
+        return (
+          <RelationshipChatTab
+            compositeChartId={relationship._id}
+            consolidatedItems={consolidatedItems}
+            preSelectedItems={preSelectedChatItems}
           />
         );
       default:
@@ -511,7 +547,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
       <TopTabBar
         items={topTabs}
         activeRoute={activeTab}
-        onTabPress={setActiveTab}
+        onTabPress={handleTabPress}
       />
 
       {/* Section Subtitle */}
