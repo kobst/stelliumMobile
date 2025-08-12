@@ -90,6 +90,42 @@ export interface PlanetOverviewRequest {
   birthData: any;
 }
 
+// Birth Chart Element Types for Chat
+export interface BirthChartPosition {
+  type: 'position';
+  planet: string;
+  sign: string;
+  house: number | null;
+  degree: number;
+  isRetrograde?: boolean;
+  description: string;
+}
+
+export interface BirthChartAspect {
+  type: 'aspect';
+  planet1: string;
+  planet2: string;
+  aspectType: string;
+  orb: number;
+  planet1Sign: string;
+  planet2Sign: string;
+  planet1House: number | null;
+  planet2House: number | null;
+  description: string;
+}
+
+export type BirthChartElement = BirthChartPosition | BirthChartAspect;
+
+// Chat Message Interface for Birth Charts
+export interface BirthChartChatMessage {
+  id: string;
+  type: 'user' | 'assistant' | 'error';
+  content: string;
+  timestamp: Date;
+  selectedElements?: BirthChartElement[];
+  loading?: boolean;
+}
+
 export const chartsApi = {
 
   // Get full birth chart analysis
@@ -230,5 +266,68 @@ export const chartsApi = {
     }
 
     return { success: true };
+  },
+
+  // Enhanced Chat API for Birth Charts
+  
+  // Enhanced chat for birth chart with element selection support
+  enhancedChatForBirthChart: async (
+    userId: string,
+    requestBody: {
+      query?: string;
+      selectedAspects?: BirthChartElement[];
+    }
+  ): Promise<{
+    success: boolean;
+    answer: string;
+    chatHistoryResult: any;
+    mode: 'chat' | 'custom' | 'hybrid';
+  }> => {
+    return apiClient.post<{
+      success: boolean;
+      answer: string;
+      chatHistoryResult: any;
+      mode: 'chat' | 'custom' | 'hybrid';
+    }>(`/users/${userId}/birthchart/enhanced-chat`, requestBody);
+  },
+
+  // Fetch enhanced chat history for birth chart
+  fetchBirthChartEnhancedChatHistory: async (
+    userId: string,
+    limit?: number
+  ): Promise<{
+    success: boolean;
+    chatHistory: Array<{
+      role: 'user' | 'assistant';
+      content: string;
+      timestamp: string;
+      metadata?: {
+        mode?: 'chat' | 'custom' | 'hybrid';
+        selectedElements?: BirthChartElement[];
+        elementCount?: number;
+      };
+    }>;
+    messageCount: number;
+  }> => {
+    let endpoint = `/users/${userId}/birthchart/chat-history`;
+    if (limit !== undefined) {
+      endpoint += `?limit=${limit}`;
+    }
+    
+    console.log('Fetching birth chart chat history from endpoint:', endpoint);
+    return apiClient.get<{
+      success: boolean;
+      chatHistory: Array<{
+        role: 'user' | 'assistant';
+        content: string;
+        timestamp: string;
+        metadata?: {
+          mode?: 'chat' | 'custom' | 'hybrid';
+          selectedElements?: BirthChartElement[];
+          elementCount?: number;
+        };
+      }>;
+      messageCount: number;
+    }>(endpoint);
   },
 };
