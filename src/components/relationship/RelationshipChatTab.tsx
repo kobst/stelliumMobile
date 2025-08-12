@@ -60,15 +60,68 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
         
         if (response && response.success && response.chatHistory && Array.isArray(response.chatHistory)) {
           console.log('Processing', response.chatHistory.length, 'chat messages');
-          const transformedMessages: ChatMessage[] = response.chatHistory.map((msg, index) => ({
-            id: `history-${index}-${Date.now()}`,
-            type: msg.role === 'user' ? 'user' : 'assistant',
-            content: msg.content,
-            timestamp: new Date(msg.timestamp),
-            mode: msg.metadata?.mode || undefined,
-            selectedElements: msg.metadata?.selectedElements || undefined,
-            elementCount: msg.metadata?.elementCount || undefined,
-          }));
+          // Process messages and link assistant responses to user queries
+          const transformedMessages: ChatMessage[] = [];
+          
+          for (let index = 0; index < response.chatHistory.length; index++) {
+            const msg = response.chatHistory[index];
+            console.log(`Message ${index}:`, {
+              role: msg.role,
+              hasMetadata: !!msg.metadata,
+              mode: msg.metadata?.mode,
+              elementCount: msg.metadata?.elementCount,
+              hasSelectedElements: !!msg.metadata?.selectedElements,
+              selectedElementsLength: msg.metadata?.selectedElements?.length
+            });
+            
+            const transformedMessage: ChatMessage = {
+              id: `history-${index}-${Date.now()}`,
+              type: msg.role === 'user' ? 'user' : 'assistant',
+              content: msg.content,
+              timestamp: new Date(msg.timestamp),
+              mode: msg.metadata?.mode || undefined,
+              selectedElements: msg.metadata?.selectedElements || undefined,
+              elementCount: msg.metadata?.elementCount || undefined,
+            };
+
+            // For assistant messages with metadata, also assign to the previous user message if it doesn't have metadata
+            if (msg.role === 'assistant' && msg.metadata && index > 0) {
+              const prevMsg = response.chatHistory[index - 1];
+              if (prevMsg.role === 'user' && !prevMsg.metadata) {
+                // The user message that prompted this assistant response should inherit the elements
+                const prevTransformedMsg = transformedMessages[transformedMessages.length - 1];
+                if (prevTransformedMsg && prevTransformedMsg.type === 'user') {
+                  prevTransformedMsg.mode = msg.metadata.mode;
+                  prevTransformedMsg.selectedElements = msg.metadata.selectedElements;
+                  prevTransformedMsg.elementCount = msg.metadata.elementCount;
+                }
+              }
+            }
+            
+            // For assistant messages without metadata, try to inherit from the previous user message  
+            if (msg.role === 'assistant' && !msg.metadata?.mode && index > 0) {
+              const prevMsg = response.chatHistory[index - 1];
+              if (prevMsg.role === 'user' && prevMsg.metadata) {
+                transformedMessage.mode = prevMsg.metadata.mode;
+                transformedMessage.selectedElements = prevMsg.metadata.selectedElements;
+                transformedMessage.elementCount = prevMsg.metadata.elementCount;
+              }
+            }
+
+            transformedMessages.push(transformedMessage);
+          }
+          
+          // Debug: Log final transformed messages
+          console.log('Final transformed messages:');
+          transformedMessages.forEach((msg, idx) => {
+            console.log(`Message ${idx}:`, {
+              type: msg.type,
+              hasSelectedElements: !!msg.selectedElements,
+              selectedElementsCount: msg.selectedElements?.length,
+              mode: msg.mode,
+              elementCount: msg.elementCount
+            });
+          });
           
           setChatMessages(transformedMessages);
         } else {
@@ -227,18 +280,37 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
     }
   };
 
-  // Get element display name for chips
+  // Get element display name - human readable format
   const getElementDisplayName = (element: ConsolidatedScoredItem): string => {
-    if (element.source === 'synastry' && element.type === 'aspect') {
-      return `${element.planet1} ${element.aspect} ${element.planet2}`;
+    const chartType = element.source === 'synastry' ? 'Synastry' : 
+                     element.source === 'composite' ? 'Composite' : 
+                     element.source === 'synastryHousePlacement' ? 'Synastry' :
+                     element.source === 'compositeHousePlacement' ? 'Composite' : 'Chart';
+    
+    if (element.type === 'aspect') {
+      // Get full planet names
+      const planet1Name = element.planet1 === 'ascendant' ? 'Ascendant' : 
+                         element.planet1 === 'midheaven' ? 'Midheaven' : 
+                         element.planet1?.charAt(0).toUpperCase() + element.planet1?.slice(1) || 'Planet';
+      const planet2Name = element.planet2 === 'ascendant' ? 'Ascendant' : 
+                         element.planet2 === 'midheaven' ? 'Midheaven' : 
+                         element.planet2?.charAt(0).toUpperCase() + element.planet2?.slice(1) || 'Planet';
+      
+      // Get full aspect name
+      const aspectName = element.aspect?.charAt(0).toUpperCase() + element.aspect?.slice(1) || 'aspect';
+      
+      return `${chartType}: Fullon's ${planet1Name} ${aspectName} Mobile's ${planet2Name}`;
     }
-    if (element.source === 'composite' && element.type === 'aspect') {
-      return `${element.planet1} ${element.aspect} ${element.planet2}`;
-    }
+    
     if (element.type === 'housePlacement') {
-      return `${element.planet1} → House ${element.planet2}`;
+      const planetName = element.planet1 === 'ascendant' ? 'Ascendant' : 
+                        element.planet1 === 'midheaven' ? 'Midheaven' : 
+                        element.planet1?.charAt(0).toUpperCase() + element.planet1?.slice(1) || 'Planet';
+      
+      return `${chartType}: Fullon's ${planetName} in Mobile's House ${element.planet2}`;
     }
-    return element.description?.substring(0, 30) || 'Unknown Element';
+    
+    return element.description?.substring(0, 50) || 'Unknown Element';
   };
 
   const currentMode = getMode();
@@ -274,28 +346,13 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
         ) : (
           chatMessages.map((message) => (
             <View key={message.id} style={styles.messageContainer}>
-              {/* Show selected elements above user messages */}
-              {message.type === 'user' && (message.selectedElements || message.elementCount) && (
-                <View style={[styles.selectedElementsHeader, { backgroundColor: colors.surface }]}>
-                  <Text style={[styles.elementsHeaderTitle, { color: colors.onSurface }]}>
-                    Selected Elements: {message.elementCount || message.selectedElements?.length || 0} item(s)
+
+              {/* Show analysis mode indicator above assistant messages */}
+              {message.type === 'assistant' && message.mode && message.mode !== 'chat' && (
+                <View style={[styles.assistantElementsHeader, { backgroundColor: colors.surfaceVariant }]}>
+                  <Text style={[styles.assistantElementsTitle, { color: colors.onSurfaceVariant }]}>
+                    💭 {message.mode === 'custom' ? 'Analysis of selected elements' : 'Analysis with selected elements'}
                   </Text>
-                  {message.selectedElements && message.selectedElements.length > 0 && (
-                    <View style={styles.elementsPreview}>
-                      {message.selectedElements.slice(0, 3).map((element, idx) => (
-                        <View key={idx} style={[styles.elementPreviewChip, { backgroundColor: colors.primaryContainer }]}>
-                          <Text style={[styles.elementPreviewText, { color: colors.onPrimaryContainer }]}>
-                            {getElementDisplayName(element)}
-                          </Text>
-                        </View>
-                      ))}
-                      {message.selectedElements.length > 3 && (
-                        <Text style={[styles.elementPreviewMore, { color: colors.onSurfaceVariant }]}>
-                          +{message.selectedElements.length - 3} more
-                        </Text>
-                      )}
-                    </View>
-                  )}
                 </View>
               )}
               
@@ -314,18 +371,39 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                     <View style={[styles.dot, { backgroundColor: colors.onSurface }]} />
                   </View>
                 ) : (
-                  <Text style={[
-                    styles.messageText,
-                    { 
-                      color: message.type === 'user' 
-                        ? colors.onPrimary 
-                        : message.type === 'error'
-                        ? colors.onErrorContainer
-                        : colors.onSurface 
-                    }
-                  ]}>
-                    {message.content}
-                  </Text>
+                  <>
+                    <Text style={[
+                      styles.messageText,
+                      { 
+                        color: message.type === 'user' 
+                          ? colors.onPrimary 
+                          : message.type === 'error'
+                          ? colors.onErrorContainer
+                          : colors.onSurface 
+                      }
+                    ]}>
+                      {message.content}
+                    </Text>
+                    
+                    {/* Selected elements for user messages */}
+                    {message.type === 'user' && message.selectedElements && message.selectedElements.length > 0 && (
+                      <View style={styles.inlineElementChips}>
+                        <Text style={[styles.selectedElementsLabel, { color: colors.onPrimary }]}>
+                          Selected elements:
+                        </Text>
+                        {message.selectedElements.map((element, idx) => (
+                          <View key={idx} style={[styles.inlineElementChip, { 
+                            backgroundColor: 'rgba(255,255,255,0.2)',
+                            borderColor: 'rgba(255,255,255,0.3)'
+                          }]}>
+                            <Text style={[styles.inlineElementChipText, { color: colors.onPrimary }]}>
+                              {getElementDisplayName(element)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </>
                 )}
               </View>
               
@@ -501,6 +579,41 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
   },
+  userElementsHeader: {
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 4,
+    alignSelf: 'flex-end',
+    maxWidth: '85%',
+  },
+  userElementsTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  userElementPreviewChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 4,
+    borderWidth: 1,
+  },
+  userElementPreviewText: {
+    fontSize: 10,
+    fontWeight: '500',
+    fontFamily: 'monospace',
+  },
+  assistantElementsHeader: {
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
+  },
+  assistantElementsTitle: {
+    fontSize: 11,
+    fontWeight: '500',
+    fontStyle: 'italic',
+  },
   elementsPreview: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -659,6 +772,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 8,
     textAlign: 'center',
+  },
+  // Inline element chips in user messages
+  inlineElementChips: {
+    marginTop: 8,
+  },
+  selectedElementsLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    opacity: 0.9,
+    marginBottom: 4,
+  },
+  inlineElementChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  inlineElementChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 16,
   },
 });
 
