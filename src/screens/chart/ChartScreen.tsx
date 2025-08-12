@@ -21,6 +21,8 @@ import ChartTables from '../../components/chart/ChartTables';
 import PatternsTab from '../../components/chart/PatternsTab';
 import PlanetsTab from '../../components/chart/PlanetsTab';
 import AnalysisTab from '../../components/chart/AnalysisTab';
+import BirthChartChatTab from '../../components/chart/BirthChartChatTab';
+import { BirthChartElement } from '../../api/charts';
 
 const ChartScreen: React.FC = () => {
   const route = useRoute<any>();
@@ -43,12 +45,14 @@ const ChartScreen: React.FC = () => {
   // Navigation state
   const [activeTab, setActiveTab] = useState('chart');
   const [activeSubTab, setActiveSubTab] = useState('wheel');
+  const [preSelectedChatElements, setPreSelectedChatElements] = useState<BirthChartElement[]>([]);
 
   const topTabs = [
     { label: 'Chart', routeName: 'chart' },
     { label: 'Patterns & Dominance', routeName: 'patterns' },
     { label: 'Planets', routeName: 'planets' },
     { label: '360 Analysis', routeName: 'analysis' },
+    { label: 'Chat', routeName: 'chat' },
   ];
 
   const chartSubTabs = [
@@ -108,6 +112,20 @@ const ChartScreen: React.FC = () => {
     }
   }, [subject?.birthChart, loadFullAnalysis]);
 
+  // Handler for "Chat about this" functionality
+  const handleChatAboutElement = (element: BirthChartElement) => {
+    setPreSelectedChatElements([element]);
+    setActiveTab('chat');
+  };
+
+  // Clear preselected elements when switching tabs
+  const handleTabPress = (tab: string) => {
+    if (tab !== 'chat') {
+      setPreSelectedChatElements([]);
+    }
+    setActiveTab(tab);
+  };
+
   const getSectionSubtitle = () => {
     switch (activeTab) {
       case 'chart':
@@ -126,6 +144,12 @@ const ChartScreen: React.FC = () => {
         return null; // Keep existing
       case 'analysis':
         return null; // Keep existing
+      case 'chat':
+        return {
+          icon: '💬',
+          title: '',
+          desc: 'Ask questions and get personalized insights about your birth chart'
+        };
       default:
         return null;
     }
@@ -165,6 +189,14 @@ const ChartScreen: React.FC = () => {
         return <PlanetsTab userId={subject?.id} birthChart={subject?.birthChart} />;
       case 'analysis':
         return <AnalysisTab userId={subject?.id} />;
+      case 'chat':
+        return (
+          <BirthChartChatTab
+            userId={subject?.id}
+            birthChart={subject?.birthChart}
+            preSelectedElements={preSelectedChatElements}
+          />
+        );
       default:
         return null;
     }
@@ -182,7 +214,7 @@ const ChartScreen: React.FC = () => {
       <TopTabBar
         items={topTabs}
         activeRoute={activeTab}
-        onTabPress={setActiveTab}
+        onTabPress={handleTabPress}
       />
 
       {/* Section Subtitle */}
