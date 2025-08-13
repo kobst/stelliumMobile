@@ -5,14 +5,50 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useTheme } from '../../theme';
 import ThemeToggle from '../../components/ThemeToggle';
 import { useStore } from '../../store';
+import { debugAuthState, forceSignOut, checkForCachedAuthData } from '../../utils/authHelpers';
 
 const SettingsScreen: React.FC = () => {
   const { colors } = useTheme();
   const { userData } = useStore();
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await forceSignOut();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+              console.error('Sign out error:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDebugAuth = async () => {
+    await debugAuthState();
+  };
+
+  const handleCheckCachedData = async () => {
+    await checkForCachedAuthData();
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -48,6 +84,48 @@ const SettingsScreen: React.FC = () => {
           </Text>
           <ThemeToggle />
         </View>
+
+        {/* Account Actions */}
+        {userData && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.onBackground }]}>
+              Account Actions
+            </Text>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.signOutButton]}
+              onPress={handleSignOut}
+            >
+              <Text style={[styles.actionButtonText, { color: '#ffffff' }]}>
+                Sign Out
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Debug Section (Development only) */}
+        {__DEV__ && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.onBackground }]}>
+              Debug Tools
+            </Text>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: colors.primary }]}
+              onPress={handleDebugAuth}
+            >
+              <Text style={[styles.actionButtonText, { color: colors.onPrimary }]}>
+                Debug Auth State
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: colors.secondary, marginTop: 8 }]}
+              onPress={handleCheckCachedData}
+            >
+              <Text style={[styles.actionButtonText, { color: colors.onSecondary }]}>
+                Check Cached Data
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* About Section */}
         <View style={styles.section}>
@@ -106,6 +184,20 @@ const styles = StyleSheet.create({
   },
   cardSubtitle: {
     fontSize: 14,
+  },
+  actionButton: {
+    height: 48,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  signOutButton: {
+    backgroundColor: '#e74c3c',
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

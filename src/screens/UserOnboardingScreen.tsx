@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import auth from '@react-native-firebase/auth';
 import { externalApi } from '../api';
 import { usersApi } from '../api';
 import { useStore } from '../store';
@@ -122,6 +123,16 @@ const UserOnboardingScreen: React.FC = () => {
     console.log('\n=== FORM SUBMISSION STARTED ===');
     console.log('Current endpoint:', SERVER_URL);
 
+    // Get the current Firebase Auth user
+    const firebaseUser = auth().currentUser;
+    if (!firebaseUser) {
+      console.error('No authenticated Firebase user found');
+      setErrors(['Authentication error: Please sign in again']);
+      return;
+    }
+    
+    console.log('Firebase User ID:', firebaseUser.uid);
+
     const formErrors = validateForm();
     if (formErrors.length > 0) {
       console.log('Form validation failed:', formErrors);
@@ -196,6 +207,7 @@ const UserOnboardingScreen: React.FC = () => {
       if (unknownTime) {
         console.log('\nCalling createUserUnknownTime API...');
         const createUserUnknownTimePayload = {
+          firebaseUid: firebaseUser.uid, // Firebase Auth UID
           firstName,
           lastName,
           gender,
@@ -212,6 +224,7 @@ const UserOnboardingScreen: React.FC = () => {
       } else {
         console.log('\nCalling createUser API...');
         const createUserPayload = {
+          firebaseUid: firebaseUser.uid, // Firebase Auth UID
           firstName,
           lastName,
           dateOfBirth: date,

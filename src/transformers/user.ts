@@ -38,15 +38,15 @@ export const userTransformers = {
 
     const transformedUser: User = {
       id: subject._id,
-      name: `${subject.firstName} ${subject.lastName}`,
+      name: `${subject.firstName || 'Unknown'} ${subject.lastName || 'User'}`,
       email: subject.email || '',
       birthYear: dateOfBirth.getFullYear(),
       birthMonth: dateOfBirth.getMonth() + 1,
       birthDay: dateOfBirth.getDate(),
       birthHour,
       birthMinute,
-      birthLocation: subject.placeOfBirth,
-      timezone: subject.totalOffsetHours.toString(),
+      birthLocation: subject.placeOfBirth || '',
+      timezone: (subject.totalOffsetHours || 0).toString(),
       birthChart: subject.birthChart,
     };
 
@@ -89,9 +89,15 @@ export const userTransformers = {
       final: timezone,
     });
 
+    // Construct name from firstName and lastName
+    const name = userData.name || birthData.name || 
+                (birthData.firstName && birthData.lastName ? 
+                 `${birthData.firstName} ${birthData.lastName}` : 
+                 'User');
+
     const transformedUser = {
       id: userId,
-      name: userData.name || birthData.name,
+      name: name,
       email: '', // Not typically returned from API
       birthYear: birthData.birthYear,
       birthMonth: birthData.birthMonth,

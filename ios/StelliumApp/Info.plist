@@ -58,6 +58,27 @@
 				<string>com.googleusercontent.apps.63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>facebook</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb561705813647639</string>
+			</array>
+		</dict>
+	</array>
+	<key>FacebookAppID</key>
+	<string>561705813647639</string>
+	<key>FacebookClientToken</key>
+	<string>5590843ccc9144748fc5894ae9fc7d5e</string>
+	<key>FacebookDisplayName</key>
+	<string>StelliumApp</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
+		<string>fbauth2</string>
+		<string>fbshareextension</string>
 	</array>
 </dict>
 </plist>
