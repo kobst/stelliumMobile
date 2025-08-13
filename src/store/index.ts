@@ -94,6 +94,8 @@ interface StoreState {
   // Persistence Actions
   initializeFromStorage: () => Promise<void>;
   persistUserData: () => Promise<void>;
+  clearAllData: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -259,25 +261,15 @@ export const useStore = create<StoreState>((set, get) => ({
   // Persistence Actions
   initializeFromStorage: async () => {
     try {
-      const [userData, themeMode] = await Promise.all([
-        AsyncStorage.getItem('userData'),
-        AsyncStorage.getItem('themeMode'),
-      ]);
-
-      if (userData) {
-        const parsedUserData = JSON.parse(userData);
-        set({
-          userData: parsedUserData,
-          isAuthenticated: true,
-          userId: parsedUserData.id,
-          currentUserContext: parsedUserData,
-          activeUserContext: parsedUserData,
-        });
-      }
+      // Only load theme and non-auth data from storage
+      // DO NOT load user data here as it should only come from Firebase Auth
+      const themeMode = await AsyncStorage.getItem('themeMode');
 
       if (themeMode && (themeMode === 'light' || themeMode === 'dark' || themeMode === 'system')) {
         set({ themeMode: themeMode as ThemeMode });
       }
+
+      console.log('Store initialized from storage (auth data excluded)');
     } catch (error) {
       console.error('Failed to load data from storage:', error);
     }
@@ -292,9 +284,91 @@ export const useStore = create<StoreState>((set, get) => ({
         if (userData.id && userData.id.trim() !== '') {
           await AsyncStorage.setItem('userId', userData.id);
         }
+        console.log('User data persisted to storage');
       }
     } catch (error) {
       console.error('Failed to persist user data:', error);
+    }
+  },
+
+  clearAllData: async () => {
+    try {
+      // Clear all user-related data from AsyncStorage
+      await Promise.all([
+        AsyncStorage.removeItem('userData'),
+        AsyncStorage.removeItem('userId'),
+      ]);
+      
+      // Reset store state to initial values
+      set({
+        userData: null,
+        userId: '',
+        isAuthenticated: false,
+        userSubscription: null,
+        userPlanets: [],
+        userHouses: [],
+        userAspects: [],
+        userElements: {},
+        userModalities: {},
+        userQuadrants: {},
+        userPatterns: {},
+        currentUserContext: null,
+        activeUserContext: null,
+        previousUserContext: null,
+        guestSubjects: [],
+        selectedSubject: null,
+        creationWorkflowState: {
+          workflowId: null,
+          status: null,
+          isCompleted: false,
+          progress: null,
+        },
+        analysisWorkflowState: {
+          isPaused: false,
+          hasOverview: false,
+          hasFullAnalysis: false,
+          overviewContent: '',
+          analysisContent: {},
+        },
+        relationshipWorkflowState: {
+          isPaused: false,
+          hasScores: false,
+          scores: {},
+          scoreAnalysis: {},
+          startedFromCreation: false,
+          completed: false,
+          currentRelationship: null,
+          isPollingActive: false,
+          activeCompositeChartId: null,
+        },
+        loading: false,
+        error: null,
+        transitData: [],
+        selectedTransits: new Set(),
+        customHoroscope: null,
+      });
+      
+      console.log('All user data cleared from store and storage');
+    } catch (error) {
+      console.error('Failed to clear data:', error);
+    }
+  },
+
+  signOut: async () => {
+    try {
+      console.log('Starting sign out process...');
+      
+      // First clear all data
+      await get().clearAllData();
+      
+      // Then sign out from Firebase Auth
+      const auth = require('@react-native-firebase/auth').default;
+      await auth().signOut();
+      
+      console.log('Sign out completed successfully');
+    } catch (error) {
+      console.error('Failed to sign out:', error);
+      throw error;
     }
   },
 }));

@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import TabNavigator from './TabNavigator';
-import UserOnboardingScreen from '../screens/UserOnboardingScreen';
+import UserOnboardingWizard from '../screens/UserOnboardingWizard';
 import { useStore } from '../store';
 
 const Stack = createStackNavigator();
@@ -36,7 +36,7 @@ const RootNavigator: React.FC = () => {
         {profileComplete ? (
           <Stack.Screen name="Main" component={TabNavigator} />
         ) : (
-          <Stack.Screen name="Onboarding" component={UserOnboardingScreen} />
+          <Stack.Screen name="Onboarding" component={UserOnboardingWizard} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

@@ -6,7 +6,7 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import {FirebaseAuthTypes} from '@react-native-firebase/auth';
+import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
 import AuthScreen from './AuthScreen';
 import RootNavigator from './src/navigation';
 import {useStore} from './src/store';
@@ -20,80 +20,92 @@ const App: React.FC = () => {
   const { setUserData, initializeFromStorage } = useStore();
 
   useEffect(() => {
-    // Initialize store from storage
+    console.log('App.tsx: Initializing app...');
+    
+    // Initialize store from storage (non-auth data only)
     initializeFromStorage();
 
-    // DEVELOPMENT: Bypass Firebase auth and use hardcoded userId
-    const initializeWithHardcodedUser = async () => {
-      // This should be the _id field from a SubjectDocument in your database
-      const HARDCODED_USER_ID = '688838b889104a11e74bad4e';
+    // Enable Firebase auth
+    const unsubscribe = auth().onAuthStateChanged(async (currentUser) => {
+      console.log('App.tsx: Firebase auth state changed:', {
+        isAuthenticated: !!currentUser,
+        uid: currentUser?.uid,
+        email: currentUser?.email
+      });
+      
+      setUser(currentUser);
 
-      console.log('\n=== DEVELOPMENT MODE: Using hardcoded userId ===');
-      console.log('Hardcoded User ID:', HARDCODED_USER_ID);
-      console.log('================================================\n');
-
-      try {
-        // Fetch user from backend using hardcoded userId
-        console.log('Fetching user data from backend...');
-        const response = await usersApi.getUser(HARDCODED_USER_ID);
-        console.log('Backend response:', response);
-
-        // Transform backend SubjectDocument to frontend User format
-        const userData = userTransformers.subjectDocumentToUser(response as SubjectDocument);
-        console.log('Transformed user data:', userData);
-
-        // Create a simulated Firebase user object
-        const simulatedFirebaseUser = {
-          uid: userData.id,
-          displayName: userData.name,
-          email: userData.email,
-        } as FirebaseAuthTypes.User;
-
-        // Set both Firebase user state and store data
-        setUser(simulatedFirebaseUser);
-        setUserData(userData);
-
-        console.log('Successfully initialized with hardcoded user data');
-      } catch (error) {
-        console.error('Failed to fetch hardcoded user data:', error);
-        // Set user to null so AuthScreen is shown
-        setUser(null);
+      // Update store with user authentication state
+      if (currentUser) {
+        try {
+          // Try to fetch existing user data from backend using Firebase UID
+          console.log('Fetching user data for authenticated user:', currentUser.uid);
+          const response = await usersApi.getUserByFirebaseUid(currentUser.uid);
+          
+          if (response && response.success !== false) {
+            // User exists in backend, transform and use existing data
+            // The getUserByFirebaseUid API returns { success: true, user: {...} }
+            const userDocument = response.user || response;
+            const userData = userTransformers.subjectDocumentToUser(userDocument as SubjectDocument);
+            console.log('Found existing user data:', userData);
+            setUserData(userData);
+          } else {
+            // User doesn't exist in backend, create placeholder data for onboarding
+            console.log('User not found in backend - will show onboarding');
+            const userData = {
+              id: currentUser.uid,
+              name: currentUser.displayName || 'User',
+              email: currentUser.email || '',
+              // Placeholder birth data - will be collected during onboarding
+              birthYear: 1990,
+              birthMonth: 1,
+              birthDay: 1,
+              birthHour: 12,
+              birthMinute: 0,
+              birthLocation: '',
+              timezone: '',
+            };
+            setUserData(userData);
+          }
+        } catch (error: any) {
+          console.error('Error fetching user data from backend:', error);
+          
+          // Check if it's a "user not found" error (expected for new users)
+          if (error.message?.includes('User not found') || error.status === 404) {
+            console.log('User not found in backend - new user will go through onboarding');
+          } else {
+            console.error('Unexpected API error:', error);
+          }
+          
+          // Create placeholder data for onboarding (both cases)
+          const userData = {
+            id: currentUser.uid,
+            name: currentUser.displayName || 'User',
+            email: currentUser.email || '',
+            // Placeholder birth data - will be collected during onboarding
+            birthYear: 1990,
+            birthMonth: 1,
+            birthDay: 1,
+            birthHour: 12,
+            birthMinute: 0,
+            birthLocation: '',
+            timezone: '',
+          };
+          setUserData(userData);
+        }
+      } else {
+        console.log('App.tsx: User signed out, clearing store data');
         setUserData(null);
       }
-    };
+    });
 
-    // Comment out Firebase auth for development
-    // const unsubscribe = auth().onAuthStateChanged(currentUser => {
-    //   setUser(currentUser);
-    //
-    //   // Update store with user authentication state
-    //   if (currentUser) {
-    //     const userData = {
-    //       id: currentUser.uid,
-    //       name: currentUser.displayName || 'User',
-    //       email: currentUser.email || '',
-    //       // Placeholder birth data - will be collected during onboarding
-    //       birthYear: 1990,
-    //       birthMonth: 1,
-    //       birthDay: 1,
-    //       birthHour: 12,
-    //       birthMinute: 0,
-    //       birthLocation: '',
-    //       timezone: '',
-    //     };
-    //     setUserData(userData);
-    //   } else {
-    //     setUserData(null);
-    //   }
-    // });
-
-    // Use hardcoded user initialization instead
-    initializeWithHardcodedUser();
-
-    // return unsubscribe;
+    return unsubscribe;
   }, [initializeFromStorage, setUserData]);
 
+  console.log('App.tsx: Rendering decision - user exists:', !!user);
+  
   if (!user) {
+    console.log('App.tsx: Showing AuthScreen (user not authenticated)');
     return (
       <ThemeProvider>
         <AuthScreen />
@@ -101,6 +113,7 @@ const App: React.FC = () => {
     );
   }
 
+  console.log('App.tsx: Showing RootNavigator (user authenticated)');
   return (
     <ThemeProvider>
       <RootNavigator />

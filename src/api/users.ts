@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import { User, SubjectDocument } from '../types';
 
 export interface CreateUserRequest {
+  firebaseUid: string; // Firebase Auth UID
   firstName: string;
   lastName: string;
   dateOfBirth: string;
@@ -15,6 +16,7 @@ export interface CreateUserRequest {
 }
 
 export interface CreateUserUnknownTimeRequest {
+  firebaseUid: string; // Firebase Auth UID
   firstName: string;
   lastName: string;
   gender: string;
@@ -104,6 +106,18 @@ export const usersApi = {
   // Get user by ID - returns backend SubjectDocument format
   getUser: async (userId: string): Promise<SubjectDocument> => {
     return apiClient.post<SubjectDocument>('/getUser', { userId });
+  },
+
+  // Get user by Firebase UID - returns backend SubjectDocument format
+  getUserByFirebaseUid: async (firebaseUid: string): Promise<SubjectDocument> => {
+    console.log('\n=== USERS API: getUserByFirebaseUid ===');
+    console.log('Firebase UID:', firebaseUid);
+    console.log('=====================================\n');
+    
+    const response = await apiClient.post<SubjectDocument>('/getUserByFirebaseUid', { firebaseUid });
+    console.log('Response received:', JSON.stringify(response, null, 2));
+    console.log('=====================================\n');
+    return response;
   },
 
   // Get all users (admin function)
