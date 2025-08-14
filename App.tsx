@@ -9,6 +9,7 @@ import React, {useEffect, useState} from 'react';
 import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
 import AuthScreen from './AuthScreen';
 import RootNavigator from './src/navigation';
+import LoadingScreen from './src/components/LoadingScreen';
 import {useStore} from './src/store';
 import {usersApi} from './src/api';
 import {userTransformers} from './src/transformers/user';
@@ -17,6 +18,7 @@ import { ThemeProvider } from './src/theme';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+  const [isLoadingUserData, setIsLoadingUserData] = useState(false);
   const { setUserData, initializeFromStorage } = useStore();
 
   useEffect(() => {
@@ -37,6 +39,7 @@ const App: React.FC = () => {
 
       // Update store with user authentication state
       if (currentUser) {
+        setIsLoadingUserData(true);
         try {
           // Try to fetch existing user data from backend using Firebase UID
           console.log('Fetching user data for authenticated user:', currentUser.uid);
@@ -92,23 +95,35 @@ const App: React.FC = () => {
             timezone: '',
           };
           setUserData(userData);
+        } finally {
+          setIsLoadingUserData(false);
         }
       } else {
         console.log('App.tsx: User signed out, clearing store data');
         setUserData(null);
+        setIsLoadingUserData(false);
       }
     });
 
     return unsubscribe;
   }, [initializeFromStorage, setUserData]);
 
-  console.log('App.tsx: Rendering decision - user exists:', !!user);
+  console.log('App.tsx: Rendering decision - user exists:', !!user, 'loading:', isLoadingUserData);
   
   if (!user) {
     console.log('App.tsx: Showing AuthScreen (user not authenticated)');
     return (
       <ThemeProvider>
         <AuthScreen />
+      </ThemeProvider>
+    );
+  }
+
+  if (isLoadingUserData) {
+    console.log('App.tsx: Showing LoadingScreen (fetching user data)');
+    return (
+      <ThemeProvider>
+        <LoadingScreen message="Loading your profile..." />
       </ThemeProvider>
     );
   }
