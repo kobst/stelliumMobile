@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Image,
   RefreshControl,
+  SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../../store';
@@ -17,6 +18,7 @@ import { userTransformers } from '../../transformers/user';
 import { useTheme } from '../../theme';
 import AddFooterButton from '../../components/AddFooterButton';
 import UpgradeBanner from '../../components/UpgradeBanner';
+import { HeaderWithProfile } from '../../components/navigation';
 
 const ChartSelectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -141,14 +143,18 @@ const ChartSelectionScreen: React.FC = () => {
 
   if (!userData) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view charts</Text>
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <HeaderWithProfile title="Birth Charts" showSafeArea={false} />
+        <View style={styles.content}>
+          <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view charts</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <HeaderWithProfile title="Birth Charts" showSafeArea={false} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -249,7 +255,7 @@ const ChartSelectionScreen: React.FC = () => {
         title="+ Add New Birth Chart"
         onPress={handleAddNewChart}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

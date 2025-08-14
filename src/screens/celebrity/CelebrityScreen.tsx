@@ -8,6 +8,7 @@ import {
   TextInput,
   FlatList,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -15,6 +16,7 @@ import { useStore } from '../../store';
 import { useCelebrities } from '../../hooks/useCelebrities';
 import { Celebrity } from '../../api/celebrities';
 import CelebrityRelationships from '../../components/CelebrityRelationships';
+import { HeaderWithProfile } from '../../components/navigation';
 import { useTheme } from '../../theme';
 
 type CelebrityStackParamList = {
@@ -129,9 +131,12 @@ const CelebrityScreen: React.FC = () => {
 
   if (!userData) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to explore celebrity charts</Text>
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <HeaderWithProfile title="Celebrity" showSafeArea={false} />
+        <View style={styles.content}>
+          <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to explore celebrity charts</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -242,23 +247,26 @@ const CelebrityScreen: React.FC = () => {
 
   if (activeTab === 'relationships') {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <HeaderWithProfile title="Celebrity" showSafeArea={false} />
         {renderHeader()}
         <CelebrityRelationships onCelebrityPress={handleCelebrityPress} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!loading && displayData.length === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <HeaderWithProfile title="Celebrity" showSafeArea={false} />
         {renderHeader()}
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <HeaderWithProfile title="Celebrity" showSafeArea={false} />
       <FlatList
         data={displayData}
         renderItem={renderCelebrityItem}
@@ -272,7 +280,7 @@ const CelebrityScreen: React.FC = () => {
         showsVerticalScrollIndicator={true}
         style={styles.celebrityList}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

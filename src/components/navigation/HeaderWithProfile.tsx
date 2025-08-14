@@ -1,27 +1,28 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useTheme } from '../../theme';
 import { ProfileAvatar } from '../profile';
 
-interface AnalysisHeaderProps {
+interface HeaderWithProfileProps {
   title: string;
   subtitle?: string;
-  meta?: string;
+  showSafeArea?: boolean;
 }
 
-export const AnalysisHeader: React.FC<AnalysisHeaderProps> = ({ title, subtitle, meta }) => {
+export const HeaderWithProfile: React.FC<HeaderWithProfileProps> = ({ 
+  title, 
+  subtitle,
+  showSafeArea = true 
+}) => {
   const { colors } = useTheme();
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.surface }]}>
+  const HeaderContent = () => (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <View style={styles.textContent}>
-          <Text style={[styles.title, { color: colors.onSurfaceHigh }]}>{title}</Text>
+          <Text style={[styles.title, { color: colors.onBackground }]}>{title}</Text>
           {subtitle && (
-            <Text style={[styles.subtitle, { color: colors.onSurfaceHigh }]}>{subtitle}</Text>
-          )}
-          {meta && (
-            <Text style={[styles.meta, { color: colors.onSurfaceMed }]}>{meta}</Text>
+            <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>{subtitle}</Text>
           )}
         </View>
         <View style={styles.avatarContainer}>
@@ -30,6 +31,16 @@ export const AnalysisHeader: React.FC<AnalysisHeaderProps> = ({ title, subtitle,
       </View>
     </View>
   );
+
+  if (showSafeArea) {
+    return (
+      <SafeAreaView style={{ backgroundColor: colors.background }}>
+        <HeaderContent />
+      </SafeAreaView>
+    );
+  }
+
+  return <HeaderContent />;
 };
 
 const styles = StyleSheet.create({
@@ -52,18 +63,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 24,
-    lineHeight: 32,
-    fontWeight: '600', // semibold
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: 'bold',
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 15,
-    fontWeight: '400',
-    marginBottom: 4,
-  },
-  meta: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '400',
   },
 });

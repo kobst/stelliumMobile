@@ -51,6 +51,7 @@ interface StoreState {
   loading: boolean;
   error: string | null;
   activeTab: TabName;
+  profileModalVisible: boolean;
 
   // Theme State
   themeMode: ThemeMode;
@@ -73,6 +74,7 @@ interface StoreState {
   clearError: () => void;
   setLoading: (loading: boolean) => void;
   setActiveTab: (tab: TabName) => void;
+  setProfileModalVisible: (visible: boolean) => void;
 
   // Theme Actions
   setThemeMode: (theme: ThemeMode) => void;
@@ -150,6 +152,7 @@ export const useStore = create<StoreState>((set, get) => ({
   loading: false,
   error: null,
   activeTab: 'horoscope',
+  profileModalVisible: false,
 
   // Theme State
   themeMode: 'system',
@@ -216,6 +219,7 @@ export const useStore = create<StoreState>((set, get) => ({
   clearError: () => set({ error: null }),
   setLoading: (loading) => set({ loading }),
   setActiveTab: (tab) => set({ activeTab: tab }),
+  setProfileModalVisible: (visible) => set({ profileModalVisible: visible }),
 
   // Theme Actions
   setThemeMode: (theme) => {
