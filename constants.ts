@@ -72,6 +72,35 @@ export const signs = [
     'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
   ];
 
+export const zodiacSymbols = {
+  'Aries': '♈',
+  'Taurus': '♉',
+  'Gemini': '♊',
+  'Cancer': '♋',
+  'Leo': '♌',
+  'Virgo': '♍',
+  'Libra': '♎',
+  'Scorpio': '♏',
+  'Sagittarius': '♐',
+  'Capricorn': '♑',
+  'Aquarius': '♒',
+  'Pisces': '♓',
+};
+
+export const planetarySymbols = {
+  'Sun': '☉',
+  'Moon': '☽',
+  'Ascendant': '↗',
+  'Mercury': '☿',
+  'Venus': '♀',
+  'Mars': '♂',
+  'Jupiter': '♃',
+  'Saturn': '♄',
+  'Uranus': '♅',
+  'Neptune': '♆',
+  'Pluto': '♇',
+};
+
 export const rulers = {
     'Aries': 'Mars',
     'Taurus': 'Venus',
