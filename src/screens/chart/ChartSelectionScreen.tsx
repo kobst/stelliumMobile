@@ -19,6 +19,8 @@ import { useTheme } from '../../theme';
 import AddFooterButton from '../../components/AddFooterButton';
 import UpgradeBanner from '../../components/UpgradeBanner';
 import { HeaderWithProfile } from '../../components/navigation';
+import PlanetaryIcons from '../../components/chart/PlanetaryIcons';
+import AnalysisTypeIndicator from '../../components/chart/AnalysisTypeIndicator';
 
 const ChartSelectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -105,41 +107,6 @@ const ChartSelectionScreen: React.FC = () => {
     });
   };
 
-  const getZodiacIcon = (birthMonth: number, birthDay: number) => {
-    // Simple zodiac calculation
-    const zodiacDates = [
-      { sign: '♈', start: [3, 21], end: [4, 19] }, // Aries
-      { sign: '♉', start: [4, 20], end: [5, 20] }, // Taurus
-      { sign: '♊', start: [5, 21], end: [6, 20] }, // Gemini
-      { sign: '♋', start: [6, 21], end: [7, 22] }, // Cancer
-      { sign: '♌', start: [7, 23], end: [8, 22] }, // Leo
-      { sign: '♍', start: [8, 23], end: [9, 22] }, // Virgo
-      { sign: '♎', start: [9, 23], end: [10, 22] }, // Libra
-      { sign: '♏', start: [10, 23], end: [11, 21] }, // Scorpio
-      { sign: '♐', start: [11, 22], end: [12, 21] }, // Sagittarius
-      { sign: '♑', start: [12, 22], end: [1, 19] }, // Capricorn
-      { sign: '♒', start: [1, 20], end: [2, 18] }, // Aquarius
-      { sign: '♓', start: [2, 19], end: [3, 20] }, // Pisces
-    ];
-
-    for (const zodiac of zodiacDates) {
-      const [startMonth, startDay] = zodiac.start;
-      const [endMonth, endDay] = zodiac.end;
-
-      if (startMonth === endMonth) {
-        if (birthMonth === startMonth && birthDay >= startDay && birthDay <= endDay) {
-          return zodiac.sign;
-        }
-      } else {
-        if ((birthMonth === startMonth && birthDay >= startDay) ||
-            (birthMonth === endMonth && birthDay <= endDay)) {
-          return zodiac.sign;
-        }
-      }
-    }
-
-    return '⭐';
-  };
 
   if (!userData) {
     return (
@@ -184,15 +151,23 @@ const ChartSelectionScreen: React.FC = () => {
         activeOpacity={0.8}
       >
         <View style={[styles.compactChartAvatar, { backgroundColor: colors.surfaceVariant }]}>
-          <Text style={[styles.compactZodiacSymbol, { color: colors.primary }]}>
-            {getZodiacIcon(userData.birthMonth, userData.birthDay)}
+          <Text style={[styles.avatarText, { color: colors.onSurfaceVariant }]}>
+            {userData.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
           </Text>
         </View>
         <View style={styles.compactChartInfo}>
-          <Text style={[styles.compactChartTitle, { color: colors.onSurface }]}>Birth Chart</Text>
-          <Text style={[styles.compactChartSubtitle, { color: colors.onSurfaceVariant }]}>
-            {userData.name} • {userData.birthMonth}/{userData.birthDay}/{userData.birthYear}
+          <Text style={[styles.compactChartTitle, { color: colors.onSurface }]}>
+            {userData.name}
           </Text>
+          <PlanetaryIcons user={userData} />
+          <Text style={[styles.compactChartSubtitle, { color: colors.onSurfaceVariant }]}>
+            {new Date(userData.birthYear, userData.birthMonth - 1, userData.birthDay).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })} - {userData.birthLocation}
+          </Text>
+          <AnalysisTypeIndicator hasCompleteAnalysis={false} />
         </View>
         <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
       </TouchableOpacity>
@@ -211,7 +186,6 @@ const ChartSelectionScreen: React.FC = () => {
         <>
           {guestSubjects.map((subject) => {
             const birthDate = new Date(subject.dateOfBirth);
-            const zodiacSign = getZodiacIcon(birthDate.getMonth() + 1, birthDate.getDate());
 
             return (
               <TouchableOpacity
@@ -229,6 +203,7 @@ const ChartSelectionScreen: React.FC = () => {
                   <Text style={[styles.guestName, { color: colors.onSurface }]}>
                     {subject.firstName} {subject.lastName}
                   </Text>
+                  <PlanetaryIcons subject={subject} />
                   <Text style={[styles.guestDetails, { color: colors.onSurfaceVariant }]}>
                     {birthDate.toLocaleDateString('en-US', {
                       month: 'short',
@@ -236,8 +211,9 @@ const ChartSelectionScreen: React.FC = () => {
                       year: 'numeric',
                     })} - {subject.placeOfBirth}
                   </Text>
+                  <AnalysisTypeIndicator hasCompleteAnalysis={false} />
                 </View>
-                <Text style={[styles.guestZodiac, { color: colors.primary }]}>{zodiacSign}</Text>
+                <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
               </TouchableOpacity>
             );
           })}
@@ -348,10 +324,6 @@ const styles = StyleSheet.create({
   },
   guestDetails: {
     fontSize: 14,
-  },
-  guestZodiac: {
-    fontSize: 24,
-    marginLeft: 12,
   },
   loader: {
     marginVertical: 32,
