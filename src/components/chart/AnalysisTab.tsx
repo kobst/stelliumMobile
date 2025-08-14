@@ -177,13 +177,6 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
   const renderAnalysisButton = () => (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
-            Comprehensive analysis across all life areas
-          </Text>
-        </View>
-
         <View style={styles.missingAnalysisContainer}>
           <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
         </View>
@@ -214,13 +207,6 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
-            Comprehensive analysis across all life areas
-          </Text>
-        </View>
-
         {/* Topics */}
         {availableTopics.map(topicKey => (
           <TopicSection

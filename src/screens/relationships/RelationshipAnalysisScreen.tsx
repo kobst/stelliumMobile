@@ -97,35 +97,15 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const getSectionSubtitle = () => {
     switch (activeTab) {
       case 'charts':
-        return {
-          icon: '📊',
-          title: '',
-          desc: 'Synastry & composite chart wheels, tables, and placements',
-        };
+        return null;
       case 'scores':
-        return {
-          icon: '💕',
-          title: '',
-          desc: 'Detailed compatibility scores across all relationship dimensions',
-        };
+        return null;
       case 'overview':
-        return {
-          icon: '💫',
-          title: '',
-          desc: 'Short analysis of the relationship',
-        };
+        return null;
       case 'guidance':
-        return {
-          icon: '🔮',
-          title: '',
-          desc: 'Comprehensive analysis across important relationship areas',
-        };
+        return null;
       case 'chat':
-        return {
-          icon: '💬',
-          title: '',
-          desc: 'Ask questions and get personalized insights about your relationship',
-        };
+        return null;
       default:
         return null;
     }
