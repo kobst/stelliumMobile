@@ -4,11 +4,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../../store';
 import { useHoroscope } from '../../hooks/useHoroscope';
 import HoroscopeContainer from '../../components/HoroscopeContainer';
+import { HeaderWithProfile } from '../../components/navigation';
 import { useTheme } from '../../theme';
 
 const HoroscopeScreen: React.FC = () => {
@@ -31,27 +33,33 @@ const HoroscopeScreen: React.FC = () => {
 
   if (!userData) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view your horoscope</Text>
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <HeaderWithProfile title="Horoscope" showSafeArea={false} />
+        <View style={styles.content}>
+          <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view your horoscope</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Greeting Subtitle */}
-      <Text style={[styles.greetingSubtitle, { color: colors.onSurfaceVariant }]}>
-        Hello, {userData.name}
-      </Text>
-
-      {/* Horoscope Container */}
-      <HoroscopeContainer
-        transitWindows={transitData}
-        loading={loading}
-        error={error}
-        userId={userData.id}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <HeaderWithProfile 
+        title="Horoscope" 
+        subtitle={`Hello, ${userData.name}`}
+        showSafeArea={false}
       />
-    </View>
+      
+      <View style={styles.content}>
+        {/* Horoscope Container */}
+        <HoroscopeContainer
+          transitWindows={transitData}
+          loading={loading}
+          error={error}
+          userId={userData.id}
+        />
+      </View>
+    </SafeAreaView>
   );
 };
 
@@ -59,10 +67,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  greetingSubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    paddingVertical: 8,
+  content: {
+    flex: 1,
   },
   errorText: {
     fontSize: 16,

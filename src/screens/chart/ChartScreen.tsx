@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useStore } from '../../store';
@@ -159,9 +160,9 @@ const ChartScreen: React.FC = () => {
 
   if (!subject) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view birth charts</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -221,7 +222,7 @@ const ChartScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Analysis Header */}
       <AnalysisHeader
         title={subject?.name || 'Unknown'}
@@ -267,7 +268,7 @@ const ChartScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

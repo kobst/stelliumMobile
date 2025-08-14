@@ -9,7 +9,6 @@ import HoroscopeStack from './HoroscopeStack';
 import ChartStack from './ChartStack';
 import RelationshipsStack from './RelationshipsStack';
 import CelebrityStack from './CelebrityStack';
-import SettingsScreen from '../screens/settings/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -21,7 +20,6 @@ const TabIcon: React.FC<{ name: string; focused: boolean }> = ({ name, focused }
       case 'Chart': return '⭕';
       case 'Relationships': return '💕';
       case 'Celebrity': return '⭐';
-      case 'Settings': return '⚙️';
       default: return '•';
     }
   };
@@ -84,11 +82,6 @@ const TabNavigator: React.FC = () => {
         name="Celebrity"
         component={CelebrityStack}
         options={{ title: 'Celebrity' }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ title: 'Settings' }}
       />
     </Tab.Navigator>
   );

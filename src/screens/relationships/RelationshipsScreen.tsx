@@ -5,10 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../../store';
 import UserRelationships from '../../components/UserRelationships';
+import { HeaderWithProfile } from '../../components/navigation';
 import { useTheme } from '../../theme';
 import AddFooterButton from '../../components/AddFooterButton';
 import UpgradeBanner from '../../components/UpgradeBanner';
@@ -20,15 +22,18 @@ const RelationshipsScreen: React.FC = () => {
 
   if (!userData) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view relationships</Text>
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <HeaderWithProfile title="Relationships" showSafeArea={false} />
+        <View style={styles.content}>
+          <Text style={[styles.errorText, { color: colors.error }]}>Please sign in to view relationships</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <HeaderWithProfile title="Relationships" showSafeArea={false} />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Relationships List */}
         <UserRelationships
@@ -44,7 +49,7 @@ const RelationshipsScreen: React.FC = () => {
         title="+ Add New Relationship"
         onPress={() => (navigation as any).navigate('CreateRelationship')}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import TabNavigator from './TabNavigator';
 import UserOnboardingWizard from '../screens/UserOnboardingWizard';
 import { useStore } from '../store';
+import { ProfileModal } from '../components/profile';
 
 const Stack = createStackNavigator();
 
@@ -39,6 +40,7 @@ const RootNavigator: React.FC = () => {
           <Stack.Screen name="Onboarding" component={UserOnboardingWizard} />
         )}
       </Stack.Navigator>
+      <ProfileModal />
     </NavigationContainer>
   );
 };
