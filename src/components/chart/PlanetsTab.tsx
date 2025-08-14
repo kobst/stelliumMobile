@@ -125,13 +125,6 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
   const renderAnalysisButton = () => (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
-            Detailed interpretations for each planet
-          </Text>
-        </View>
-
         <View style={styles.missingAnalysisContainer}>
           <CompleteFullAnalysisButton userId={userId} onAnalysisComplete={loadFullAnalysis} />
         </View>
@@ -162,13 +155,6 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
-            Detailed interpretations for each planet
-          </Text>
-        </View>
-
         {/* Planet Sections */}
         {availablePlanets.map(planet => (
           <ExpandablePlanetSection

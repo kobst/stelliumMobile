@@ -132,27 +132,15 @@ const ChartScreen: React.FC = () => {
   const getSectionSubtitle = () => {
     switch (activeTab) {
       case 'chart':
-        return {
-          icon: '🌀',
-          title: '',
-          desc: 'Visual chart & data tables'
-        };
+        return null;
       case 'patterns':
-        return {
-          icon: '♾️',
-          title: '',
-          desc: 'Key planetary patterns & rulerships'
-        };
+        return null;
       case 'planets':
-        return null; // Keep existing
+        return null;
       case 'analysis':
-        return null; // Keep existing
+        return null;
       case 'chat':
-        return {
-          icon: '💬',
-          title: '',
-          desc: 'Ask questions and get personalized insights about your birth chart'
-        };
+        return null;
       default:
         return null;
     }

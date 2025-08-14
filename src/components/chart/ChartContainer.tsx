@@ -121,7 +121,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
         <SectionSubtitle
           icon="🌀"
           title=""
-          desc="Visual chart & data tables"
+          desc=""
         />
       )}
 
