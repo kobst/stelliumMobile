@@ -22,6 +22,7 @@ import PatternsTab from '../../components/chart/PatternsTab';
 import PlanetsTab from '../../components/chart/PlanetsTab';
 import AnalysisTab from '../../components/chart/AnalysisTab';
 import BirthChartChatTab from '../../components/chart/BirthChartChatTab';
+import CompleteFullAnalysisButton from '../../components/chart/CompleteFullAnalysisButton';
 import { BirthChartElement } from '../../api/charts';
 
 const ChartScreen: React.FC = () => {
@@ -40,6 +41,7 @@ const ChartScreen: React.FC = () => {
     error: chartError,
     loadFullAnalysis,
     clearError,
+    hasAnalysisData,
   } = useChart(subject?.id);
 
   // Navigation state
@@ -190,6 +192,22 @@ const ChartScreen: React.FC = () => {
       case 'analysis':
         return <AnalysisTab userId={subject?.id} />;
       case 'chat':
+        if (!hasAnalysisData) {
+          return (
+            <ScrollView style={[styles.lockedTabContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+              <View style={styles.lockedTabContent}>
+                <View style={[styles.lockedTabHeader, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.lockedTabSubtitle, { color: colors.onSurfaceVariant }]}>
+                    Chat with AI about your birth chart insights
+                  </Text>
+                </View>
+                <View style={styles.missingAnalysisContainer}>
+                  <CompleteFullAnalysisButton userId={subject?.id} onAnalysisComplete={loadFullAnalysis} />
+                </View>
+              </View>
+            </ScrollView>
+          );
+        }
         return (
           <BirthChartChatTab
             userId={subject?.id}
@@ -280,6 +298,28 @@ const styles = StyleSheet.create({
   retryButtonText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  lockedTabContainer: {
+    flex: 1,
+  },
+  lockedTabContent: {
+    padding: 16,
+  },
+  lockedTabHeader: {
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  lockedTabSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  missingAnalysisContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
   },
 });
 

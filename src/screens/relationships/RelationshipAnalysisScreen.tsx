@@ -522,6 +522,33 @@ const RelationshipAnalysisScreen: React.FC = () => {
       case 'chat':
         const v3Analysis = relationship.v2Analysis;
         const consolidatedItems = v3Analysis?.consolidatedScoredItems || [];
+        const hasRelationshipAnalysis = !!(analysisData?.analysis && Object.keys(analysisData.analysis).length > 0);
+        
+        if (!hasRelationshipAnalysis) {
+          return (
+            <ScrollView style={[styles.lockedTabContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+              <View style={styles.lockedTabContent}>
+                <View style={[styles.lockedTabHeader, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.lockedTabSubtitle, { color: colors.onSurfaceVariant }]}>
+                    Chat with AI about your relationship insights
+                  </Text>
+                </View>
+                <View style={styles.missingAnalysisContainer}>
+                  <CompleteRelationshipAnalysisButton
+                    compositeChartId={relationship._id}
+                    onAnalysisComplete={(completedAnalysisData) => {
+                      console.log('Analysis completed, refreshing data...');
+                      setHasLoadedData(false);
+                      setAnalysisData(null);
+                      loadAnalysisData();
+                    }}
+                    hasAnalysisData={hasRelationshipAnalysis}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+          );
+        }
         
         return (
           <RelationshipChatTab
@@ -1020,6 +1047,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  lockedTabContainer: {
+    flex: 1,
+  },
+  lockedTabContent: {
+    padding: 16,
+  },
+  lockedTabHeader: {
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  lockedTabSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  missingAnalysisContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
   },
 });
 
