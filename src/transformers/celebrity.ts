@@ -69,10 +69,10 @@ export const getCelebrityDisplayName = (celebrity: Celebrity): string => {
  * Creates a subtitle for a celebrity showing birth info
  */
 export const getCelebritySubtitle = (celebrity: Celebrity): string => {
-  const birthDate = new Date(celebrity.dateOfBirth).toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric' 
+  const birthDate = new Date(celebrity.dateOfBirth).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
   const birthTime = celebrity.time ? ` at ${celebrity.time}` : '';
 

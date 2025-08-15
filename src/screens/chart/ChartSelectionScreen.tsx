@@ -167,7 +167,7 @@ const ChartSelectionScreen: React.FC = () => {
               year: 'numeric',
             })} - {userData.birthLocation}
           </Text>
-          <AnalysisTypeIndicator hasCompleteAnalysis={false} />
+          <AnalysisTypeIndicator analysisStatus={userData.analysisStatus} fallbackLevel="overview" />
         </View>
         <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
       </TouchableOpacity>
@@ -211,7 +211,7 @@ const ChartSelectionScreen: React.FC = () => {
                       year: 'numeric',
                     })} - {subject.placeOfBirth}
                   </Text>
-                  <AnalysisTypeIndicator hasCompleteAnalysis={false} />
+                  <AnalysisTypeIndicator analysisStatus={subject.analysisStatus} />
                 </View>
                 <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
               </TouchableOpacity>

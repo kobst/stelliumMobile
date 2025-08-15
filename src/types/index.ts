@@ -10,6 +10,7 @@ export interface User {
   birthLocation: string;
   timezone: string;
   birthChart?: any;
+  analysisStatus?: AnalysisStatus;
 }
 
 export interface Planet {
@@ -202,6 +203,13 @@ export interface PatternAnalysis {
   }>;
 }
 
+export interface AnalysisStatus {
+  level: 'none' | 'overview' | 'complete';
+  completedTasks: number;
+  totalTasks: number;
+  workflowStatus: string;
+}
+
 export interface PlanetaryDominanceAnalysis {
   planets: {
     name: PlanetName;
@@ -281,4 +289,7 @@ export interface SubjectDocument {
 
   // Birth chart data
   birthChart: BirthChart;
+
+  // Analysis status (from backend API)
+  analysisStatus?: AnalysisStatus;
 }

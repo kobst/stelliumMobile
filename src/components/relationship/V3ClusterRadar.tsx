@@ -35,16 +35,16 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
   const { colors } = useTheme();
 
   const getScoreColor = (score: number): string => {
-    if (score >= 0.8) return '#4CAF50';
-    if (score >= 0.6) return '#FF9800'; 
-    if (score >= 0.4) return '#FFC107';
+    if (score >= 0.8) {return '#4CAF50';}
+    if (score >= 0.6) {return '#FF9800';}
+    if (score >= 0.4) {return '#FFC107';}
     return '#F44336';
   };
 
   const renderRadarGrid = () => {
     const gridLines = [];
     const levels = [0.2, 0.4, 0.6, 0.8, 1.0];
-    
+
     // Concentric circles
     levels.forEach((level, index) => {
       const radius = MAX_RADIUS * level;
@@ -67,7 +67,7 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
       const angle = (cluster.angle * Math.PI) / 180;
       const endX = CENTER_X + Math.cos(angle) * MAX_RADIUS;
       const endY = CENTER_Y + Math.sin(angle) * MAX_RADIUS;
-      
+
       gridLines.push(
         <Line
           key={`axis-${index}`}
@@ -91,19 +91,19 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
 
     Object.entries(clusters).forEach(([clusterName, clusterData]) => {
       const config = CLUSTER_CONFIG[clusterName];
-      if (!config) return;
+      if (!config) {return;}
 
       const score = clusterData.score;
       // Handle both 0-1 decimal and 0-100 percentage formats
       const normalizedScore = score > 1 ? score / 100 : score;
       const radius = MAX_RADIUS * normalizedScore;
       const angle = (config.angle * Math.PI) / 180;
-      
+
       const x = CENTER_X + Math.cos(angle) * radius;
       const y = CENTER_Y + Math.sin(angle) * radius;
-      
+
       points.push(`${x},${y}`);
-      
+
       // Cluster point
       clusterElements.push(
         <Circle
@@ -116,12 +116,12 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
           strokeWidth={2}
         />
       );
-      
+
       // Cluster label
       const labelRadius = MAX_RADIUS + 20;
       const labelX = CENTER_X + Math.cos(angle) * labelRadius;
       const labelY = CENTER_Y + Math.sin(angle) * labelRadius;
-      
+
       clusterElements.push(
         <SvgText
           key={`label-${clusterName}`}
@@ -136,7 +136,7 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
           {config.emoji} {config.name}
         </SvgText>
       );
-      
+
       // Score label
       clusterElements.push(
         <SvgText
@@ -183,19 +183,19 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
           Average: {Math.round(averageScore * 100)}%
         </Text>
       </View>
-      
+
       <View style={styles.radarContainer}>
         <Svg width={RADAR_SIZE} height={RADAR_SIZE} viewBox={`0 0 ${RADAR_SIZE} ${RADAR_SIZE}`}>
           {renderRadarGrid()}
           {renderClusterPoints()}
         </Svg>
       </View>
-      
+
       <View style={styles.legend}>
         {Object.entries(clusters).map(([clusterName, clusterData]) => {
           const config = CLUSTER_CONFIG[clusterName];
-          if (!config) return null;
-          
+          if (!config) {return null;}
+
           return (
             <View key={clusterName} style={styles.legendItem}>
               <View style={[styles.legendColor, { backgroundColor: config.color }]} />

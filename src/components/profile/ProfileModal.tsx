@@ -49,9 +49,9 @@ const ProfileModal: React.FC = () => {
     setProfileModalVisible(false);
   };
 
-  const MenuItem: React.FC<{ 
-    icon: string; 
-    title: string; 
+  const MenuItem: React.FC<{
+    icon: string;
+    title: string;
     subtitle?: string;
     onPress?: () => void;
     rightComponent?: React.ReactNode;

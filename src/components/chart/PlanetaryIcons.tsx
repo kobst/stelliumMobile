@@ -12,11 +12,11 @@ interface PlanetaryIconsProps {
 
 // Function to get zodiac symbol using escape codes
 const getZodiacSymbol = (sign: string | null): string => {
-  if (!sign) return '';
-  
+  if (!sign) {return '';}
+
   const symbols: { [key: string]: string } = {
     'Aries': '\u2648',
-    'Taurus': '\u2649', 
+    'Taurus': '\u2649',
     'Gemini': '\u264A',
     'Cancer': '\u264B',
     'Leo': '\u264C',
@@ -28,7 +28,7 @@ const getZodiacSymbol = (sign: string | null): string => {
     'Aquarius': '\u2652',
     'Pisces': '\u2653',
   };
-  
+
   return symbols[sign] || '';
 };
 
@@ -134,3 +134,4 @@ const styles = StyleSheet.create({
 });
 
 export default PlanetaryIcons;
+

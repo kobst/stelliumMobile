@@ -11,6 +11,9 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../store';
 import { relationshipsApi, UserCompositeChart } from '../api/relationships';
 import { useTheme } from '../theme';
+import RelationshipTierBadge from './relationships/RelationshipTierBadge';
+import RelationshipScoreIndicator from './relationships/RelationshipScoreIndicator';
+import AnalysisLevelIndicator from './relationships/AnalysisLevelIndicator';
 
 interface UserRelationshipsProps {
   onRelationshipPress?: (relationship: UserCompositeChart) => void;
@@ -152,6 +155,20 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
 
   const renderRelationshipItem = ({ item }: { item: UserCompositeChart }) => {
     const { leftName, rightName } = getDisplayNames(item);
+    const analysisStatus = item.relationshipAnalysisStatus;
+    const level = analysisStatus?.level || 'none';
+
+    const getActionButtonText = () => {
+      switch (level) {
+        case 'complete':
+          return 'View Analysis';
+        case 'scores':
+          return 'View Compatibility';
+        case 'none':
+        default:
+          return 'Start Analysis';
+      }
+    };
 
     return (
       <TouchableOpacity
@@ -163,6 +180,7 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
           <Text style={[styles.createdDate, { color: colors.onSurfaceVariant }]}>
             {new Date(item.createdAt).toLocaleDateString()}
           </Text>
+          <RelationshipTierBadge tier={analysisStatus?.tier} level={level} />
         </View>
 
         <View style={styles.partnerPair}>
@@ -185,11 +203,28 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
           </View>
         </View>
 
+        {/* Relationship Profile */}
+        {analysisStatus?.profile && (
+          <View style={styles.profileContainer}>
+            <Text style={[styles.profileText, { color: colors.onSurfaceVariant }]}>
+              {analysisStatus.profile}
+            </Text>
+          </View>
+        )}
+
+        {/* Analysis Level Indicator */}
+        <AnalysisLevelIndicator level={level} />
+
+        {/* Compatibility Scores */}
+        <RelationshipScoreIndicator clusterScores={analysisStatus?.clusterScores} level={level} />
+
         <TouchableOpacity
           style={styles.viewButton}
           onPress={() => handleRelationshipPress(item)}
         >
-          <Text style={[styles.viewButtonText, { color: colors.primary }]}>View Analysis</Text>
+          <Text style={[styles.viewButtonText, { color: colors.primary }]}>
+            {getActionButtonText()}
+          </Text>
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -303,8 +338,10 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   relationshipHeader: {
-    alignItems: 'flex-end',
-    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   createdDate: {
     fontSize: 12,
@@ -342,6 +379,17 @@ const styles = StyleSheet.create({
   viewButtonText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  profileContainer: {
+    marginTop: 8,
+    marginBottom: 4,
+    alignItems: 'center',
+  },
+  profileText: {
+    fontSize: 13,
+    fontWeight: '500',
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   errorSection: {
     margin: 16,

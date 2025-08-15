@@ -38,9 +38,9 @@ const getCategoryDisplayName = (category: string): string => {
 };
 
 const getScoreColor = (score: number): string => {
-  if (score >= 12) return '#4CAF50';
-  if (score >= 8) return '#FF9800';
-  if (score >= 5) return '#FFC107';
+  if (score >= 12) {return '#4CAF50';}
+  if (score >= 8) {return '#FF9800';}
+  if (score >= 5) {return '#FFC107';}
   return '#F44336';
 };
 
@@ -80,10 +80,10 @@ const KeystoneAspectsHighlight: React.FC<KeystoneAspectsHighlightProps> = ({
             key={index}
             style={[
               styles.aspectCard,
-              { 
+              {
                 backgroundColor: colors.background,
                 borderColor: CATEGORY_COLORS[aspect.category] || colors.primary,
-              }
+              },
             ]}
             onPress={() => onAspectPress?.(aspect)}
             activeOpacity={0.7}
@@ -96,29 +96,29 @@ const KeystoneAspectsHighlight: React.FC<KeystoneAspectsHighlightProps> = ({
                 {IMPACT_EMOJIS[aspect.impact]}
               </Text>
             </View>
-            
+
             <Text style={[styles.aspectDescription, { color: colors.onSurface }]}>
               {aspect.description}
             </Text>
-            
+
             <View style={styles.aspectDetails}>
               <View style={[
                 styles.categoryChip,
-                { backgroundColor: CATEGORY_COLORS[aspect.category] || colors.primary }
+                { backgroundColor: CATEGORY_COLORS[aspect.category] || colors.primary },
               ]}>
                 <Text style={[styles.categoryText, { color: 'white' }]}>
                   {getCategoryDisplayName(aspect.category)}
                 </Text>
               </View>
-              
+
               <Text style={[styles.aspectScore, { color: getScoreColor(aspect.score) }]}>
                 {aspect.score.toFixed(1)}
               </Text>
             </View>
-            
+
             <View style={[
               styles.impactBar,
-              { backgroundColor: colors.surfaceVariant }
+              { backgroundColor: colors.surfaceVariant },
             ]}>
               <View
                 style={[
@@ -126,14 +126,14 @@ const KeystoneAspectsHighlight: React.FC<KeystoneAspectsHighlightProps> = ({
                   {
                     backgroundColor: getScoreColor(aspect.score),
                     width: `${Math.min((aspect.score / 20) * 100, 100)}%`,
-                  }
+                  },
                 ]}
               />
             </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
-      
+
       <View style={styles.footer}>
         <Text style={[styles.footerText, { color: colors.onSurfaceVariant }]}>
           💡 Keystone aspects have the highest impact on relationship dynamics

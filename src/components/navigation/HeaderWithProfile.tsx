@@ -9,10 +9,10 @@ interface HeaderWithProfileProps {
   showSafeArea?: boolean;
 }
 
-export const HeaderWithProfile: React.FC<HeaderWithProfileProps> = ({ 
-  title, 
+export const HeaderWithProfile: React.FC<HeaderWithProfileProps> = ({
+  title,
   subtitle,
-  showSafeArea = true 
+  showSafeArea = true,
 }) => {
   const { colors } = useTheme();
 

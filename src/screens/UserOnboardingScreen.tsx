@@ -130,7 +130,7 @@ const UserOnboardingScreen: React.FC = () => {
       setErrors(['Authentication error: Please sign in again']);
       return;
     }
-    
+
     console.log('Firebase User ID:', firebaseUser.uid);
 
     const formErrors = validateForm();

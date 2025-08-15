@@ -94,9 +94,9 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
             <Text style={styles.backButtonText}>{backButtonText}</Text>
           </TouchableOpacity>
         )}
-        
+
         <View style={styles.spacer} />
-        
+
         <TouchableOpacity
           style={[
             styles.nextButton,

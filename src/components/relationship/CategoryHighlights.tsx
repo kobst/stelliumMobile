@@ -66,7 +66,7 @@ function parseAspectDescription(description: string, item: any) {
       };
     }
   }
-  
+
   // For synastry items with aspect data, use the structured data
   if (item.aspect && item.planet1 && item.planet2) {
     const person1Match = description.match(/^(\w+)'s/);
@@ -74,7 +74,7 @@ function parseAspectDescription(description: string, item: any) {
     // Try to find the second person's name
     const person2Match = description.match(/(\w+)'s [^']+$/);
     const person2 = person2Match ? person2Match[1] : (person1 === 'Fullon' ? 'Mobile' : 'Fullon');
-    
+
     return {
       type: 'aspect',
       person1,
@@ -86,7 +86,7 @@ function parseAspectDescription(description: string, item: any) {
       sign2: item.planet2Sign,
     };
   }
-  
+
   // Parse house placements from description
   const housePlacementMatch = description.match(/(\w+)'s (\w+) in (\w+) their (\d+) house/);
   if (housePlacementMatch) {
@@ -98,7 +98,7 @@ function parseAspectDescription(description: string, item: any) {
       house: housePlacementMatch[4],
     };
   }
-  
+
   // Fallback to original description
   return { type: 'unknown', description };
 }
@@ -112,14 +112,14 @@ function formatCardTitle(parsedData: any, source: string) {
       line2: '',
     };
   }
-  
+
   if (parsedData.type === 'composite-house') {
     return {
       line1: `${parsedData.planet} in House ${parsedData.house}`,
       line2: '',
     };
   }
-  
+
   if (parsedData.type === 'aspect') {
     const symbol = ASPECT_SYMBOLS[parsedData.aspect] || parsedData.aspect;
     return {
@@ -127,14 +127,14 @@ function formatCardTitle(parsedData: any, source: string) {
       line2: '',
     };
   }
-  
+
   if (parsedData.type === 'house') {
     return {
       line1: `${parsedData.person1}'s ${parsedData.planet} → House ${parsedData.house}`,
       line2: '',
     };
   }
-  
+
   // Fallback - split description into 2 lines
   const desc = parsedData.description;
   const midpoint = Math.floor(desc.length / 2);
@@ -206,7 +206,7 @@ const CategoryHighlights: React.FC<CategoryHighlightsProps> = ({
         filtered = keystoneAsConsolidatedItems; // Only show keystone aspects for this category
         break;
       case 'sparks':
-        filtered = categoryConsolidatedItems.filter(item => 
+        filtered = categoryConsolidatedItems.filter(item =>
           item.categoryData.some(cd => cd.category === targetCategory && cd.spark)
         );
         break;
@@ -261,8 +261,8 @@ const CategoryHighlights: React.FC<CategoryHighlightsProps> = ({
   }, [consolidatedItems, keystoneAspects, targetCategory, activeFilter]);
 
   const getValenceColor = (valence: number): string => {
-    if (valence === 1) return '#4CAF50';
-    if (valence === -1) return '#F44336';
+    if (valence === 1) {return '#4CAF50';}
+    if (valence === -1) {return '#F44336';}
     return '#FFC107';
   };
 
@@ -280,13 +280,13 @@ const CategoryHighlights: React.FC<CategoryHighlightsProps> = ({
           {
             backgroundColor: isActive ? colors.primary : colors.background,
             borderColor: colors.primary,
-          }
+          },
         ]}
         onPress={() => setActiveFilter(filter)}
       >
         <Text style={[
           styles.filterText,
-          { color: isActive ? 'white' : colors.primary }
+          { color: isActive ? 'white' : colors.primary },
         ]}>
           {label} ({count})
         </Text>
@@ -297,14 +297,14 @@ const CategoryHighlights: React.FC<CategoryHighlightsProps> = ({
   const renderItem = ({ item }: { item: ConsolidatedScoredItem }) => {
     const isSelected = selectedItems.some(selected => selected.id === item.id);
     // Get the category data specific to the target category
-    const targetCategoryData = item.categoryData.find(cd => cd.category === targetCategory) || 
+    const targetCategoryData = item.categoryData.find(cd => cd.category === targetCategory) ||
                                item.categoryData[0]; // fallback to first if not found
     const sparks = item.categoryData.filter(cd => cd.category === targetCategory && cd.spark);
-    
+
     // Parse and format the title
     const parsedData = parseAspectDescription(item.description, item);
     const titleData = formatCardTitle(parsedData, item.source);
-    
+
     return (
       <TouchableOpacity
         style={[
@@ -313,7 +313,7 @@ const CategoryHighlights: React.FC<CategoryHighlightsProps> = ({
             backgroundColor: colors.background,
             borderColor: isSelected ? colors.primary : colors.border,
             borderWidth: isSelected ? 2 : 1,
-          }
+          },
         ]}
         onPress={() => onItemPress?.(item)}
         activeOpacity={0.7}
@@ -339,20 +339,20 @@ const CategoryHighlights: React.FC<CategoryHighlightsProps> = ({
         <View style={styles.chipRow}>
           <View style={[
             styles.sourceChip,
-            { backgroundColor: item.source === 'synastry' ? '#2196F3' : '#9C27B0' }
+            { backgroundColor: item.source === 'synastry' ? '#2196F3' : '#9C27B0' },
           ]}>
             <Text style={[styles.sourceText, { color: 'white' }]}>
               {item.source === 'synastry' ? 'Synastry' : 'Composite'}
             </Text>
           </View>
-          
+
           <View style={[
             styles.valenceChip,
-            { backgroundColor: targetCategoryData.valence === 1 ? '#E8F5E9' : '#FFEBEE' }
+            { backgroundColor: targetCategoryData.valence === 1 ? '#E8F5E9' : '#FFEBEE' },
           ]}>
             <Text style={[
               styles.valenceText,
-              { color: targetCategoryData.valence === 1 ? '#2E7D32' : '#C62828' }
+              { color: targetCategoryData.valence === 1 ? '#2E7D32' : '#C62828' },
             ]}>
               {targetCategoryData.valence === 1 ? 'Support' : 'Challenge'}
             </Text>
@@ -374,7 +374,7 @@ const CategoryHighlights: React.FC<CategoryHighlightsProps> = ({
 
           <View style={[
             styles.valenceIndicator,
-            { backgroundColor: getValenceColor(targetCategoryData.valence) }
+            { backgroundColor: getValenceColor(targetCategoryData.valence) },
           ]} />
         </View>
 
@@ -453,7 +453,7 @@ const CategoryHighlights: React.FC<CategoryHighlightsProps> = ({
 
     return {
       keystones: keystoneAspects.length,
-      sparks: categoryConsolidatedItems.filter(item => 
+      sparks: categoryConsolidatedItems.filter(item =>
         item.categoryData.some(cd => cd.category === targetCategory && cd.spark)
       ).length,
       topSupports: topSupportsCount,

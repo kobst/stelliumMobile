@@ -49,20 +49,20 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
   // Load chat history when component mounts
   useEffect(() => {
     const loadChatHistory = async () => {
-      if (!compositeChartId || chatMessages.length > 0) return;
-      
+      if (!compositeChartId || chatMessages.length > 0) {return;}
+
       console.log('Loading chat history for relationship:', compositeChartId);
       setIsHistoryLoading(true);
-      
+
       try {
         const response = await relationshipsApi.fetchRelationshipEnhancedChatHistory(compositeChartId, 50);
         console.log('Chat history response:', response);
-        
+
         if (response && response.success && response.chatHistory && Array.isArray(response.chatHistory)) {
           console.log('Processing', response.chatHistory.length, 'chat messages');
           // Process messages and link assistant responses to user queries
           const transformedMessages: ChatMessage[] = [];
-          
+
           for (let index = 0; index < response.chatHistory.length; index++) {
             const msg = response.chatHistory[index];
             console.log(`Message ${index}:`, {
@@ -71,9 +71,9 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
               mode: msg.metadata?.mode,
               elementCount: msg.metadata?.elementCount,
               hasSelectedElements: !!msg.metadata?.selectedElements,
-              selectedElementsLength: msg.metadata?.selectedElements?.length
+              selectedElementsLength: msg.metadata?.selectedElements?.length,
             });
-            
+
             const transformedMessage: ChatMessage = {
               id: `history-${index}-${Date.now()}`,
               type: msg.role === 'user' ? 'user' : 'assistant',
@@ -97,8 +97,8 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                 }
               }
             }
-            
-            // For assistant messages without metadata, try to inherit from the previous user message  
+
+            // For assistant messages without metadata, try to inherit from the previous user message
             if (msg.role === 'assistant' && !msg.metadata?.mode && index > 0) {
               const prevMsg = response.chatHistory[index - 1];
               if (prevMsg.role === 'user' && prevMsg.metadata) {
@@ -110,7 +110,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
 
             transformedMessages.push(transformedMessage);
           }
-          
+
           // Debug: Log final transformed messages
           console.log('Final transformed messages:');
           transformedMessages.forEach((msg, idx) => {
@@ -119,10 +119,10 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
               hasSelectedElements: !!msg.selectedElements,
               selectedElementsCount: msg.selectedElements?.length,
               mode: msg.mode,
-              elementCount: msg.elementCount
+              elementCount: msg.elementCount,
             });
           });
-          
+
           setChatMessages(transformedMessages);
         } else {
           console.log('No chat history found or response unsuccessful. Response structure:', {
@@ -130,7 +130,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
             success: response?.success,
             hasChatHistory: !!response?.chatHistory,
             isArray: Array.isArray(response?.chatHistory),
-            chatHistoryType: typeof response?.chatHistory
+            chatHistoryType: typeof response?.chatHistory,
           });
         }
       } catch (err) {
@@ -138,9 +138,9 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
         console.error('Error details:', {
           message: err instanceof Error ? err.message : 'Unknown error',
           compositeChartId,
-          stack: err instanceof Error ? err.stack : undefined
+          stack: err instanceof Error ? err.stack : undefined,
         });
-        
+
         // Show a user-friendly message that chat history couldn't be loaded
         // but don't block the user from starting new conversations
         console.log('Chat history unavailable, but new conversations will work');
@@ -156,25 +156,25 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
   const getMode = (): 'chat' | 'custom' | 'hybrid' | null => {
     const hasQuery = query.trim().length > 0;
     const hasElements = selectedElements.length > 0;
-    
-    if (hasQuery && hasElements) return 'hybrid';
-    if (hasQuery) return 'chat';
-    if (hasElements) return 'custom';
+
+    if (hasQuery && hasElements) {return 'hybrid';}
+    if (hasQuery) {return 'chat';}
+    if (hasElements) {return 'custom';}
     return null;
   };
 
   // Get contextual hint based on current mode
   const getHint = (mode: string | null): string => {
-    if (!mode) return "Select items or ask a question to get started";
-    if (mode === 'custom') return "I'll analyze your selected items";
-    if (mode === 'chat') return "I'll answer your question about the relationship";
+    if (!mode) {return 'Select items or ask a question to get started';}
+    if (mode === 'custom') {return "I'll analyze your selected items";}
+    if (mode === 'chat') {return "I'll answer your question about the relationship";}
     return "I'll answer your question about the selected items";
   };
 
   // Handle element selection
   const handleSelectElement = (element: ConsolidatedScoredItem) => {
     setError(null);
-    
+
     if (selectedElements.some(el => el.id === element.id)) {
       setSelectedElements(selectedElements.filter(el => el.id !== element.id));
     } else if (selectedElements.length < 4) {
@@ -202,7 +202,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
   // Handle form submission
   const handleSubmit = async () => {
     const currentMode = getMode();
-    
+
     if (!currentMode) {
       setError('Please enter a query or select at least one relationship element');
       return;
@@ -244,11 +244,11 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
 
     try {
       const response = await relationshipsApi.enhancedChatForRelationship(compositeChartId, requestBody);
-      
+
       if (response.success) {
         // Remove loading message and add actual response
         setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
-        
+
         const assistantMessage: ChatMessage = {
           id: `assistant-${Date.now()}`,
           type: 'assistant',
@@ -267,7 +267,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
     } catch (err) {
       // Remove loading message and add error
       setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
-      
+
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
         type: 'error',
@@ -282,34 +282,34 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
 
   // Get element display name - human readable format
   const getElementDisplayName = (element: ConsolidatedScoredItem): string => {
-    const chartType = element.source === 'synastry' ? 'Synastry' : 
-                     element.source === 'composite' ? 'Composite' : 
+    const chartType = element.source === 'synastry' ? 'Synastry' :
+                     element.source === 'composite' ? 'Composite' :
                      element.source === 'synastryHousePlacement' ? 'Synastry' :
                      element.source === 'compositeHousePlacement' ? 'Composite' : 'Chart';
-    
+
     if (element.type === 'aspect') {
       // Get full planet names
-      const planet1Name = element.planet1 === 'ascendant' ? 'Ascendant' : 
-                         element.planet1 === 'midheaven' ? 'Midheaven' : 
+      const planet1Name = element.planet1 === 'ascendant' ? 'Ascendant' :
+                         element.planet1 === 'midheaven' ? 'Midheaven' :
                          element.planet1?.charAt(0).toUpperCase() + element.planet1?.slice(1) || 'Planet';
-      const planet2Name = element.planet2 === 'ascendant' ? 'Ascendant' : 
-                         element.planet2 === 'midheaven' ? 'Midheaven' : 
+      const planet2Name = element.planet2 === 'ascendant' ? 'Ascendant' :
+                         element.planet2 === 'midheaven' ? 'Midheaven' :
                          element.planet2?.charAt(0).toUpperCase() + element.planet2?.slice(1) || 'Planet';
-      
+
       // Get full aspect name
       const aspectName = element.aspect?.charAt(0).toUpperCase() + element.aspect?.slice(1) || 'aspect';
-      
+
       return `${chartType}: Fullon's ${planet1Name} ${aspectName} Mobile's ${planet2Name}`;
     }
-    
+
     if (element.type === 'housePlacement') {
-      const planetName = element.planet1 === 'ascendant' ? 'Ascendant' : 
-                        element.planet1 === 'midheaven' ? 'Midheaven' : 
+      const planetName = element.planet1 === 'ascendant' ? 'Ascendant' :
+                        element.planet1 === 'midheaven' ? 'Midheaven' :
                         element.planet1?.charAt(0).toUpperCase() + element.planet1?.slice(1) || 'Planet';
-      
+
       return `${chartType}: Fullon's ${planetName} in Mobile's House ${element.planet2}`;
     }
-    
+
     return element.description?.substring(0, 50) || 'Unknown Element';
   };
 
@@ -318,7 +318,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Chat Messages */}
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         style={styles.chatMessages}
         showsVerticalScrollIndicator={false}
@@ -331,7 +331,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
             </Text>
           </View>
         )}
-        
+
         {chatMessages.length === 0 && !isHistoryLoading ? (
           <View style={styles.emptyContainer}>
             <Text style={[styles.emptyIcon]}>💬</Text>
@@ -341,7 +341,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
             <Text style={[styles.emptySubtitle, { color: colors.onSurfaceVariant }]}>
               Select relationship elements and/or ask questions to get personalized astrological insights about your compatibility.
             </Text>
-            
+
           </View>
         ) : (
           chatMessages.map((message) => (
@@ -355,14 +355,14 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                   </Text>
                 </View>
               )}
-              
+
               <View style={[
                 styles.messageBubble,
-                message.type === 'user' 
+                message.type === 'user'
                   ? [styles.userMessage, { backgroundColor: colors.primary }]
                   : message.type === 'error'
                   ? [styles.errorMessage, { backgroundColor: colors.errorContainer }]
-                  : [styles.assistantMessage, { backgroundColor: colors.surface }]
+                  : [styles.assistantMessage, { backgroundColor: colors.surface }],
               ]}>
                 {message.loading ? (
                   <View style={styles.loadingDots}>
@@ -374,17 +374,17 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                   <>
                     <Text style={[
                       styles.messageText,
-                      { 
-                        color: message.type === 'user' 
-                          ? colors.onPrimary 
+                      {
+                        color: message.type === 'user'
+                          ? colors.onPrimary
                           : message.type === 'error'
                           ? colors.onErrorContainer
-                          : colors.onSurface 
-                      }
+                          : colors.onSurface,
+                      },
                     ]}>
                       {message.content}
                     </Text>
-                    
+
                     {/* Selected elements for user messages */}
                     {message.type === 'user' && message.selectedElements && message.selectedElements.length > 0 && (
                       <View style={styles.inlineElementChips}>
@@ -392,9 +392,9 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                           Selected elements:
                         </Text>
                         {message.selectedElements.map((element, idx) => (
-                          <View key={idx} style={[styles.inlineElementChip, { 
+                          <View key={idx} style={[styles.inlineElementChip, {
                             backgroundColor: 'rgba(255,255,255,0.2)',
-                            borderColor: 'rgba(255,255,255,0.3)'
+                            borderColor: 'rgba(255,255,255,0.3)',
                           }]}>
                             <Text style={[styles.inlineElementChipText, { color: colors.onPrimary }]}>
                               {getElementDisplayName(element)}
@@ -406,7 +406,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                   </>
                 )}
               </View>
-              
+
               <Text style={[styles.timestamp, { color: colors.onSurfaceVariant }]}>
                 {message.timestamp.toLocaleTimeString()}
                 {message.mode && ` • ${message.mode}`}
@@ -419,8 +419,8 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
       {/* Selected Elements Chip Rail */}
       {selectedElements.length > 0 && (
         <View style={[styles.chipRail, { backgroundColor: colors.surface }]}>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipRailContent}
           >
@@ -429,7 +429,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                 <Text style={[styles.selectedChipText, { color: colors.onPrimaryContainer }]}>
                   {getElementDisplayName(element)}
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => handleRemoveElement(element.id)}
                   style={styles.removeChipButton}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -438,7 +438,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                 </TouchableOpacity>
               </View>
             ))}
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={handleClearSelection}
               style={[styles.clearAllButton, { backgroundColor: colors.errorContainer }]}
             >
@@ -462,15 +462,15 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
             onChangeText={setQuery}
             placeholder="Ask a question about your relationship..."
             placeholderTextColor={colors.onSurfaceVariant}
-            style={[styles.textInput, { 
-              backgroundColor: colors.background, 
+            style={[styles.textInput, {
+              backgroundColor: colors.background,
               color: colors.onSurface,
-              borderColor: colors.border 
+              borderColor: colors.border,
             }]}
             multiline
             maxLength={500}
           />
-          
+
           <View style={styles.buttonRow}>
             <TouchableOpacity
               onPress={() => setShowBottomSheet(true)}
@@ -480,21 +480,21 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                 +Add Elements ({selectedElements.length}/4)
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={handleSubmit}
               disabled={!currentMode || isLoading}
               style={[
-                styles.sendButton, 
-                { 
+                styles.sendButton,
+                {
                   backgroundColor: currentMode && !isLoading ? colors.primary : colors.surfaceVariant,
-                  opacity: currentMode && !isLoading ? 1 : 0.5
-                }
+                  opacity: currentMode && !isLoading ? 1 : 0.5,
+                },
               ]}
             >
               <Text style={[
-                styles.sendButtonText, 
-                { color: currentMode && !isLoading ? colors.onPrimary : colors.onSurfaceVariant }
+                styles.sendButtonText,
+                { color: currentMode && !isLoading ? colors.onPrimary : colors.onSurfaceVariant },
               ]}>
                 Send
               </Text>

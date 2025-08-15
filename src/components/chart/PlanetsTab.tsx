@@ -20,12 +20,12 @@ interface PlanetsTabProps {
 }
 
 const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
-  const { fullAnalysis, loading, loadFullAnalysis, hasAnalysisData } = useChart(userId);
+  const { fullAnalysis, loading, loadFullAnalysis, hasAnalysisData, isAnalysisInProgress, workflowState } = useChart(userId);
   const { colors } = useTheme();
-  
+
   // State to track which planets are expanded
   const [expandedPlanets, setExpandedPlanets] = useState<Set<string>>(new Set());
-  
+
   const togglePlanet = (planetName: string) => {
     setExpandedPlanets(prev => {
       const newSet = new Set(prev);
@@ -62,7 +62,7 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
         // Fallback to parsing from description
       }
     }
-    
+
     // Extract from description if available
     if (planetData.description) {
       const signMatch = planetData.description.match(/in (\w+)/i);
@@ -73,22 +73,22 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
         return `${sign}${house}`;
       }
     }
-    
+
     return '';
   };
-  
+
   // Expandable Planet Section Component
-  const ExpandablePlanetSection = ({ planet, planetData }: { 
-    planet: string; 
+  const ExpandablePlanetSection = ({ planet, planetData }: {
+    planet: string;
     planetData: any;
   }) => {
     const isExpanded = expandedPlanets.has(planet);
     const summary = getPlanetSummary(planet, planetData);
-    
+
     return (
       <View style={[styles.sectionContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <TouchableOpacity 
-          style={styles.sectionHeader} 
+        <TouchableOpacity
+          style={styles.sectionHeader}
           onPress={() => togglePlanet(planet)}
           activeOpacity={0.7}
         >
@@ -105,7 +105,7 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
             {isExpanded ? '▼' : '▶'}
           </Text>
         </TouchableOpacity>
-        
+
         {isExpanded && (
           <View style={[styles.sectionContent, { borderTopColor: colors.border }]}>
             <PlanetCard
@@ -120,7 +120,7 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
       </View>
     );
   };
-  
+
   // Simple button container for missing analysis
   const renderAnalysisButton = () => (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
@@ -132,12 +132,21 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
     </ScrollView>
   );
 
-  // Show loading state first to prevent flash of button before data loads
-  if (loading) {
+  // Show loading state for initial loading or when analysis is in progress
+  if (loading || isAnalysisInProgress) {
+    const progressText = isAnalysisInProgress && workflowState?.progress
+      ? `Analyzing... ${workflowState.progress.percentage}% complete (${workflowState.progress.completedTasks}/${workflowState.progress.totalTasks} tasks)`
+      : 'Loading analysis...';
+
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading analysis...</Text>
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>{progressText}</Text>
+        {isAnalysisInProgress && workflowState?.progress && (
+          <Text style={[styles.progressText, { color: colors.onSurfaceVariant }]}>
+            Current phase: {workflowState.progress.currentPhase}
+          </Text>
+        )}
       </View>
     );
   }
@@ -200,6 +209,12 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  progressText: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   noDataContainer: {
     borderRadius: 12,

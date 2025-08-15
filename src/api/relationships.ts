@@ -87,6 +87,20 @@ export interface CompositeChartRequest {
   compositeBirthChart: any;
 }
 
+export interface RelationshipAnalysisStatus {
+  level: 'complete' | 'scores' | 'none';
+  tier?: string;
+  profile?: string;
+  clusterScores?: {
+    Harmony: number;
+    Passion: number;
+    Connection: number;
+    Growth: number;
+    Stability: number;
+  };
+  hasV2Analysis?: boolean;
+}
+
 export interface UserCompositeChart {
   _id: string;
   userA_name: string;
@@ -105,6 +119,7 @@ export interface UserCompositeChart {
 // V3 Analysis Data
   v2Analysis?: V3Analysis;
   v2Metrics?: V3Metrics;
+  relationshipAnalysisStatus?: RelationshipAnalysisStatus;
 }
 
 export interface SynastryAspect {
@@ -362,7 +377,7 @@ export const relationshipsApi = {
   },
 
   // Enhanced Chat API - Frontend Integration
-  
+
   // Enhanced chat for relationship with element selection support
   enhancedChatForRelationship: async (
     compositeChartId: string,
@@ -410,7 +425,7 @@ export const relationshipsApi = {
     if (limit !== undefined) {
       endpoint += `?limit=${limit}`;
     }
-    
+
     console.log('Fetching chat history from endpoint:', endpoint);
     return apiClient.get<{
       success: boolean;

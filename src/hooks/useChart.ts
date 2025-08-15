@@ -14,6 +14,7 @@ export interface UseChartReturn {
   loading: boolean;
   error: string | null;
   hasAnalysisData: boolean;
+  isAnalysisInProgress: boolean;
   loadOverview: () => Promise<void>;
   loadFullAnalysis: () => Promise<void>;
   startAnalysisWorkflow: () => Promise<void>;
@@ -34,6 +35,7 @@ export const useChart = (userId?: string): UseChartReturn => {
     setChartData,
     setWorkflowState: setStoreWorkflowState,
     setAnalysisState,
+    creationWorkflowState,
   } = useStore();
 
   const clearError = () => setError(null);
@@ -233,13 +235,23 @@ export const useChart = (userId?: string): UseChartReturn => {
     fullAnalysis?.interpretation?.basicAnalysis?.dominance
   );
 
+  // Check if analysis is currently in progress - check both local and store workflow state
+  const activeWorkflowState = workflowState || creationWorkflowState;
+  const isAnalysisInProgress = Boolean(
+    activeWorkflowState?.workflowId &&
+    !activeWorkflowState?.completed &&
+    !activeWorkflowState?.isCompleted &&
+    activeWorkflowState?.status !== 'error'
+  );
+
   return {
     overview,
     fullAnalysis,
-    workflowState,
+    workflowState: activeWorkflowState,
     loading,
     error,
     hasAnalysisData,
+    isAnalysisInProgress,
     loadOverview,
     loadFullAnalysis,
     startAnalysisWorkflow,
@@ -248,3 +260,4 @@ export const useChart = (userId?: string): UseChartReturn => {
     clearError,
   };
 };
+

@@ -168,7 +168,7 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
 
         // Update store state with V3 analysis data
         const v3Analysis = response.analysisData?.v2Analysis;
-        
+
         if (v3Analysis) {
           const clusterScores: { [key: string]: number } = {};
           Object.entries(v3Analysis.clusters).forEach(([clusterName, clusterData]) => {

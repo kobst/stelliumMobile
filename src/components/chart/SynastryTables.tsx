@@ -48,7 +48,7 @@ const SynastryTables: React.FC<SynastryTablesProps> = ({ relationship }) => {
           <SynastryHousePlacementsTable
             synastryHousePlacements={{
               AinB: relationship.synastryHousePlacements.AinB,
-              BinA: [] // Show only User A's planets in User B's houses
+              BinA: [], // Show only User A's planets in User B's houses
             }}
             userAName={relationship.userA_name}
             userBName={relationship.userB_name}
@@ -64,7 +64,7 @@ const SynastryTables: React.FC<SynastryTablesProps> = ({ relationship }) => {
           <SynastryHousePlacementsTable
             synastryHousePlacements={{
               AinB: [], // Show only User B's planets in User A's houses
-              BinA: relationship.synastryHousePlacements.BinA
+              BinA: relationship.synastryHousePlacements.BinA,
             }}
             userAName={relationship.userA_name}
             userBName={relationship.userB_name}
@@ -104,7 +104,7 @@ const SynastryTables: React.FC<SynastryTablesProps> = ({ relationship }) => {
       >
         {pages.map((page, index) => (
           <View key={index} style={[styles.page, { width: screenWidth }]}>
-            <ScrollView 
+            <ScrollView
               style={styles.pageContent}
               showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.pageScrollContent}
@@ -114,7 +114,7 @@ const SynastryTables: React.FC<SynastryTablesProps> = ({ relationship }) => {
           </View>
         ))}
       </ScrollView>
-      
+
       {/* Page Control Dots */}
       <View style={styles.pageControl}>
         {pages.map((_, index) => (

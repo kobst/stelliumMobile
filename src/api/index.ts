@@ -42,6 +42,7 @@ export type {
   RelationshipScore,
   RelationshipWorkflowResponse,
   UserCompositeChart,
+  RelationshipAnalysisStatus,
   RelationshipAnalysisResponse,
   SynastryAspect,
   SynastryHousePlacement,

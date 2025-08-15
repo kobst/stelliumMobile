@@ -50,18 +50,18 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   };
 
   const formatDate = () => {
-    if (!birthYear || !birthMonth || !birthDay) return 'Not specified';
+    if (!birthYear || !birthMonth || !birthDay) {return 'Not specified';}
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'July', 'August', 'September', 'October', 'November', 'December',
     ];
     const month = monthNames[parseInt(birthMonth) - 1] || birthMonth;
     return `${month} ${birthDay}, ${birthYear}`;
   };
 
   const formatTime = () => {
-    if (unknownTime) return 'Unknown time (solar chart)';
-    if (!birthHour || !birthMinute) return 'Not specified';
+    if (unknownTime) {return 'Unknown time (solar chart)';}
+    if (!birthHour || !birthMinute) {return 'Not specified';}
     return `${birthHour}:${birthMinute.padStart(2, '0')} ${amPm}`;
   };
 

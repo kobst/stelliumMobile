@@ -11,8 +11,8 @@ interface LoadingScreenProps {
   message?: string;
 }
 
-const LoadingScreen: React.FC<LoadingScreenProps> = ({ 
-  message = 'Loading your profile...' 
+const LoadingScreen: React.FC<LoadingScreenProps> = ({
+  message = 'Loading your profile...',
 }) => {
   const { colors } = useTheme();
   const styles = createStyles(colors);

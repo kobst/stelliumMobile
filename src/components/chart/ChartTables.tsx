@@ -72,7 +72,7 @@ const ChartTables: React.FC<ChartTablesProps> = ({ birthChart }) => {
       >
         {pages.map((page, index) => (
           <View key={index} style={[styles.page, { width: screenWidth }]}>
-            <ScrollView 
+            <ScrollView
               style={styles.pageContent}
               showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.pageScrollContent}
@@ -82,7 +82,7 @@ const ChartTables: React.FC<ChartTablesProps> = ({ birthChart }) => {
           </View>
         ))}
       </ScrollView>
-      
+
       {/* Page Control Dots */}
       <View style={styles.pageControl}>
         {pages.map((_, index) => (

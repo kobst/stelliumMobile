@@ -44,7 +44,7 @@ export const BirthLocationStep: React.FC<BirthLocationStepProps> = ({
           autoCapitalize="words"
           autoCorrect={false}
         />
-        
+
         {suggestions.length > 0 && (
           <View style={styles.suggestionsContainer}>
             {suggestions.map((suggestion, index) => (

@@ -49,7 +49,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const route = useRoute<RelationshipAnalysisScreenRouteProp>();
   const { colors } = useTheme();
   const { relationship } = route.params;
-  
+
   console.log('RelationshipAnalysisScreen loaded with relationship:', relationship);
   console.log('Relationship has v2Analysis:', !!relationship.v2Analysis);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -119,22 +119,22 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
     try {
       setError(null);
-      
+
       // Fetch the full relationship analysis document
       const fullAnalysisData = await relationshipsApi.fetchRelationshipAnalysis(relationship._id);
       console.log('Full analysis data loaded:', fullAnalysisData);
-      
+
       // Store the full analysis data for the 360 Analysis tab
       setAnalysisData(fullAnalysisData);
       console.log('Set analysisData in state:', !!fullAnalysisData.analysis);
-      
+
       // Update the relationship object with the V3 data
       if (fullAnalysisData.v2Analysis) {
         (relationship as any).v2Analysis = fullAnalysisData.v2Analysis;
         (relationship as any).v2Metrics = fullAnalysisData.v2Metrics;
         console.log('Updated relationship with V3 data - clusters:', Object.keys(fullAnalysisData.v2Analysis.clusters));
       }
-      
+
       // Fetch user birth charts in parallel if we have user IDs
       const userPromises: Promise<any>[] = [];
       if (relationship.userA_id) {
@@ -217,7 +217,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
       }
 
       const pages = [relationship.userA_name, relationship.userB_name];
-      
+
       return (
         <View style={styles.pageContainer}>
           <ScrollView
@@ -245,7 +245,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
                 />
               </View>
             </View>
-            
+
             <View style={styles.chartPage}>
               <Text style={[styles.chartTitle, { color: colors.onSurface }]}>
                 {relationship.userB_name}'s Chart
@@ -264,7 +264,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
               </View>
             </View>
           </ScrollView>
-          
+
           {/* Page Control Dots */}
           <View style={styles.pageControl}>
             {pages.map((_, index) => (
@@ -343,7 +343,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
     console.log('V2Analysis:', relationship.v2Analysis);
     const v3Analysis = relationship.v2Analysis;
     const consolidatedItems = v3Analysis?.consolidatedScoredItems || [];
-    
+
     // Debug keystone data
     console.log('Consolidated items count:', consolidatedItems.length);
     console.log('Keystone aspects count:', v3Analysis?.keystoneAspects?.length || 0);
@@ -388,7 +388,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
     console.log('OverviewTab - Relationship object:', relationship);
     console.log('OverviewTab - V2Analysis:', relationship.v2Analysis);
     const v3Analysis = relationship.v2Analysis;
-    
+
     if (!v3Analysis) {
       return (
         <View style={[styles.missingDataCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -503,7 +503,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
         const v3Analysis = relationship.v2Analysis;
         const consolidatedItems = v3Analysis?.consolidatedScoredItems || [];
         const hasRelationshipAnalysis = !!(analysisData?.analysis && Object.keys(analysisData.analysis).length > 0);
-        
+
         if (!hasRelationshipAnalysis) {
           return (
             <ScrollView style={[styles.lockedTabContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
@@ -529,7 +529,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
             </ScrollView>
           );
         }
-        
+
         return (
           <RelationshipChatTab
             compositeChartId={relationship._id}
