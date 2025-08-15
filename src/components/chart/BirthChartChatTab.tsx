@@ -38,22 +38,22 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
   // Load chat history when component mounts
   useEffect(() => {
     const loadChatHistory = async () => {
-      if (!userId || chatMessages.length > 0) return;
-      
+      if (!userId || chatMessages.length > 0) {return;}
+
       console.log('Loading birth chart chat history for user:', userId);
       setIsHistoryLoading(true);
-      
+
       try {
         const response = await chartsApi.fetchBirthChartEnhancedChatHistory(userId, 50);
         console.log('Birth chart chat history response:', response);
         console.log('Raw chat history array:', JSON.stringify(response.chatHistory, null, 2));
-        
+
         if (response && response.success && response.chatHistory && Array.isArray(response.chatHistory)) {
           console.log('Processing', response.chatHistory.length, 'birth chart chat messages');
-          
+
           // Process messages and link assistant responses to user queries
           const transformedMessages: BirthChartChatMessage[] = [];
-          
+
           for (let index = 0; index < response.chatHistory.length; index++) {
             const msg = response.chatHistory[index];
             console.log(`Birth chart message ${index}:`, {
@@ -61,9 +61,9 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               hasMetadata: !!msg.metadata,
               mode: msg.metadata?.mode,
               hasSelectedAspects: !!msg.metadata?.selectedAspects,
-              selectedAspectsLength: msg.metadata?.selectedAspects?.length
+              selectedAspectsLength: msg.metadata?.selectedAspects?.length,
             });
-            
+
             const transformedMessage: BirthChartChatMessage = {
               id: `history-${index}-${Date.now()}`,
               type: msg.role === 'user' ? 'user' : 'assistant',
@@ -83,8 +83,8 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
                 }
               }
             }
-            
-            // For assistant messages without metadata, try to inherit from the previous user message  
+
+            // For assistant messages without metadata, try to inherit from the previous user message
             if (msg.role === 'assistant' && !msg.metadata?.selectedAspects && index > 0) {
               const prevMsg = response.chatHistory[index - 1];
               if (prevMsg.role === 'user' && prevMsg.metadata) {
@@ -94,17 +94,17 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
 
             transformedMessages.push(transformedMessage);
           }
-          
+
           // Debug: Log final transformed messages
           console.log('Final transformed birth chart messages:');
           transformedMessages.forEach((msg, idx) => {
             console.log(`Message ${idx}:`, {
               type: msg.type,
               hasSelectedElements: !!msg.selectedElements,
-              selectedElementsCount: msg.selectedElements?.length
+              selectedElementsCount: msg.selectedElements?.length,
             });
           });
-          
+
           setChatMessages(transformedMessages);
         } else {
           console.log('No birth chart chat history found or response unsuccessful. Response structure:', {
@@ -112,7 +112,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
             success: response?.success,
             hasChatHistory: !!response?.chatHistory,
             isArray: Array.isArray(response?.chatHistory),
-            chatHistoryType: typeof response?.chatHistory
+            chatHistoryType: typeof response?.chatHistory,
           });
         }
       } catch (err) {
@@ -120,9 +120,9 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
         console.error('Error details:', {
           message: err instanceof Error ? err.message : 'Unknown error',
           userId,
-          stack: err instanceof Error ? err.stack : undefined
+          stack: err instanceof Error ? err.stack : undefined,
         });
-        
+
         // Show a user-friendly message that chat history couldn't be loaded
         // but don't block the user from starting new conversations
         console.log('Birth chart chat history unavailable, but new conversations will work');
@@ -145,29 +145,29 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
   const getHint = (): string => {
     const hasQuery = query.trim().length > 0;
     const hasElements = selectedElements.length > 0;
-    
-    if (!hasQuery && !hasElements) return "Select chart elements or ask a question to get started";
-    if (hasQuery && hasElements) return "I'll answer your question about the selected chart elements";
-    if (hasQuery) return "I'll answer your question about your birth chart";
+
+    if (!hasQuery && !hasElements) {return 'Select chart elements or ask a question to get started';}
+    if (hasQuery && hasElements) {return "I'll answer your question about the selected chart elements";}
+    if (hasQuery) {return "I'll answer your question about your birth chart";}
     return "I'll analyze your selected chart elements";
   };
 
   // Handle element selection
   const handleSelectElement = (element: BirthChartElement) => {
     setError(null);
-    
-    const elementId = element.type === 'aspect' 
+
+    const elementId = element.type === 'aspect'
       ? `${element.planet1}-${element.aspectType}-${element.planet2}`
       : `${element.planet}-${element.sign}`;
-    
+
     if (selectedElements.some(el => {
-      const elId = el.type === 'aspect' 
+      const elId = el.type === 'aspect'
         ? `${el.planet1}-${el.aspectType}-${el.planet2}`
         : `${el.planet}-${el.sign}`;
       return elId === elementId;
     })) {
       setSelectedElements(selectedElements.filter(el => {
-        const elId = el.type === 'aspect' 
+        const elId = el.type === 'aspect'
           ? `${el.planet1}-${el.aspectType}-${el.planet2}`
           : `${el.planet}-${el.sign}`;
         return elId !== elementId;
@@ -185,12 +185,12 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
 
   // Remove selected element
   const handleRemoveElement = (element: BirthChartElement) => {
-    const elementId = element.type === 'aspect' 
+    const elementId = element.type === 'aspect'
       ? `${element.planet1}-${element.aspectType}-${element.planet2}`
       : `${element.planet}-${element.sign}`;
-      
+
     setSelectedElements(selectedElements.filter(el => {
-      const elId = el.type === 'aspect' 
+      const elId = el.type === 'aspect'
         ? `${el.planet1}-${el.aspectType}-${el.planet2}`
         : `${el.planet}-${el.sign}`;
       return elId !== elementId;
@@ -231,13 +231,13 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
         timestamp: new Date(),
         selectedElements: selectedElements.length > 0 ? [...selectedElements] : undefined,
       };
-      
+
       console.log('Creating user message with selectedElements:', {
         hasSelectedElements: !!userMessage.selectedElements,
         selectedElementsCount: userMessage.selectedElements?.length,
-        selectedElements: userMessage.selectedElements
+        selectedElements: userMessage.selectedElements,
       });
-      
+
       setChatMessages(prev => [...prev, userMessage]);
     }
 
@@ -253,11 +253,11 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
 
     try {
       const response = await chartsApi.enhancedChatForBirthChart(userId, requestBody);
-      
+
       if (response.success) {
         // Remove loading message and add actual response
         setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
-        
+
         const assistantMessage: BirthChartChatMessage = {
           id: `assistant-${Date.now()}`,
           type: 'assistant',
@@ -275,7 +275,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
     } catch (err) {
       // Remove loading message and add error
       setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
-      
+
       const errorMessage: BirthChartChatMessage = {
         id: `error-${Date.now()}`,
         type: 'error',
@@ -293,17 +293,17 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
     if (element.type === 'aspect') {
       // Get full aspect name
       const aspectName = element.aspectType?.charAt(0).toUpperCase() + element.aspectType?.slice(1) || 'aspect';
-      
+
       return `Natal Chart: ${element.planet1} ${aspectName} ${element.planet2}`;
     }
-    
+
     if (element.type === 'position') {
       const houseText = element.house ? ` in ${getOrdinal(element.house)} house` : '';
       const retroText = element.isRetrograde ? ' ℞' : '';
-      
+
       return `Natal Chart: ${element.planet} in ${element.sign}${houseText}${retroText}`;
     }
-    
+
     return 'Unknown Element';
   };
 
@@ -317,7 +317,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Chat Messages */}
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         style={styles.chatMessages}
         showsVerticalScrollIndicator={false}
@@ -330,7 +330,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
             </Text>
           </View>
         )}
-        
+
         {chatMessages.length === 0 && !isHistoryLoading ? (
           <View style={styles.emptyContainer}>
             <Text style={[styles.emptyIcon]}>🌟</Text>
@@ -340,7 +340,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
             <Text style={[styles.emptySubtitle, { color: colors.onSurfaceVariant }]}>
               Select chart elements and/or ask questions to get personalized astrological insights about your birth chart.
             </Text>
-            
+
           </View>
         ) : (
           chatMessages.map((message) => (
@@ -354,14 +354,14 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
                   </Text>
                 </View>
               )}
-              
+
               <View style={[
                 styles.messageBubble,
-                message.type === 'user' 
+                message.type === 'user'
                   ? [styles.userMessage, { backgroundColor: colors.primary }]
                   : message.type === 'error'
                   ? [styles.errorMessage, { backgroundColor: colors.errorContainer }]
-                  : [styles.assistantMessage, { backgroundColor: colors.surface }]
+                  : [styles.assistantMessage, { backgroundColor: colors.surface }],
               ]}>
                 {message.loading ? (
                   <View style={styles.loadingDots}>
@@ -373,17 +373,17 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
                   <>
                     <Text style={[
                       styles.messageText,
-                      { 
-                        color: message.type === 'user' 
-                          ? colors.onPrimary 
+                      {
+                        color: message.type === 'user'
+                          ? colors.onPrimary
                           : message.type === 'error'
                           ? colors.onErrorContainer
-                          : colors.onSurface 
-                      }
+                          : colors.onSurface,
+                      },
                     ]}>
                       {message.content}
                     </Text>
-                    
+
                     {/* Selected elements for user messages */}
                     {message.type === 'user' && message.selectedElements && message.selectedElements.length > 0 && (
                       <View style={[styles.inlineElementChips, { backgroundColor: 'rgba(0,0,0,0.1)', padding: 8, borderRadius: 8, marginTop: 8 }]}>
@@ -393,10 +393,10 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
                         {message.selectedElements.map((element, idx) => {
                           const displayName = getElementDisplayName(element);
                           return (
-                            <View key={`${element.type}-${idx}-${element.code || element.planet || idx}`} style={[styles.inlineElementChip, { 
+                            <View key={`${element.type}-${idx}-${element.code || element.planet || idx}`} style={[styles.inlineElementChip, {
                               backgroundColor: 'rgba(255,255,255,0.9)',
                               borderColor: 'rgba(255,255,255,1)',
-                              borderWidth: 2
+                              borderWidth: 2,
                             }]}>
                               <Text style={[styles.inlineElementChipText, { color: colors.primary, fontWeight: 'bold' }]}>
                                 {displayName}
@@ -409,7 +409,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
                   </>
                 )}
               </View>
-              
+
               <Text style={[styles.timestamp, { color: colors.onSurfaceVariant }]}>
                 {message.timestamp.toLocaleTimeString()}
               </Text>
@@ -421,8 +421,8 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
       {/* Selected Elements Chip Rail */}
       {selectedElements.length > 0 && (
         <View style={[styles.chipRail, { backgroundColor: colors.surface }]}>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipRailContent}
           >
@@ -431,7 +431,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
                 <Text style={[styles.selectedChipText, { color: colors.onPrimaryContainer }]}>
                   {getElementDisplayName(element)}
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => handleRemoveElement(element)}
                   style={styles.removeChipButton}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -440,7 +440,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
                 </TouchableOpacity>
               </View>
             ))}
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={handleClearSelection}
               style={[styles.clearAllButton, { backgroundColor: colors.errorContainer }]}
             >
@@ -464,15 +464,15 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
             onChangeText={setQuery}
             placeholder="Ask a question about your birth chart..."
             placeholderTextColor={colors.onSurfaceVariant}
-            style={[styles.textInput, { 
-              backgroundColor: colors.background, 
+            style={[styles.textInput, {
+              backgroundColor: colors.background,
               color: colors.onSurface,
-              borderColor: colors.border 
+              borderColor: colors.border,
             }]}
             multiline
             maxLength={500}
           />
-          
+
           <View style={styles.buttonRow}>
             <TouchableOpacity
               onPress={() => setShowBottomSheet(true)}
@@ -482,21 +482,21 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
                 +Add Elements ({selectedElements.length}/4)
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={handleSubmit}
               disabled={!canSubmit() || isLoading}
               style={[
-                styles.sendButton, 
-                { 
+                styles.sendButton,
+                {
                   backgroundColor: canSubmit() && !isLoading ? colors.primary : colors.surfaceVariant,
-                  opacity: canSubmit() && !isLoading ? 1 : 0.5
-                }
+                  opacity: canSubmit() && !isLoading ? 1 : 0.5,
+                },
               ]}
             >
               <Text style={[
-                styles.sendButtonText, 
-                { color: canSubmit() && !isLoading ? colors.onPrimary : colors.onSurfaceVariant }
+                styles.sendButtonText,
+                { color: canSubmit() && !isLoading ? colors.onPrimary : colors.onSurfaceVariant },
               ]}>
                 Send
               </Text>

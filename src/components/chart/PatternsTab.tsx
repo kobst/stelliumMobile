@@ -13,13 +13,13 @@ interface PatternsTabProps {
 }
 
 const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
-  const { fullAnalysis, loading, loadFullAnalysis, hasAnalysisData } = useChart(userId);
+  const { fullAnalysis, loading, loadFullAnalysis, hasAnalysisData, isAnalysisInProgress, workflowState } = useChart(userId);
   const { userData, creationWorkflowState } = useStore();
   const { colors } = useTheme();
-  
+
   // State to track which sections are expanded
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-  
+
   const toggleSection = (sectionName: string) => {
     setExpandedSections(prev => {
       const newSet = new Set(prev);
@@ -114,18 +114,18 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   };
 
   // Expandable Pattern Section Component
-  const ExpandablePatternSection = ({ title, data, type, icon }: { 
-    title: string; 
-    data: any; 
+  const ExpandablePatternSection = ({ title, data, type, icon }: {
+    title: string;
+    data: any;
     type: string;
     icon: string;
   }) => {
     const isExpanded = expandedSections.has(type);
-    
+
     return (
       <View style={[styles.sectionContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <TouchableOpacity 
-          style={styles.sectionHeader} 
+        <TouchableOpacity
+          style={styles.sectionHeader}
           onPress={() => toggleSection(type)}
           activeOpacity={0.7}
         >
@@ -137,7 +137,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
             {isExpanded ? '▼' : '▶'}
           </Text>
         </TouchableOpacity>
-        
+
         {isExpanded && (
           <View style={[styles.sectionContent, { borderTopColor: colors.border }]}>
             <PatternCard
@@ -151,7 +151,7 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
       </View>
     );
   };
-  
+
   // Simple button container for missing analysis
   const renderAnalysisButton = () => (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
@@ -163,12 +163,21 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
     </ScrollView>
   );
 
-  // Show loading state first to prevent flash of button before data loads
-  if (loading) {
+  // Show loading state for initial loading or when analysis is in progress
+  if (loading || isAnalysisInProgress) {
+    const progressText = isAnalysisInProgress && workflowState?.progress
+      ? `Analyzing... ${workflowState.progress.percentage}% complete (${workflowState.progress.completedTasks}/${workflowState.progress.totalTasks} tasks)`
+      : 'Loading analysis...';
+
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading analysis...</Text>
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>{progressText}</Text>
+        {isAnalysisInProgress && workflowState?.progress && (
+          <Text style={[styles.progressText, { color: colors.onSurfaceVariant }]}>
+            Current phase: {workflowState.progress.currentPhase}
+          </Text>
+        )}
       </View>
     );
   }
@@ -272,6 +281,12 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  progressText: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   noDataContainer: {
     borderRadius: 12,

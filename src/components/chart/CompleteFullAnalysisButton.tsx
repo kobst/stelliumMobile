@@ -100,8 +100,8 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
 
   // Check for any active workflow state (local or global)
   const activeWorkflowState = workflowState || creationWorkflowState;
-  const hasActiveWorkflow = workflowStarted || 
-                           chartLoading || 
+  const hasActiveWorkflow = workflowStarted ||
+                           chartLoading ||
                            (activeWorkflowState && activeWorkflowState.workflowId && !activeWorkflowState.completed && !activeWorkflowState.isCompleted);
 
   const getButtonText = (): string => {

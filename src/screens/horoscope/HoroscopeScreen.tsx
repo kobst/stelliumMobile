@@ -44,12 +44,12 @@ const HoroscopeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <HeaderWithProfile 
-        title="Horoscope" 
+      <HeaderWithProfile
+        title="Horoscope"
         subtitle={`Hello, ${userData.name}`}
         showSafeArea={false}
       />
-      
+
       <View style={styles.content}>
         {/* Horoscope Container */}
         <HoroscopeContainer

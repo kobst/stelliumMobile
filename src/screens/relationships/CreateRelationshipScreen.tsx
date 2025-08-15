@@ -86,11 +86,11 @@ const CreateRelationshipScreen: React.FC = () => {
           createdAt: result.metadata.processingTime,
           userA_dateOfBirth: '',
           userB_dateOfBirth: '',
-          
+
           // V3 Analysis Data
           v2Analysis: result.v2Analysis,
           v2Metrics: result.v2Metrics,
-          
+
           // Chart Data
           synastryAspects: result.synastryAspects,
           compositeChart: result.compositeChart,

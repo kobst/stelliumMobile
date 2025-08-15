@@ -157,7 +157,7 @@ const TopicSection: React.FC<TopicSectionProps> = ({
 };
 
 const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
-  const { fullAnalysis, loading, loadFullAnalysis, hasAnalysisData } = useChart(userId);
+  const { fullAnalysis, loading, loadFullAnalysis, hasAnalysisData, isAnalysisInProgress, workflowState } = useChart(userId);
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const { colors } = useTheme();
 
@@ -184,12 +184,21 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
     </ScrollView>
   );
 
-  // Show loading state first to prevent flash of button before data loads
-  if (loading) {
+  // Show loading state for initial loading or when analysis is in progress
+  if (loading || isAnalysisInProgress) {
+    const progressText = isAnalysisInProgress && workflowState?.progress
+      ? `Analyzing... ${workflowState.progress.percentage}% complete (${workflowState.progress.completedTasks}/${workflowState.progress.totalTasks} tasks)`
+      : 'Loading analysis...';
+
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading analysis...</Text>
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>{progressText}</Text>
+        {isAnalysisInProgress && workflowState?.progress && (
+          <Text style={[styles.progressText, { color: colors.onSurfaceVariant }]}>
+            Current phase: {workflowState.progress.currentPhase}
+          </Text>
+        )}
       </View>
     );
   }
@@ -255,6 +264,12 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  progressText: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   topicSection: {
     borderRadius: 12,

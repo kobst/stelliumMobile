@@ -50,7 +50,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
     // Apply filter
     switch (activeFilter) {
       case 'sparks':
-        items = items.filter(item => 
+        items = items.filter(item =>
           item.categoryData.some(cd => cd.spark === true)
         );
         break;
@@ -90,7 +90,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
   const filterCounts = useMemo(() => {
     return {
       all: consolidatedItems.length,
-      sparks: consolidatedItems.filter(item => 
+      sparks: consolidatedItems.filter(item =>
         item.categoryData.some(cd => cd.spark === true)
       ).length,
       supports: consolidatedItems.filter(item =>
@@ -110,12 +110,12 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
 
   // Get element display details
   const getElementDetails = (element: ConsolidatedScoredItem) => {
-    const topCategory = element.categoryData.reduce((prev, current) => 
+    const topCategory = element.categoryData.reduce((prev, current) =>
       prev.score > current.score ? prev : current
     );
     const sparks = element.categoryData.filter(cd => cd.spark);
     const maxScore = Math.max(...element.categoryData.map(cd => cd.score));
-    
+
     return { topCategory, sparks, maxScore };
   };
 
@@ -144,13 +144,13 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
           {
             backgroundColor: isActive ? colors.primary : colors.background,
             borderColor: colors.primary,
-          }
+          },
         ]}
         onPress={() => setActiveFilter(filter)}
       >
         <Text style={[
           styles.filterText,
-          { color: isActive ? colors.onPrimary : colors.primary }
+          { color: isActive ? colors.onPrimary : colors.primary },
         ]}>
           {label} ({count})
         </Text>
@@ -186,14 +186,14 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
             onChangeText={setSearchQuery}
             placeholder="Search elements..."
             placeholderTextColor={colors.onSurfaceVariant}
-            style={[styles.searchInput, { 
-              backgroundColor: colors.surface, 
+            style={[styles.searchInput, {
+              backgroundColor: colors.surface,
               color: colors.onSurface,
-              borderColor: colors.border 
+              borderColor: colors.border,
             }]}
           />
           {selectedElements.length > 0 && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={onClearSelection}
               style={[styles.clearButton, { backgroundColor: colors.errorContainer }]}
             >
@@ -205,9 +205,9 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
         </View>
 
         {/* Filter Chips */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           style={styles.filtersContainer}
           contentContainerStyle={styles.filtersContent}
         >
@@ -219,7 +219,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
         </ScrollView>
 
         {/* Results */}
-        <ScrollView 
+        <ScrollView
           style={styles.itemsList}
           contentContainerStyle={styles.itemsListContent}
           showsVerticalScrollIndicator={false}
@@ -234,7 +234,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
             filteredItems.map((item) => {
               const { topCategory, sparks, maxScore } = getElementDetails(item);
               const selected = isSelected(item);
-              
+
               return (
                 <TouchableOpacity
                   key={item.id}
@@ -244,7 +244,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
                       backgroundColor: selected ? colors.primaryContainer : colors.surface,
                       borderColor: selected ? colors.primary : colors.border,
                       borderWidth: selected ? 2 : 1,
-                    }
+                    },
                   ]}
                   onPress={() => onSelectElement(item)}
                   activeOpacity={0.7}
@@ -255,7 +255,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
                       {/* Source badge */}
                       <View style={[
                         styles.sourceBadge,
-                        { backgroundColor: item.source === 'synastry' ? '#2196F3' : '#9C27B0' }
+                        { backgroundColor: item.source === 'synastry' ? '#2196F3' : '#9C27B0' },
                       ]}>
                         <Text style={[styles.sourceBadgeText, { color: 'white' }]}>
                           {item.source === 'synastry' ? 'Syn' : 'Comp'}
@@ -297,16 +297,16 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
                   {/* Main content */}
                   <View style={styles.itemContent}>
                     <Text style={[
-                      styles.itemTitle, 
-                      { color: selected ? colors.onPrimaryContainer : colors.onSurface }
+                      styles.itemTitle,
+                      { color: selected ? colors.onPrimaryContainer : colors.onSurface },
                     ]}>
                       {getElementTitle(item)}
                     </Text>
-                    
+
                     <Text style={[
-                      styles.itemDescription, 
-                      { color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant }
-                    ]} 
+                      styles.itemDescription,
+                      { color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
+                    ]}
                     numberOfLines={2}>
                       {item.description}
                     </Text>
@@ -316,13 +316,13 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
                       {/* Score badge */}
                       <View style={[
                         styles.scoreBadge,
-                        { 
+                        {
                           backgroundColor: maxScore >= 0 ? '#10b98120' : '#ef444420',
-                        }
+                        },
                       ]}>
                         <Text style={[
                           styles.scoreBadgeText,
-                          { color: maxScore >= 0 ? '#10b981' : '#ef4444' }
+                          { color: maxScore >= 0 ? '#10b981' : '#ef4444' },
                         ]}>
                           {maxScore > 0 ? '+' : ''}{maxScore.toFixed(0)}
                         </Text>
@@ -332,11 +332,11 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
                       <View style={styles.valenceContainer}>
                         <View style={[
                           styles.valenceIndicator,
-                          { backgroundColor: topCategory.valence === 1 ? '#4CAF50' : '#F44336' }
+                          { backgroundColor: topCategory.valence === 1 ? '#4CAF50' : '#F44336' },
                         ]} />
                         <Text style={[
                           styles.valenceText,
-                          { color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant }
+                          { color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
                         ]}>
                           {topCategory.valence === 1 ? 'Support' : 'Challenge'}
                         </Text>

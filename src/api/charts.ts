@@ -269,7 +269,7 @@ export const chartsApi = {
   },
 
   // Enhanced Chat API for Birth Charts
-  
+
   // Enhanced chat for birth chart with element selection support
   enhancedChatForBirthChart: async (
     userId: string,
@@ -313,7 +313,7 @@ export const chartsApi = {
     if (limit !== undefined) {
       endpoint += `?limit=${limit}`;
     }
-    
+
     console.log('Fetching birth chart chat history from endpoint:', endpoint);
     return apiClient.get<{
       success: boolean;

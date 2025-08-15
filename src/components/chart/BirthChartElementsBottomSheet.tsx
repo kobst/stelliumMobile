@@ -135,12 +135,12 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
 
   // Check if element is selected
   const isElementSelected = (element: BirthChartElement): boolean => {
-    const elementId = element.type === 'aspect' 
+    const elementId = element.type === 'aspect'
       ? `${element.planet1}-${element.aspectType}-${element.planet2}`
       : `${element.planet}-${element.sign}`;
-    
+
     return selectedElements.some(selected => {
-      const selectedId = selected.type === 'aspect' 
+      const selectedId = selected.type === 'aspect'
         ? `${selected.planet1}-${selected.aspectType}-${selected.planet2}`
         : `${selected.planet}-${selected.sign}`;
       return selectedId === elementId;
@@ -153,10 +153,10 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
       const aspectName = element.aspectType?.charAt(0).toUpperCase() + element.aspectType?.slice(1) || 'aspect';
       return `${element.planet1} ${aspectName} ${element.planet2}`;
     }
-    
+
     const houseText = element.house ? ` in ${getOrdinal(element.house)} house` : '';
     const retroText = element.isRetrograde ? ' ℞' : '';
-    
+
     return `${element.planet} in ${element.sign}${houseText}${retroText}`;
   };
 
@@ -193,7 +193,7 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
               <Text style={[styles.closeText, { color: colors.primary }]}>Done</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.selectionInfo}>
             <Text style={[styles.selectionCount, { color: colors.onSurfaceVariant }]}>
               {selectedElements.length} of 4 selected
@@ -213,18 +213,18 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
             onChangeText={setSearchQuery}
             placeholder="Search planets, signs, aspects..."
             placeholderTextColor={colors.onSurfaceVariant}
-            style={[styles.searchInput, { 
+            style={[styles.searchInput, {
               color: colors.onSurface,
               backgroundColor: colors.background,
-              borderColor: colors.border
+              borderColor: colors.border,
             }]}
           />
         </View>
 
         {/* Filter Tabs */}
         <View style={[styles.filterContainer, { backgroundColor: colors.surface }]}>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterContent}
           >
@@ -237,12 +237,12 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
                   {
                     backgroundColor: activeFilter === button.key ? colors.primary : colors.background,
                     borderColor: colors.border,
-                  }
+                  },
                 ]}
               >
                 <Text style={[
                   styles.filterButtonText,
-                  { color: activeFilter === button.key ? colors.onPrimary : colors.onSurface }
+                  { color: activeFilter === button.key ? colors.onPrimary : colors.onSurface },
                 ]}>
                   {button.label} ({button.count})
                 </Text>
@@ -252,7 +252,7 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
         </View>
 
         {/* Elements List */}
-        <ScrollView 
+        <ScrollView
           style={styles.elementsContainer}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.elementsContent}
@@ -260,7 +260,7 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
           {filteredElements.map((element, index) => {
             const isSelected = isElementSelected(element);
             const category = getElementCategory(element);
-            
+
             return (
               <TouchableOpacity
                 key={index}
@@ -270,21 +270,21 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
                   {
                     backgroundColor: isSelected ? colors.primaryContainer : colors.surface,
                     borderColor: isSelected ? colors.primary : colors.border,
-                  }
+                  },
                 ]}
               >
                 <View style={styles.elementHeader}>
                   <View style={[
                     styles.elementTypeTag,
-                    { 
-                      backgroundColor: element.type === 'position' ? colors.secondaryContainer : colors.tertiaryContainer 
-                    }
+                    {
+                      backgroundColor: element.type === 'position' ? colors.secondaryContainer : colors.tertiaryContainer,
+                    },
                   ]}>
                     <Text style={[
                       styles.elementTypeText,
-                      { 
-                        color: element.type === 'position' ? colors.onSecondaryContainer : colors.onTertiaryContainer 
-                      }
+                      {
+                        color: element.type === 'position' ? colors.onSecondaryContainer : colors.onTertiaryContainer,
+                      },
                     ]}>
                       {element.type === 'position' ? 'Position' : 'Aspect'}
                     </Text>
@@ -299,30 +299,30 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
                 <View style={styles.elementContent}>
                   <Text style={[
                     styles.elementTitle,
-                    { color: isSelected ? colors.onPrimaryContainer : colors.onSurface }
+                    { color: isSelected ? colors.onPrimaryContainer : colors.onSurface },
                   ]}>
                     {getElementDisplayName(element)}
                   </Text>
-                  
+
                   {element.type === 'aspect' && (
                     <View style={styles.aspectDetails}>
                       <Text style={[
                         styles.aspectDetail,
-                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant }
+                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
                       ]}>
                         {element.planet1} in {element.planet1Sign}
                         {element.planet1House && ` (${getOrdinal(element.planet1House)} house)`}
                       </Text>
                       <Text style={[
                         styles.aspectDetail,
-                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant }
+                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
                       ]}>
                         {element.planet2} in {element.planet2Sign}
                         {element.planet2House && ` (${getOrdinal(element.planet2House)} house)`}
                       </Text>
                       <Text style={[
                         styles.orbText,
-                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant }
+                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
                       ]}>
                         Orb: {element.orb.toFixed(1)}°
                       </Text>
@@ -332,7 +332,7 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
                   {element.type === 'position' && element.degree && (
                     <Text style={[
                       styles.degreeText,
-                      { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant }
+                      { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
                     ]}>
                       {element.degree.toFixed(1)}° {element.sign}
                     </Text>
@@ -341,7 +341,7 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
               </TouchableOpacity>
             );
           })}
-          
+
           {filteredElements.length === 0 && (
             <View style={styles.emptyContainer}>
               <Text style={[styles.emptyText, { color: colors.onSurfaceVariant }]}>

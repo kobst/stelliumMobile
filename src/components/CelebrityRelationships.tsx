@@ -46,14 +46,14 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ _onCele
     try {
       // Fetch all user composite charts
       const allRelationships = await relationshipsApi.getUserCompositeCharts(userId);
-      
+
       console.log('All relationships:', allRelationships);
       console.log('Total relationships found:', allRelationships.length);
-      
+
       // Check if any have the celebrity flag
       const withCelebrityFlag = allRelationships.filter(r => r.isCelebrityRelationship === true);
       console.log('Relationships with isCelebrityRelationship=true:', withCelebrityFlag);
-      
+
       // For debugging, let's see what properties each relationship has
       allRelationships.forEach((rel, index) => {
         console.log(`Relationship ${index}:`, {
@@ -72,16 +72,16 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ _onCele
       );
 
       console.log('Filtered celebrity relationships:', celebrityRelationships.length);
-      
+
       // If no celebrity relationships found via the filter, try the original API
       let finalRelationships = celebrityRelationships;
-      
+
       if (celebrityRelationships.length === 0) {
         console.log('No celebrity relationships found in composite charts, trying original API...');
         try {
           const originalCelebrityRels = await celebritiesApi.getCelebrityRelationships(50);
           console.log('Original celebrity relationships API returned:', originalCelebrityRels.length);
-          
+
           if (originalCelebrityRels[0]) {
             const sample = originalCelebrityRels[0] as any;
             console.log('Sample original relationship with all fields:', {
@@ -91,7 +91,7 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ _onCele
               hasHousePlacements: !!sample.synastryHousePlacements,
             });
           }
-          
+
           // Transform original celebrity relationships to UserCompositeChart format
           if (originalCelebrityRels.length > 0) {
             finalRelationships = originalCelebrityRels.map((cel: any): UserCompositeChart => ({
@@ -116,7 +116,7 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ _onCele
           console.log('Original celebrity API also failed:', originalErr);
         }
       }
-      
+
       setRelationships(finalRelationships);
     } catch (err) {
       console.error('Failed to load celebrity relationships:', err);

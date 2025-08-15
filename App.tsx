@@ -23,7 +23,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     console.log('App.tsx: Initializing app...');
-    
+
     // Initialize store from storage (non-auth data only)
     initializeFromStorage();
 
@@ -32,9 +32,9 @@ const App: React.FC = () => {
       console.log('App.tsx: Firebase auth state changed:', {
         isAuthenticated: !!currentUser,
         uid: currentUser?.uid,
-        email: currentUser?.email
+        email: currentUser?.email,
       });
-      
+
       setUser(currentUser);
 
       // Update store with user authentication state
@@ -44,7 +44,7 @@ const App: React.FC = () => {
           // Try to fetch existing user data from backend using Firebase UID
           console.log('Fetching user data for authenticated user:', currentUser.uid);
           const response = await usersApi.getUserByFirebaseUid(currentUser.uid);
-          
+
           if (response && response.success !== false) {
             // User exists in backend, transform and use existing data
             // The getUserByFirebaseUid API returns { success: true, user: {...} }
@@ -72,14 +72,14 @@ const App: React.FC = () => {
           }
         } catch (error: any) {
           console.error('Error fetching user data from backend:', error);
-          
+
           // Check if it's a "user not found" error (expected for new users)
           if (error.message?.includes('User not found') || error.status === 404) {
             console.log('User not found in backend - new user will go through onboarding');
           } else {
             console.error('Unexpected API error:', error);
           }
-          
+
           // Create placeholder data for onboarding (both cases)
           const userData = {
             id: currentUser.uid,
@@ -109,7 +109,7 @@ const App: React.FC = () => {
   }, [initializeFromStorage, setUserData]);
 
   console.log('App.tsx: Rendering decision - user exists:', !!user, 'loading:', isLoadingUserData);
-  
+
   if (!user) {
     console.log('App.tsx: Showing AuthScreen (user not authenticated)');
     return (

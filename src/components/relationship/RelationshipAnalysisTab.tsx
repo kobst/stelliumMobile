@@ -47,7 +47,7 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
       </View>
     );
   }
-  
+
   const toggleCategory = (category: string) => {
     const newExpanded = new Set(expandedCategories);
     if (newExpanded.has(category)) {

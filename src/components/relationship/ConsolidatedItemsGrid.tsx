@@ -65,7 +65,7 @@ function parseAspectDescription(description: string, item: any) {
       };
     }
   }
-  
+
   // For synastry items with aspect data, use the structured data
   if (item.aspect && item.planet1 && item.planet2) {
     const person1Match = description.match(/^(\w+)'s/);
@@ -73,7 +73,7 @@ function parseAspectDescription(description: string, item: any) {
     // Try to find the second person's name
     const person2Match = description.match(/(\w+)'s [^']+$/);
     const person2 = person2Match ? person2Match[1] : (person1 === 'Fullon' ? 'Mobile' : 'Fullon');
-    
+
     return {
       type: 'aspect',
       person1,
@@ -85,7 +85,7 @@ function parseAspectDescription(description: string, item: any) {
       sign2: item.planet2Sign,
     };
   }
-  
+
   // Parse house placements from description
   const housePlacementMatch = description.match(/(\w+)'s (\w+) in (\w+) their (\d+) house/);
   if (housePlacementMatch) {
@@ -97,7 +97,7 @@ function parseAspectDescription(description: string, item: any) {
       house: housePlacementMatch[4],
     };
   }
-  
+
   // Fallback to original description
   return { type: 'unknown', description };
 }
@@ -111,14 +111,14 @@ function formatCardTitle(parsedData: any, source: string) {
       line2: '',
     };
   }
-  
+
   if (parsedData.type === 'composite-house') {
     return {
       line1: `${parsedData.planet} in House ${parsedData.house}`,
       line2: '',
     };
   }
-  
+
   if (parsedData.type === 'aspect') {
     const symbol = ASPECT_SYMBOLS[parsedData.aspect] || parsedData.aspect;
     return {
@@ -126,14 +126,14 @@ function formatCardTitle(parsedData: any, source: string) {
       line2: '',
     };
   }
-  
+
   if (parsedData.type === 'house') {
     return {
       line1: `${parsedData.person1}'s ${parsedData.planet} → House ${parsedData.house}`,
       line2: '',
     };
   }
-  
+
   // Fallback - split description into 2 lines
   const desc = parsedData.description;
   const midpoint = Math.floor(desc.length / 2);
@@ -162,7 +162,7 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
       type: 'aspect' as const,
       description: aspect.description,
       // Add structured aspect data for parsing - extract from description
-      aspect: aspect.description.includes('trine') ? 'trine' : 
+      aspect: aspect.description.includes('trine') ? 'trine' :
               aspect.description.includes('sextile') ? 'sextile' :
               aspect.description.includes('square') ? 'square' :
               aspect.description.includes('conjunction') ? 'conjunction' :
@@ -200,7 +200,7 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
         filtered = keystoneAsConsolidatedItems; // Only show keystone aspects
         break;
       case 'sparks':
-        filtered = consolidatedItems.filter(item => 
+        filtered = consolidatedItems.filter(item =>
           item.categoryData.some(cd => cd.spark)
         );
         break;
@@ -247,8 +247,8 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
   }, [consolidatedItems, keystoneAspects, activeFilter]);
 
   const getValenceColor = (valence: number): string => {
-    if (valence === 1) return '#4CAF50';
-    if (valence === -1) return '#F44336';
+    if (valence === 1) {return '#4CAF50';}
+    if (valence === -1) {return '#F44336';}
     return '#FFC107';
   };
 
@@ -266,13 +266,13 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
           {
             backgroundColor: isActive ? colors.primary : colors.background,
             borderColor: colors.primary,
-          }
+          },
         ]}
         onPress={() => setActiveFilter(filter)}
       >
         <Text style={[
           styles.filterText,
-          { color: isActive ? 'white' : colors.primary }
+          { color: isActive ? 'white' : colors.primary },
         ]}>
           {label} ({count})
         </Text>
@@ -283,15 +283,15 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
 
   const renderItem = ({ item }: { item: ConsolidatedScoredItem }) => {
     const isSelected = selectedItems.some(selected => selected.id === item.id);
-    const topCategory = item.categoryData.reduce((prev, current) => 
+    const topCategory = item.categoryData.reduce((prev, current) =>
       prev.score > current.score ? prev : current
     );
     const sparks = item.categoryData.filter(cd => cd.spark);
-    
+
     // Parse and format the title
     const parsedData = parseAspectDescription(item.description, item);
     const titleData = formatCardTitle(parsedData, item.source);
-    
+
     return (
       <TouchableOpacity
         style={[
@@ -300,7 +300,7 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
             backgroundColor: colors.background,
             borderColor: isSelected ? colors.primary : colors.border,
             borderWidth: isSelected ? 2 : 1,
-          }
+          },
         ]}
         onPress={() => onItemPress?.(item)}
         activeOpacity={0.7}
@@ -328,20 +328,20 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
         <View style={styles.chipRow}>
           <View style={[
             styles.sourceChip,
-            { backgroundColor: item.source === 'synastry' ? '#2196F3' : '#9C27B0' }
+            { backgroundColor: item.source === 'synastry' ? '#2196F3' : '#9C27B0' },
           ]}>
             <Text style={[styles.sourceText, { color: 'white' }]}>
               {item.source === 'synastry' ? 'Synastry' : 'Composite'}
             </Text>
           </View>
-          
+
           <View style={[
             styles.valenceChip,
-            { backgroundColor: topCategory.valence === 1 ? '#E8F5E9' : '#FFEBEE' }
+            { backgroundColor: topCategory.valence === 1 ? '#E8F5E9' : '#FFEBEE' },
           ]}>
             <Text style={[
               styles.valenceText,
-              { color: topCategory.valence === 1 ? '#2E7D32' : '#C62828' }
+              { color: topCategory.valence === 1 ? '#2E7D32' : '#C62828' },
             ]}>
               {topCategory.valence === 1 ? 'Support' : 'Challenge'}
             </Text>
@@ -363,7 +363,7 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
 
           <View style={[
             styles.valenceIndicator,
-            { backgroundColor: getValenceColor(topCategory.valence) }
+            { backgroundColor: getValenceColor(topCategory.valence) },
           ]} />
         </View>
 
@@ -391,7 +391,7 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
       type: 'aspect' as const,
       description: aspect.description,
       // Add structured aspect data for parsing - extract from description
-      aspect: aspect.description.includes('trine') ? 'trine' : 
+      aspect: aspect.description.includes('trine') ? 'trine' :
               aspect.description.includes('sextile') ? 'sextile' :
               aspect.description.includes('square') ? 'square' :
               aspect.description.includes('conjunction') ? 'conjunction' :

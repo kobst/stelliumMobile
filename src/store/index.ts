@@ -302,7 +302,7 @@ export const useStore = create<StoreState>((set, get) => ({
         AsyncStorage.removeItem('userData'),
         AsyncStorage.removeItem('userId'),
       ]);
-      
+
       // Reset store state to initial values
       set({
         userData: null,
@@ -351,7 +351,7 @@ export const useStore = create<StoreState>((set, get) => ({
         selectedTransits: new Set(),
         customHoroscope: null,
       });
-      
+
       console.log('All user data cleared from store and storage');
     } catch (error) {
       console.error('Failed to clear data:', error);
@@ -361,14 +361,14 @@ export const useStore = create<StoreState>((set, get) => ({
   signOut: async () => {
     try {
       console.log('Starting sign out process...');
-      
+
       // First clear all data
       await get().clearAllData();
-      
+
       // Then sign out from Firebase Auth
       const auth = require('@react-native-firebase/auth').default;
       await auth().signOut();
-      
+
       console.log('Sign out completed successfully');
     } catch (error) {
       console.error('Failed to sign out:', error);

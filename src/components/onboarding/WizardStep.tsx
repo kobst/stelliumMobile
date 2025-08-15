@@ -26,7 +26,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({
   const styles = createStyles(colors);
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       contentContainerStyle={[styles.content, contentContainerStyle]}
       showsVerticalScrollIndicator={false}
@@ -40,7 +40,7 @@ export const WizardStep: React.FC<WizardStepProps> = ({
           <Text style={styles.subtitle}>{subtitle}</Text>
         )}
       </View>
-      
+
       <View style={styles.formContainer}>
         {children}
       </View>

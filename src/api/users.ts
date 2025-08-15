@@ -113,7 +113,7 @@ export const usersApi = {
     console.log('\n=== USERS API: getUserByFirebaseUid ===');
     console.log('Firebase UID:', firebaseUid);
     console.log('=====================================\n');
-    
+
     const response = await apiClient.post<SubjectDocument>('/getUserByFirebaseUid', { firebaseUid });
     console.log('Response received:', JSON.stringify(response, null, 2));
     console.log('=====================================\n');

@@ -8,7 +8,7 @@ import { useStore } from '../store';
 export const debugAuthState = async () => {
   const currentUser = auth().currentUser;
   const storeState = useStore.getState();
-  
+
   let asyncStorageData;
   try {
     const [userData, userId] = await Promise.all([
@@ -41,7 +41,7 @@ export const debugAuthState = async () => {
   console.log('=== AUTH STATE DEBUG ===');
   console.log(JSON.stringify(authState, null, 2));
   console.log('========================');
-  
+
   return authState;
 };
 
@@ -50,7 +50,7 @@ export const debugAuthState = async () => {
  */
 export const forceSignOut = async () => {
   console.log('Starting force sign out...');
-  
+
   try {
     const { signOut } = useStore.getState();
     await signOut();
@@ -67,14 +67,14 @@ export const forceSignOut = async () => {
 export const checkForCachedAuthData = async () => {
   try {
     const keys = await AsyncStorage.getAllKeys();
-    const authRelatedKeys = keys.filter(key => 
-      key.includes('user') || 
-      key.includes('auth') || 
+    const authRelatedKeys = keys.filter(key =>
+      key.includes('user') ||
+      key.includes('auth') ||
       key.includes('firebase') ||
       key.includes('User') ||
       key.includes('Auth')
     );
-    
+
     const authData = {};
     for (const key of authRelatedKeys) {
       try {
@@ -84,12 +84,12 @@ export const checkForCachedAuthData = async () => {
         authData[key] = value; // Keep as string if can't parse
       }
     }
-    
+
     console.log('=== CACHED AUTH DATA ===');
     console.log('Auth-related keys:', authRelatedKeys);
     console.log('Auth data:', authData);
     console.log('========================');
-    
+
     return { keys: authRelatedKeys, data: authData };
   } catch (error) {
     console.error('Failed to check cached auth data:', error);

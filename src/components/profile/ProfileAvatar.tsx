@@ -13,9 +13,9 @@ interface ProfileAvatarProps {
   showOnlineIndicator?: boolean;
 }
 
-const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ 
+const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
   size = 40,
-  showOnlineIndicator = true 
+  showOnlineIndicator = true,
 }) => {
   const { colors } = useTheme();
   const { userData, setProfileModalVisible } = useStore();
@@ -54,27 +54,27 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
       <View style={[
         styles.avatar,
         dynamicStyles.avatar,
-        { backgroundColor: colors.primary }
+        { backgroundColor: colors.primary },
       ]}>
         <Text style={[
           styles.initials,
-          { 
+          {
             color: colors.onPrimary,
             fontSize: size * 0.4,
-          }
+          },
         ]}>
           {initials}
         </Text>
       </View>
-      
+
       {showOnlineIndicator && (
         <View style={[
           styles.onlineIndicator,
           dynamicStyles.onlineIndicator,
-          { 
+          {
             backgroundColor: '#00C851',
             borderColor: colors.surface,
-          }
+          },
         ]} />
       )}
     </TouchableOpacity>

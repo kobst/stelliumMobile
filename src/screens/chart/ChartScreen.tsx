@@ -43,6 +43,8 @@ const ChartScreen: React.FC = () => {
     loadFullAnalysis,
     clearError,
     hasAnalysisData,
+    workflowState,
+    isAnalysisInProgress,
   } = useChart(subject?.id);
 
   // Navigation state
@@ -65,8 +67,8 @@ const ChartScreen: React.FC = () => {
 
   // Create birth info string for regular users
   const getBirthInfo = (subject: any): string => {
-    if (!subject) return 'Birth Chart';
-    
+    if (!subject) {return 'Birth Chart';}
+
     try {
       // Handle different date formats
       let birthDate: Date;
@@ -79,29 +81,29 @@ const ChartScreen: React.FC = () => {
       } else {
         return 'Birth Chart';
       }
-      
-      const formattedDate = birthDate.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+
+      const formattedDate = birthDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
       });
-      
+
       // Handle time information
       let timeString = '';
       if (subject.time && !subject.birthTimeUnknown) {
         timeString = ` at ${subject.time}`;
-      } else if (subject.birthHour !== undefined && subject.birthMinute !== undefined && 
+      } else if (subject.birthHour !== undefined && subject.birthMinute !== undefined &&
                  !(subject.birthHour === 12 && subject.birthMinute === 0)) {
         const hour = subject.birthHour === 0 ? 12 : subject.birthHour > 12 ? subject.birthHour - 12 : subject.birthHour;
         const minute = subject.birthMinute.toString().padStart(2, '0');
         const period = subject.birthHour >= 12 ? 'PM' : 'AM';
         timeString = ` at ${hour}:${minute} ${period}`;
       }
-      
+
       // Handle location
       const location = subject.placeOfBirth || subject.birthLocation;
       const locationString = location ? ` in ${location}` : '';
-      
+
       return `Born ${formattedDate}${timeString}${locationString}`;
     } catch (error) {
       return 'Birth Chart';
@@ -181,6 +183,25 @@ const ChartScreen: React.FC = () => {
       case 'analysis':
         return <AnalysisTab userId={subject?.id} />;
       case 'chat':
+        // Show consistent loading state for chat tab during analysis
+        if (chartLoading || isAnalysisInProgress) {
+          const progressText = workflowState?.progress
+            ? `Analyzing... ${workflowState.progress.percentage}% complete (${workflowState.progress.completedTasks}/${workflowState.progress.totalTasks} tasks)`
+            : 'Loading analysis...';
+
+          return (
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>{progressText}</Text>
+              {workflowState?.progress && (
+                <Text style={[styles.progressText, { color: colors.onSurfaceVariant }]}>
+                  Current phase: {workflowState.progress.currentPhase}
+                </Text>
+              )}
+            </View>
+          );
+        }
+
         if (!hasAnalysisData) {
           return (
             <ScrollView style={[styles.lockedTabContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
@@ -309,6 +330,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  progressText: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 

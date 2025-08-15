@@ -19,11 +19,11 @@ interface CompositeChartTablesProps {
   showOnlyAspects?: boolean;
 }
 
-const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({ 
-  compositeChart, 
+const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
+  compositeChart,
   showOnlyPlanets = false,
   showOnlyHouses = false,
-  showOnlyAspects = false 
+  showOnlyAspects = false,
 }) => {
   const { colors } = useTheme();
   // Convert composite chart planets to BackendPlanet format for filtering

@@ -90,9 +90,9 @@ export const userTransformers = {
     });
 
     // Construct name from firstName and lastName
-    const name = userData.name || birthData.name || 
-                (birthData.firstName && birthData.lastName ? 
-                 `${birthData.firstName} ${birthData.lastName}` : 
+    const name = userData.name || birthData.name ||
+                (birthData.firstName && birthData.lastName ?
+                 `${birthData.firstName} ${birthData.lastName}` :
                  'User');
 
     const transformedUser = {

@@ -77,7 +77,7 @@ const CompositeTables: React.FC<CompositeTablesProps> = ({ compositeChart }) => 
       >
         {pages.map((page, index) => (
           <View key={index} style={[styles.page, { width: screenWidth }]}>
-            <ScrollView 
+            <ScrollView
               style={styles.pageContent}
               showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.pageScrollContent}
@@ -87,7 +87,7 @@ const CompositeTables: React.FC<CompositeTablesProps> = ({ compositeChart }) => 
           </View>
         ))}
       </ScrollView>
-      
+
       {/* Page Control Dots */}
       <View style={styles.pageControl}>
         {pages.map((_, index) => (

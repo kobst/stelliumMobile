@@ -76,12 +76,13 @@ export const getZodiacSignFromDate = (birthMonth: number, birthDay: number): str
  */
 // Function to get zodiac symbol without triggering any global styling
 const getZodiacSymbol = (sign: string | null): string => {
-  if (!sign) return '';
-  
+  if (!sign) {
+    return '';
+  }
   // Use character codes to avoid any text processing
   const symbols: { [key: string]: string } = {
     'Aries': '\u2648',
-    'Taurus': '\u2649', 
+    'Taurus': '\u2649',
     'Gemini': '\u264A',
     'Cancer': '\u264B',
     'Leo': '\u264C',
@@ -93,7 +94,7 @@ const getZodiacSymbol = (sign: string | null): string => {
     'Aquarius': '\u2652',
     'Pisces': '\u2653',
   };
-  
+
   return symbols[sign] || '';
 };
 

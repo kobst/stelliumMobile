@@ -131,7 +131,7 @@ const UserOnboardingWizard: React.FC = () => {
       setIsSubmitting(false);
       return;
     }
-    
+
     console.log('Firebase User ID:', firebaseUser.uid);
 
     const formErrors = validateForm();

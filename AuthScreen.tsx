@@ -23,16 +23,16 @@ const { width } = Dimensions.get('window');
 
 const AuthScreen: React.FC = () => {
   const { colors } = useTheme();
-  
+
   // State for different auth modes
   const [authMode, setAuthMode] = useState<AuthMode>('signin');
   const [loading, setLoading] = useState(false);
-  
+
   // Email/Password fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   // Phone auth fields
   const [phoneNumber, setPhoneNumber] = useState('');
   const [confirm, setConfirm] = useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
@@ -57,7 +57,7 @@ const AuthScreen: React.FC = () => {
     } catch (error: any) {
       console.error('Email Sign-In Error:', error);
       let errorMessage = 'Sign-in failed. Please try again.';
-      
+
       if (error.code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email address.';
       } else if (error.code === 'auth/wrong-password') {
@@ -67,7 +67,7 @@ const AuthScreen: React.FC = () => {
       } else if (error.code === 'auth/user-disabled') {
         errorMessage = 'This account has been disabled.';
       }
-      
+
       Alert.alert('Sign-In Error', errorMessage);
     } finally {
       setLoading(false);
@@ -96,7 +96,7 @@ const AuthScreen: React.FC = () => {
     } catch (error: any) {
       console.error('Email Sign-Up Error:', error);
       let errorMessage = 'Sign-up failed. Please try again.';
-      
+
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'An account already exists with this email address.';
       } else if (error.code === 'auth/invalid-email') {
@@ -104,7 +104,7 @@ const AuthScreen: React.FC = () => {
       } else if (error.code === 'auth/weak-password') {
         errorMessage = 'Password is too weak. Please choose a stronger password.';
       }
-      
+
       Alert.alert('Sign-Up Error', errorMessage);
     } finally {
       setLoading(false);
@@ -134,14 +134,14 @@ const AuthScreen: React.FC = () => {
     setLoading(true);
     try {
       const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
-      
+
       if (result.isCancelled) {
         setLoading(false);
         return;
       }
 
       const data = await AccessToken.getCurrentAccessToken();
-      
+
       if (!data) {
         throw new Error('Failed to get Facebook access token');
       }
@@ -161,7 +161,7 @@ const AuthScreen: React.FC = () => {
       Alert.alert('Error', 'Please enter a phone number');
       return;
     }
-    
+
     setLoading(true);
     try {
       const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
@@ -169,13 +169,13 @@ const AuthScreen: React.FC = () => {
     } catch (error: any) {
       console.error('Phone Auth Error:', error);
       let errorMessage = 'Phone authentication failed. Please check the number and try again.';
-      
+
       if (error.code === 'auth/invalid-phone-number') {
         errorMessage = 'Invalid phone number format.';
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = 'Too many requests. Please try again later.';
       }
-      
+
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -187,25 +187,25 @@ const AuthScreen: React.FC = () => {
       Alert.alert('Error', 'Please enter the verification code');
       return;
     }
-    
+
     if (!confirm) {
       Alert.alert('Error', 'No confirmation object available. Please try sending the code again.');
       return;
     }
-    
+
     setLoading(true);
     try {
       await confirm.confirm(code);
     } catch (error: any) {
       console.error('Code Confirmation Error:', error);
       let errorMessage = 'Invalid verification code. Please try again.';
-      
+
       if (error.code === 'auth/invalid-verification-code') {
         errorMessage = 'The verification code is invalid.';
       } else if (error.code === 'auth/code-expired') {
         errorMessage = 'The verification code has expired. Please request a new one.';
       }
-      
+
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -250,7 +250,7 @@ const AuthScreen: React.FC = () => {
               maxLength={6}
               autoFocus
             />
-            
+
             <TouchableOpacity
               style={[styles.primaryButton, { backgroundColor: colors.primary }]}
               onPress={confirmCode}
@@ -262,7 +262,7 @@ const AuthScreen: React.FC = () => {
                 <Text style={[styles.buttonText, { color: colors.onPrimary }]}>Verify Code</Text>
               )}
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.textButton}
               onPress={() => {
@@ -285,7 +285,7 @@ const AuthScreen: React.FC = () => {
         <View style={styles.headerContainer}>
           <Text style={[styles.title, { color: colors.onBackground }]}>Welcome to Stellium</Text>
           <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
-            {authMode === 'signin' ? 'Sign in to your account' : 
+            {authMode === 'signin' ? 'Sign in to your account' :
              authMode === 'signup' ? 'Create your account' : 'Sign in with phone number'}
           </Text>
         </View>
@@ -303,7 +303,7 @@ const AuthScreen: React.FC = () => {
               <Text style={[styles.socialButtonText, { color: colors.onSurface }]}>Continue with Google</Text>
             )}
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.socialButton, { backgroundColor: '#1877F2', borderColor: '#1877F2' }]}
             onPress={signInWithFacebook}
@@ -330,41 +330,41 @@ const AuthScreen: React.FC = () => {
             style={[
               styles.modeButton,
               authMode === 'signin' && { backgroundColor: colors.primary },
-              { borderColor: colors.border }
+              { borderColor: colors.border },
             ]}
             onPress={() => switchAuthMode('signin')}
           >
             <Text style={[
               styles.modeButtonText,
-              { color: authMode === 'signin' ? colors.onPrimary : colors.onSurface }
+              { color: authMode === 'signin' ? colors.onPrimary : colors.onSurface },
             ]}>Email</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.modeButton,
               authMode === 'signup' && { backgroundColor: colors.primary },
-              { borderColor: colors.border }
+              { borderColor: colors.border },
             ]}
             onPress={() => switchAuthMode('signup')}
           >
             <Text style={[
               styles.modeButtonText,
-              { color: authMode === 'signup' ? colors.onPrimary : colors.onSurface }
+              { color: authMode === 'signup' ? colors.onPrimary : colors.onSurface },
             ]}>Sign Up</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.modeButton,
               authMode === 'phone' && { backgroundColor: colors.primary },
-              { borderColor: colors.border }
+              { borderColor: colors.border },
             ]}
             onPress={() => switchAuthMode('phone')}
           >
             <Text style={[
               styles.modeButtonText,
-              { color: authMode === 'phone' ? colors.onPrimary : colors.onSurface }
+              { color: authMode === 'phone' ? colors.onPrimary : colors.onSurface },
             ]}>Phone</Text>
           </TouchableOpacity>
         </View>
@@ -383,7 +383,7 @@ const AuthScreen: React.FC = () => {
                 keyboardType="phone-pad"
                 autoComplete="tel"
               />
-              
+
               <TouchableOpacity
                 style={[styles.primaryButton, { backgroundColor: colors.primary }]}
                 onPress={signInWithPhone}
@@ -409,7 +409,7 @@ const AuthScreen: React.FC = () => {
                 autoCapitalize="none"
                 autoComplete="email"
               />
-              
+
               <TextInput
                 style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
                 placeholder="Password"
@@ -419,7 +419,7 @@ const AuthScreen: React.FC = () => {
                 secureTextEntry
                 autoComplete={authMode === 'signup' ? 'password-new' : 'password'}
               />
-              
+
               {authMode === 'signup' && (
                 <TextInput
                   style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
@@ -431,7 +431,7 @@ const AuthScreen: React.FC = () => {
                   autoComplete="password-new"
                 />
               )}
-              
+
               <TouchableOpacity
                 style={[styles.primaryButton, { backgroundColor: colors.primary }]}
                 onPress={authMode === 'signin' ? signInWithEmail : signUpWithEmail}
