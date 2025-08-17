@@ -4,6 +4,8 @@ import {
   RelationshipAnalysisResponse,
   RelationshipWorkflowStatusResponse,
   RelationshipWorkflowStartResponse,
+  ClusterScoring,
+  ClusterAnalysis,
 } from '../api';
 import { useStore } from '../store';
 
@@ -64,23 +66,23 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
 
   const clearError = () => setError(null);
 
-  // Update analysis data from workflow response - V3 simplified
+  // Update analysis data from workflow response - Cluster system
   const updateAnalysisFromWorkflow = useCallback((analysisData: RelationshipAnalysisResponse) => {
-    console.log('Updating V3 analysis from workflow:', analysisData);
+    console.log('Updating cluster analysis from workflow:', analysisData);
 
-    // Handle V3 analysis data
-    if (analysisData.v2Analysis) {
+    // Handle cluster scoring data
+    if (analysisData.clusterScoring) {
       // Extract cluster scores for store compatibility
       const clusterScores: { [key: string]: number } = {};
-      Object.entries(analysisData.v2Analysis.clusters).forEach(([clusterName, clusterData]) => {
-        clusterScores[clusterName] = Math.round(clusterData.score * 100);
+      Object.entries(analysisData.clusterScoring.clusters).forEach(([clusterName, clusterData]) => {
+        clusterScores[clusterName] = Math.round(clusterData.score);
       });
 
       setRelationshipWorkflowState({
         hasScores: true,
         scores: clusterScores,
-        v3Analysis: analysisData.v2Analysis,
-        v3Metrics: analysisData.v2Metrics,
+        clusterScoring: analysisData.clusterScoring,
+        completeAnalysis: analysisData.completeAnalysis,
         startedFromCreation: true,
         isPaused: workflowStatus?.workflowStatus?.status === 'paused_after_scores',
       });
@@ -89,7 +91,7 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
     setAnalysisData(analysisData);
   }, [setRelationshipWorkflowState, workflowStatus?.workflowStatus?.status]);
 
-  // Initialize composite chart data - V3 simplified
+  // Initialize composite chart data - Cluster system
   const initializeCompositeChartData = useCallback(async (compositeChart: any) => {
     try {
       if (!compositeChart || !compositeChart._id) {
@@ -97,20 +99,20 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
         return;
       }
 
-      // Check if we have immediate V3 data
-      if (compositeChart.v2Analysis) {
-        console.log('Found immediate V3 analysis:', compositeChart.v2Analysis);
+      // Check if we have immediate cluster data
+      if (compositeChart.clusterScoring) {
+        console.log('Found immediate cluster analysis:', compositeChart.clusterScoring);
 
         const clusterScores: { [key: string]: number } = {};
-        Object.entries(compositeChart.v2Analysis.clusters).forEach(([clusterName, clusterData]: [string, any]) => {
-          clusterScores[clusterName] = Math.round(clusterData.score * 100);
+        Object.entries(compositeChart.clusterScoring.clusters).forEach(([clusterName, clusterData]: [string, any]) => {
+          clusterScores[clusterName] = Math.round(clusterData.score);
         });
 
         setRelationshipWorkflowState({
           hasScores: true,
           scores: clusterScores,
-          v3Analysis: compositeChart.v2Analysis,
-          v3Metrics: compositeChart.v2Metrics,
+          clusterScoring: compositeChart.clusterScoring,
+          completeAnalysis: compositeChart.completeAnalysis,
           startedFromCreation: true,
           isPaused: false,
         });
@@ -118,14 +120,14 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
 
       // Fetch relationship analysis data
       const fetchedData = await relationshipsApi.fetchRelationshipAnalysis(compositeChart._id);
-      console.log('V3 fetchedData: ', fetchedData);
+      console.log('Cluster fetchedData: ', fetchedData);
 
       if (fetchedData) {
         setAnalysisData(fetchedData);
         updateAnalysisFromWorkflow(fetchedData);
       }
     } catch (error) {
-      console.error('Error initializing V3 composite chart data:', error);
+      console.error('Error initializing cluster composite chart data:', error);
     }
   }, [setRelationshipWorkflowState, updateAnalysisFromWorkflow]);
 
@@ -166,21 +168,21 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
           updateAnalysisFromWorkflow(response.analysisData);
         }
 
-        // Update store state with V3 analysis data
-        const v3Analysis = response.analysisData?.v2Analysis;
+        // Update store state with cluster analysis data
+        const clusterScoring = response.analysisData?.clusterScoring;
 
-        if (v3Analysis) {
+        if (clusterScoring) {
           const clusterScores: { [key: string]: number } = {};
-          Object.entries(v3Analysis.clusters).forEach(([clusterName, clusterData]) => {
-            clusterScores[clusterName] = Math.round(clusterData.score * 100);
+          Object.entries(clusterScoring.clusters).forEach(([clusterName, clusterData]) => {
+            clusterScores[clusterName] = Math.round(clusterData.score);
           });
 
           setRelationshipWorkflowState({
             isPaused: response.workflowStatus?.status === 'paused_after_scores',
             hasScores: true,
             scores: clusterScores,
-            v3Analysis: v3Analysis,
-            v3Metrics: response.analysisData?.v2Metrics,
+            clusterScoring: clusterScoring,
+            completeAnalysis: response.analysisData?.completeAnalysis,
             startedFromCreation: true,
           });
         }

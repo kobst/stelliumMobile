@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert } from 'react-native';
 import { useTheme } from '../../theme';
-import { ConsolidatedScoredItem } from '../../api/relationships';
+import { ClusterScoredItem } from '../../api/relationships';
 import { relationshipsApi } from '../../api/relationships';
 import ConsolidatedItemsBottomSheet from './ConsolidatedItemsBottomSheet';
 
@@ -11,15 +11,15 @@ interface ChatMessage {
   content: string;
   timestamp: Date;
   mode?: 'chat' | 'custom' | 'hybrid';
-  selectedElements?: ConsolidatedScoredItem[];
+  selectedElements?: ClusterScoredItem[];
   elementCount?: number;
   loading?: boolean;
 }
 
 interface RelationshipChatTabProps {
   compositeChartId: string;
-  consolidatedItems: ConsolidatedScoredItem[];
-  preSelectedItems?: ConsolidatedScoredItem[];
+  consolidatedItems: ClusterScoredItem[];
+  preSelectedItems?: ClusterScoredItem[];
 }
 
 const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
@@ -31,7 +31,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
   const scrollViewRef = useRef<ScrollView>(null);
 
   // State management
-  const [selectedElements, setSelectedElements] = useState<ConsolidatedScoredItem[]>(preSelectedItems);
+  const [selectedElements, setSelectedElements] = useState<ClusterScoredItem[]>(preSelectedItems);
   const [query, setQuery] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -172,7 +172,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
   };
 
   // Handle element selection
-  const handleSelectElement = (element: ConsolidatedScoredItem) => {
+  const handleSelectElement = (element: ClusterScoredItem) => {
     setError(null);
 
     if (selectedElements.some(el => el.id === element.id)) {
@@ -212,12 +212,12 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
     setError(null);
 
     // Create request body based on mode
-    const requestBody: { query?: string; selectedElements?: ConsolidatedScoredItem[] } = {};
+    const requestBody: { query?: string; scoredItems?: ClusterScoredItem[] } = {};
     if (query.trim()) {
       requestBody.query = query.trim();
     }
     if (selectedElements.length > 0) {
-      requestBody.selectedElements = selectedElements;
+      requestBody.scoredItems = selectedElements;
     }
 
     // Add user message to chat if there's a query
@@ -252,7 +252,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
         const assistantMessage: ChatMessage = {
           id: `assistant-${Date.now()}`,
           type: 'assistant',
-          content: response.answer,
+          content: response.analysis || response.answer, // Handle both field names for compatibility
           timestamp: new Date(),
           mode: response.mode,
         };
@@ -281,7 +281,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
   };
 
   // Get element display name - human readable format
-  const getElementDisplayName = (element: ConsolidatedScoredItem): string => {
+  const getElementDisplayName = (element: ClusterScoredItem): string => {
     const chartType = element.source === 'synastry' ? 'Synastry' :
                      element.source === 'composite' ? 'Composite' :
                      element.source === 'synastryHousePlacement' ? 'Synastry' :
@@ -303,11 +303,11 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
     }
 
     if (element.type === 'housePlacement') {
-      const planetName = element.planet1 === 'ascendant' ? 'Ascendant' :
-                        element.planet1 === 'midheaven' ? 'Midheaven' :
-                        element.planet1?.charAt(0).toUpperCase() + element.planet1?.slice(1) || 'Planet';
+      const planetName = element.planet === 'ascendant' ? 'Ascendant' :
+                        element.planet === 'midheaven' ? 'Midheaven' :
+                        element.planet?.charAt(0).toUpperCase() + element.planet?.slice(1) || 'Planet';
 
-      return `${chartType}: Fullon's ${planetName} in Mobile's House ${element.planet2}`;
+      return `${chartType}: ${planetName} in House ${element.house}`;
     }
 
     return element.description?.substring(0, 50) || 'Unknown Element';
@@ -514,7 +514,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
       <ConsolidatedItemsBottomSheet
         visible={showBottomSheet}
         onClose={() => setShowBottomSheet(false)}
-        consolidatedItems={consolidatedItems}
+        scoredItems={consolidatedItems}
         selectedElements={selectedElements}
         onSelectElement={handleSelectElement}
         onClearSelection={handleClearSelection}

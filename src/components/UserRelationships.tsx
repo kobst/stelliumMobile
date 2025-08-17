@@ -51,6 +51,8 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
 
     try {
       const response = await relationshipsApi.getUserCompositeCharts(userId);
+      console.log('getUserCompositeCharts response:', JSON.stringify(response, null, 2));
+      console.log('First relationship analysis status:', response[0]?.relationshipAnalysisStatus);
       setRelationships(response);
     } catch (err) {
       console.error('Failed to load user relationships:', err);
@@ -62,7 +64,7 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
 
   const handleRelationshipPress = (relationship: UserCompositeChart) => {
     console.log('Existing relationship data:', relationship);
-    console.log('Existing relationship v2Analysis:', relationship.v2Analysis);
+    console.log('Existing relationship clusterScoring:', relationship.clusterScoring);
     if (onRelationshipPress) {
       onRelationshipPress(relationship);
     } else {
@@ -203,20 +205,27 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
           </View>
         </View>
 
-        {/* Relationship Profile */}
-        {analysisStatus?.profile && (
-          <View style={styles.profileContainer}>
-            <Text style={[styles.profileText, { color: colors.onSurfaceVariant }]}>
-              {analysisStatus.profile}
-            </Text>
-          </View>
-        )}
-
         {/* Analysis Level Indicator */}
         <AnalysisLevelIndicator level={level} />
 
+        {/* Tier and Profile */}
+        {(analysisStatus?.overall?.tier || analysisStatus?.overall?.profile) && (
+          <View style={styles.tierProfileContainer}>
+            {analysisStatus?.overall?.tier && (
+              <Text style={[styles.tierText, { color: colors.primary }]}>
+                {analysisStatus.overall.tier} Relationship
+              </Text>
+            )}
+            {analysisStatus?.overall?.profile && (
+              <Text style={[styles.profileText, { color: colors.onSurfaceVariant }]}>
+                {analysisStatus.overall.profile}
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* Compatibility Scores */}
-        <RelationshipScoreIndicator clusterScores={analysisStatus?.clusterScores} level={level} />
+        <RelationshipScoreIndicator overallScore={analysisStatus?.overall?.score} level={level} />
 
         <TouchableOpacity
           style={styles.viewButton}
@@ -380,10 +389,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  profileContainer: {
+  tierProfileContainer: {
     marginTop: 8,
     marginBottom: 4,
     alignItems: 'center',
+  },
+  tierText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 4,
   },
   profileText: {
     fontSize: 13,

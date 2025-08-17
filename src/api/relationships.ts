@@ -1,79 +1,101 @@
 import { apiClient } from './client';
 
-// V3 Relationship Analysis Types
-export interface V3ClusterScore {
-  score: number; // 0-1 normalized percentile
-  analysis: string;
-}
-
-export interface V3Clusters {
-  Harmony: V3ClusterScore;
-  Passion: V3ClusterScore;
-  Connection: V3ClusterScore;
-  Growth: V3ClusterScore;
-  Stability: V3ClusterScore;
-}
-
+// New 5-Cluster Relationship Analysis Types
 export interface KeystoneAspect {
   description: string;
   score: number;
-  category: string;
+  cluster: string;
   isKeystone: true;
   impact: 'high' | 'medium' | 'low';
 }
 
-export interface CategoryData {
-  category: string;
-  cluster: string;
-  score: number;
-  valence: -1 | 0 | 1; // challenge, neutral, support
-  weight: number;
-  intensity: number;
-  centrality: number;
-  isKeystone: boolean;
-  keystoneRank?: number; // 1-5 if keystone
-  spark?: boolean;
-  sparkType?: 'sexual' | 'transformative' | 'intellectual' | 'emotional' | 'power';
-  starRating: number; // 0-5
+export interface ClusterContribution {
+  cluster: 'Harmony' | 'Passion' | 'Connection' | 'Stability' | 'Growth';
+  score: number;           // Raw score value
+  weight: number;          // Weight/importance
+  intensity: number;       // Intensity multiplier
+  valence: 1 | -1 | 0;    // Positive, negative, or neutral
+  centrality: number;      // Network centrality metric
+  spark: boolean;          // Whether this creates a "spark"
+  sparkType?: 'sexual' | 'emotional' | 'transformative' | 'karmic';
+  isKeystone: boolean;     // Is this a keystone aspect for this cluster
+  keystoneRank?: number;   // Ranking among keystones
+  starRating: 0 | 1 | 2 | 3 | 4 | 5; // Visual rating
 }
 
-export interface ConsolidatedScoredItem {
+export interface ClusterScoredItem {
   id: string;
   source: 'synastry' | 'composite' | 'synastryHousePlacement' | 'compositeHousePlacement';
   type: 'aspect' | 'housePlacement';
   description: string;
+  
+  // Multiple cluster contributions per item
+  clusterContributions: ClusterContribution[];
+  
+  // Astrological details (conditional - only when meaningful)
   aspect?: string;
   orb?: number;
   planet1?: string;
   planet2?: string;
   planet1Sign?: string;
   planet2Sign?: string;
+  planet1House?: number;
+  planet2House?: number;
   pairKey?: string;
-  code?: string;
-  categoryData: CategoryData[];
+  planet?: string;
+  house?: number;
+  sign?: string;
+  direction?: 'A->B' | 'B->A' | 'composite';
+  
+  // Metadata
+  code: string;
   overallCentrality: number;
-  isOverallKeystone: boolean;
   maxStarRating: number;
 }
 
-export interface V3Analysis {
-  clusters: V3Clusters;
-  tier: string;
-  profile: string;
-  keystoneAspects: KeystoneAspect[];
-  initialOverview: string;
-  consolidatedScoredItems: ConsolidatedScoredItem[];
-  version: 'v3.0';
+export interface ClusterMetrics {
+  score: number;                        // Normalized score (0-100)
+  rawScore: number;                     // Raw score before normalization
+  supportPct: number;                   // Positive contribution percentage
+  challengePct: number;                 // Negative contribution percentage
+  heatPct: number;                      // Average intensity percentage
+  activityPct: number;                  // Connection activity percentage
+  sparkElements: number;                // Count of spark-type connections
+  quadrant: 'Easy-going' | 'Dynamic' | 'Hot-button' | 'Flat';
+  keystoneAspects: KeystoneAspect[];    // Top 5 most impactful aspects for this cluster
 }
 
-export interface V3Metrics {
-  [category: string]: {
-    supportPct: number;
-    challengePct: number;
-    heatPct: number;
-    activityPct: number;
-    quadrant: 'Easy-going' | 'Dynamic' | 'Hot-button' | 'Flat';
+export interface OverallAnalysis {
+  score: number;                    // Weighted overall score (0-100)
+  formula: string;                  // Weight formula description
+  dominantCluster: string;          // Highest scoring cluster
+  challengeCluster: string;         // Lowest scoring cluster
+  profile: string;                  // e.g., "Harmonious with Dynamic Passion"
+  tier: string;                     // Thriving, Flourishing, Emerging, Building, Developing
+  strengthClusters: string[];       // Clusters above 70
+  growthClusters: string[];         // Clusters below 50
+}
+
+export interface ClusterAnalysis {
+  synastryPanel: string;
+  compositePanel: string;
+  partnersPerspectives: {
+    partnerA: string;
+    partnerB: string;
   };
+  metricsInterpretation: string;
+}
+
+export interface ClusterScoring {
+  clusters: {
+    Harmony: ClusterMetrics;
+    Passion: ClusterMetrics;
+    Connection: ClusterMetrics;
+    Stability: ClusterMetrics;
+    Growth: ClusterMetrics;
+  };
+  overall: OverallAnalysis;
+  scoredItems: ClusterScoredItem[];
 }
 
 export interface CompositeChartRequest {
@@ -98,7 +120,7 @@ export interface RelationshipAnalysisStatus {
     Growth: number;
     Stability: number;
   };
-  hasV2Analysis?: boolean;
+  hasClusterAnalysis?: boolean;
 }
 
 export interface UserCompositeChart {
@@ -116,9 +138,10 @@ export interface UserCompositeChart {
   isCelebrityRelationship?: boolean;
   ownerUserId?: string;
   updatedAt?: string;
-// V3 Analysis Data
-  v2Analysis?: V3Analysis;
-  v2Metrics?: V3Metrics;
+  // New 5-Cluster Analysis Data
+  clusterScoring?: ClusterScoring;
+  completeAnalysis?: Record<string, ClusterAnalysis>;
+  initialOverview?: string;
   relationshipAnalysisStatus?: RelationshipAnalysisStatus;
 }
 
@@ -173,64 +196,73 @@ export interface CompositeChart {
   hasAccurateBirthTimes: boolean;
 }
 
-// Step Functions Full Analysis Types
-export interface CategoryAnalysisPanel {
-  relevantPosition: string;
-  panels: {
-    synastry: string;
-    composite: string;
-    partnerPerspectives: string;
-  };
-  v3MetricsInterpretation: string;
-  generatedAt: string;
-}
-
-export interface FullAnalysisData {
-  analysis: {
-    OVERALL_ATTRACTION_CHEMISTRY: CategoryAnalysisPanel;
-    EMOTIONAL_SECURITY_CONNECTION: CategoryAnalysisPanel;
-    SEX_AND_INTIMACY: CategoryAnalysisPanel;
-    COMMUNICATION_AND_MENTAL_CONNECTION: CategoryAnalysisPanel;
-    COMMITMENT_LONG_TERM_POTENTIAL: CategoryAnalysisPanel;
-    KARMIC_LESSONS_GROWTH: CategoryAnalysisPanel;
-    PRACTICAL_GROWTH_SHARED_GOALS: CategoryAnalysisPanel;
-  };
-  vectorizationStatus: {
-    categories: {
-      [key: string]: boolean;
-    };
-    isComplete: boolean;
+// Tension Flow Analysis
+export interface TensionFlowAnalysis {
+  supportDensity: number;             // Network support strength
+  challengeDensity: number;           // Network challenge intensity
+  polarityRatio: number;              // Support/Challenge ratio
+  quadrant: string;                   // Relationship quadrant type
+  totalAspects: number;
+  supportAspects: number;
+  challengeAspects: number;
+  keystoneAspects: any[];
+  insight: {
+    quadrant: string;
+    description: string;
+    recommendations: string[];
   };
 }
 
-// Enhanced Relationship Analysis Response (Workflow 1)
+// Enhanced Relationship Analysis Response (New 5-Cluster System)
 export interface EnhancedRelationshipAnalysisResponse {
   success: boolean;
   compositeChartId: string;
   userA: { id: string; name: string };
   userB: { id: string; name: string };
-v2Analysis: V3Analysis; // Despite the name, this is V3 data
-  v2Metrics: V3Metrics;
-compositeChart: CompositeChart;
+  
+  // 5-Cluster Direct Scoring Results
+  clusterScoring: ClusterScoring;
+  
+  // Initial AI-generated overview
+  initialOverview: string;
+  
+  // Optional: Complete analysis (if already generated)
+  completeAnalysis?: Record<string, ClusterAnalysis>;
+  
+  // Network-based Tension Flow Analysis
+  tensionFlowAnalysis: TensionFlowAnalysis;
+  
+  // Raw astrological data
+  compositeChart: CompositeChart;
   synastryAspects: SynastryAspect[];
   synastryHousePlacements: SynastryHousePlacements;
-metadata: {
+  
+  // Status for Step Functions integration
+  status: 'scores_calculated';
+  
+  // Metadata
+  metadata: {
     processingTime: string;
     clustersAnalyzed: number;
-    totalKeystoneAspects: number;
-    workflowType: 'v2-enhanced-keystones';
+    totalScoredItems: number;
+    workflowType: 'direct-cluster-scoring';
+    version: string;
+    isCelebrityRelationship: boolean;
+    initialOverviewGenerated: boolean;
   };
 }
 
-// Full Analysis Response (Workflow 2)
+// Full Analysis Response (Updated for Cluster System)
 export interface RelationshipAnalysisResponse {
-  // V3 Analysis from Workflow 1
-  v2Analysis?: V3Analysis;
-  v2Metrics?: V3Metrics;
-// Full Analysis from Workflow 2
-  analysis?: FullAnalysisData['analysis'];
-  vectorizationStatus?: FullAnalysisData['vectorizationStatus'];
-// Chart data
+  // Cluster Analysis from Enhanced Analysis
+  clusterScoring?: ClusterScoring;
+  completeAnalysis?: Record<string, ClusterAnalysis>;
+  initialOverview?: string;
+  
+  // Tension Flow Analysis
+  tensionFlowAnalysis?: TensionFlowAnalysis;
+  
+  // Chart data
   synastryAspects?: SynastryAspect[];
   synastryHousePlacements?: SynastryHousePlacements;
   compositeChart?: CompositeChart;
@@ -262,7 +294,7 @@ export interface RelationshipWorkflowStartResponse {
 }
 
 export const relationshipsApi = {
-  // Workflow 1: Enhanced Relationship Analysis with V3 (30-60 seconds)
+  // Primary: Enhanced Relationship Analysis with 5-Cluster Scoring (2-5 seconds)
   enhancedRelationshipAnalysis: async (
     userIdA: string,
     userIdB: string,
@@ -277,7 +309,7 @@ export const relationshipsApi = {
     });
   },
 
-  // Workflow 2: Start Step Functions Full Analysis
+  // Secondary: Start Step Functions Full Analysis for Complete Cluster Analysis
   startFullRelationshipAnalysis: async (
     compositeChartId: string,
     immediate: boolean = true
@@ -319,7 +351,7 @@ export const relationshipsApi = {
     });
   },
 
-  // Fetch existing relationship analysis
+  // Fetch existing relationship analysis (updated for cluster system)
   fetchRelationshipAnalysis: async (compositeChartId: string): Promise<RelationshipAnalysisResponse> => {
     return apiClient.post<RelationshipAnalysisResponse>('/fetchRelationshipAnalysis', {
       compositeChartId,
@@ -336,12 +368,12 @@ export const relationshipsApi = {
     return apiClient.delete<{ success: boolean }>(`/relationships/${relationshipId}`);
   },
 
-  // Chat API for relationship analysis
+  // Chat API for relationship analysis (legacy - maintained for compatibility)
   chatForUserRelationship: async (
     userId: string,
     compositeChartId: string,
     message: string,
-    selectedElements?: ConsolidatedScoredItem[]
+    selectedElements?: ClusterScoredItem[]
   ): Promise<string> => {
     return apiClient.post<string>('/chatForUserRelationship', {
       userId,
@@ -351,7 +383,7 @@ export const relationshipsApi = {
     });
   },
 
-  // Fetch chat history
+  // Fetch chat history (legacy - maintained for compatibility)
   fetchUserChatRelationshipAnalysis: async (
     userId: string,
     compositeChartId: string
@@ -376,30 +408,21 @@ export const relationshipsApi = {
     });
   },
 
-  // Enhanced Chat API - Frontend Integration
-
-  // Enhanced chat for relationship with element selection support
+  // Enhanced Chat API with Cluster-Aware Scored Items
   enhancedChatForRelationship: async (
     compositeChartId: string,
-    requestBody: {
-      query?: string;
-      selectedElements?: ConsolidatedScoredItem[];
-    }
+    requestBody: { query?: string; scoredItems?: ClusterScoredItem[] }
   ): Promise<{
     success: boolean;
-    answer: string;
-    chatHistoryResult: any;
-    analysisId?: string;
-    vectorized: boolean;
-    mode: 'chat' | 'custom' | 'hybrid';
+    analysis?: string;
+    answer?: string; // Temporary compatibility field
+    mode?: string;
   }> => {
     return apiClient.post<{
       success: boolean;
-      answer: string;
-      chatHistoryResult: any;
-      analysisId?: string;
-      vectorized: boolean;
-      mode: 'chat' | 'custom' | 'hybrid';
+      analysis?: string;
+      answer?: string; // Temporary compatibility field
+      mode?: string;
     }>(`/relationships/${compositeChartId}/enhanced-chat`, requestBody);
   },
 
@@ -415,7 +438,7 @@ export const relationshipsApi = {
       timestamp: string;
       metadata?: {
         mode?: 'chat' | 'custom' | 'hybrid';
-        selectedElements?: ConsolidatedScoredItem[];
+        selectedElements?: ClusterScoredItem[];
         elementCount?: number;
       };
     }>;
@@ -435,7 +458,7 @@ export const relationshipsApi = {
         timestamp: string;
         metadata?: {
           mode?: 'chat' | 'custom' | 'hybrid';
-          selectedElements?: ConsolidatedScoredItem[];
+          selectedElements?: ClusterScoredItem[];
           elementCount?: number;
         };
       }>;

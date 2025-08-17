@@ -3,20 +3,14 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme';
 
 interface RelationshipScoreIndicatorProps {
-  clusterScores?: {
-    Harmony: number;
-    Passion: number;
-    Connection: number;
-    Growth: number;
-    Stability: number;
-  };
+  overallScore?: number;
   level: 'complete' | 'scores' | 'none';
 }
 
-const RelationshipScoreIndicator: React.FC<RelationshipScoreIndicatorProps> = ({ clusterScores, level }) => {
+const RelationshipScoreIndicator: React.FC<RelationshipScoreIndicatorProps> = ({ overallScore, level }) => {
   const { colors } = useTheme();
 
-  if (level === 'none' || !clusterScores) {
+  if (level === 'none' || typeof overallScore !== 'number') {
     return null;
   }
 
@@ -26,43 +20,29 @@ const RelationshipScoreIndicator: React.FC<RelationshipScoreIndicatorProps> = ({
     return '#EF4444'; // Red
   };
 
-  const scoreEntries = Object.entries(clusterScores) as [string, number][];
-
-  // Shorten category names for better display
-  const formatCategoryName = (category: string): string => {
-    switch (category) {
-      case 'Connection':
-        return 'Connect';
-      case 'Stability':
-        return 'Stable';
-      default:
-        return category;
-    }
-  };
+  const roundedScore = Math.round(overallScore);
 
   return (
     <View style={styles.container}>
-      {scoreEntries.map(([category, score]) => (
-        <View key={category} style={styles.scoreRow}>
-          <Text style={[styles.categoryLabel, { color: colors.onSurfaceVariant }]}>
-            {formatCategoryName(category)}
-          </Text>
-          <View style={[styles.progressBarContainer, { backgroundColor: colors.surfaceVariant }]}>
-            <View
-              style={[
-                styles.progressBar,
-                {
-                  width: `${score}%`,
-                  backgroundColor: getScoreColor(score),
-                },
-              ]}
-            />
-          </View>
-          <Text style={[styles.scoreValue, { color: colors.onSurface }]}>
-            {score}
-          </Text>
+      <View style={styles.scoreRow}>
+        <Text style={[styles.categoryLabel, { color: colors.onSurfaceVariant }]}>
+          Overall
+        </Text>
+        <View style={[styles.progressBarContainer, { backgroundColor: colors.surfaceVariant }]}>
+          <View
+            style={[
+              styles.progressBar,
+              {
+                width: `${roundedScore}%`,
+                backgroundColor: getScoreColor(roundedScore),
+              },
+            ]}
+          />
         </View>
-      ))}
+        <Text style={[styles.scoreValue, { color: colors.onSurface }]}>
+          {roundedScore}
+        </Text>
+      </View>
     </View>
   );
 };

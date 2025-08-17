@@ -10,18 +10,12 @@ interface RelationshipTierBadgeProps {
 const RelationshipTierBadge: React.FC<RelationshipTierBadgeProps> = ({ tier, level }) => {
   const { colors } = useTheme();
 
-  if (level === 'none') {
+  // Only show tier badge if we have a proper tier (not for basic charts or missing analysis)
+  if (level === 'none' || !tier) {
     return null;
   }
 
-  const getTierStyle = (tierName: string | undefined) => {
-    if (!tierName) {
-      return {
-        backgroundColor: colors.surfaceVariant,
-        color: colors.onSurfaceVariant,
-      };
-    }
-
+  const getTierStyle = (tierName: string) => {
     // Define tier-specific colors
     switch (tierName.toLowerCase()) {
       case 'transcendent':
@@ -49,6 +43,31 @@ const RelationshipTierBadge: React.FC<RelationshipTierBadgeProps> = ({ tier, lev
           backgroundColor: '#EF4444',
           color: '#FFFFFF',
         };
+      case 'thriving':
+        return {
+          backgroundColor: '#10B981',
+          color: '#FFFFFF',
+        };
+      case 'flourishing':
+        return {
+          backgroundColor: '#3B82F6',
+          color: '#FFFFFF',
+        };
+      case 'emerging':
+        return {
+          backgroundColor: '#F59E0B',
+          color: '#FFFFFF',
+        };
+      case 'building':
+        return {
+          backgroundColor: '#F59E0B',
+          color: '#FFFFFF',
+        };
+      case 'developing':
+        return {
+          backgroundColor: '#EF4444',
+          color: '#FFFFFF',
+        };
       default:
         return {
           backgroundColor: colors.primary,
@@ -62,7 +81,7 @@ const RelationshipTierBadge: React.FC<RelationshipTierBadgeProps> = ({ tier, lev
   return (
     <View style={[styles.badge, { backgroundColor: tierStyle.backgroundColor }]}>
       <Text style={[styles.badgeText, { color: tierStyle.color }]}>
-        {tier || 'Analysis Available'}
+        {tier.toUpperCase()}
       </Text>
     </View>
   );

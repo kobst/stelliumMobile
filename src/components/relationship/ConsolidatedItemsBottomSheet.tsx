@@ -10,14 +10,14 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useTheme } from '../../theme';
-import { ConsolidatedScoredItem } from '../../api/relationships';
+import { ClusterScoredItem } from '../../api/relationships';
 
 interface ConsolidatedItemsBottomSheetProps {
   visible: boolean;
   onClose: () => void;
-  consolidatedItems: ConsolidatedScoredItem[];
-  selectedElements: ConsolidatedScoredItem[];
-  onSelectElement: (element: ConsolidatedScoredItem) => void;
+  scoredItems: ClusterScoredItem[];
+  selectedElements: ClusterScoredItem[];
+  onSelectElement: (element: ClusterScoredItem) => void;
   onClearSelection: () => void;
 }
 
@@ -34,7 +34,7 @@ const SPARK_TYPE_EMOJIS = {
 const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> = ({
   visible,
   onClose,
-  consolidatedItems,
+  scoredItems,
   selectedElements,
   onSelectElement,
   onClearSelection,
@@ -45,27 +45,29 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
 
   // Filter and search logic
   const filteredItems = useMemo(() => {
-    let items = [...consolidatedItems];
+    let items = [...scoredItems];
 
     // Apply filter
     switch (activeFilter) {
       case 'sparks':
         items = items.filter(item =>
-          item.categoryData.some(cd => cd.spark === true)
+          item.clusterContributions.some(cc => cc.spark === true)
         );
         break;
       case 'supports':
         items = items.filter(item =>
-          item.categoryData.some(cd => cd.valence === 1)
+          item.clusterContributions.some(cc => cc.valence === 1)
         );
         break;
       case 'challenges':
         items = items.filter(item =>
-          item.categoryData.some(cd => cd.valence === -1)
+          item.clusterContributions.some(cc => cc.valence === -1)
         );
         break;
       case 'keystones':
-        items = items.filter(item => item.isOverallKeystone === true);
+        items = items.filter(item => 
+          item.clusterContributions.some(cc => cc.isKeystone === true)
+        );
         break;
       // 'all' shows everything
     }
@@ -84,43 +86,45 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
 
     // Sort by overall centrality (most important first)
     return items.sort((a, b) => b.overallCentrality - a.overallCentrality);
-  }, [consolidatedItems, activeFilter, searchQuery]);
+  }, [scoredItems, activeFilter, searchQuery]);
 
   // Get filter counts
   const filterCounts = useMemo(() => {
     return {
-      all: consolidatedItems.length,
-      sparks: consolidatedItems.filter(item =>
-        item.categoryData.some(cd => cd.spark === true)
+      all: scoredItems.length,
+      sparks: scoredItems.filter(item =>
+        item.clusterContributions.some(cc => cc.spark === true)
       ).length,
-      supports: consolidatedItems.filter(item =>
-        item.categoryData.some(cd => cd.valence === 1)
+      supports: scoredItems.filter(item =>
+        item.clusterContributions.some(cc => cc.valence === 1)
       ).length,
-      challenges: consolidatedItems.filter(item =>
-        item.categoryData.some(cd => cd.valence === -1)
+      challenges: scoredItems.filter(item =>
+        item.clusterContributions.some(cc => cc.valence === -1)
       ).length,
-      keystones: consolidatedItems.filter(item => item.isOverallKeystone === true).length,
+      keystones: scoredItems.filter(item => 
+        item.clusterContributions.some(cc => cc.isKeystone === true)
+      ).length,
     };
-  }, [consolidatedItems]);
+  }, [scoredItems]);
 
   // Check if element is selected
-  const isSelected = (element: ConsolidatedScoredItem): boolean => {
+  const isSelected = (element: ClusterScoredItem): boolean => {
     return selectedElements.some(selected => selected.id === element.id);
   };
 
   // Get element display details
-  const getElementDetails = (element: ConsolidatedScoredItem) => {
-    const topCategory = element.categoryData.reduce((prev, current) =>
+  const getElementDetails = (element: ClusterScoredItem) => {
+    const topContribution = element.clusterContributions.reduce((prev, current) =>
       prev.score > current.score ? prev : current
     );
-    const sparks = element.categoryData.filter(cd => cd.spark);
-    const maxScore = Math.max(...element.categoryData.map(cd => cd.score));
+    const sparks = element.clusterContributions.filter(cc => cc.spark);
+    const maxScore = Math.max(...element.clusterContributions.map(cc => cc.score));
 
-    return { topCategory, sparks, maxScore };
+    return { topContribution, sparks, maxScore };
   };
 
   // Format element title for display
-  const getElementTitle = (element: ConsolidatedScoredItem): string => {
+  const getElementTitle = (element: ClusterScoredItem): string => {
     if (element.source === 'synastry' && element.type === 'aspect') {
       return `${element.planet1} ${element.aspect} ${element.planet2}`;
     }
@@ -232,7 +236,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
             </View>
           ) : (
             filteredItems.map((item) => {
-              const { topCategory, sparks, maxScore } = getElementDetails(item);
+              const { topContribution, sparks, maxScore } = getElementDetails(item);
               const selected = isSelected(item);
 
               return (
@@ -332,13 +336,13 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
                       <View style={styles.valenceContainer}>
                         <View style={[
                           styles.valenceIndicator,
-                          { backgroundColor: topCategory.valence === 1 ? '#4CAF50' : '#F44336' },
+                          { backgroundColor: topContribution.valence === 1 ? '#4CAF50' : '#F44336' },
                         ]} />
                         <Text style={[
                           styles.valenceText,
                           { color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
                         ]}>
-                          {topCategory.valence === 1 ? 'Support' : 'Challenge'}
+                          {topContribution.valence === 1 ? 'Support' : 'Challenge'}
                         </Text>
                       </View>
                     </View>
