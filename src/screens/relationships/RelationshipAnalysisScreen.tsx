@@ -13,7 +13,7 @@ import {
 const { width: screenWidth } = Dimensions.get('window');
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { useTheme } from '../../theme';
-import { relationshipsApi, UserCompositeChart, RelationshipAnalysisResponse, ConsolidatedScoredItem } from '../../api/relationships';
+import { relationshipsApi, UserCompositeChart, RelationshipAnalysisResponse, ClusterScoredItem } from '../../api/relationships';
 import { usersApi } from '../../api/users';
 import { SubjectDocument } from '../../types';
 import SynastryChartWheel from '../../components/chart/SynastryChartWheel';
@@ -24,15 +24,11 @@ import SynastryHousePlacementsTable from '../../components/chart/SynastryHousePl
 import SynastryTables from '../../components/chart/SynastryTables';
 import CompositeTables from '../../components/chart/CompositeTables';
 import AspectColorLegend from '../../components/chart/AspectColorLegend';
-import RadarChart from '../../components/chart/RadarChart';
-import ScoredItemsTable from '../../components/chart/ScoredItemsTable';
 import { CompleteRelationshipAnalysisButton } from '../../components/relationship';
 import RelationshipAnalysisTab from '../../components/relationship/RelationshipAnalysisTab';
 import RelationshipChatTab from '../../components/relationship/RelationshipChatTab';
 import V3ClusterRadar from '../../components/relationship/V3ClusterRadar';
-import KeystoneAspectsHighlight from '../../components/relationship/KeystoneAspectsHighlight';
 import ConsolidatedItemsGrid from '../../components/relationship/ConsolidatedItemsGrid';
-import { CardAccordion, AccordionCard, ClusterChipRow, TaglineCard, ProgressBar, Bullet, OverviewChipRow } from '../../components/ui';
 import { AnalysisHeader } from '../../components/navigation/AnalysisHeader';
 import { TopTabBar } from '../../components/navigation/TopTabBar';
 import { StickySegment } from '../../components/navigation/StickySegment';
@@ -50,10 +46,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const { colors } = useTheme();
   const { relationship } = route.params;
 
-  console.log('RelationshipAnalysisScreen loaded with relationship:', relationship);
-  console.log('Relationship has v2Analysis:', !!relationship.v2Analysis);
-  const scrollViewRef = useRef<ScrollView>(null);
-
   const [activeTab, setActiveTab] = useState('charts');
   const [chartSubTab, setChartSubTab] = useState('synastry-wheels');
   const [synastryWheelsPage, setSynastryWheelsPage] = useState(0);
@@ -69,14 +61,14 @@ const RelationshipAnalysisScreen: React.FC = () => {
     setSynastryWheelsPage(0);
   }, [chartSubTab]);
 
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['synastry-a']));
   const [userAData, setUserAData] = useState<SubjectDocument | null>(null);
   const [userBData, setUserBData] = useState<SubjectDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [analysisData, setAnalysisData] = useState<RelationshipAnalysisResponse | null>(null);
-  const [preSelectedChatItems, setPreSelectedChatItems] = useState<ConsolidatedScoredItem[]>([]);
+  const [relationshipData, setRelationshipData] = useState<UserCompositeChart | null>(relationship || null);
+  const [preSelectedChatItems, setPreSelectedChatItems] = useState<ClusterScoredItem[]>([]);
 
   // Navigation configuration
   const topTabs = [
@@ -93,6 +85,19 @@ const RelationshipAnalysisScreen: React.FC = () => {
     { label: 'Composite Wheels', value: 'composite-wheels' },
     { label: 'Composite Tables', value: 'composite-tables' },
   ];
+
+  console.log('RelationshipAnalysisScreen loaded with relationship:', relationship);
+  console.log('Relationship has clusterScoring:', !!relationshipData?.clusterScoring);
+
+  // Early return if no relationship data
+  if (!relationship || !relationshipData) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading relationship...</Text>
+      </View>
+    );
+  }
 
   const getSectionSubtitle = () => {
     switch (activeTab) {
@@ -111,9 +116,14 @@ const RelationshipAnalysisScreen: React.FC = () => {
     }
   };
 
-  const loadAnalysisData = useCallback(async () => {
-    // Prevent reloading if we've already loaded data for this relationship
-    if (hasLoadedData) {
+  const loadAnalysisData = useCallback(async (forceReload = false) => {
+    // Always need a relationship ID
+    if (!relationship?._id) {
+      return;
+    }
+    
+    // Prevent reloading if we've already loaded data for this relationship (unless forced)
+    if (!forceReload && hasLoadedData) {
       return;
     }
 
@@ -126,31 +136,35 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
       // Store the full analysis data for the 360 Analysis tab
       setAnalysisData(fullAnalysisData);
-      console.log('Set analysisData in state:', !!fullAnalysisData.analysis);
+      console.log('Set analysisData in state:', !!fullAnalysisData.completeAnalysis);
 
-      // Update the relationship object with the V3 data
-      if (fullAnalysisData.v2Analysis) {
-        (relationship as any).v2Analysis = fullAnalysisData.v2Analysis;
-        (relationship as any).v2Metrics = fullAnalysisData.v2Metrics;
-        console.log('Updated relationship with V3 data - clusters:', Object.keys(fullAnalysisData.v2Analysis.clusters));
+      // Update the relationship data with cluster data
+      if (fullAnalysisData.clusterScoring) {
+        setRelationshipData(prev => ({
+          ...prev,
+          clusterScoring: fullAnalysisData.clusterScoring,
+          completeAnalysis: fullAnalysisData.completeAnalysis,
+          initialOverview: fullAnalysisData.initialOverview,
+        }));
+        console.log('Updated relationship with cluster data - clusters:', Object.keys(fullAnalysisData.clusterScoring.clusters));
       }
 
       // Fetch user birth charts in parallel if we have user IDs
       const userPromises: Promise<any>[] = [];
-      if (relationship.userA_id) {
+      if (relationship?.userA_id) {
         userPromises.push(usersApi.getUser(relationship.userA_id));
       }
-      if (relationship.userB_id) {
+      if (relationship?.userB_id) {
         userPromises.push(usersApi.getUser(relationship.userB_id));
       }
 
       if (userPromises.length > 0) {
         const userResults = await Promise.all(userPromises);
 
-        if (relationship.userA_id && userResults[0]) {
+        if (relationship?.userA_id && userResults[0]) {
           setUserAData(userResults[0]);
         }
-        if (relationship.userB_id && userResults[userResults.length - 1]) {
+        if (relationship?.userB_id && userResults[userResults.length - 1]) {
           setUserBData(userResults[userResults.length - 1]);
         }
       }
@@ -162,28 +176,29 @@ const RelationshipAnalysisScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [relationship._id, hasLoadedData]);
+  }, [relationship?._id, relationship?.userA_id, relationship?.userB_id, hasLoadedData]);
 
   useEffect(() => {
-    // Reset loading state when relationship changes
-    setHasLoadedData(false);
-    setLoading(true);
-    loadAnalysisData();
-  }, [relationship._id]); // Only reload when the relationship ID changes
+    // Only reset and reload if the relationship ID actually changed
+    if (relationship) {
+      setHasLoadedData(false);
+      setRelationshipData(relationship);
 
-  // Helper functions
-  const toggleCardExpanded = (cardId: string) => {
-    const newExpanded = new Set(expandedCards);
-    if (expandedCards.has(cardId)) {
-      newExpanded.delete(cardId);
-    } else {
-      newExpanded.add(cardId);
+      // If the relationship already has cluster data, don't show loading
+      if (relationship.clusterScoring) {
+        setLoading(false);
+        setHasLoadedData(true);
+      } else {
+        setLoading(true);
+        setAnalysisData(null);
+        loadAnalysisData();
+      }
     }
-    setExpandedCards(newExpanded);
-  };
+  }, [relationship?._id, relationship?.clusterScoring]); // Only reload when the relationship ID changes
+
 
   // Handler for "Chat about this" functionality
-  const handleChatAboutItem = (item: ConsolidatedScoredItem) => {
+  const handleChatAboutItem = (item: ClusterScoredItem) => {
     setPreSelectedChatItems([item]);
     setActiveTab('chat');
   };
@@ -200,9 +215,9 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
   const ChartsTab = () => {
     const hasChartData = relationship && (
-      relationship.synastryAspects ||
-      relationship.compositeChart ||
-      relationship.synastryHousePlacements
+      relationshipData?.synastryAspects ||
+      relationshipData?.compositeChart ||
+      relationshipData?.synastryHousePlacements
     );
 
     const renderSynastryWheels = () => {
@@ -216,7 +231,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
         );
       }
 
-      const pages = [relationship.userA_name, relationship.userB_name];
+      const pages = [relationshipData?.userA_name, relationshipData?.userB_name];
 
       return (
         <View style={styles.pageContainer}>
@@ -230,36 +245,36 @@ const RelationshipAnalysisScreen: React.FC = () => {
           >
             <View style={styles.chartPage}>
               <Text style={[styles.chartTitle, { color: colors.onSurface }]}>
-                {relationship.userA_name}'s Chart
+                {relationshipData?.userA_name}'s Chart
               </Text>
               <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
-                with {relationship.userB_name}'s influences
+                with {relationshipData?.userB_name}'s influences
               </Text>
               <View style={styles.wheelContainer}>
                 <SynastryChartWheel
                   basePlanets={userAData.birthChart.planets}
                   baseHouses={userAData.birthChart.houses}
                   transitPlanets={userBData.birthChart.planets}
-                  baseName={relationship.userA_name}
-                  transitName={relationship.userB_name}
+                  baseName={relationshipData?.userA_name || ''}
+                  transitName={relationshipData?.userB_name || ''}
                 />
               </View>
             </View>
 
             <View style={styles.chartPage}>
               <Text style={[styles.chartTitle, { color: colors.onSurface }]}>
-                {relationship.userB_name}'s Chart
+                {relationshipData?.userB_name}'s Chart
               </Text>
               <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
-                with {relationship.userA_name}'s influences
+                with {relationshipData?.userA_name}'s influences
               </Text>
               <View style={styles.wheelContainer}>
                 <SynastryChartWheel
                   basePlanets={userBData.birthChart.planets}
                   baseHouses={userBData.birthChart.houses}
                   transitPlanets={userAData.birthChart.planets}
-                  baseName={relationship.userB_name}
-                  transitName={relationship.userA_name}
+                  baseName={relationshipData?.userB_name || ''}
+                  transitName={relationshipData?.userA_name || ''}
                 />
               </View>
             </View>
@@ -285,11 +300,11 @@ const RelationshipAnalysisScreen: React.FC = () => {
     };
 
     const renderSynastryTables = () => {
-      return <SynastryTables relationship={relationship} />;
+      return <SynastryTables relationship={relationshipData} />;
     };
 
     const renderCompositeWheels = () => {
-      if (!relationship.compositeChart) {
+      if (!relationshipData?.compositeChart) {
         return (
           <View style={styles.noDataContainer}>
             <Text style={[styles.noDataText, { color: colors.onSurfaceMed }]}>
@@ -306,14 +321,14 @@ const RelationshipAnalysisScreen: React.FC = () => {
             Midpoint chart representing your combined energies
           </Text>
           <View style={styles.wheelContainer}>
-            <CompositeChartWheel compositeChart={relationship.compositeChart} />
+            <CompositeChartWheel compositeChart={relationshipData?.compositeChart} />
           </View>
         </View>
       );
     };
 
     const renderCompositeTables = () => {
-      return <CompositeTables compositeChart={relationship.compositeChart} />;
+      return <CompositeTables compositeChart={relationshipData?.compositeChart} />;
     };
 
     return (
@@ -340,23 +355,18 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
   const ScoresTab = () => {
     console.log('Relationship object:', relationship);
-    console.log('V2Analysis:', relationship.v2Analysis);
-    const v3Analysis = relationship.v2Analysis;
-    const consolidatedItems = v3Analysis?.consolidatedScoredItems || [];
+    console.log('ClusterScoring:', relationshipData?.clusterScoring);
+    console.log('Keystones available:', relationshipData?.clusterScoring?.overall?.keystoneAspects?.length || 0);
+    
+    const consolidatedItems = relationshipData.clusterScoring?.scoredItems || [];
 
-    // Debug keystone data
-    console.log('Consolidated items count:', consolidatedItems.length);
-    console.log('Keystone aspects count:', v3Analysis?.keystoneAspects?.length || 0);
-    const keystoneItemsCount = consolidatedItems.filter(item => item.isOverallKeystone).length;
-    console.log('Consolidated items with isOverallKeystone=true:', keystoneItemsCount);
-
-    if (!v3Analysis) {
+    if (!relationshipData?.clusterScoring) {
       return (
         <View style={[styles.missingDataCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={styles.missingDataIcon}>⚠️</Text>
           <Text style={[styles.missingDataTitle, { color: colors.error }]}>Data Loading Error</Text>
           <Text style={[styles.missingDataText, { color: colors.onSurfaceVariant }]}>
-            V3 analysis data is missing. This should not happen for new relationships.
+            Cluster scoring data is missing. This should not happen for new relationships.
           </Text>
         </View>
       );
@@ -366,15 +376,15 @@ const RelationshipAnalysisScreen: React.FC = () => {
       <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
         {/* V3 Cluster Radar */}
         <V3ClusterRadar
-          clusters={v3Analysis.clusters}
-          tier={v3Analysis.tier}
-          profile={v3Analysis.profile}
+          clusters={relationshipData?.clusterScoring?.clusters || {}}
+          tier={relationshipData?.clusterScoring?.overall?.tier || ''}
+          profile={relationshipData?.clusterScoring?.overall?.profile || ''}
         />
 
         {/* Consolidated Items Grid */}
         <ConsolidatedItemsGrid
-          consolidatedItems={consolidatedItems}
-          keystoneAspects={v3Analysis.keystoneAspects || []}
+          scoredItems={consolidatedItems}
+          keystoneAspects={relationshipData?.clusterScoring?.overall?.keystoneAspects || []}
           onItemPress={(item) => {
             console.log('Consolidated item pressed:', item);
           }}
@@ -386,16 +396,17 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
   const OverviewTab = () => {
     console.log('OverviewTab - Relationship object:', relationship);
-    console.log('OverviewTab - V2Analysis:', relationship.v2Analysis);
-    const v3Analysis = relationship.v2Analysis;
+    console.log('OverviewTab - ClusterScoring:', relationshipData?.clusterScoring);
+    console.log('OverviewTab - AnalysisData:', analysisData);
+    const clusterScoring = relationshipData?.clusterScoring;
 
-    if (!v3Analysis) {
+    if (!clusterScoring) {
       return (
         <View style={[styles.missingDataCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={styles.missingDataIcon}>⚠️</Text>
           <Text style={[styles.missingDataTitle, { color: colors.error }]}>Data Loading Error</Text>
           <Text style={[styles.missingDataText, { color: colors.onSurfaceVariant }]}>
-            V3 analysis data is missing. This should not happen for new relationships.
+            Cluster scoring data is missing. This should not happen for new relationships.
           </Text>
         </View>
       );
@@ -406,29 +417,31 @@ const RelationshipAnalysisScreen: React.FC = () => {
         {/* Relationship Header */}
         <View style={[styles.overviewHeader, { backgroundColor: colors.surface }]}>
           <Text style={[styles.relationshipTier, { color: colors.primary }]}>
-            {v3Analysis.tier} Relationship
+            {clusterScoring.overall.tier} Relationship
           </Text>
           <Text style={[styles.relationshipProfile, { color: colors.onSurface }]}>
-            {v3Analysis.profile}
+            {clusterScoring.overall.profile}
           </Text>
         </View>
 
         {/* Initial Overview */}
-        <View style={[styles.overviewCard, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.overviewTitle, { color: colors.onSurface }]}>
-            💫 Relationship Overview
-          </Text>
-          <Text style={[styles.overviewText, { color: colors.onSurfaceVariant }]}>
-            {v3Analysis.initialOverview}
-          </Text>
-        </View>
+        {analysisData?.initialOverview && (
+          <View style={[styles.overviewCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.overviewTitle, { color: colors.onSurface }]}>
+              💫 Relationship Overview
+            </Text>
+            <Text style={[styles.overviewText, { color: colors.onSurfaceVariant }]}>
+              {analysisData.initialOverview}
+            </Text>
+          </View>
+        )}
 
         {/* V3 Clusters Summary */}
         <View style={[styles.clustersCard, { backgroundColor: colors.surface }]}>
           <Text style={[styles.clustersTitle, { color: colors.onSurface }]}>
             🎵 Cluster Highlights
           </Text>
-          {Object.entries(v3Analysis.clusters).map(([clusterName, clusterData]) => (
+          {Object.entries(clusterScoring.clusters).map(([clusterName, clusterData]) => (
             <View key={clusterName} style={styles.clusterRow}>
               <Text style={[styles.clusterName, { color: colors.onSurface }]}>
                 {clusterName}
@@ -440,24 +453,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* Top Keystone Aspects */}
-        {v3Analysis.keystoneAspects.length > 0 && (
-          <View style={[styles.keystonesCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.keystonesTitle, { color: colors.onSurface }]}>
-              ⭐️ Key Influences
-            </Text>
-            {v3Analysis.keystoneAspects.slice(0, 3).map((aspect, index) => (
-              <View key={index} style={styles.keystoneRow}>
-                <Text style={[styles.keystoneDescription, { color: colors.onSurfaceVariant }]}>
-                  {aspect.description}
-                </Text>
-                <Text style={[styles.keystoneScore, { color: colors.secondary }]}>
-                  {aspect.score.toFixed(1)}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
       </ScrollView>
     );
   };
@@ -488,21 +483,19 @@ const RelationshipAnalysisScreen: React.FC = () => {
           <RelationshipAnalysisTab
             analysisData={analysisData}
             relationshipId={relationship._id}
-            onAnalysisComplete={(completedAnalysisData) => {
+            onAnalysisComplete={(_completedAnalysisData) => {
               console.log('Analysis completed, refreshing data...');
-              // Reset the loaded data flag to force a refresh
-              setHasLoadedData(false);
-              setAnalysisData(null); // Clear existing data to trigger loading state
-              loadAnalysisData();
+              // Force reload the analysis data to get the completed analysis
+              loadAnalysisData(true);
             }}
             loading={loading}
             onChatAboutItem={handleChatAboutItem}
           />
         );
       case 'chat':
-        const v3Analysis = relationship.v2Analysis;
-        const consolidatedItems = v3Analysis?.consolidatedScoredItems || [];
-        const hasRelationshipAnalysis = !!(analysisData?.analysis && Object.keys(analysisData.analysis).length > 0);
+        const clusterScoring = relationshipData?.clusterScoring;
+        const consolidatedItems = clusterScoring?.scoredItems || [];
+        const hasRelationshipAnalysis = !!(analysisData?.completeAnalysis && Object.keys(analysisData.completeAnalysis).length > 0);
 
         if (!hasRelationshipAnalysis) {
           return (
@@ -516,11 +509,10 @@ const RelationshipAnalysisScreen: React.FC = () => {
                 <View style={styles.missingAnalysisContainer}>
                   <CompleteRelationshipAnalysisButton
                     compositeChartId={relationship._id}
-                    onAnalysisComplete={(completedAnalysisData) => {
+                    onAnalysisComplete={(_completedAnalysisData) => {
                       console.log('Analysis completed, refreshing data...');
-                      setHasLoadedData(false);
-                      setAnalysisData(null);
-                      loadAnalysisData();
+                      // Force reload the analysis data to get the completed analysis
+                      loadAnalysisData(true);
                     }}
                     hasAnalysisData={hasRelationshipAnalysis}
                   />
@@ -546,8 +538,8 @@ const RelationshipAnalysisScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Analysis Header */}
       <AnalysisHeader
-        title={`${relationship.userA_name} & ${relationship.userB_name}`}
-        subtitle={relationship.isCelebrityRelationship ? 'Celebrity Relationship Analysis' : 'Relationship Analysis'}
+        title={`${relationshipData?.userA_name || 'User A'} & ${relationshipData?.userB_name || 'User B'}`}
+        subtitle={relationshipData?.isCelebrityRelationship ? 'Celebrity Relationship Analysis' : 'Relationship Analysis'}
       />
 
       {/* Top Tab Bar */}

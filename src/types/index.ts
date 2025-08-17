@@ -81,7 +81,11 @@ export interface RelationshipWorkflowState {
   startedFromCreation: boolean;
   completed?: boolean;
 
-  // V3 Analysis Data
+  // Cluster Analysis Data (New 5-Cluster System)
+  clusterScoring?: any; // ClusterScoring type from relationships.ts
+  completeAnalysis?: any; // Record<string, ClusterAnalysis> from relationships.ts
+
+  // Legacy V3 Analysis Data (deprecated)
   v3Analysis?: any; // V3Analysis type from relationships.ts
   v3Metrics?: any;  // V3Metrics type from relationships.ts
 

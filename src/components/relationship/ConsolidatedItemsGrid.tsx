@@ -1,26 +1,24 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../theme';
-import { ConsolidatedScoredItem, CategoryData, KeystoneAspect } from '../../api/relationships';
+import { ClusterScoredItem, ClusterContribution, KeystoneAspect } from '../../api/relationships';
 
 interface ConsolidatedItemsGridProps {
-  consolidatedItems: ConsolidatedScoredItem[];
+  scoredItems: ClusterScoredItem[];
   keystoneAspects?: KeystoneAspect[];
-  onItemPress?: (item: ConsolidatedScoredItem) => void;
-  selectedItems?: ConsolidatedScoredItem[];
-  onChatAboutItem?: (item: ConsolidatedScoredItem) => void;
+  onItemPress?: (item: ClusterScoredItem) => void;
+  selectedItems?: ClusterScoredItem[];
+  onChatAboutItem?: (item: ClusterScoredItem) => void;
 }
 
 type FilterType = 'keystones' | 'sparks' | 'topSupports' | 'topChallenges';
 
-const CATEGORY_COLORS: { [key: string]: string } = {
-  'OVERALL_ATTRACTION_CHEMISTRY': '#E91E63',
-  'EMOTIONAL_SECURITY_CONNECTION': '#4CAF50',
-  'SEX_AND_INTIMACY': '#F44336',
-  'COMMUNICATION_AND_MENTAL_CONNECTION': '#2196F3',
-  'COMMITMENT_LONG_TERM_POTENTIAL': '#9C27B0',
-  'KARMIC_LESSONS_GROWTH': '#FF9800',
-  'PRACTICAL_GROWTH_SHARED_GOALS': '#795548',
+const CLUSTER_COLORS: { [key: string]: string } = {
+  'Harmony': '#4CAF50',
+  'Passion': '#F44336',
+  'Connection': '#2196F3',
+  'Stability': '#9C27B0',
+  'Growth': '#FF9800',
 };
 
 const SPARK_TYPE_EMOJIS = {
@@ -42,7 +40,7 @@ const ASPECT_SYMBOLS: { [key: string]: string } = {
 
 // Parse aspect description to extract components
 function parseAspectDescription(description: string, item: any) {
-  // For composite aspects, just show the planets and aspect
+  // For composite aspects (between composite planets)
   if (item.source === 'composite') {
     if (item.aspect && item.planet1 && item.planet2) {
       return {
@@ -54,7 +52,10 @@ function parseAspectDescription(description: string, item: any) {
         sign2: item.planet2Sign,
       };
     }
-    // Composite house placement
+  }
+
+  // For composite house placements (composite planets in houses)
+  if (item.source === 'compositeHousePlacement') {
     const compHouseMatch = description.match(/(\w+) in house (\d+)/i);
     if (compHouseMatch) {
       return {
@@ -62,6 +63,20 @@ function parseAspectDescription(description: string, item: any) {
         planet: compHouseMatch[1],
         house: compHouseMatch[2],
         sign: item.planet1Sign || '',
+      };
+    }
+  }
+
+  // For synastry house placements (one person's planet in another's house)
+  if (item.source === 'synastryHousePlacement') {
+    const synHouseMatch = description.match(/(\w+)'s (\w+) in (\w+)'s (\d+)(?:th|nd|rd|st)? house/i);
+    if (synHouseMatch) {
+      return {
+        type: 'synastry-house',
+        person1: synHouseMatch[1],
+        planet: synHouseMatch[2],
+        person2: synHouseMatch[3],
+        house: synHouseMatch[4],
       };
     }
   }
@@ -134,6 +149,13 @@ function formatCardTitle(parsedData: any, source: string) {
     };
   }
 
+  if (parsedData.type === 'synastry-house') {
+    return {
+      line1: `${parsedData.person1}'s ${parsedData.planet} → ${parsedData.person2}'s House ${parsedData.house}`,
+      line2: '',
+    };
+  }
+
   // Fallback - split description into 2 lines
   const desc = parsedData.description;
   const midpoint = Math.floor(desc.length / 2);
@@ -145,7 +167,7 @@ function formatCardTitle(parsedData: any, source: string) {
 }
 
 const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
-  consolidatedItems,
+  scoredItems,
   keystoneAspects = [],
   onItemPress,
   selectedItems = [],
@@ -155,8 +177,8 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
   const [activeFilter, setActiveFilter] = useState<FilterType>('keystones');
 
   const filteredAndSortedItems = useMemo(() => {
-    // Convert keystone aspects to consolidated item format for display
-    const keystoneAsConsolidatedItems: ConsolidatedScoredItem[] = keystoneAspects.map((aspect, index) => ({
+    // Convert keystone aspects to cluster scored item format for display
+    const keystoneAsClusterItems: ClusterScoredItem[] = keystoneAspects.map((aspect, index) => ({
       id: `keystone-${index}`,
       source: 'synastry' as const,
       type: 'aspect' as const,
@@ -172,41 +194,39 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
       planet2: aspect.description.match(/(\w+)'s (\w+).*?(\w+)'s (\w+)/)?.[4],
       planet1Sign: undefined,
       planet2Sign: undefined,
-      categoryData: [{
-        category: aspect.category || 'OVERALL_ATTRACTION_CHEMISTRY',
-        cluster: aspect.category || 'Passion',
+      clusterContributions: [{
+        cluster: (aspect.cluster as any) || 'Passion',
         score: Math.abs(aspect.score),
-        valence: aspect.score > 0 ? 1 : -1,
         weight: 10, // Keystones have high weight
         intensity: 1,
+        valence: aspect.score > 0 ? 1 : -1,
         centrality: 10, // Keystones have max centrality
-        isKeystone: true,
         spark: false,
-        sparkType: null,
+        isKeystone: true,
         starRating: 5, // Keystones get max stars
       }],
+      code: `keystone-${index}`,
       overallCentrality: 10,
-      isOverallKeystone: true,
       maxStarRating: 5,
     }));
 
-    // Combine regular consolidated items with keystone aspects
-    const allItems = [...consolidatedItems, ...keystoneAsConsolidatedItems];
+    // Combine regular scored items with keystone aspects
+    const allItems = [...scoredItems, ...keystoneAsClusterItems];
 
     // Apply filters
     let filtered = [...allItems];
     switch (activeFilter) {
       case 'keystones':
-        filtered = keystoneAsConsolidatedItems; // Only show keystone aspects
+        filtered = keystoneAsClusterItems; // Only show keystone aspects
         break;
       case 'sparks':
-        filtered = consolidatedItems.filter(item =>
-          item.categoryData.some(cd => cd.spark)
+        filtered = scoredItems.filter(item =>
+          item.clusterContributions.some(cc => cc.spark)
         );
         break;
       case 'topSupports':
         let positiveItems = allItems.filter(item =>
-          item.categoryData.some(cd => cd.valence === 1)
+          item.clusterContributions.some(cc => cc.valence === 1)
         );
         // Prefer 4+ star items
         let highQualitySupports = positiveItems.filter(item => item.maxStarRating >= 4);
@@ -216,21 +236,21 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
         // Sort by highest scores and take top 3-6
         filtered = highQualitySupports
           .sort((a, b) => {
-            const aMaxScore = Math.max(...a.categoryData.map(cd => cd.score));
-            const bMaxScore = Math.max(...b.categoryData.map(cd => cd.score));
+            const aMaxScore = Math.max(...a.clusterContributions.map(cc => cc.score));
+            const bMaxScore = Math.max(...b.clusterContributions.map(cc => cc.score));
             return bMaxScore - aMaxScore;
           })
           .slice(0, 6);
         break;
       case 'topChallenges':
         let negativeItems = allItems.filter(item =>
-          item.categoryData.some(cd => cd.valence === -1)
+          item.clusterContributions.some(cc => cc.valence === -1)
         );
         // Sort by most negative scores and take top 3-6
         filtered = negativeItems
           .sort((a, b) => {
-            const aMinScore = Math.min(...a.categoryData.map(cd => cd.score));
-            const bMinScore = Math.min(...b.categoryData.map(cd => cd.score));
+            const aMinScore = Math.min(...a.clusterContributions.map(cc => cc.score));
+            const bMinScore = Math.min(...b.clusterContributions.map(cc => cc.score));
             return aMinScore - bMinScore; // Most negative first
           })
           .slice(0, 6);
@@ -244,7 +264,7 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
     }
 
     return filtered;
-  }, [consolidatedItems, keystoneAspects, activeFilter]);
+  }, [scoredItems, keystoneAspects, activeFilter]);
 
   const getValenceColor = (valence: number): string => {
     if (valence === 1) {return '#4CAF50';}
@@ -281,12 +301,12 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
   };
 
 
-  const renderItem = ({ item }: { item: ConsolidatedScoredItem }) => {
+  const renderItem = ({ item }: { item: ClusterScoredItem }) => {
     const isSelected = selectedItems.some(selected => selected.id === item.id);
-    const topCategory = item.categoryData.reduce((prev, current) =>
+    const topContribution = item.clusterContributions.reduce((prev, current) =>
       prev.score > current.score ? prev : current
     );
-    const sparks = item.categoryData.filter(cd => cd.spark);
+    const sparks = item.clusterContributions.filter(cc => cc.spark);
 
     // Parse and format the title
     const parsedData = parseAspectDescription(item.description, item);
@@ -307,7 +327,7 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
       >
         {/* Title Section */}
         <View style={styles.titleSection}>
-          {item.isOverallKeystone && (
+          {item.clusterContributions.some(cc => cc.isKeystone) && (
             <View style={styles.keystoneBadge}>
               <Text style={styles.keystoneText}>👑</Text>
             </View>
@@ -328,22 +348,32 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
         <View style={styles.chipRow}>
           <View style={[
             styles.sourceChip,
-            { backgroundColor: item.source === 'synastry' ? '#2196F3' : '#9C27B0' },
+            { backgroundColor: (item.source === 'synastry' || item.source === 'synastryHousePlacement') ? '#2196F3' : '#9C27B0' },
           ]}>
             <Text style={[styles.sourceText, { color: 'white' }]}>
-              {item.source === 'synastry' ? 'Synastry' : 'Composite'}
+              {(item.source === 'synastry' || item.source === 'synastryHousePlacement') ? 'Synastry' : 'Composite'}
+            </Text>
+          </View>
+
+          {/* Cluster Chip */}
+          <View style={[
+            styles.clusterChip,
+            { backgroundColor: CLUSTER_COLORS[topContribution.cluster] || '#757575' },
+          ]}>
+            <Text style={[styles.clusterText, { color: 'white' }]}>
+              {topContribution.cluster}
             </Text>
           </View>
 
           <View style={[
             styles.valenceChip,
-            { backgroundColor: topCategory.valence === 1 ? '#E8F5E9' : '#FFEBEE' },
+            { backgroundColor: topContribution.valence === 1 ? '#E8F5E9' : '#FFEBEE' },
           ]}>
             <Text style={[
               styles.valenceText,
-              { color: topCategory.valence === 1 ? '#2E7D32' : '#C62828' },
+              { color: topContribution.valence === 1 ? '#2E7D32' : '#C62828' },
             ]}>
-              {topCategory.valence === 1 ? 'Support' : 'Challenge'}
+              {topContribution.valence === 1 ? 'Support' : 'Challenge'}
             </Text>
           </View>
 
@@ -363,7 +393,7 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
 
           <View style={[
             styles.valenceIndicator,
-            { backgroundColor: getValenceColor(topCategory.valence) },
+            { backgroundColor: getValenceColor(topContribution.valence) },
           ]} />
         </View>
 
@@ -384,8 +414,8 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
   };
 
   const filterCounts = useMemo(() => {
-    // Convert keystone aspects to consolidated item format for count calculations
-    const keystoneAsConsolidatedItems: ConsolidatedScoredItem[] = keystoneAspects.map((aspect, index) => ({
+    // Convert keystone aspects to cluster scored item format for counting
+    const keystoneAsClusterItems: ClusterScoredItem[] = keystoneAspects.map((aspect, index) => ({
       id: `keystone-${index}`,
       source: 'synastry' as const,
       type: 'aspect' as const,
@@ -397,33 +427,30 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
               aspect.description.includes('conjunction') ? 'conjunction' :
               aspect.description.includes('opposition') ? 'opposition' :
               aspect.description.includes('quincunx') ? 'quincunx' : undefined,
-      planet1: aspect.description.match(/(\w+)'s (\w+)/)?.[2],
-      planet2: aspect.description.match(/(\w+)'s (\w+).*?(\w+)'s (\w+)/)?.[4],
+      planet1: aspect.description.match(/(\\w+)'s (\\w+)/)?.[2],
+      planet2: aspect.description.match(/(\\w+)'s (\\w+).*?(\\w+)'s (\\w+)/)?.[4],
       planet1Sign: undefined,
       planet2Sign: undefined,
-      categoryData: [{
-        category: aspect.category || 'OVERALL_ATTRACTION_CHEMISTRY',
-        cluster: aspect.category || 'Passion',
+      clusterContributions: [{
+        cluster: (aspect.cluster as any) || 'Passion',
         score: Math.abs(aspect.score),
-        valence: aspect.score > 0 ? 1 : -1,
-        weight: 10,
+        weight: 10, // Keystones have high weight
         intensity: 1,
-        centrality: 10,
-        isKeystone: true,
+        valence: aspect.score > 0 ? 1 : -1,
+        centrality: 10, // Keystones have max centrality
         spark: false,
-        sparkType: null,
-        starRating: 5,
+        isKeystone: true,
+        starRating: 5, // Keystones get max stars
       }],
+      code: `keystone-${index}`,
       overallCentrality: 10,
-      isOverallKeystone: true,
       maxStarRating: 5,
     }));
 
-    const allItems = [...consolidatedItems, ...keystoneAsConsolidatedItems];
-
-    // Calculate topSupports count
+    // Calculate topSupports count - match the filtering logic
+    const allItems = [...scoredItems, ...keystoneAsClusterItems];
     let positiveItems = allItems.filter(item =>
-      item.categoryData.some(cd => cd.valence === 1)
+      item.clusterContributions.some(cc => cc.valence === 1)
     );
     let highQualitySupports = positiveItems.filter(item => item.maxStarRating >= 4);
     if (highQualitySupports.length === 0) {
@@ -431,19 +458,19 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
     }
     const topSupportsCount = Math.min(highQualitySupports.length, 6);
 
-    // Calculate topChallenges count
+    // Calculate topChallenges count - match the filtering logic
     let negativeItems = allItems.filter(item =>
-      item.categoryData.some(cd => cd.valence === -1)
+      item.clusterContributions.some(cc => cc.valence === -1)
     );
     const topChallengesCount = Math.min(negativeItems.length, 6);
 
     return {
       keystones: keystoneAspects.length,
-      sparks: consolidatedItems.filter(item => item.categoryData.some(cd => cd.spark)).length,
+      sparks: scoredItems.filter(item => item.clusterContributions.some(cc => cc.spark)).length,
       topSupports: topSupportsCount,
       topChallenges: topChallengesCount,
     };
-  }, [consolidatedItems, keystoneAspects]);
+  }, [scoredItems, keystoneAspects]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }]}>
@@ -452,7 +479,7 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
           Highlights
         </Text>
         <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
-          All relationship factors in one unified view
+          Key relationship dynamics organized by five compatibility dimensions
         </Text>
       </View>
 
@@ -570,6 +597,15 @@ const styles = StyleSheet.create({
   },
   valenceText: {
     fontSize: 12,
+    fontWeight: '600',
+  },
+  clusterChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  clusterText: {
+    fontSize: 11,
     fontWeight: '600',
   },
   starRating: {

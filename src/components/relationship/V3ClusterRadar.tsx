@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '../../theme';
-import { V3Clusters } from '../../api/relationships';
+import { ClusterMetrics } from '../../api/relationships';
 
 const { width } = Dimensions.get('window');
 const RADAR_SIZE = width * 0.8;
@@ -11,7 +11,7 @@ const CENTER_Y = RADAR_SIZE / 2;
 const MAX_RADIUS = RADAR_SIZE * 0.35;
 
 interface V3ClusterRadarProps {
-  clusters: V3Clusters;
+  clusters: Record<string, ClusterMetrics>;
   tier: string;
   profile: string;
 }
@@ -40,6 +40,7 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
     if (score >= 0.4) {return '#FFC107';}
     return '#F44336';
   };
+
 
   const renderRadarGrid = () => {
     const gridLines = [];
@@ -89,11 +90,10 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
     const points: string[] = [];
     const clusterElements: React.ReactNode[] = [];
 
-    Object.entries(clusters).forEach(([clusterName, clusterData]) => {
-      const config = CLUSTER_CONFIG[clusterName];
-      if (!config) {return;}
-
-      const score = clusterData.score;
+    // Ensure all 5 clusters are rendered, even if missing from data
+    Object.entries(CLUSTER_CONFIG).forEach(([clusterName, config]) => {
+      const clusterData = clusters[clusterName];
+      const score = clusterData?.score || 0;
       // Handle both 0-1 decimal and 0-100 percentage formats
       const normalizedScore = score > 1 ? score / 100 : score;
       const radius = MAX_RADIUS * normalizedScore;
@@ -169,8 +169,10 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
     return [polygonElement, ...clusterElements];
   };
 
-  const averageScore = Object.values(clusters).reduce((sum, cluster) => {
-    const normalizedScore = cluster.score > 1 ? cluster.score / 100 : cluster.score;
+  const averageScore = Object.entries(CLUSTER_CONFIG).reduce((sum, [clusterName]) => {
+    const clusterData = clusters[clusterName];
+    const score = clusterData?.score || 0;
+    const normalizedScore = score > 1 ? score / 100 : score;
     return sum + normalizedScore;
   }, 0) / 5;
 
@@ -192,9 +194,10 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
       </View>
 
       <View style={styles.legend}>
-        {Object.entries(clusters).map(([clusterName, clusterData]) => {
-          const config = CLUSTER_CONFIG[clusterName];
-          if (!config) {return null;}
+        {Object.entries(CLUSTER_CONFIG).map(([clusterName, config]) => {
+          const clusterData = clusters[clusterName];
+          const score = clusterData?.score || 0;
+          const normalizedScore = score > 1 ? score / 100 : score;
 
           return (
             <View key={clusterName} style={styles.legendItem}>
@@ -202,8 +205,8 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
               <Text style={[styles.legendText, { color: colors.onSurface }]}>
                 {config.emoji} {config.name}
               </Text>
-              <Text style={[styles.legendScore, { color: getScoreColor(clusterData.score > 1 ? clusterData.score / 100 : clusterData.score) }]}>
-                {clusterData.score > 1 ? Math.round(clusterData.score) : Math.round(clusterData.score * 100)}%
+              <Text style={[styles.legendScore, { color: getScoreColor(normalizedScore) }]}>
+                {score > 1 ? Math.round(score) : Math.round(score * 100)}%
               </Text>
             </View>
           );
@@ -246,7 +249,10 @@ const styles = StyleSheet.create({
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginVertical: 2,
   },
   legendColor: {
     width: 12,

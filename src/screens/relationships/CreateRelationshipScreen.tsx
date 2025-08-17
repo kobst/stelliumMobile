@@ -73,8 +73,8 @@ const CreateRelationshipScreen: React.FC = () => {
 
       if (result.success && result.compositeChartId) {
         console.log('V3 Enhanced relationship analysis result:', result);
-        console.log('result.v2Analysis:', result.v2Analysis);
-        console.log('result.v2Analysis keys:', result.v2Analysis ? Object.keys(result.v2Analysis) : 'undefined');
+        console.log('result.clusterScoring:', result.clusterScoring);
+        console.log('result.clusterScoring keys:', result.clusterScoring ? Object.keys(result.clusterScoring) : 'undefined');
 
         // Direct V3 integration - no transformation needed
         const v3Relationship: UserCompositeChart = {
@@ -88,7 +88,9 @@ const CreateRelationshipScreen: React.FC = () => {
           userB_dateOfBirth: '',
 
           // V3 Analysis Data
-          v2Analysis: result.v2Analysis,
+          clusterScoring: result.clusterScoring,
+          completeAnalysis: result.completeAnalysis,
+          initialOverview: result.initialOverview,
           v2Metrics: result.v2Metrics,
 
           // Chart Data
@@ -99,7 +101,7 @@ const CreateRelationshipScreen: React.FC = () => {
 
         Alert.alert(
           'Success!',
-          `${result.v2Analysis.tier} relationship with ${selectedPerson.firstName} ${selectedPerson.lastName} created! Your profile: ${result.v2Analysis.profile}`,
+          `${result.clusterScoring?.overall?.tier || 'New'} relationship with ${selectedPerson.firstName} ${selectedPerson.lastName} created! Your profile: ${result.clusterScoring?.overall?.profile || 'Compatibility analysis complete'}`,
           [
             {
               text: 'Back to Relationships',
@@ -112,7 +114,7 @@ const CreateRelationshipScreen: React.FC = () => {
               text: 'View Analysis',
               onPress: () => {
                 console.log('Navigating with v3Relationship:', v3Relationship);
-                console.log('v3Relationship.v2Analysis:', v3Relationship.v2Analysis);
+                console.log('v3Relationship.clusterScoring:', v3Relationship.clusterScoring);
                 (navigation as any).navigate('RelationshipAnalysis', {
                   relationship: v3Relationship,
                 });

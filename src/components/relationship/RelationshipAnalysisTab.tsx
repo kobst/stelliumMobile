@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../theme';
-import { RelationshipAnalysisResponse } from '../../api/relationships';
+import { ClusterScoring, ClusterAnalysis, ClusterScoredItem, RelationshipAnalysisResponse } from '../../api/relationships';
 import CompleteRelationshipAnalysisButton from './CompleteRelationshipAnalysisButton';
 import RelationshipTensionFlow from '../relationships/RelationshipTensionFlow';
 import CategoryHighlights from './CategoryHighlights';
@@ -11,7 +11,7 @@ interface RelationshipAnalysisTabProps {
   relationshipId: string;
   onAnalysisComplete: (analysisData?: any) => void;
   loading?: boolean;
-  onChatAboutItem?: (item: any) => void;
+  onChatAboutItem?: (item: ClusterScoredItem) => void;
 }
 
 const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
@@ -22,19 +22,21 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
   onChatAboutItem,
 }) => {
   const { colors } = useTheme();
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set());
 
-  const categoryInfo: { [key: string]: { icon: string; name: string } } = {
-    'OVERALL_ATTRACTION_CHEMISTRY': { icon: '💫', name: 'Overall Attraction & Chemistry' },
-    'EMOTIONAL_SECURITY_CONNECTION': { icon: '🏡', name: 'Emotional Security & Connection' },
-    'SEX_AND_INTIMACY': { icon: '🔥', name: 'Sex & Intimacy' },
-    'COMMUNICATION_AND_MENTAL_CONNECTION': { icon: '💬', name: 'Communication & Mental Connection' },
-    'COMMITMENT_LONG_TERM_POTENTIAL': { icon: '💍', name: 'Commitment & Long-term Potential' },
-    'KARMIC_LESSONS_GROWTH': { icon: '🌟', name: 'Karmic Lessons & Growth' },
-    'PRACTICAL_GROWTH_SHARED_GOALS': { icon: '🎯', name: 'Practical Growth & Shared Goals' },
+  const clusterInfo: { [key: string]: { icon: string; name: string; color: string } } = {
+    'Harmony': { icon: '🎵', name: 'Harmony & Balance', color: '#4CAF50' },
+    'Passion': { icon: '🔥', name: 'Passion & Chemistry', color: '#F44336' },
+    'Connection': { icon: '🧠', name: 'Mental Connection', color: '#2196F3' },
+    'Stability': { icon: '🏛️', name: 'Stability & Security', color: '#9C27B0' },
+    'Growth': { icon: '🌱', name: 'Growth & Evolution', color: '#FF9800' },
   };
 
-  const analysisCategories = analysisData?.analysis ? Object.keys(analysisData.analysis) : [];
+  // Extract data from analysisData
+  const clusterScoring = analysisData?.clusterScoring || null;
+  const completeAnalysis = analysisData?.completeAnalysis || null;
+  const isFullAnalysisComplete = !!(completeAnalysis && Object.keys(completeAnalysis).length > 0);
+  const availableClusters = completeAnalysis ? Object.keys(completeAnalysis) : [];
 
   // Show loading state while fetching analysis data
   if (loading) {
@@ -42,176 +44,198 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>
-          Loading relationship analysis...
+          Loading cluster analysis...
         </Text>
       </View>
     );
   }
 
-  const toggleCategory = (category: string) => {
-    const newExpanded = new Set(expandedCategories);
-    if (newExpanded.has(category)) {
-      newExpanded.delete(category);
+  const toggleCluster = (cluster: string) => {
+    const newExpanded = new Set(expandedClusters);
+    if (newExpanded.has(cluster)) {
+      newExpanded.delete(cluster);
     } else {
-      newExpanded.add(category);
+      newExpanded.add(cluster);
     }
-    setExpandedCategories(newExpanded);
+    setExpandedClusters(newExpanded);
   };
+
+  // Progressive Disclosure: Show different views based on analysis completion state
+  if (!clusterScoring) {
+    return (
+      <ScrollView style={[styles.analysisContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+        <View style={styles.analysisContent}>
+          <View style={[styles.previewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.previewTitle, { color: colors.onSurface }]}>🎯 360° Analysis</Text>
+            <Text style={[styles.previewSubtitle, { color: colors.onSurfaceVariant }]}>
+              Generate detailed insights for each compatibility dimension.
+            </Text>
+            
+            <CompleteRelationshipAnalysisButton
+              compositeChartId={relationshipId}
+              onAnalysisComplete={onAnalysisComplete}
+              hasAnalysisData={false}
+            />
+          </View>
+        </View>
+      </ScrollView>
+    );
+  }
+
+  if (!isFullAnalysisComplete) {
+    return (
+      <ScrollView style={[styles.analysisContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+        <View style={styles.analysisContent}>
+          {/* Basic Cluster Preview */}
+          <View style={[styles.previewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.previewTitle, { color: colors.onSurface }]}>🎯 360° Analysis</Text>
+            <Text style={[styles.previewSubtitle, { color: colors.onSurfaceVariant }]}>
+              Generate detailed insights for each compatibility dimension.
+            </Text>
+            
+            <CompleteRelationshipAnalysisButton
+              compositeChartId={relationshipId}
+              onAnalysisComplete={onAnalysisComplete}
+              hasAnalysisData={isFullAnalysisComplete}
+            />
+          </View>
+        </View>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView style={[styles.analysisContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
-      {analysisData?.analysis && analysisCategories.length > 0 ? (
-        <View style={styles.analysisContent}>
-          {analysisCategories.map((category) => {
-            const categoryData = analysisData.analysis![category];
-            const info = categoryInfo[category];
-            const isExpanded = expandedCategories.has(category);
-
-            return (
-              <View key={category} style={[styles.analysisCategory, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <TouchableOpacity
-                  style={styles.categoryHeader}
-                  onPress={() => toggleCategory(category)}
-                >
-                  <View style={styles.categoryHeaderLeft}>
-                    <Text style={styles.categoryIcon}>{info?.icon || '📊'}</Text>
-                    <Text style={[styles.categoryTitle, { color: colors.onSurface }]}>{info?.name || category}</Text>
+      <View style={styles.analysisContent}>
+        {/* Full Analysis Available */}
+        <View style={[styles.completeBanner, { backgroundColor: colors.primaryContainer }]}>
+          <Text style={[styles.completeBannerText, { color: colors.onPrimaryContainer }]}>
+            ✅ Complete Analysis Ready
+          </Text>
+        </View>
+        
+        {availableClusters.map((clusterName) => {
+          const clusterData = clusterScoring.clusters[clusterName];
+          const analysis = completeAnalysis![clusterName];
+          const info = clusterInfo[clusterName];
+          const isExpanded = expandedClusters.has(clusterName);
+          
+          if (!clusterData || !analysis || !info) return null;
+          
+          return (
+            <View key={clusterName} style={[styles.analysisCluster, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <TouchableOpacity
+                style={styles.clusterHeader}
+                onPress={() => toggleCluster(clusterName)}
+              >
+                <View style={styles.clusterHeaderLeft}>
+                  <View style={[styles.clusterColorBar, { backgroundColor: info.color }]} />
+                  <Text style={styles.clusterIcon}>{info.icon}</Text>
+                  <View style={styles.clusterTitleContainer}>
+                    <Text style={[styles.clusterTitle, { color: colors.onSurface }]}>{info.name}</Text>
+                    <Text style={[styles.clusterQuadrant, { color: colors.onSurfaceVariant }]}>
+                      {clusterData.quadrant} • {Math.round(clusterData.score)}%
+                    </Text>
                   </View>
-                  <Text style={[styles.expandIcon, { color: colors.primary }]}>
-                    {isExpanded ? '−' : '+'}
-                  </Text>
-                </TouchableOpacity>
-
-                {isExpanded && (
-                  <View style={[styles.categoryContent, { borderTopColor: colors.border }]}>
-                    {/* Overall Score */}
-                    {categoryData.overallScore !== undefined && (
-                      <View style={[styles.scoreSection, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.scoreLabel, { color: colors.onSurfaceVariant }]}>Overall Score</Text>
-                        <Text style={[styles.scoreValue, { color: colors.primary }]}>
-                          {Math.round(categoryData.overallScore)}%
-                        </Text>
-                      </View>
-                    )}
-
-                    {/* Category Dynamics Metrics */}
-                    {analysisData?.dynamics?.[category] && (
-                      <View style={[styles.metricsSection, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.metricsTitle, { color: colors.onSurface }]}>📊 Category Metrics</Text>
-                        <View style={styles.metricsGrid}>
-                          <View style={styles.metricRow}>
-                            <View style={styles.metricItem}>
-                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Support</Text>
-                              <Text style={[styles.metricValue, { color: colors.primary }]}>
-                                {analysisData.dynamics[category].supportPct}%
-                              </Text>
-                            </View>
-                            <View style={styles.metricItem}>
-                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Challenge</Text>
-                              <Text style={[styles.metricValue, { color: colors.error }]}>
-                                {analysisData.dynamics[category].challengePct}%
-                              </Text>
-                            </View>
-                          </View>
-                          <View style={styles.metricRow}>
-                            <View style={styles.metricItem}>
-                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Heat</Text>
-                              <Text style={[styles.metricValue, { color: colors.secondary }]}>
-                                {analysisData.dynamics[category].heatPct}%
-                              </Text>
-                            </View>
-                            <View style={styles.metricItem}>
-                              <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Activity</Text>
-                              <Text style={[styles.metricValue, { color: colors.onSurface }]}>
-                                {analysisData.dynamics[category].activityPct}%
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                      </View>
-                    )}
-
-                    {/* Category Highlights */}
-                    {analysisData?.v2Analysis?.consolidatedScoredItems && (
-                      <CategoryHighlights
-                        consolidatedItems={analysisData.v2Analysis.consolidatedScoredItems}
-                        keystoneAspects={analysisData.dynamics?.[category]?.keystone || []}
-                        targetCategory={category}
-                        onItemPress={(item) => {
-                          console.log('Category item pressed:', item);
-                        }}
-                        onChatAboutItem={onChatAboutItem}
-                      />
-                    )}
-
-                    {/* Daily Dynamics - Metrics Interpretation */}
-                    {categoryData.v3MetricsInterpretation && (
-                      <View style={[styles.dailyDynamicsSection, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.panelTitle, { color: colors.primary }]}>📊 Daily Dynamics</Text>
-                        {analysisData?.dynamics?.[category] && (
-                          <Text style={[styles.quadrantText, { color: colors.onSurfaceVariant }]}>
-                            Quadrant: {analysisData.dynamics[category].quadrant}
-                          </Text>
-                        )}
-                        <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                          {categoryData.v3MetricsInterpretation}
-                        </Text>
-                      </View>
-                    )}
-
-                    {/* Tension Flow Analysis */}
-                    {analysisData?.categoryTensionFlowAnalysis?.[category] && (
-                      <View style={[styles.tensionFlowSection, { borderBottomColor: colors.border }]}>
-                        <RelationshipTensionFlow
-                          tensionFlow={analysisData.categoryTensionFlowAnalysis[category]}
-                        />
-                      </View>
-                    )}
-
-                    {/* Analysis Panels */}
-                    <View style={styles.panelsSection}>
-                      {categoryData.panels.synastry && (
-                        <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
-                          <Text style={[styles.panelTitle, { color: colors.primary }]}>🔗 Synastry Analysis</Text>
-                          <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                            {categoryData.panels.synastry}
+                </View>
+                <Text style={[styles.expandIcon, { color: colors.primary }]}>
+                  {isExpanded ? '−' : '+'}
+                </Text>
+              </TouchableOpacity>
+              
+              {isExpanded && (
+                <View style={[styles.clusterContent, { borderTopColor: colors.border }]}>
+                  {/* Cluster Metrics */}
+                  <View style={[styles.metricsSection, { borderBottomColor: colors.border }]}>
+                    <Text style={[styles.metricsTitle, { color: colors.onSurface }]}>📊 Cluster Metrics</Text>
+                    <View style={styles.metricsGrid}>
+                      <View style={styles.metricRow}>
+                        <View style={styles.metricItem}>
+                          <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Support</Text>
+                          <Text style={[styles.metricValue, { color: colors.primary }]}>
+                            {Math.round(clusterData.supportPct)}%
                           </Text>
                         </View>
-                      )}
-
-                      {categoryData.panels.composite && (
-                        <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
-                          <Text style={[styles.panelTitle, { color: colors.primary }]}>🌟 Composite Analysis</Text>
-                          <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                            {categoryData.panels.composite}
+                        <View style={styles.metricItem}>
+                          <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Challenge</Text>
+                          <Text style={[styles.metricValue, { color: colors.error }]}>
+                            {Math.round(clusterData.challengePct)}%
                           </Text>
                         </View>
-                      )}
-
-                      {categoryData.panels.partnerPerspectives && (
-                        <View style={styles.analysisPanelLast}>
-                          <Text style={[styles.panelTitle, { color: colors.primary }]}>👥 Partner Perspectives</Text>
-                          <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                            {categoryData.panels.partnerPerspectives}
+                      </View>
+                      <View style={styles.metricRow}>
+                        <View style={styles.metricItem}>
+                          <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Heat</Text>
+                          <Text style={[styles.metricValue, { color: colors.secondary }]}>
+                            {Math.round(clusterData.heatPct)}%
                           </Text>
                         </View>
-                      )}
+                        <View style={styles.metricItem}>
+                          <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Activity</Text>
+                          <Text style={[styles.metricValue, { color: colors.onSurface }]}>
+                            {Math.round(clusterData.activityPct)}%
+                          </Text>
+                        </View>
+                      </View>
                     </View>
                   </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
-      ) : (
-        <View style={styles.analysisEmptyContainer}>
-          <CompleteRelationshipAnalysisButton
-            compositeChartId={relationshipId}
-            onAnalysisComplete={onAnalysisComplete}
-            hasAnalysisData={!!(analysisData?.analysis && analysisCategories.length > 0)}
-          />
-        </View>
-      )}
+                  
+                  {/* Metrics Interpretation */}
+                  {analysis.metricsInterpretation && (
+                    <View style={[styles.interpretationSection, { borderBottomColor: colors.border }]}>
+                      <Text style={[styles.panelTitle, { color: info.color }]}>📊 Daily Dynamics</Text>
+                      <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                        {analysis.metricsInterpretation}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {/* Analysis Panels */}
+                  <View style={styles.panelsSection}>
+                    {analysis.synastryPanel && (
+                      <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
+                        <Text style={[styles.panelTitle, { color: info.color }]}>🔗 Synastry Analysis</Text>
+                        <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                          {analysis.synastryPanel}
+                        </Text>
+                      </View>
+                    )}
+                    
+                    {analysis.compositePanel && (
+                      <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
+                        <Text style={[styles.panelTitle, { color: info.color }]}>🌟 Composite Analysis</Text>
+                        <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                          {analysis.compositePanel}
+                        </Text>
+                      </View>
+                    )}
+                    
+                    {analysis.partnersPerspectives && (
+                      <View style={styles.analysisPanelLast}>
+                        <Text style={[styles.panelTitle, { color: info.color }]}>👥 Partner Perspectives</Text>
+                        <View style={styles.partnersGrid}>
+                          <View style={[styles.partnerPanel, { backgroundColor: colors.background }]}>
+                            <Text style={[styles.partnerTitle, { color: colors.onSurface }]}>Partner A</Text>
+                            <Text style={[styles.partnerText, { color: colors.onSurfaceVariant }]}>
+                              {analysis.partnersPerspectives.partnerA}
+                            </Text>
+                          </View>
+                          <View style={[styles.partnerPanel, { backgroundColor: colors.background }]}>
+                            <Text style={[styles.partnerTitle, { color: colors.onSurface }]}>Partner B</Text>
+                            <Text style={[styles.partnerText, { color: colors.onSurfaceVariant }]}>
+                              {analysis.partnersPerspectives.partnerB}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
     </ScrollView>
   );
 };
@@ -223,37 +247,142 @@ const styles = StyleSheet.create({
   analysisContent: {
     padding: 16,
   },
-  analysisCategory: {
+  previewCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  previewTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  previewSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  clusterPreviewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+    justifyContent: 'center',
+  },
+  clusterPreviewItem: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  clusterPreviewIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  clusterPreviewName: {
+    fontSize: 10,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  clusterPreviewScore: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  startAnalysisButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  startAnalysisButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  analysisNote: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  completeBanner: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  completeBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  analysisCluster: {
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 12,
     overflow: 'hidden',
   },
-  categoryHeader: {
+  clusterHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
   },
-  categoryHeaderLeft: {
+  clusterHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  categoryIcon: {
+  clusterColorBar: {
+    width: 4,
+    height: 40,
+    borderRadius: 2,
+    marginRight: 12,
+  },
+  clusterIcon: {
     fontSize: 20,
     marginRight: 12,
   },
-  categoryTitle: {
+  clusterTitleContainer: {
+    flex: 1,
+  },
+  clusterTitle: {
     fontSize: 16,
     fontWeight: '600',
-    flex: 1,
+  },
+  clusterQuadrant: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  missingDataContainer: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: 'center',
+    margin: 16,
+  },
+  missingDataIcon: {
+    fontSize: 32,
+    marginBottom: 12,
+  },
+  missingDataTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  missingDataText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   expandIcon: {
     fontSize: 14,
     fontWeight: 'bold',
   },
-  categoryContent: {
+  clusterContent: {
     borderTopWidth: 1,
     borderTopColor: 'inherit',
   },
@@ -348,15 +477,28 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // Daily Dynamics section (placed after metrics)
-  dailyDynamicsSection: {
+  interpretationSection: {
     padding: 16,
     borderBottomWidth: 1,
   },
-  quadrantText: {
-    fontSize: 14,
-    fontWeight: '500',
+  partnersGrid: {
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 8,
-    marginBottom: 12,
+  },
+  partnerPanel: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+  },
+  partnerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  partnerText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
 
