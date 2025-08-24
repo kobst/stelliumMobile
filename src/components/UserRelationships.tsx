@@ -1,19 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../store';
 import { relationshipsApi, UserCompositeChart } from '../api/relationships';
 import { useTheme } from '../theme';
-import RelationshipTierBadge from './relationships/RelationshipTierBadge';
-import RelationshipScoreIndicator from './relationships/RelationshipScoreIndicator';
-import AnalysisLevelIndicator from './relationships/AnalysisLevelIndicator';
 
 interface UserRelationshipsProps {
   onRelationshipPress?: (relationship: UserCompositeChart) => void;
@@ -26,7 +16,6 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
   const [relationships, setRelationships] = useState<UserCompositeChart[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deletingRelationship, setDeletingRelationship] = useState<string | null>(null);
 
   useEffect(() => {
     loadRelationships();
@@ -73,50 +62,7 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
     }
   };
 
-  const handleDeleteRelationship = async (relationship: UserCompositeChart) => {
-    Alert.alert(
-      'Delete Relationship',
-      `Are you sure you want to delete the relationship between ${relationship.userA_name} and ${relationship.userB_name}?\n\nThis will permanently remove:\n• The relationship data\n• All compatibility analyses\n• Chat history\n• Associated data\n\nThis action cannot be undone.`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setDeletingRelationship(relationship._id);
-            try {
-              await relationshipsApi.deleteRelationship(relationship._id);
-
-              // Remove deleted relationship from local state
-              setRelationships(prevRelationships =>
-                prevRelationships.filter(r => r._id !== relationship._id)
-              );
-
-              Alert.alert('Success', 'Relationship deleted successfully.');
-            } catch (error) {
-              console.error('Failed to delete relationship:', error);
-              let errorMessage = 'Failed to delete relationship.';
-
-              if (error instanceof Error) {
-                if (error.message.includes('Unauthorized')) {
-                  errorMessage = 'You do not have permission to delete this relationship.';
-                } else if (error.message.includes('not found')) {
-                  errorMessage = 'This relationship may have already been deleted.';
-                }
-              }
-
-              Alert.alert('Error', errorMessage);
-            } finally {
-              setDeletingRelationship(null);
-            }
-          },
-        },
-      ]
-    );
-  };
+  // Relationships can be deleted elsewhere; keep component focused on display only
 
   // Helper function to determine user display names
   const getDisplayNames = (item: UserCompositeChart) => {
@@ -155,86 +101,33 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
     return { leftName, rightName };
   };
 
+  const getScoreColor = (score: number) => {
+    if (score >= 71) { return '#10B981'; }
+    if (score >= 41) { return '#F59E0B'; }
+    return '#EF4444';
+  };
+
   const renderRelationshipItem = ({ item }: { item: UserCompositeChart }) => {
     const { leftName, rightName } = getDisplayNames(item);
+    const partnerName = leftName === 'You' ? rightName : leftName;
     const analysisStatus = item.relationshipAnalysisStatus;
     const level = analysisStatus?.level || 'none';
-
-    const getActionButtonText = () => {
-      switch (level) {
-        case 'complete':
-          return 'View Analysis';
-        case 'scores':
-          return 'View Compatibility';
-        case 'none':
-        default:
-          return 'Start Analysis';
-      }
-    };
+    const score = typeof analysisStatus?.overall?.score === 'number'
+      ? Math.round(analysisStatus.overall.score)
+      : null;
 
     return (
       <TouchableOpacity
-        style={[styles.relationshipCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        style={[styles.relationshipRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
         onPress={() => handleRelationshipPress(item)}
         activeOpacity={0.8}
       >
-        <View style={styles.relationshipHeader}>
-          <Text style={[styles.createdDate, { color: colors.onSurfaceVariant }]}>
-            {new Date(item.createdAt).toLocaleDateString()}
-          </Text>
-          <RelationshipTierBadge tier={analysisStatus?.tier} level={level} />
-        </View>
-
-        <View style={styles.partnerPair}>
-          <View style={styles.partnerInfo}>
-            <Text style={[styles.partnerName, { color: colors.onSurface }]}>{leftName}</Text>
-            <Text style={[styles.partnerDOB, { color: colors.onSurfaceVariant }]}>
-              {new Date(item.userA_dateOfBirth).toLocaleDateString()}
-            </Text>
-          </View>
-
-          <View style={styles.separator}>
-            <Text style={[styles.separatorText, { color: colors.primary }]}>♥</Text>
-          </View>
-
-          <View style={styles.partnerInfo}>
-            <Text style={[styles.partnerName, { color: colors.onSurface }]}>{rightName}</Text>
-            <Text style={[styles.partnerDOB, { color: colors.onSurfaceVariant }]}>
-              {new Date(item.userB_dateOfBirth).toLocaleDateString()}
-            </Text>
-          </View>
-        </View>
-
-        {/* Analysis Level Indicator */}
-        <AnalysisLevelIndicator level={level} />
-
-        {/* Tier and Profile */}
-        {(analysisStatus?.overall?.tier || analysisStatus?.overall?.profile) && (
-          <View style={styles.tierProfileContainer}>
-            {analysisStatus?.overall?.tier && (
-              <Text style={[styles.tierText, { color: colors.primary }]}>
-                {analysisStatus.overall.tier} Relationship
-              </Text>
-            )}
-            {analysisStatus?.overall?.profile && (
-              <Text style={[styles.profileText, { color: colors.onSurfaceVariant }]}>
-                {analysisStatus.overall.profile}
-              </Text>
-            )}
-          </View>
+        <Text style={[styles.partnerName, { color: colors.onSurface }]}>{partnerName}</Text>
+        {level !== 'none' && score !== null ? (
+          <Text style={[styles.scoreText, { color: getScoreColor(score) }]}>{score}</Text>
+        ) : (
+          <Text style={[styles.scoreText, { color: colors.onSurfaceVariant }]}>–</Text>
         )}
-
-        {/* Compatibility Scores */}
-        <RelationshipScoreIndicator overallScore={analysisStatus?.overall?.score} level={level} />
-
-        <TouchableOpacity
-          style={styles.viewButton}
-          onPress={() => handleRelationshipPress(item)}
-        >
-          <Text style={[styles.viewButtonText, { color: colors.primary }]}>
-            {getActionButtonText()}
-          </Text>
-        </TouchableOpacity>
       </TouchableOpacity>
     );
   };
@@ -339,72 +232,23 @@ const styles = StyleSheet.create({
   relationshipsList: {
     flex: 1,
   },
-  // Updated card visuals: 8px radius, no inner divider
-  relationshipCard: {
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 12,
-    padding: 16,
-  },
-  relationshipHeader: {
+  relationshipRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     marginBottom: 12,
-  },
-  createdDate: {
-    fontSize: 12,
-  },
-  partnerPair: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  partnerInfo: {
-    flex: 1,
-    alignItems: 'center',
   },
   partnerName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
-    textAlign: 'center',
   },
-  partnerDOB: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  separator: {
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  separatorText: {
-    fontSize: 20,
-  },
-  viewButton: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  viewButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  tierProfileContainer: {
-    marginTop: 8,
-    marginBottom: 4,
-    alignItems: 'center',
-  },
-  tierText: {
-    fontSize: 14,
+  scoreText: {
+    fontSize: 16,
     fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  profileText: {
-    fontSize: 13,
-    fontWeight: '500',
-    fontStyle: 'italic',
-    textAlign: 'center',
   },
   errorSection: {
     margin: 16,
