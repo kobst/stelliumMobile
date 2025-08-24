@@ -28,10 +28,10 @@ export interface ClusterScoredItem {
   source: 'synastry' | 'composite' | 'synastryHousePlacement' | 'compositeHousePlacement';
   type: 'aspect' | 'housePlacement';
   description: string;
-  
+
   // Multiple cluster contributions per item
   clusterContributions: ClusterContribution[];
-  
+
   // Astrological details (conditional - only when meaningful)
   aspect?: string;
   orb?: number;
@@ -46,7 +46,7 @@ export interface ClusterScoredItem {
   house?: number;
   sign?: string;
   direction?: 'A->B' | 'B->A' | 'composite';
-  
+
   // Metadata
   code: string;
   overallCentrality: number;
@@ -74,16 +74,29 @@ export interface OverallAnalysis {
   tier: string;                     // Thriving, Flourishing, Emerging, Building, Developing
   strengthClusters: string[];       // Clusters above 70
   growthClusters: string[];         // Clusters below 50
+  quadrantAnalytics: {
+    distribution: Record<string, number>;  // Quadrant counts
+    entropy: number;                // Complexity measure (0-2+)
+    dominantQuadrant: string;       // Most common quadrant
+    uniformity: string;             // 'Uniform'|'Moderate'|'Varied'|'Highly Varied'
+  };
+  keystoneAspects: KeystoneAspect[];
 }
 
 export interface ClusterAnalysis {
-  synastryPanel: string;
-  compositePanel: string;
-  partnersPerspectives: {
-    partnerA: string;
-    partnerB: string;
+  synastry: {
+    supportPanel: string;
+    challengePanel: string;
+    synthesisPanel: string;
   };
-  metricsInterpretation: string;
+  composite: {
+    supportPanel: string;
+    challengePanel: string;
+    synthesisPanel: string;
+  };
+  generatedAt: any;
+  panelFormat: string;
+  workflowType: string;
 }
 
 export interface ClusterScoring {
@@ -219,27 +232,35 @@ export interface EnhancedRelationshipAnalysisResponse {
   compositeChartId: string;
   userA: { id: string; name: string };
   userB: { id: string; name: string };
-  
-  // 5-Cluster Direct Scoring Results
-  clusterScoring: ClusterScoring;
-  
+
+  // 5-Cluster Direct Scoring Results (NEW: Top-level structure)
+  clusters: {
+    Harmony: ClusterMetrics;
+    Passion: ClusterMetrics;
+    Connection: ClusterMetrics;
+    Stability: ClusterMetrics;
+    Growth: ClusterMetrics;
+  };
+  overall: OverallAnalysis;
+  scoredItems: ClusterScoredItem[];
+
   // Initial AI-generated overview
-  initialOverview: string;
-  
+  initialOverview: string | null;
+
   // Optional: Complete analysis (if already generated)
   completeAnalysis?: Record<string, ClusterAnalysis>;
-  
+
   // Network-based Tension Flow Analysis
   tensionFlowAnalysis: TensionFlowAnalysis;
-  
+
   // Raw astrological data
   compositeChart: CompositeChart;
   synastryAspects: SynastryAspect[];
   synastryHousePlacements: SynastryHousePlacements;
-  
+
   // Status for Step Functions integration
   status: 'scores_calculated';
-  
+
   // Metadata
   metadata: {
     processingTime: string;
@@ -254,14 +275,27 @@ export interface EnhancedRelationshipAnalysisResponse {
 
 // Full Analysis Response (Updated for Cluster System)
 export interface RelationshipAnalysisResponse {
-  // Cluster Analysis from Enhanced Analysis
-  clusterScoring?: ClusterScoring;
+  // NEW: Unified response structure (same as workflow status)
+  clusterAnalysis?: {
+    clusters: {
+      Harmony: ClusterMetrics;
+      Passion: ClusterMetrics;
+      Connection: ClusterMetrics;
+      Stability: ClusterMetrics;
+      Growth: ClusterMetrics;
+    };
+  };
+  overall?: OverallAnalysis;
   completeAnalysis?: Record<string, ClusterAnalysis>;
+  holisticOverview?: string;
   initialOverview?: string;
-  
+
+  // Legacy cluster scoring (for backward compatibility)
+  clusterScoring?: ClusterScoring;
+
   // Tension Flow Analysis
   tensionFlowAnalysis?: TensionFlowAnalysis;
-  
+
   // Chart data
   synastryAspects?: SynastryAspect[];
   synastryHousePlacements?: SynastryHousePlacements;
@@ -281,8 +315,40 @@ export interface RelationshipWorkflowStatusResponse {
       completed: number;
       total: number;
     };
+    stepFunctions?: {
+      executionArn: string;
+      status: string;
+      startedAt: Date;
+      completedAt?: Date;
+      duration?: string;
+    };
   };
+
+  // NEW: Unified response structure (same as fetchRelationshipAnalysis)
+  clusterAnalysis?: {
+    clusters: {
+      Harmony: ClusterMetrics;
+      Passion: ClusterMetrics;
+      Connection: ClusterMetrics;
+      Stability: ClusterMetrics;
+      Growth: ClusterMetrics;
+    };
+  };
+  overall?: OverallAnalysis;
+  completeAnalysis?: Record<string, ClusterAnalysis>;
+  holisticOverview?: string;
+  initialOverview?: string;
+  tensionFlowAnalysis?: TensionFlowAnalysis;
+
+  // Core analysis data for backward compatibility
   analysisData?: RelationshipAnalysisResponse;
+  compositeChartId: string;
+
+  debug?: {
+    mode: 'step-functions';
+    stepFunctionsAvailable: boolean;
+    executionFound: boolean;
+  };
 }
 
 // Workflow Start Response

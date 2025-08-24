@@ -72,11 +72,21 @@ const CreateRelationshipScreen: React.FC = () => {
       );
 
       if (result.success && result.compositeChartId) {
-        console.log('V3 Enhanced relationship analysis result:', result);
-        console.log('result.clusterScoring:', result.clusterScoring);
-        console.log('result.clusterScoring keys:', result.clusterScoring ? Object.keys(result.clusterScoring) : 'undefined');
+        console.log('Enhanced relationship analysis result:', result);
+        console.log('result.clusters:', result.clusters);
+        console.log('result.overall:', result.overall);
+        console.log('result.synastryAspects:', result.synastryAspects);
+        console.log('result.compositeChart:', result.compositeChart);
+        console.log('result.synastryHousePlacements:', result.synastryHousePlacements);
 
-        // Direct V3 integration - no transformation needed
+        // Create unified clusterScoring structure for backward compatibility
+        const unifiedClusterScoring = {
+          clusters: result.clusters,
+          overall: result.overall,
+          scoredItems: result.scoredItems,
+        };
+
+        // Direct 5-cluster integration
         const v3Relationship: UserCompositeChart = {
           _id: result.compositeChartId,
           userA_name: result.userA.name,
@@ -87,11 +97,10 @@ const CreateRelationshipScreen: React.FC = () => {
           userA_dateOfBirth: '',
           userB_dateOfBirth: '',
 
-          // V3 Analysis Data
-          clusterScoring: result.clusterScoring,
+          // 5-Cluster Analysis Data (unified structure for backward compatibility)
+          clusterScoring: unifiedClusterScoring,
           completeAnalysis: result.completeAnalysis,
           initialOverview: result.initialOverview,
-          v2Metrics: result.v2Metrics,
 
           // Chart Data
           synastryAspects: result.synastryAspects,
@@ -101,7 +110,7 @@ const CreateRelationshipScreen: React.FC = () => {
 
         Alert.alert(
           'Success!',
-          `${result.clusterScoring?.overall?.tier || 'New'} relationship with ${selectedPerson.firstName} ${selectedPerson.lastName} created! Your profile: ${result.clusterScoring?.overall?.profile || 'Compatibility analysis complete'}`,
+          `${result.overall?.tier || 'New'} relationship with ${selectedPerson.firstName} ${selectedPerson.lastName} created! Your profile: ${result.overall?.profile || 'Compatibility analysis complete'}`,
           [
             {
               text: 'Back to Relationships',
@@ -115,6 +124,9 @@ const CreateRelationshipScreen: React.FC = () => {
               onPress: () => {
                 console.log('Navigating with v3Relationship:', v3Relationship);
                 console.log('v3Relationship.clusterScoring:', v3Relationship.clusterScoring);
+                console.log('v3Relationship.synastryAspects:', v3Relationship.synastryAspects);
+                console.log('v3Relationship.compositeChart:', v3Relationship.compositeChart);
+                console.log('v3Relationship.synastryHousePlacements:', v3Relationship.synastryHousePlacements);
                 (navigation as any).navigate('RelationshipAnalysis', {
                   relationship: v3Relationship,
                 });

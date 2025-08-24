@@ -65,7 +65,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
         );
         break;
       case 'keystones':
-        items = items.filter(item => 
+        items = items.filter(item =>
           item.clusterContributions.some(cc => cc.isKeystone === true)
         );
         break;
@@ -101,7 +101,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
       challenges: scoredItems.filter(item =>
         item.clusterContributions.some(cc => cc.valence === -1)
       ).length,
-      keystones: scoredItems.filter(item => 
+      keystones: scoredItems.filter(item =>
         item.clusterContributions.some(cc => cc.isKeystone === true)
       ).length,
     };
