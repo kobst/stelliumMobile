@@ -88,6 +88,9 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
   console.log('RelationshipAnalysisScreen loaded with relationship:', relationship);
   console.log('Relationship has clusterScoring:', !!relationshipData?.clusterScoring);
+  console.log('Relationship synastryAspects:', !!relationshipData?.synastryAspects);
+  console.log('Relationship compositeChart:', !!relationshipData?.compositeChart);
+  console.log('Relationship synastryHousePlacements:', !!relationshipData?.synastryHousePlacements);
 
   // Early return if no relationship data
   if (!relationship || !relationshipData) {
@@ -121,7 +124,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
     if (!relationship?._id) {
       return;
     }
-    
+
     // Prevent reloading if we've already loaded data for this relationship (unless forced)
     if (!forceReload && hasLoadedData) {
       return;
@@ -138,15 +141,25 @@ const RelationshipAnalysisScreen: React.FC = () => {
       setAnalysisData(fullAnalysisData);
       console.log('Set analysisData in state:', !!fullAnalysisData.completeAnalysis);
 
-      // Update the relationship data with cluster data
-      if (fullAnalysisData.clusterScoring) {
+      // Update the relationship data with cluster data (handle both new and legacy structures)
+      const clusterData = fullAnalysisData.clusterAnalysis || fullAnalysisData.clusterScoring;
+      const overallData = fullAnalysisData.overall || fullAnalysisData.clusterScoring?.overall;
+
+      if (clusterData) {
+        // Create unified clusterScoring structure for backward compatibility
+        const unifiedClusterScoring = {
+          clusters: clusterData.clusters || clusterData,
+          overall: overallData,
+          scoredItems: clusterData.scoredItems || [],
+        };
+
         setRelationshipData(prev => ({
           ...prev,
-          clusterScoring: fullAnalysisData.clusterScoring,
+          clusterScoring: unifiedClusterScoring,
           completeAnalysis: fullAnalysisData.completeAnalysis,
           initialOverview: fullAnalysisData.initialOverview,
         }));
-        console.log('Updated relationship with cluster data - clusters:', Object.keys(fullAnalysisData.clusterScoring.clusters));
+        console.log('Updated relationship with cluster data - clusters:', Object.keys(unifiedClusterScoring.clusters));
       }
 
       // Fetch user birth charts in parallel if we have user IDs
@@ -162,9 +175,11 @@ const RelationshipAnalysisScreen: React.FC = () => {
         const userResults = await Promise.all(userPromises);
 
         if (relationship?.userA_id && userResults[0]) {
+          console.log('Setting userA data:', userResults[0]);
           setUserAData(userResults[0]);
         }
         if (relationship?.userB_id && userResults[userResults.length - 1]) {
+          console.log('Setting userB data:', userResults[userResults.length - 1]);
           setUserBData(userResults[userResults.length - 1]);
         }
       }
@@ -184,17 +199,12 @@ const RelationshipAnalysisScreen: React.FC = () => {
       setHasLoadedData(false);
       setRelationshipData(relationship);
 
-      // If the relationship already has cluster data, don't show loading
-      if (relationship.clusterScoring) {
-        setLoading(false);
-        setHasLoadedData(true);
-      } else {
-        setLoading(true);
-        setAnalysisData(null);
-        loadAnalysisData();
-      }
+      // Always load analysis data to ensure we have user birth charts for charts
+      setLoading(true);
+      setAnalysisData(null);
+      loadAnalysisData();
     }
-  }, [relationship?._id, relationship?.clusterScoring]); // Only reload when the relationship ID changes
+  }, [relationship?._id]); // Only reload when the relationship ID changes
 
 
   // Handler for "Chat about this" functionality
@@ -357,7 +367,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
     console.log('Relationship object:', relationship);
     console.log('ClusterScoring:', relationshipData?.clusterScoring);
     console.log('Keystones available:', relationshipData?.clusterScoring?.overall?.keystoneAspects?.length || 0);
-    
+
     const consolidatedItems = relationshipData.clusterScoring?.scoredItems || [];
 
     if (!relationshipData?.clusterScoring) {

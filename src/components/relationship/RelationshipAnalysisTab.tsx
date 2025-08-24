@@ -32,11 +32,19 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
     'Growth': { icon: '🌱', name: 'Growth & Evolution', color: '#FF9800' },
   };
 
-  // Extract data from analysisData
-  const clusterScoring = analysisData?.clusterScoring || null;
+  // Extract data from analysisData (handle both new unified structure and legacy structure)
+  const clusterData = analysisData?.clusterAnalysis || analysisData?.clusterScoring;
+  const overallData = analysisData?.overall || analysisData?.clusterScoring?.overall;
   const completeAnalysis = analysisData?.completeAnalysis || null;
   const isFullAnalysisComplete = !!(completeAnalysis && Object.keys(completeAnalysis).length > 0);
   const availableClusters = completeAnalysis ? Object.keys(completeAnalysis) : [];
+
+  // Create unified cluster scoring for backward compatibility
+  const clusterScoring = clusterData ? {
+    clusters: clusterData.clusters || clusterData,
+    overall: overallData,
+    scoredItems: clusterData.scoredItems || [],
+  } : null;
 
   // Show loading state while fetching analysis data
   if (loading) {
@@ -70,7 +78,7 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
             <Text style={[styles.previewSubtitle, { color: colors.onSurfaceVariant }]}>
               Generate detailed insights for each compatibility dimension.
             </Text>
-            
+
             <CompleteRelationshipAnalysisButton
               compositeChartId={relationshipId}
               onAnalysisComplete={onAnalysisComplete}
@@ -92,7 +100,7 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
             <Text style={[styles.previewSubtitle, { color: colors.onSurfaceVariant }]}>
               Generate detailed insights for each compatibility dimension.
             </Text>
-            
+
             <CompleteRelationshipAnalysisButton
               compositeChartId={relationshipId}
               onAnalysisComplete={onAnalysisComplete}
@@ -113,15 +121,16 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
             ✅ Complete Analysis Ready
           </Text>
         </View>
-        
+
         {availableClusters.map((clusterName) => {
           const clusterData = clusterScoring.clusters[clusterName];
           const analysis = completeAnalysis![clusterName];
           const info = clusterInfo[clusterName];
           const isExpanded = expandedClusters.has(clusterName);
-          
-          if (!clusterData || !analysis || !info) return null;
-          
+
+
+          if (!clusterData || !analysis || !info) {return null;}
+
           return (
             <View key={clusterName} style={[styles.analysisCluster, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <TouchableOpacity
@@ -142,7 +151,7 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
                   {isExpanded ? '−' : '+'}
                 </Text>
               </TouchableOpacity>
-              
+
               {isExpanded && (
                 <View style={[styles.clusterContent, { borderTopColor: colors.border }]}>
                   {/* Cluster Metrics */}
@@ -179,54 +188,60 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
                       </View>
                     </View>
                   </View>
-                  
-                  {/* Metrics Interpretation */}
-                  {analysis.metricsInterpretation && (
-                    <View style={[styles.interpretationSection, { borderBottomColor: colors.border }]}>
-                      <Text style={[styles.panelTitle, { color: info.color }]}>📊 Daily Dynamics</Text>
-                      <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                        {analysis.metricsInterpretation}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {/* Analysis Panels */}
+
+                  {/* Analysis Panels - Handle nested structure */}
                   <View style={styles.panelsSection}>
-                    {analysis.synastryPanel && (
-                      <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.panelTitle, { color: info.color }]}>🔗 Synastry Analysis</Text>
-                        <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                          {analysis.synastryPanel}
-                        </Text>
-                      </View>
+                    {/* Synastry Analysis - Extract from nested object */}
+                    {analysis.synastry && (
+                      <>
+                        {analysis.synastry.supportPanel && (
+                          <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
+                            <Text style={[styles.panelTitle, { color: info.color }]}>🔗 Synastry Support</Text>
+                            <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                              {analysis.synastry.supportPanel}
+                            </Text>
+                          </View>
+                        )}
+                        {analysis.synastry.challengePanel && (
+                          <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
+                            <Text style={[styles.panelTitle, { color: info.color }]}>🔗 Synastry Growth</Text>
+                            <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                              {analysis.synastry.challengePanel}
+                            </Text>
+                          </View>
+                        )}
+                      </>
                     )}
-                    
-                    {analysis.compositePanel && (
-                      <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.panelTitle, { color: info.color }]}>🌟 Composite Analysis</Text>
-                        <Text style={[styles.analysisText, { color: colors.onSurface }]}>
-                          {analysis.compositePanel}
-                        </Text>
-                      </View>
+
+                    {/* Composite Analysis - Extract from nested object */}
+                    {analysis.composite && (
+                      <>
+                        {analysis.composite.supportPanel && (
+                          <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
+                            <Text style={[styles.panelTitle, { color: info.color }]}>🌟 Composite Support</Text>
+                            <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                              {analysis.composite.supportPanel}
+                            </Text>
+                          </View>
+                        )}
+                        {analysis.composite.challengePanel && (
+                          <View style={[styles.analysisPanel, { borderBottomColor: colors.border }]}>
+                            <Text style={[styles.panelTitle, { color: info.color }]}>🌟 Composite Growth</Text>
+                            <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                              {analysis.composite.challengePanel}
+                            </Text>
+                          </View>
+                        )}
+                      </>
                     )}
-                    
-                    {analysis.partnersPerspectives && (
+
+                    {/* Synthesis Analysis - Use synthesisPanel from either synastry or composite */}
+                    {(analysis.synastry?.synthesisPanel || analysis.composite?.synthesisPanel) && (
                       <View style={styles.analysisPanelLast}>
-                        <Text style={[styles.panelTitle, { color: info.color }]}>👥 Partner Perspectives</Text>
-                        <View style={styles.partnersGrid}>
-                          <View style={[styles.partnerPanel, { backgroundColor: colors.background }]}>
-                            <Text style={[styles.partnerTitle, { color: colors.onSurface }]}>Partner A</Text>
-                            <Text style={[styles.partnerText, { color: colors.onSurfaceVariant }]}>
-                              {analysis.partnersPerspectives.partnerA}
-                            </Text>
-                          </View>
-                          <View style={[styles.partnerPanel, { backgroundColor: colors.background }]}>
-                            <Text style={[styles.partnerTitle, { color: colors.onSurface }]}>Partner B</Text>
-                            <Text style={[styles.partnerText, { color: colors.onSurfaceVariant }]}>
-                              {analysis.partnersPerspectives.partnerB}
-                            </Text>
-                          </View>
-                        </View>
+                        <Text style={[styles.panelTitle, { color: info.color }]}>✨ Synthesis & Integration</Text>
+                        <Text style={[styles.analysisText, { color: colors.onSurface }]}>
+                          {analysis.synastry?.synthesisPanel || analysis.composite?.synthesisPanel}
+                        </Text>
                       </View>
                     )}
                   </View>
