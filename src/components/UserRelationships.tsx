@@ -107,26 +107,99 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
     return '#EF4444';
   };
 
+  const getSunSign = (dateOfBirth: string | null): string | null => {
+    if (!dateOfBirth) return null;
+    
+    const date = new Date(dateOfBirth);
+    if (isNaN(date.getTime())) return null;
+    
+    const month = date.getMonth() + 1; // getMonth() is 0-indexed
+    const day = date.getDate();
+    
+    // Sun sign date ranges (approximate)
+    if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) return '♈ Aries';
+    if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) return '♉ Taurus';
+    if ((month == 5 && day >= 21) || (month == 6 && day <= 20)) return '♊ Gemini';
+    if ((month == 6 && day >= 21) || (month == 7 && day <= 22)) return '♋ Cancer';
+    if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return '♌ Leo';
+    if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return '♍ Virgo';
+    if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) return '♎ Libra';
+    if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) return '♏ Scorpio';
+    if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) return '♐ Sagittarius';
+    if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) return '♑ Capricorn';
+    if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) return '♒ Aquarius';
+    if ((month == 2 && day >= 19) || (month == 3 && day <= 20)) return '♓ Pisces';
+    
+    return null;
+  };
+
   const renderRelationshipItem = ({ item }: { item: UserCompositeChart }) => {
     const { leftName, rightName } = getDisplayNames(item);
     const partnerName = leftName === 'You' ? rightName : leftName;
+    
+    // Get analysis data from clusterScoring (primary) or relationshipAnalysisStatus (fallback)
+    const clusterScoring = item.clusterScoring;
     const analysisStatus = item.relationshipAnalysisStatus;
-    const level = analysisStatus?.level || 'none';
-    const score = typeof analysisStatus?.overall?.score === 'number'
-      ? Math.round(analysisStatus.overall.score)
-      : null;
+    
+    const score = clusterScoring?.overall?.score 
+      ? Math.round(clusterScoring.overall.score)
+      : (typeof analysisStatus?.overall?.score === 'number' 
+          ? Math.round(analysisStatus.overall.score) 
+          : null);
+    
+    const tier = clusterScoring?.overall?.tier || analysisStatus?.overall?.tier || null;
+    const profile = clusterScoring?.overall?.profile || analysisStatus?.overall?.profile || null;
+    
+    // Get partner's sun sign from birth date
+    const partnerDateOfBirth = leftName === 'You' ? item.userB_dateOfBirth : item.userA_dateOfBirth;
+    const partnerSunSign = getSunSign(partnerDateOfBirth);
+    
+    const hasAnalysisData = score !== null && tier && profile;
 
     return (
       <TouchableOpacity
-        style={[styles.relationshipRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        style={[styles.relationshipCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
         onPress={() => handleRelationshipPress(item)}
         activeOpacity={0.8}
       >
-        <Text style={[styles.partnerName, { color: colors.onSurface }]}>{partnerName}</Text>
-        {level !== 'none' && score !== null ? (
-          <Text style={[styles.scoreText, { color: getScoreColor(score) }]}>{score}</Text>
-        ) : (
-          <Text style={[styles.scoreText, { color: colors.onSurfaceVariant }]}>–</Text>
+        <View style={styles.cardTop}>
+          {/* Date created */}
+          <Text style={[styles.createdDate, { color: colors.onSurfaceVariant }]}>
+            {new Date(item.createdAt).toLocaleDateString()}
+          </Text>
+        </View>
+        
+        <View style={styles.cardHeader}>
+          <View style={styles.nameSection}>
+            <Text style={[styles.partnerName, { color: colors.onSurface }]}>{partnerName}</Text>
+            {partnerSunSign && (
+              <Text style={[styles.sunSign, { color: colors.onSurfaceVariant }]}>{partnerSunSign}</Text>
+            )}
+          </View>
+          {score !== null && (
+            <Text style={[styles.scoreText, { color: getScoreColor(score) }]}>{score}</Text>
+          )}
+        </View>
+        
+        {hasAnalysisData && (
+          <View style={styles.analysisInfo}>
+            <Text style={[styles.tierText, { color: colors.primary }]}>{tier} Relationship</Text>
+            <Text style={[styles.profileText, { color: colors.onSurfaceVariant }]}>{profile}</Text>
+          </View>
+        )}
+        
+        {hasAnalysisData && (
+          <View style={styles.progressBar}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { 
+                  backgroundColor: getScoreColor(score!),
+                  width: `${score}%`
+                }
+              ]} 
+            />
+          </View>
         )}
       </TouchableOpacity>
     );
@@ -232,23 +305,64 @@ const styles = StyleSheet.create({
   relationshipsList: {
     flex: 1,
   },
-  relationshipRow: {
+  relationshipCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  cardTop: {
+    marginBottom: 8,
+  },
+  createdDate: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
+  nameSection: {
+    flex: 1,
+  },
   partnerName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
+    marginBottom: 2,
+  },
+  sunSign: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   scoreText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginLeft: 12,
+  },
+  analysisInfo: {
+    marginBottom: 12,
+  },
+  tierText: {
     fontSize: 16,
     fontWeight: '600',
+    marginBottom: 4,
+  },
+  profileText: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   errorSection: {
     margin: 16,
