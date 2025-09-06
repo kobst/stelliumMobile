@@ -10,6 +10,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../store';
 import { useTheme } from '../theme';
+import { parseDateStringAsLocalDate } from '../utils/dateHelpers';
 import { UserCompositeChart, relationshipsApi } from '../api/relationships';
 import { celebritiesApi, CelebrityRelationship } from '../api/celebrities';
 
@@ -154,7 +155,7 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ _onCele
         <View style={styles.celebrityInfo}>
           <Text style={[styles.celebrityName, { color: colors.onSurface }]}>{getFullName(item, 'A')}</Text>
           <Text style={[styles.celebrityDOB, { color: colors.onSurfaceVariant }]}>
-            {new Date(item.userA_dateOfBirth).toLocaleDateString()}
+            {parseDateStringAsLocalDate(item.userA_dateOfBirth).toLocaleDateString()}
           </Text>
         </View>
 
@@ -165,7 +166,7 @@ const CelebrityRelationships: React.FC<CelebrityRelationshipsProps> = ({ _onCele
         <View style={styles.celebrityInfo}>
           <Text style={[styles.celebrityName, { color: colors.onSurface }]}>{getFullName(item, 'B')}</Text>
           <Text style={[styles.celebrityDOB, { color: colors.onSurfaceVariant }]}>
-            {new Date(item.userB_dateOfBirth).toLocaleDateString()}
+            {parseDateStringAsLocalDate(item.userB_dateOfBirth).toLocaleDateString()}
           </Text>
         </View>
       </View>

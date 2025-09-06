@@ -22,6 +22,7 @@ interface ConsolidatedItemsBottomSheetProps {
 }
 
 type FilterType = 'all' | 'sparks' | 'supports' | 'challenges' | 'keystones';
+type SourceType = 'synastry' | 'composite';
 
 const SPARK_TYPE_EMOJIS = {
   sexual: '🔥',
@@ -42,12 +43,18 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
   const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeSourceFilters, setActiveSourceFilters] = useState<Set<SourceType>>(new Set(['synastry', 'composite']));
 
   // Filter and search logic
   const filteredItems = useMemo(() => {
     let items = [...scoredItems];
 
-    // Apply filter
+    // First apply source filter
+    if (activeSourceFilters.size > 0 && activeSourceFilters.size < 2) {
+      items = items.filter(item => activeSourceFilters.has(item.source as SourceType));
+    }
+
+    // Then apply category filter
     switch (activeFilter) {
       case 'sparks':
         items = items.filter(item =>
@@ -86,26 +93,32 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
 
     // Sort by overall centrality (most important first)
     return items.sort((a, b) => b.overallCentrality - a.overallCentrality);
-  }, [scoredItems, activeFilter, searchQuery]);
+  }, [scoredItems, activeFilter, searchQuery, activeSourceFilters]);
 
-  // Get filter counts
+  // Get filter counts based on current source selection
   const filterCounts = useMemo(() => {
+    // First filter by source if not all sources are selected
+    let baseItems = scoredItems;
+    if (activeSourceFilters.size > 0 && activeSourceFilters.size < 2) {
+      baseItems = scoredItems.filter(item => activeSourceFilters.has(item.source as SourceType));
+    }
+
     return {
-      all: scoredItems.length,
-      sparks: scoredItems.filter(item =>
+      all: baseItems.length,
+      sparks: baseItems.filter(item =>
         item.clusterContributions.some(cc => cc.spark === true)
       ).length,
-      supports: scoredItems.filter(item =>
+      supports: baseItems.filter(item =>
         item.clusterContributions.some(cc => cc.valence === 1)
       ).length,
-      challenges: scoredItems.filter(item =>
+      challenges: baseItems.filter(item =>
         item.clusterContributions.some(cc => cc.valence === -1)
       ).length,
-      keystones: scoredItems.filter(item =>
+      keystones: baseItems.filter(item =>
         item.clusterContributions.some(cc => cc.isKeystone === true)
       ).length,
     };
-  }, [scoredItems]);
+  }, [scoredItems, activeSourceFilters]);
 
   // Check if element is selected
   const isSelected = (element: ClusterScoredItem): boolean => {
@@ -137,24 +150,60 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
     return element.description?.substring(0, 40) || 'Unknown Element';
   };
 
-  // Render filter chip
-  const renderFilterChip = (filter: FilterType, label: string, count: number) => {
+  // Handle source filter toggle
+  const toggleSourceFilter = (source: SourceType) => {
+    const newFilters = new Set(activeSourceFilters);
+    if (newFilters.has(source)) {
+      newFilters.delete(source);
+    } else {
+      newFilters.add(source);
+    }
+    setActiveSourceFilters(newFilters);
+  };
+
+  // Render source filter button (toggle style)
+  const renderSourceFilterButton = (source: SourceType, label: string) => {
+    const isActive = activeSourceFilters.has(source);
+    return (
+      <TouchableOpacity
+        key={source}
+        style={[
+          styles.sourceFilterButton,
+          {
+            backgroundColor: isActive ? colors.primary : colors.surface,
+            borderColor: colors.primary,
+          },
+        ]}
+        onPress={() => toggleSourceFilter(source)}
+      >
+        <Text style={[
+          styles.sourceFilterButtonText,
+          { color: isActive ? colors.onPrimary : colors.primary },
+        ]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  // Render category filter button (radio style)
+  const renderCategoryFilterButton = (filter: FilterType, label: string, count: number) => {
     const isActive = activeFilter === filter;
     return (
       <TouchableOpacity
         key={filter}
         style={[
-          styles.filterChip,
+          styles.filterButton,
           {
             backgroundColor: isActive ? colors.primary : colors.background,
-            borderColor: colors.primary,
+            borderColor: colors.border,
           },
         ]}
         onPress={() => setActiveFilter(filter)}
       >
         <Text style={[
-          styles.filterText,
-          { color: isActive ? colors.onPrimary : colors.primary },
+          styles.filterButtonText,
+          { color: isActive ? colors.onPrimary : colors.onSurface },
         ]}>
           {label} ({count})
         </Text>
@@ -208,19 +257,32 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
           )}
         </View>
 
-        {/* Filter Chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filtersContainer}
-          contentContainerStyle={styles.filtersContent}
-        >
-          {renderFilterChip('all', 'All', filterCounts.all)}
-          {renderFilterChip('keystones', 'Keystones', filterCounts.keystones)}
-          {renderFilterChip('sparks', 'Sparks', filterCounts.sparks)}
-          {renderFilterChip('supports', 'Supports', filterCounts.supports)}
-          {renderFilterChip('challenges', 'Challenges', filterCounts.challenges)}
-        </ScrollView>
+        {/* Source Filter Row */}
+        <View style={[styles.sourceFilterContainer, { backgroundColor: colors.surface }]}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sourceFilterContent}
+          >
+            {renderSourceFilterButton('synastry', 'Synastry')}
+            {renderSourceFilterButton('composite', 'Composite')}
+          </ScrollView>
+        </View>
+
+        {/* Category Filter Row */}
+        <View style={[styles.filterContainer, { backgroundColor: colors.surface }]}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterContent}
+          >
+            {renderCategoryFilterButton('all', 'All', filterCounts.all)}
+            {renderCategoryFilterButton('keystones', 'Keystones', filterCounts.keystones)}
+            {renderCategoryFilterButton('sparks', 'Sparks', filterCounts.sparks)}
+            {renderCategoryFilterButton('supports', 'Supports', filterCounts.supports)}
+            {renderCategoryFilterButton('challenges', 'Challenges', filterCounts.challenges)}
+          </ScrollView>
+        </View>
 
         {/* Results */}
         <ScrollView
@@ -410,23 +472,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  filtersContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  filtersContent: {
-    paddingRight: 20,
-  },
-  filterChip: {
-    paddingHorizontal: 12,
+  sourceFilterContainer: {
     paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  sourceFilterContent: {
+    gap: 12,
+  },
+  sourceFilterButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 22,
+    borderWidth: 2,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  sourceFilterButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  filterContainer: {
+    paddingVertical: 8,
+  },
+  filterContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
   },
-  filterText: {
-    fontSize: 12,
-    fontWeight: '600',
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   itemsList: {
     flex: 1,

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../store';
 import { relationshipsApi, UserCompositeChart } from '../api/relationships';
+import { parseDateStringAsLocalDate } from '../utils/dateHelpers';
 import { useTheme } from '../theme';
 
 interface UserRelationshipsProps {
@@ -110,7 +111,7 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
   const getSunSign = (dateOfBirth: string | null): string | null => {
     if (!dateOfBirth) return null;
     
-    const date = new Date(dateOfBirth);
+    const date = parseDateStringAsLocalDate(dateOfBirth);
     if (isNaN(date.getTime())) return null;
     
     const month = date.getMonth() + 1; // getMonth() is 0-indexed
