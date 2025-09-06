@@ -167,7 +167,7 @@ const ChartSelectionScreen: React.FC = () => {
               year: 'numeric',
             })} - {userData.birthLocation}
           </Text>
-          <AnalysisTypeIndicator analysisStatus={userData.analysisStatus} fallbackLevel="overview" />
+          <AnalysisTypeIndicator analysisStatus={userData.analysisStatus} />
         </View>
         <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
       </TouchableOpacity>
@@ -185,7 +185,16 @@ const ChartSelectionScreen: React.FC = () => {
       ) : (
         <>
           {guestSubjects.map((subject) => {
-            const birthDate = new Date(subject.dateOfBirth);
+            // Parse date-only string to avoid timezone shifts
+            let birthDate: Date;
+            const dob = subject.dateOfBirth;
+            if (dob && /^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+              const [y, m, d] = dob.split('-').map(Number);
+              birthDate = new Date(y, m - 1, d);
+            } else {
+              const d = new Date(dob);
+              birthDate = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+            }
 
             return (
               <TouchableOpacity

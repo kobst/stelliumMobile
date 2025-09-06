@@ -18,6 +18,7 @@ import { Celebrity } from '../../api/celebrities';
 import CelebrityRelationships from '../../components/CelebrityRelationships';
 import { HeaderWithProfile } from '../../components/navigation';
 import { useTheme } from '../../theme';
+import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
 
 type CelebrityStackParamList = {
   CelebrityMain: undefined;
@@ -119,7 +120,7 @@ const CelebrityScreen: React.FC = () => {
       <View style={styles.celebrityInfo}>
         <Text style={[styles.celebrityName, { color: colors.onSurface }]}>{item.firstName} {item.lastName}</Text>
         <Text style={[styles.celebrityDetails, { color: colors.onSurfaceVariant }]}>
-          {new Date(item.dateOfBirth).toLocaleDateString()}
+          {parseDateStringAsLocalDate(item.dateOfBirth).toLocaleDateString()}
         </Text>
         <Text style={[styles.celebrityLocation, { color: colors.onSurfaceVariant }]}>
           Born in {item.placeOfBirth}

@@ -15,6 +15,7 @@ import { Celebrity } from '../../api/celebrities';
 import GuestUsersTab from '../../components/GuestUsersTab';
 import CelebritiesTab from '../../components/CelebritiesTab';
 import { useTheme } from '../../theme';
+import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
 
 interface GuestUser {
   _id: string;
@@ -232,7 +233,7 @@ const CreateRelationshipScreen: React.FC = () => {
               {selectedPerson.firstName} {selectedPerson.lastName}
             </Text>
             <Text style={[styles.selectionDetails, { color: colors.onSurfaceVariant }]}>
-              Born: {new Date(selectedPerson.dateOfBirth).toLocaleDateString()}
+              Born: {parseDateStringAsLocalDate(selectedPerson.dateOfBirth).toLocaleDateString()}
               {selectedPerson.placeOfBirth && ` in ${selectedPerson.placeOfBirth}`}
             </Text>
           </View>
