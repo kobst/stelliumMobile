@@ -20,7 +20,7 @@ const AnalysisTypeIndicator: React.FC<AnalysisTypeIndicatorProps> = ({
     switch (level) {
       case 'complete':
         return {
-          text: 'Complete Analysis',
+          text: 'Full Analysis',
           icon: '📊',
           color: colors.onSurfaceVariant,
         };
@@ -48,10 +48,7 @@ const AnalysisTypeIndicator: React.FC<AnalysisTypeIndicatorProps> = ({
   const { text, icon, color } = getDisplayInfo();
 
   // Show progress for in-progress complete analyses
-  const showProgress = analysisStatus &&
-    level === 'complete' &&
-    analysisStatus.workflowStatus !== 'completed' &&
-    analysisStatus.completedTasks > 0;
+  const showProgress = false; // Never show progress for complete analyses
 
   return (
     <View style={styles.container}>
