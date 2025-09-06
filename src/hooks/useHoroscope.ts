@@ -70,8 +70,8 @@ export const useHoroscope = (userId?: string): UseHoroscopeReturn => {
       const to = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(); // 3 months from now
 
       const response = await horoscopesApi.getTransitWindows(targetUserId, from, to);
-      setTransitData(response.transits);
-      setStoreTransitData(response.transits);
+      setTransitData(response.transitEvents);
+      setStoreTransitData(response.transitEvents);
     } catch (err) {
       const errorMessage = err instanceof ApiError ? err.message : 'Failed to load transit data';
       setError(errorMessage);

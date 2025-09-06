@@ -1,4 +1,5 @@
 import { User, SubjectDocument } from '../types';
+import { parseDateStringAsLocalDate } from '../utils/dateHelpers';
 import { CreateUserRequest, UserResponse } from '../api';
 
 export interface DisplayUser {
@@ -17,14 +18,29 @@ export interface DisplayUser {
   profileComplete: boolean;
 }
 
+// Helper: parse a date-only string (YYYY-MM-DD) without timezone shifting
+const parseDateOnly = (dateStr: string): { year: number; month: number; day: number } => {
+  if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return { year: y, month: m, day: d };
+  }
+  // Fallback: use Date and extract LOCAL parts (string with time is treated as local time)
+  const d = new Date(dateStr);
+  return {
+    year: d.getFullYear(),
+    month: d.getMonth() + 1,
+    day: d.getDate(),
+  };
+};
+
 export const userTransformers = {
   // Transform SubjectDocument from backend to internal User type
   subjectDocumentToUser: (subject: SubjectDocument): User => {
     console.log('\n=== SUBJECT DOCUMENT TRANSFORMER ===');
     console.log('Raw Subject Document:', JSON.stringify(subject, null, 2));
 
-    // Parse date of birth
-    const dateOfBirth = new Date(subject.dateOfBirth);
+    // Parse date of birth as date-only to avoid timezone shifts
+    const { year: dobYear, month: dobMonth, day: dobDay } = parseDateOnly(subject.dateOfBirth);
 
     // Parse time if available
     let birthHour = 12;
@@ -40,9 +56,9 @@ export const userTransformers = {
       id: subject._id,
       name: `${subject.firstName || 'Unknown'} ${subject.lastName || 'User'}`,
       email: subject.email || '',
-      birthYear: dateOfBirth.getFullYear(),
-      birthMonth: dateOfBirth.getMonth() + 1,
-      birthDay: dateOfBirth.getDate(),
+      birthYear: dobYear,
+      birthMonth: dobMonth,
+      birthDay: dobDay,
       birthHour,
       birthMinute,
       birthLocation: subject.placeOfBirth || '',
@@ -89,6 +105,20 @@ export const userTransformers = {
       final: timezone,
     });
 
+    // Derive birth year/month/day if missing using dateOfBirth string
+    let birthYear = birthData.birthYear;
+    let birthMonth = birthData.birthMonth;
+    let birthDay = birthData.birthDay;
+    const dobStr = birthData.dateOfBirth || userData.dateOfBirth;
+    if ((!birthYear || !birthMonth || !birthDay) && dobStr) {
+      const d = parseDateStringAsLocalDate(dobStr);
+      if (!isNaN(d.getTime())) {
+        birthYear = d.getFullYear();
+        birthMonth = d.getMonth() + 1;
+        birthDay = d.getDate();
+      }
+    }
+
     // Construct name from firstName and lastName
     const name = userData.name || birthData.name ||
                 (birthData.firstName && birthData.lastName ?
@@ -99,9 +129,9 @@ export const userTransformers = {
       id: userId,
       name: name,
       email: '', // Not typically returned from API
-      birthYear: birthData.birthYear,
-      birthMonth: birthData.birthMonth,
-      birthDay: birthData.birthDay,
+      birthYear: birthYear,
+      birthMonth: birthMonth,
+      birthDay: birthDay,
       birthHour: birthData.birthHour || 12,
       birthMinute: birthData.birthMinute || 0,
       birthLocation: birthData.birthLocation || birthData.placeOfBirth,
