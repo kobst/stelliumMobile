@@ -25,6 +25,7 @@ import AnalysisTab from '../../components/chart/AnalysisTab';
 import BirthChartChatTab from '../../components/chart/BirthChartChatTab';
 import CompleteFullAnalysisButton from '../../components/chart/CompleteFullAnalysisButton';
 import { BirthChartElement } from '../../api/charts';
+import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
 
 const ChartScreen: React.FC = () => {
   const route = useRoute<any>();
@@ -73,8 +74,8 @@ const ChartScreen: React.FC = () => {
       // Handle different date formats
       let birthDate: Date;
       if (subject.dateOfBirth) {
-        // SubjectDocument type
-        birthDate = new Date(subject.dateOfBirth);
+        // SubjectDocument type (date-only safe parse)
+        birthDate = parseDateStringAsLocalDate(subject.dateOfBirth);
       } else if (subject.birthYear && subject.birthMonth && subject.birthDay) {
         // User type
         birthDate = new Date(subject.birthYear, subject.birthMonth - 1, subject.birthDay);

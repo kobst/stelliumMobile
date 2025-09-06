@@ -398,6 +398,8 @@ const RelationshipAnalysisScreen: React.FC = () => {
           onItemPress={(item) => {
             console.log('Consolidated item pressed:', item);
           }}
+          userAName={relationship.userA_name}
+          userBName={relationship.userB_name}
           onChatAboutItem={handleChatAboutItem}
         />
       </ScrollView>
@@ -537,6 +539,8 @@ const RelationshipAnalysisScreen: React.FC = () => {
             compositeChartId={relationship._id}
             consolidatedItems={consolidatedItems}
             preSelectedItems={preSelectedChatItems}
+            userAName={relationship.userA_name}
+            userBName={relationship.userB_name}
           />
         );
       default:
