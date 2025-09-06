@@ -42,6 +42,11 @@ const PlanetaryIcons: React.FC<PlanetaryIconsProps> = ({ subject, user }) => {
     planetaryData = extractPlanetaryData(subject);
   } else if (user && user.birthChart) {
     // Use birth chart data for user if available
+    // Build a minimal SubjectDocument using safe defaults for any missing fields
+    const safeMonth = String(user.birthMonth ?? 1).padStart(2, '0');
+    const safeDay = String(user.birthDay ?? 1).padStart(2, '0');
+    const safeYear = user.birthYear || 2000;
+
     const userAsSubject: SubjectDocument = {
       _id: user.id,
       createdAt: '',
@@ -52,8 +57,8 @@ const PlanetaryIcons: React.FC<PlanetaryIconsProps> = ({ subject, user }) => {
       isReadOnly: false,
       firstName: user.name.split(' ')[0] || '',
       lastName: user.name.split(' ').slice(1).join(' ') || '',
-      dateOfBirth: `${user.birthYear}-${user.birthMonth.toString().padStart(2, '0')}-${user.birthDay.toString().padStart(2, '0')}`,
-      placeOfBirth: user.birthLocation,
+      dateOfBirth: `${safeYear}-${safeMonth}-${safeDay}`,
+      placeOfBirth: user.birthLocation || '',
       birthTimeUnknown: false,
       totalOffsetHours: 0,
       birthChart: user.birthChart,
@@ -61,16 +66,19 @@ const PlanetaryIcons: React.FC<PlanetaryIconsProps> = ({ subject, user }) => {
     planetaryData = extractPlanetaryData(userAsSubject);
   } else if (user) {
     // Fallback - just show sun sign
-    const sunSignSymbol = getZodiacSignFromDate(user.birthMonth, user.birthDay);
+    const hasDate = typeof user.birthMonth === 'number' && typeof user.birthDay === 'number';
+    const sunSignSymbol = hasDate ? getZodiacSignFromDate(user.birthMonth, user.birthDay) : '';
     return (
       <View style={styles.container}>
         <View style={styles.iconWrapper}>
           <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
             {planetarySymbols.Sun}
           </Text>
-          <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
-            {sunSignSymbol}
-          </Text>
+          {sunSignSymbol ? (
+            <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
+              {sunSignSymbol}
+            </Text>
+          ) : null}
         </View>
       </View>
     );
@@ -134,4 +142,3 @@ const styles = StyleSheet.create({
 });
 
 export default PlanetaryIcons;
-

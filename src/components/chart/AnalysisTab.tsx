@@ -106,35 +106,78 @@ const TopicSection: React.FC<TopicSectionProps> = ({
       {expanded && (
         <View style={[styles.topicContent, { borderTopColor: colors.border }]}>
           {/* Tension Flow Analysis if available */}
-          {topicData.tensionFlow && (
-            <View style={[styles.tensionFlowSection, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
-              <Text style={[styles.tensionFlowTitle, { color: colors.primary }]}>⚡ Energy Pattern</Text>
-              <Text style={[styles.tensionFlowDescription, { color: colors.onSurface }]}>
-                {topicData.tensionFlow.llmAnalysis || topicData.tensionFlow.description}
-              </Text>
+          {(() => {
+            const tension = topicData.tensionFlowAnalysis || topicData.tensionFlow;
+            if (!tension) { return null; }
 
-              <View style={styles.tensionMetrics}>
-                <View style={styles.metric}>
-                  <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Support Level</Text>
-                  <Text style={[styles.metricValue, { color: colors.onSurface }]}>
-                    {topicData.tensionFlow.supportDensity?.toFixed(1) || 'N/A'}
+            const supportPct = typeof tension.weightedSupportDensity === 'number'
+              ? Math.round(tension.weightedSupportDensity * 100)
+              : (typeof tension.supportDensity === 'number' ? Math.round(tension.supportDensity * 100) : null);
+            const challengePct = typeof tension.weightedChallengeDensity === 'number'
+              ? Math.round(tension.weightedChallengeDensity * 100)
+              : (typeof tension.challengeDensity === 'number' ? Math.round(tension.challengeDensity * 100) : null);
+
+            return (
+              <View style={[styles.tensionFlowSection, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
+                <Text style={[styles.tensionFlowTitle, { color: colors.primary }]}>⚡ Energy Pattern</Text>
+                {(tension.llmAnalysis || tension.description) && (
+                  <Text style={[styles.tensionFlowDescription, { color: colors.onSurface }]}>
+                    {tension.llmAnalysis || tension.description}
                   </Text>
+                )}
+
+                <View style={styles.tensionMetrics}>
+                  <View style={styles.metric}>
+                    <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Support</Text>
+                    <Text style={[styles.metricValue, { color: colors.onSurface }]}>
+                      {supportPct !== null ? `${supportPct}%` : 'N/A'}
+                    </Text>
+                  </View>
+                  <View style={styles.metric}>
+                    <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Challenge</Text>
+                    <Text style={[styles.metricValue, { color: colors.onSurface }]}>
+                      {challengePct !== null ? `${challengePct}%` : 'N/A'}
+                    </Text>
+                  </View>
+                  <View style={styles.metric}>
+                    <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Quadrant</Text>
+                    <Text style={[styles.metricValue, { color: colors.onSurface }]}>
+                      {tension.quadrant || 'N/A'}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.metric}>
-                  <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Challenge Level</Text>
-                  <Text style={[styles.metricValue, { color: colors.onSurface }]}>
-                    {topicData.tensionFlow.challengeDensity?.toFixed(1) || 'N/A'}
-                  </Text>
-                </View>
-                <View style={styles.metric}>
-                  <Text style={[styles.metricLabel, { color: colors.onSurfaceVariant }]}>Quadrant</Text>
-                  <Text style={[styles.metricValue, { color: colors.onSurface }]}>
-                    {topicData.tensionFlow.quadrant || 'N/A'}
-                  </Text>
-                </View>
+
+                {(tension.totalAspects || tension.supportAspects || tension.challengeAspects) && (
+                  <View style={[styles.tensionCountsRow]}>
+                    {typeof tension.totalAspects === 'number' && (
+                      <Text style={[styles.countPill, { color: colors.onSurface, borderColor: colors.border }]}>Total: {tension.totalAspects}</Text>
+                    )}
+                    {typeof tension.supportAspects === 'number' && (
+                      <Text style={[styles.countPill, { color: colors.onSurface, borderColor: colors.border }]}>Support: {tension.supportAspects}</Text>
+                    )}
+                    {typeof tension.challengeAspects === 'number' && (
+                      <Text style={[styles.countPill, { color: colors.onSurface, borderColor: colors.border }]}>Challenge: {tension.challengeAspects}</Text>
+                    )}
+                  </View>
+                )}
+
+                {Array.isArray(tension.keystoneAspects) && tension.keystoneAspects.length > 0 && (
+                  <View style={styles.keystoneSection}>
+                    <Text style={[styles.keystoneTitle, { color: colors.onSurfaceVariant }]}>Key Aspects</Text>
+                    <View style={styles.keystoneList}>
+                      {tension.keystoneAspects.slice(0, 4).map((k: any, idx: number) => (
+                        <View key={`${k.code || idx}`} style={[styles.keystonePill, { borderColor: colors.border, backgroundColor: colors.surface }]}> 
+                          <Text style={[styles.keystoneText, { color: colors.onSurface }]}>
+                            {k.planet1} {k.aspectType} {k.planet2} {typeof k.orb === 'number' ? `(${k.orb}°)` : ''}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
               </View>
-            </View>
-          )}
+            );
+          })()}
 
           {/* Subtopics */}
           <View style={styles.subtopicsSection}>
@@ -322,6 +365,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
+  tensionCountsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+  },
+  countPill: {
+    fontSize: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginRight: 8,
+    marginBottom: 8,
+  },
   metric: {
     alignItems: 'center',
   },
@@ -335,6 +392,28 @@ const styles = StyleSheet.create({
   },
   subtopicsSection: {
     padding: 16,
+  },
+  keystoneSection: {
+    marginTop: 12,
+  },
+  keystoneTitle: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  keystoneList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  keystonePill: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  keystoneText: {
+    fontSize: 12,
   },
   subtopicsTitle: {
     fontSize: 14,
