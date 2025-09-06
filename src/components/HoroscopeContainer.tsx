@@ -163,6 +163,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
 
         // Filter by date range
         if (transitFilters.dateRange.start || transitFilters.dateRange.end) {
+          // Only use exact date if it's actually available in range
+          if (!transit.isExactInRange || !transit.exact) {return false;}
           const transitDate = new Date(transit.exact);
 
           if (transitFilters.dateRange.start) {
@@ -181,13 +183,23 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       });
     }
 
-    return transitsToFilter.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    return transitsToFilter.sort((a, b) => {
+      // Sort by priority (high to low), then by start date
+      const priorityDiff = (b.priority || 0) - (a.priority || 0);
+      if (priorityDiff !== 0) return priorityDiff;
+      return new Date(a.start).getTime() - new Date(b.start).getTime();
+    });
   }, [transitWindows, customTransitWindows, activeTab, customDateRange, transitFilters]);
 
   // Helper function to capitalize aspect names
   const capitalizeAspect = (aspect: string): string => {
     if (!aspect) {return 'N/A';}
     return aspect.charAt(0).toUpperCase() + aspect.slice(1);
+  };
+
+  // Helper function to add retrograde symbol to planet names
+  const getPlanetDisplayName = (planet: string, isRetrograde?: boolean): string => {
+    return `${planet}${isRetrograde ? ' ℞' : ''}`;
   };
 
   // Get unique planet lists for filter dropdowns
@@ -268,7 +280,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       return transit.description;
     }
 
-    let description = `${transit.transitingPlanet}`;
+    let description = `${getPlanetDisplayName(transit.transitingPlanet, transit.isRetrograde)}`;
 
     // Add sign information
     if (transit.transitingSigns && transit.transitingSigns.length > 1) {
@@ -278,7 +290,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     }
 
     if (transit.type === 'transit-to-natal') {
-      description += ` ${transit.aspect || ''} natal ${transit.targetPlanet || ''}`;
+      description += ` ${transit.aspect || ''} natal ${getPlanetDisplayName(transit.targetPlanet || '', transit.targetIsRetrograde)}`;
 
       // Add natal planet's sign and house
       if (transit.targetSign) {
@@ -288,7 +300,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
         description += ` in ${transit.targetHouse}th house`;
       }
     } else if (transit.type === 'transit-to-transit') {
-      description += ` ${transit.aspect || ''} ${transit.targetPlanet || ''}`;
+      description += ` ${transit.aspect || ''} ${getPlanetDisplayName(transit.targetPlanet || '', transit.targetIsRetrograde)}`;
 
       // Add target planet's sign and house
       if (transit.targetSign) {
@@ -809,9 +821,16 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
                         <Text style={styles.transitDateRange}>
                           {formatDateRange(transit.start, transit.end)}
                         </Text>
-                        <Text style={styles.transitExactDate}>
-                          Exact: {formatDate(transit.exact)}
-                        </Text>
+                        {transit.isExactInRange && transit.exact && (
+                          <Text style={styles.transitExactDate}>
+                            Exact: {formatDate(transit.exact)}
+                          </Text>
+                        )}
+                        {transit.orbAtStart !== undefined && transit.orbAtEnd !== undefined && (
+                          <Text style={styles.transitOrbInfo}>
+                            Orb: {transit.orbAtStart.toFixed(1)}° → {transit.orbAtEnd.toFixed(1)}° ({transit.orbDirection})
+                          </Text>
+                        )}
                       </View>
                     </View>
                   ))}
@@ -1150,6 +1169,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   transitExactDate: {
     fontSize: 12,
     color: colors.onSurfaceVariant,
+  },
+  transitOrbInfo: {
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
+    fontStyle: 'italic',
   },
   customHoroscopeInterface: {
     backgroundColor: colors.surface,

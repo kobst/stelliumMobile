@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../theme';
+import { formatDate } from '../utils/dateHelpers';
 
 interface PersonCardProps {
   person: {
@@ -19,14 +20,9 @@ interface PersonCardProps {
 const PersonCard: React.FC<PersonCardProps> = ({ person, isSelected, onPress }) => {
   const { colors } = useTheme();
 
-  const formatDate = (dateString: string) => {
+  const formatDisplayDate = (dateString: string) => {
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+      return formatDate(dateString);
     } catch {
       return dateString;
     }
@@ -103,7 +99,7 @@ const PersonCard: React.FC<PersonCardProps> = ({ person, isSelected, onPress }) 
       </View>
 
       <Text style={cardStyles.birthDate}>
-        Born: {formatDate(person.dateOfBirth)}
+        Born: {formatDisplayDate(person.dateOfBirth)}
       </Text>
 
       {person.placeOfBirth && (

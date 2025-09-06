@@ -20,12 +20,16 @@ interface RelationshipChatTabProps {
   compositeChartId: string;
   consolidatedItems: ClusterScoredItem[];
   preSelectedItems?: ClusterScoredItem[];
+  userAName: string;
+  userBName: string;
 }
 
 const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
   compositeChartId,
   consolidatedItems,
   preSelectedItems = [],
+  userAName,
+  userBName,
 }) => {
   const { colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -299,7 +303,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
       // Get full aspect name
       const aspectName = element.aspect?.charAt(0).toUpperCase() + element.aspect?.slice(1) || 'aspect';
 
-      return `${chartType}: Fullon's ${planet1Name} ${aspectName} Mobile's ${planet2Name}`;
+      return `${chartType}: ${userAName}'s ${planet1Name} ${aspectName} ${userBName}'s ${planet2Name}`;
     }
 
     if (element.type === 'housePlacement') {

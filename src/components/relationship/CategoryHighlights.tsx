@@ -10,6 +10,8 @@ interface CategoryHighlightsProps {
   onItemPress?: (item: ConsolidatedScoredItem) => void;
   selectedItems?: ConsolidatedScoredItem[];
   onChatAboutItem?: (item: ConsolidatedScoredItem) => void;
+  userAName?: string;
+  userBName?: string;
 }
 
 type FilterType = 'keystones' | 'sparks' | 'topSupports' | 'topChallenges';
@@ -42,7 +44,7 @@ const ASPECT_SYMBOLS: { [key: string]: string } = {
 };
 
 // Parse aspect description to extract components
-function parseAspectDescription(description: string, item: any) {
+function parseAspectDescription(description: string, item: any, userAName: string = 'Person A', userBName: string = 'Person B') {
   // For composite aspects, just show the planets and aspect
   if (item.source === 'composite') {
     if (item.aspect && item.planet1 && item.planet2) {
@@ -73,7 +75,7 @@ function parseAspectDescription(description: string, item: any) {
     const person1 = person1Match ? person1Match[1] : 'Person A';
     // Try to find the second person's name
     const person2Match = description.match(/(\w+)'s [^']+$/);
-    const person2 = person2Match ? person2Match[1] : (person1 === 'Fullon' ? 'Mobile' : 'Fullon');
+    const person2 = person2Match ? person2Match[1] : (person1 === userAName ? userBName : userAName);
 
     return {
       type: 'aspect',
@@ -152,6 +154,8 @@ const CategoryHighlights: React.FC<CategoryHighlightsProps> = ({
   onItemPress,
   selectedItems = [],
   onChatAboutItem,
+  userAName = 'Person A',
+  userBName = 'Person B',
 }) => {
   const { colors } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterType>('sparks');
@@ -302,7 +306,7 @@ const CategoryHighlights: React.FC<CategoryHighlightsProps> = ({
     const sparks = item.categoryData.filter(cd => cd.category === targetCategory && cd.spark);
 
     // Parse and format the title
-    const parsedData = parseAspectDescription(item.description, item);
+    const parsedData = parseAspectDescription(item.description, item, userAName, userBName);
     const titleData = formatCardTitle(parsedData, item.source);
 
     return (
