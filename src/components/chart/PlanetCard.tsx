@@ -14,6 +14,7 @@ interface PlanetCardProps {
   description?: string;
   astrologicalData?: string;
   hideHeader?: boolean;
+  tags?: string[];
 }
 
 interface AstrologicalDataParsed {
@@ -49,6 +50,7 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
   description,
   astrologicalData,
   hideHeader = false,
+  tags = [],
 }) => {
   const { colors } = useTheme();
   // Parse the astrological data JSON
@@ -120,6 +122,65 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
     };
 
     return colors[planetName] || '#8b5cf6';
+  };
+
+  // Format tag for display
+  const formatTag = (tag: string): string => {
+    if (tag === 'chart_ruler') {
+      return 'Chart Ruler';
+    }
+    
+    if (tag.startsWith('rulership_modern:')) {
+      const sign = tag.replace('rulership_modern:', '');
+      return `Rules ${sign} (Modern)`;
+    }
+    
+    if (tag.startsWith('rulership_traditional:')) {
+      const sign = tag.replace('rulership_traditional:', '');
+      return `Rules ${sign} (Traditional)`;
+    }
+    
+    if (tag.startsWith('exaltation:')) {
+      const sign = tag.replace('exaltation:', '');
+      return `Exaltation in ${sign}`;
+    }
+    
+    if (tag.startsWith('detriment:')) {
+      const sign = tag.replace('detriment:', '');
+      return `Detriment in ${sign}`;
+    }
+    
+    if (tag.startsWith('fall:')) {
+      const sign = tag.replace('fall:', '');
+      return `Fall in ${sign}`;
+    }
+    
+    if (tag.startsWith('mutual_reception:')) {
+      // Parse mutual_reception:with=Mars;mode=sign;system=traditional;other_sign=Leo
+      const parts = tag.replace('mutual_reception:', '').split(';');
+      const withPlanet = parts.find(p => p.startsWith('with='))?.replace('with=', '') || 'Unknown';
+      const system = parts.find(p => p.startsWith('system='))?.replace('system=', '') || '';
+      const otherSign = parts.find(p => p.startsWith('other_sign='))?.replace('other_sign=', '') || '';
+      
+      let result = `Mutual Reception with ${withPlanet}`;
+      if (otherSign) result += ` in ${otherSign}`;
+      if (system) result += ` (${system})`;
+      return result;
+    }
+    
+    // Fallback: capitalize and replace underscores with spaces
+    return tag.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Get tag color based on type
+  const getTagColor = (tag: string): string => {
+    if (tag === 'chart_ruler') return '#FFD700'; // Gold
+    if (tag.startsWith('rulership')) return '#4CAF50'; // Green
+    if (tag.startsWith('exaltation')) return '#2196F3'; // Blue
+    if (tag.startsWith('detriment')) return '#FF9800'; // Orange
+    if (tag.startsWith('fall')) return '#F44336'; // Red
+    if (tag.startsWith('mutual_reception')) return '#9C27B0'; // Purple
+    return colors.primary; // Default
   };
 
   return (
@@ -217,6 +278,20 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
                   </Text>
                 </View>
               ))}
+            </View>
+          )}
+
+          {/* Additional Notes */}
+          {tags.length > 0 && (
+            <View style={styles.notesSubsection}>
+              <Text style={[styles.astroDataLabel, { color: colors.primary }]}>Additional Notes</Text>
+              <View style={styles.notesContainer}>
+                {tags.map((tag, index) => (
+                  <Text key={index} style={[styles.noteText, { color: colors.onSurface }]}>
+                    • {formatTag(tag)}
+                  </Text>
+                ))}
+              </View>
             </View>
           )}
         </View>
@@ -417,6 +492,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     fontStyle: 'italic',
+  },
+  notesSubsection: {
+    marginBottom: 12,
+  },
+  notesContainer: {
+    marginTop: 4,
+  },
+  noteText: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 2,
   },
 });
 

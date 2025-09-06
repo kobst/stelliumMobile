@@ -153,6 +153,7 @@ export interface BackendPlanet {
   is_retro: boolean;     // Retrograde status
   sign: ZodiacSign | null;  // null if position cannot be calculated
   house: number;         // 1-12, 0 if birth time unknown
+  tags?: string[];       // Astrological tags (dignity, rulership, reception, etc.)
 }
 
 export interface BackendAspect {
