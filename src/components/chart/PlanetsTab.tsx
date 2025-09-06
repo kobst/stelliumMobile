@@ -46,6 +46,13 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
     return planets;
   };
 
+  // Get planet tags from birth chart
+  const getPlanetTags = (planetName: string): string[] => {
+    if (!birthChart?.planets) return [];
+    const planet = birthChart.planets.find(p => p.name === planetName);
+    return planet?.tags || [];
+  };
+
   // Don't automatically load analysis - let users trigger it with the button
 
   // Get planet summary for header display
@@ -113,6 +120,7 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
               interpretation={planetData.interpretation}
               description={planetData.description}
               astrologicalData={planetData.astrologicalData}
+              tags={getPlanetTags(planet)}
               hideHeader={true}
             />
           </View>
