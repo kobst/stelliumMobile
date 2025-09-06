@@ -88,8 +88,19 @@ export const getTomorrowRange = (): DateRange => {
 };
 
 // Helper function to format dates for display
+// Parse a date string into a local Date without timezone-shift for date-only values (YYYY-MM-DD)
+export const parseDateStringAsLocalDate = (dateString: string): Date => {
+  if (!dateString) return new Date(NaN);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    const [y, m, d] = dateString.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  // For other ISO strings (with time and/or timezone), rely on native parsing
+  return new Date(dateString);
+};
+
 export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
+  const date = parseDateStringAsLocalDate(dateString);
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -99,8 +110,8 @@ export const formatDate = (dateString: string): string => {
 
 // Helper function to format date ranges
 export const formatDateRange = (start: string, end: string): string => {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
+  const startDate = parseDateStringAsLocalDate(start);
+  const endDate = parseDateStringAsLocalDate(end);
 
   if (startDate.toDateString() === endDate.toDateString()) {
     return formatDate(start);

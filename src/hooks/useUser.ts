@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { usersApi, CreateUserRequest, UserResponse, ApiError } from '../api';
 import { useStore } from '../store';
+import { userTransformers } from '../transformers/user';
 
 export interface UseUserReturn {
   user: UserResponse | null;
@@ -47,14 +48,9 @@ export const useUser = (userId?: string): UseUserReturn => {
       const response = await usersApi.createUser(userData);
       setUser(response);
 
-      // Update global store
-      setUserData({
-        id: response.id,
-        name: response.name,
-        email: '',
-        ...response.birthData,
-        birthChart: response.birthChart,
-      });
+      // Update global store with normalized User shape
+      const normalized = userTransformers.apiResponseToUser(response);
+      setUserData(normalized);
 
       return response;
     } catch (err) {

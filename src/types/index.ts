@@ -47,14 +47,22 @@ export interface TransitEvent {
   aspect: string;
   start: string;
   end: string;
-  exact: string;
+  exact?: string;
   description?: string;
   transitingSign?: string;
   targetSign?: string;
-  transitingHouse?: string;
-  targetHouse?: string;
+  transitingHouse?: number;
+  targetHouse?: number;
   transitingSigns?: string[];
   moonPhaseData?: any;
+  // New API fields
+  isExactInRange?: boolean;
+  orbAtStart?: number;
+  orbAtEnd?: number;
+  orbDirection?: 'approaching' | 'separating' | 'stationary';
+  priority?: number;
+  isRetrograde?: boolean;
+  targetIsRetrograde?: boolean;
 }
 
 export interface WorkflowState {

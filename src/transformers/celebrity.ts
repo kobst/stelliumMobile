@@ -1,5 +1,6 @@
 import { Celebrity } from '../api/celebrities';
 import { User } from '../types';
+import { parseDateStringAsLocalDate } from '../utils/dateHelpers';
 
 /**
  * Transforms a Celebrity object from the API to a User object
@@ -10,7 +11,7 @@ export const celebrityToUser = (celebrity: Celebrity): User => {
   const fullName = `${celebrity.firstName} ${celebrity.lastName}`;
 
   // Parse the date of birth
-  const birthDate = new Date(celebrity.dateOfBirth);
+  const birthDate = parseDateStringAsLocalDate(celebrity.dateOfBirth);
   const birthYear = birthDate.getFullYear();
   const birthMonth = birthDate.getMonth() + 1; // getMonth() returns 0-based month
   const birthDay = birthDate.getDate();
@@ -69,7 +70,7 @@ export const getCelebrityDisplayName = (celebrity: Celebrity): string => {
  * Creates a subtitle for a celebrity showing birth info
  */
 export const getCelebritySubtitle = (celebrity: Celebrity): string => {
-  const birthDate = new Date(celebrity.dateOfBirth).toLocaleDateString('en-US', {
+  const birthDate = parseDateStringAsLocalDate(celebrity.dateOfBirth).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
