@@ -30,11 +30,11 @@ export const BirthLocationStep: React.FC<BirthLocationStepProps> = ({
   return (
     <WizardStep
       title="Where were you born?"
-      subtitle="Your birth location helps us calculate the precise positions of celestial bodies"
+      subtitle="Your birth location is essential for accurate chart calculations"
       icon="🌍"
     >
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Birth location</Text>
+        <Text style={styles.label}>I was born in</Text>
         <TextInput
           style={styles.input}
           placeholder="City, Country"

@@ -61,11 +61,11 @@ export const BirthDateTimeStep: React.FC<BirthDateTimeStepProps> = ({
   return (
     <WizardStep
       title="When were you born?"
-      subtitle="Your birth date and time create the foundation of your astrological chart"
+      subtitle="Your birth date and time create the foundation of your chart"
       icon="🌙"
     >
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Birth date</Text>
+        <Text style={styles.label}>My birth date is</Text>
         <View style={styles.dateRow}>
           <View style={styles.dateInputContainer}>
             <Text style={styles.dateLabel}>Year</Text>
