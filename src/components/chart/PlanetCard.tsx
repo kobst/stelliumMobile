@@ -244,12 +244,12 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
                     <Text style={[styles.aspectSymbol, { color: getAspectColor(aspect.aspectType as any) }]}>
                       {getAspectSymbol(aspect.aspectType)}
                     </Text>
-                    <Text style={[styles.planetSymbolSmall, { color: getPlanetColor(aspect.planet2) }]}>
-                      {getPlanetSymbol(aspect.planet2)}
+                    <Text style={[styles.planetSymbolSmall, { color: getPlanetColor(aspect.planet1 === planet ? aspect.planet2 : aspect.planet1) }]}>
+                      {getPlanetSymbol(aspect.planet1 === planet ? aspect.planet2 : aspect.planet1)}
                     </Text>
                   </View>
                   <Text style={[styles.aspectDescription, { color: colors.onSurface }]}>
-                    {aspect.orbDescription} {aspect.aspectType} to {aspect.planet2}
+                    {aspect.orbDescription} {aspect.aspectType} to {aspect.planet1 === planet ? aspect.planet2 : aspect.planet1}
                   </Text>
                   <Text style={[styles.aspectOrb, { color: colors.onSurfaceVariant }]}>
                     {aspect.orb.toFixed(1)}°
