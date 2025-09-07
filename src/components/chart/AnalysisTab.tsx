@@ -74,6 +74,16 @@ const BROAD_TOPICS = {
   },
 };
 
+// Standardized topic order for consistent display
+const TOPIC_ORDER = [
+  'PERSONALITY_IDENTITY',           // 1. Self-Expression and Identity
+  'COMMUNICATION_BELIEFS',          // 2. Communication, Learning, and Belief Systems
+  'EMOTIONAL_FOUNDATIONS_HOME',     // 3. Emotional Foundations and Home Life
+  'RELATIONSHIPS_SOCIAL',           // 4. Relationships and Social Connections
+  'CAREER_PURPOSE_PUBLIC_IMAGE',    // 5. Career, Purpose, and Public Image
+  'UNCONSCIOUS_SPIRITUALITY',       // 6. Unconscious Drives and Spiritual Growth
+];
+
 interface TopicSectionProps {
   topicKey: string;
   topicData: any;
@@ -252,8 +262,8 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
   }
 
   const subtopicAnalysis = fullAnalysis?.interpretation?.SubtopicAnalysis || {};
-  const availableTopics = Object.keys(subtopicAnalysis).filter(key =>
-    BROAD_TOPICS[key as keyof typeof BROAD_TOPICS]
+  const availableTopics = TOPIC_ORDER.filter(key => 
+    subtopicAnalysis[key] && BROAD_TOPICS[key as keyof typeof BROAD_TOPICS]
   );
 
   return (
