@@ -7,10 +7,10 @@ import { useStore } from '../store';
 import { userTransformers } from '../transformers/user';
 
 import { WizardContainer } from '../components/onboarding/WizardContainer';
-import { WelcomeStep } from '../components/onboarding/steps/WelcomeStep';
-import { BirthDateTimeStep } from '../components/onboarding/steps/BirthDateTimeStep';
+import { NameStep } from '../components/onboarding/steps/NameStep';
+import { GenderStep } from '../components/onboarding/steps/GenderStep';
 import { BirthLocationStep } from '../components/onboarding/steps/BirthLocationStep';
-import { ReviewStep } from '../components/onboarding/steps/ReviewStep';
+import { BirthDateTimeStep } from '../components/onboarding/steps/BirthDateTimeStep';
 
 const GOOGLE_API = process.env.REACT_APP_GOOGLE_API_KEY;
 const SERVER_URL = process.env.REACT_APP_SERVER_URL;
@@ -267,23 +267,19 @@ const UserOnboardingWizard: React.FC = () => {
 
   const getStepValidation = (stepIndex: number): boolean => {
     switch (stepIndex) {
-      case 0: // Welcome, Name & Gender
-        return Boolean(firstName.trim() && lastName.trim() && gender);
-      case 1: // Birth Date & Time
+      case 0: // Name
+        return Boolean(firstName.trim() && lastName.trim());
+      case 1: // Gender
+        return Boolean(gender);
+      case 2: // Birth Location
+        return Boolean(lat && lon && placeOfBirth);
+      case 3: // Birth Date & Time
         const hasDate = Boolean(birthYear && birthMonth && birthDay);
         const hasTime = unknownTime || Boolean(birthHour && birthMinute);
         return hasDate && hasTime;
-      case 2: // Birth Location
-        return Boolean(lat && lon && placeOfBirth);
-      case 3: // Review
-        return true; // Always valid since it's just review
       default:
         return false;
     }
-  };
-
-  const handleEditStep = (stepIndex: number) => {
-    setCurrentStep(stepIndex);
   };
 
   const handleStepChange = (step: number) => {
@@ -291,14 +287,25 @@ const UserOnboardingWizard: React.FC = () => {
   };
 
   const steps = [
-    <WelcomeStep
-      key="welcome"
+    <NameStep
+      key="name"
       firstName={firstName}
       lastName={lastName}
-      gender={gender}
       onFirstNameChange={setFirstName}
       onLastNameChange={setLastName}
+    />,
+    <GenderStep
+      key="gender"
+      gender={gender}
       onGenderChange={setGender}
+    />,
+    <BirthLocationStep
+      key="location"
+      placeQuery={placeQuery}
+      suggestions={suggestions}
+      placeOfBirth={placeOfBirth}
+      onPlaceQueryChange={searchPlaces}
+      onPlaceSelect={selectPlace}
     />,
     <BirthDateTimeStep
       key="datetime"
@@ -316,29 +323,6 @@ const UserOnboardingWizard: React.FC = () => {
       onBirthMinuteChange={setBirthMinute}
       onAmPmChange={setAmPm}
       onUnknownTimeChange={setUnknownTime}
-    />,
-    <BirthLocationStep
-      key="location"
-      placeQuery={placeQuery}
-      suggestions={suggestions}
-      placeOfBirth={placeOfBirth}
-      onPlaceQueryChange={searchPlaces}
-      onPlaceSelect={selectPlace}
-    />,
-    <ReviewStep
-      key="review"
-      firstName={firstName}
-      lastName={lastName}
-      gender={gender}
-      birthYear={birthYear}
-      birthMonth={birthMonth}
-      birthDay={birthDay}
-      birthHour={birthHour}
-      birthMinute={birthMinute}
-      amPm={amPm}
-      unknownTime={unknownTime}
-      placeOfBirth={placeOfBirth}
-      onEditStep={handleEditStep}
     />,
   ];
 
