@@ -230,7 +230,10 @@ export const useChart = (userId?: string): UseChartReturn => {
 
   // Check for meaningful analysis data (not just basic overview)
   const hasAnalysisData = Boolean(
-    fullAnalysis?.interpretation?.SubtopicAnalysis ||
+    fullAnalysis?.interpretation?.broadCategoryAnalyses &&
+      Object.keys(fullAnalysis.interpretation.broadCategoryAnalyses).length > 0 ||
+    fullAnalysis?.interpretation?.SubtopicAnalysis &&
+      Object.keys(fullAnalysis.interpretation.SubtopicAnalysis).length > 0 ||
     fullAnalysis?.interpretation?.basicAnalysis?.planets ||
     fullAnalysis?.interpretation?.basicAnalysis?.dominance
   );
@@ -260,4 +263,3 @@ export const useChart = (userId?: string): UseChartReturn => {
     clearError,
   };
 };
-

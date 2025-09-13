@@ -4,85 +4,29 @@ import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
 import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
 import { useTheme } from '../../theme';
+import { decodeAstroCode } from '../../utils/astroCode';
+import { getAspectColor, getPlanetGlyph, getZodiacGlyph, PLANET_COLORS } from './ChartUtils';
 
 interface AnalysisTabProps {
   userId?: string;
 }
 
-// Topic definitions based on frontend guide
-const BROAD_TOPICS = {
-  PERSONALITY_IDENTITY: {
-    label: 'Self-Expression and Identity',
-    icon: '🌟',
-    subtopics: {
-      PERSONAL_IDENTITY: 'Personal Identity and Self-Image',
-      OUTWARD_EXPRESSION: 'Outward Expression and Appearance',
-      INNER_EMOTIONAL_SELF: 'Inner Self and Emotional Dynamics',
-      CHALLENGES_SELF_EXPRESSION: 'Challenges and Growth of Self-Expression',
-    },
-  },
-  EMOTIONAL_FOUNDATIONS_HOME: {
-    label: 'Emotional Foundations and Home Life',
-    icon: '🏠',
-    subtopics: {
-      EMOTIONAL_FOUNDATIONS: 'Emotional Foundations and Security Needs',
-      FAMILY_DYNAMICS: 'Family Dynamics and Past Influences',
-      HOME_ENVIRONMENT: 'Home Environment and Preferences',
-      FAMILY_CHALLENGES: 'Challenges and Growth in Family Life',
-    },
-  },
-  RELATIONSHIPS_SOCIAL: {
-    label: 'Relationships and Social Connections',
-    icon: '💕',
-    subtopics: {
-      RELATIONSHIP_DESIRES: 'Core Relationship Desires and Boundaries',
-      LOVE_STYLE: 'Love Style and Expression',
-      SEXUAL_NATURE: 'Sexual Nature and Intimacy',
-      COMMITMENT_APPROACH: 'Commitment Approach and Long-Term Vision',
-      RELATIONSHIP_CHALLENGES: 'Challenges and Growth in Relationships',
-    },
-  },
-  CAREER_PURPOSE_PUBLIC_IMAGE: {
-    label: 'Career, Purpose, and Public Image',
-    icon: '🎯',
-    subtopics: {
-      CAREER_MOTIVATIONS: 'Career Motivations and Aspirations',
-      PUBLIC_IMAGE: 'Public Image Reputation and Leadership Style',
-      CAREER_CHALLENGES: 'Career Challenges and Opportunities',
-      SKILLS_TALENTS: 'Skills Talents and Strengths',
-    },
-  },
-  UNCONSCIOUS_SPIRITUALITY: {
-    label: 'Unconscious Drives and Spiritual Growth',
-    icon: '🔮',
-    subtopics: {
-      PSYCHOLOGICAL_PATTERNS: 'Deep Psychological Patterns and Shadow Self',
-      SPIRITUAL_GROWTH: 'Spiritual Growth and Higher Purpose',
-      KARMIC_LESSONS: 'Karmic Lessons and Past Life Themes',
-      TRANSFORMATIVE_EVENTS: 'Transformative Events and Rebirths',
-    },
-  },
-  COMMUNICATION_BELIEFS: {
-    label: 'Communication, Learning, and Belief Systems',
-    icon: '💭',
-    subtopics: {
-      COMMUNICATION_STYLES: 'Communication and Learning Styles',
-      PHILOSOPHICAL_BELIEFS: 'Philosophical Beliefs and Personal Worldview',
-      TRAVEL_EXPERIENCES: 'Travel and Cross-Cultural Experiences',
-      MENTAL_GROWTH_CHALLENGES: 'Challenges to Mental Growth and Adaptability',
-    },
-  },
+// New category labels/icons from Broad Category API
+const CATEGORIES: Record<string, { label: string; icon: string; isCore?: boolean }> = {
+  IDENTITY: { label: 'Self-Expression and Identity', icon: '🌟', isCore: true },
+  EMOTIONAL_FOUNDATIONS: { label: 'Emotional Foundations and Home Life', icon: '🏠', isCore: true },
+  PARTNERSHIPS: { label: 'Relationships and Social Connections', icon: '💕', isCore: true },
+  CAREER: { label: 'Career & Public Image', icon: '🎯', isCore: true },
+  COMMUNICATION: { label: 'Communication, Learning, and Beliefs', icon: '💭' },
+  HEALTH_SERVICE: { label: 'Health & Service', icon: '🩺' },
+  FINANCES: { label: 'Finances & Resources', icon: '💰' },
+  TRANSFORMATION: { label: 'Transformation & Power', icon: '🔥' },
+  COMMUNITY: { label: 'Community & Networks', icon: '👥' },
+  SPIRITUAL: { label: 'Spirituality & Growth', icon: '🔮' },
 };
 
-// Standardized topic order for consistent display
-const TOPIC_ORDER = [
-  'PERSONALITY_IDENTITY',           // 1. Self-Expression and Identity
-  'COMMUNICATION_BELIEFS',          // 2. Communication, Learning, and Belief Systems
-  'EMOTIONAL_FOUNDATIONS_HOME',     // 3. Emotional Foundations and Home Life
-  'RELATIONSHIPS_SOCIAL',           // 4. Relationships and Social Connections
-  'CAREER_PURPOSE_PUBLIC_IMAGE',    // 5. Career, Purpose, and Public Image
-  'UNCONSCIOUS_SPIRITUALITY',       // 6. Unconscious Drives and Spiritual Growth
-];
+const CORE_CATEGORY_ORDER = ['IDENTITY', 'EMOTIONAL_FOUNDATIONS', 'PARTNERSHIPS', 'CAREER'];
+const OPTIONAL_CATEGORY_ORDER = ['COMMUNICATION', 'HEALTH_SERVICE', 'FINANCES', 'TRANSFORMATION', 'COMMUNITY', 'SPIRITUAL'];
 
 interface TopicSectionProps {
   topicKey: string;
@@ -99,22 +43,32 @@ const TopicSection: React.FC<TopicSectionProps> = ({
   onToggle,
   colors,
 }) => {
-  const topicConfig = BROAD_TOPICS[topicKey as keyof typeof BROAD_TOPICS];
-
-  if (!topicConfig || !topicData) {return null;}
+  // Try new category config first, fallback to legacy mapping if any
+  const categoryConfig = CATEGORIES[topicKey as keyof typeof CATEGORIES] as any;
+  const topicConfig: any = categoryConfig || undefined;
+  if (!topicData) { return null; }
 
   return (
     <View style={[styles.topicSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <TouchableOpacity style={styles.topicHeader} onPress={onToggle}>
         <View style={styles.topicHeaderContent}>
-          <Text style={styles.topicIcon}>{topicConfig.icon}</Text>
-          <Text style={[styles.topicTitle, { color: colors.onSurface }]}>{topicData.label || topicConfig.label}</Text>
+          <Text style={styles.topicIcon}>{(topicConfig && topicConfig.icon) || '✨'}</Text>
+          <Text style={[styles.topicTitle, { color: colors.onSurface }]}>{topicData.categoryName || topicData.label || (topicConfig && topicConfig.label) || topicKey}</Text>
         </View>
         <Text style={[styles.expandIcon, { color: colors.primary }]}>{expanded ? '▼' : '▶'}</Text>
       </TouchableOpacity>
 
       {expanded && (
         <View style={[styles.topicContent, { borderTopColor: colors.border }]}>
+          {/* Category overview */}
+          {topicData.overview && (
+            <View style={[styles.tensionFlowSection, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.border }]}>
+              <Text style={[styles.tensionFlowTitle, { color: colors.primary }]}>Overview</Text>
+              <Text style={[styles.tensionFlowDescription, { color: colors.onSurface }]}>
+                {topicData.overview}
+              </Text>
+            </View>
+          )}
           {/* Tension Flow Analysis if available */}
           {(() => {
             const tension = topicData.tensionFlowAnalysis || topicData.tensionFlow;
@@ -174,14 +128,60 @@ const TopicSection: React.FC<TopicSectionProps> = ({
                 {Array.isArray(tension.keystoneAspects) && tension.keystoneAspects.length > 0 && (
                   <View style={styles.keystoneSection}>
                     <Text style={[styles.keystoneTitle, { color: colors.onSurfaceVariant }]}>Key Aspects</Text>
-                    <View style={styles.keystoneList}>
-                      {tension.keystoneAspects.slice(0, 4).map((k: any, idx: number) => (
-                        <View key={`${k.code || idx}`} style={[styles.keystonePill, { borderColor: colors.border, backgroundColor: colors.surface }]}> 
-                          <Text style={[styles.keystoneText, { color: colors.onSurface }]}>
-                            {k.planet1} {k.aspectType} {k.planet2} {typeof k.orb === 'number' ? `(${k.orb}°)` : ''}
-                          </Text>
-                        </View>
-                      ))}
+                    <View>
+                      {tension.keystoneAspects.slice(0, 6).map((code: any, idx: number) => {
+                        const decoded = typeof code === 'string' ? decodeAstroCode(code) : null;
+                        if (decoded && decoded.type === 'aspect') {
+                          const a = decoded;
+                          return (
+                            <View key={`${code || idx}`} style={styles.aspectRow}>
+                              <View style={styles.aspectPlanets}>
+                                <Text style={[styles.planetSymbolSmall, { color: PLANET_COLORS[a.p1.planet] || colors.onSurface }]}>
+                                  {getPlanetGlyph(a.p1.planet as any)}
+                                </Text>
+                                <Text style={[styles.aspectSymbol, { color: getAspectColor(a.aspect as any) }]}>
+                                  {a.aspect === 'conjunction' ? '☌' : a.aspect === 'opposition' ? '☍' : a.aspect === 'trine' ? '△' : a.aspect === 'square' ? '□' : a.aspect === 'sextile' ? '⚹' : a.aspect === 'quincunx' ? '⚻' : '◦'}
+                                </Text>
+                                <Text style={[styles.planetSymbolSmall, { color: PLANET_COLORS[a.p2.planet] || colors.onSurface }]}>
+                                  {getPlanetGlyph(a.p2.planet as any)}
+                                </Text>
+                              </View>
+                              <Text style={[styles.aspectDescription, { color: colors.onSurface }]}>
+                                {a.orbTier} {a.aspect} between {a.p1.planet} and {a.p2.planet}
+                              </Text>
+                            </View>
+                          );
+                        }
+                        if (decoded && decoded.type === 'placement') {
+                          const p = decoded;
+                          return (
+                            <View key={`${code || idx}`} style={styles.placementRow}>
+                              <View style={styles.placementSymbols}>
+                                <Text style={[styles.planetSymbolSmall, { color: PLANET_COLORS[p.planet] || colors.onSurface }]}>
+                                  {getPlanetGlyph(p.planet as any)}
+                                </Text>
+                                <Text style={[styles.signSymbol, { color: colors.primary }]}>
+                                  {getZodiacGlyph(p.sign as any)}
+                                </Text>
+                              </View>
+                              <Text style={[styles.placementDescription, { color: colors.onSurface }]}>
+                                {p.planet} in {p.sign}
+                              </Text>
+                              <Text style={[styles.houseText, { color: colors.onSurfaceVariant }]}>
+                                House {p.house}
+                              </Text>
+                            </View>
+                          );
+                        }
+                        const label = (decoded && decoded.type === 'placement') ? decoded.pretty : (code?.description || String(code));
+                        return (
+                          <View key={`${code || idx}`} style={[styles.keyAspectPill, { borderColor: colors.border, backgroundColor: colors.surface }]}> 
+                            <Text style={[styles.keyAspectText, { color: colors.onSurface }]}>
+                              {label}
+                            </Text>
+                          </View>
+                        );
+                      })}
                     </View>
                   </View>
                 )}
@@ -192,16 +192,95 @@ const TopicSection: React.FC<TopicSectionProps> = ({
           {/* Subtopics */}
           <View style={styles.subtopicsSection}>
             <Text style={[styles.subtopicsTitle, { color: colors.primary }]}>Analysis Areas</Text>
-            {Object.entries(topicData.editedSubtopics || topicData.subtopics || {}).map(([subtopicKey, content]) => (
-              <View key={subtopicKey} style={[styles.subtopic, { borderBottomColor: colors.border }]}>
-                <Text style={[styles.subtopicTitle, { color: colors.onSurface }]}>
-                  {topicConfig.subtopics[subtopicKey] || subtopicKey.replace(/_/g, ' ')}
-                </Text>
+            {(() => {
+              const rawEdited = topicData.editedSubtopics || {};
+              const rawLLM = topicData.subtopics || {};
+              const names = Array.from(new Set([...Object.keys(rawEdited), ...Object.keys(rawLLM)]));
+              return names.map((subtopicName: string) => {
+                const edited = rawEdited[subtopicName];
+                const llm = rawLLM[subtopicName];
+                const content = typeof edited === 'string' ? edited : (typeof llm === 'object' ? llm?.analysis : '');
+                const keyCodes: string[] = Array.isArray(llm?.keyAspects) ? llm.keyAspects : [];
+
+                return (
+                  <View key={subtopicName} style={[styles.subtopic, { borderBottomColor: colors.border }]}>
+                    <Text style={[styles.subtopicTitle, { color: colors.onSurface }]}>
+                      {subtopicName}
+                    </Text>
+                    <Text style={[styles.subtopicContent, { color: colors.onSurface }]}>
+                      {content || 'Analysis content not available'}
+                    </Text>
+
+                    {keyCodes.length > 0 && (
+                      <View style={styles.keyAspectsSection}>
+                        <Text style={[styles.keyAspectsTitle, { color: colors.onSurfaceVariant }]}>Key Aspects</Text>
+                        <View>
+                          {keyCodes.slice(0, 8).map((code, idx) => {
+                            const decoded = decodeAstroCode(code);
+                            if (decoded && decoded.type === 'aspect') {
+                              const a = decoded;
+                              return (
+                                <View key={`${code}-${idx}`} style={styles.aspectRow}>
+                                  <View style={styles.aspectPlanets}>
+                                    <Text style={[styles.planetSymbolSmall, { color: PLANET_COLORS[a.p1.planet] || colors.onSurface }]}>
+                                      {getPlanetGlyph(a.p1.planet as any)}
+                                    </Text>
+                                    <Text style={[styles.aspectSymbol, { color: getAspectColor(a.aspect as any) }]}>
+                                      {a.aspect === 'conjunction' ? '☌' : a.aspect === 'opposition' ? '☍' : a.aspect === 'trine' ? '△' : a.aspect === 'square' ? '□' : a.aspect === 'sextile' ? '⚹' : a.aspect === 'quincunx' ? '⚻' : '◦'}
+                                    </Text>
+                                    <Text style={[styles.planetSymbolSmall, { color: PLANET_COLORS[a.p2.planet] || colors.onSurface }]}>
+                                      {getPlanetGlyph(a.p2.planet as any)}
+                                    </Text>
+                                  </View>
+                                  <Text style={[styles.aspectDescription, { color: colors.onSurface }]}>
+                                    {a.orbTier} {a.aspect} between {a.p1.planet} and {a.p2.planet}
+                                  </Text>
+                                </View>
+                              );
+                            }
+                            if (decoded && decoded.type === 'placement') {
+                              const p = decoded;
+                              return (
+                                <View key={`${code}-${idx}`} style={styles.placementRow}>
+                                  <View style={styles.placementSymbols}>
+                                    <Text style={[styles.planetSymbolSmall, { color: PLANET_COLORS[p.planet] || colors.onSurface }]}>
+                                      {getPlanetGlyph(p.planet as any)}
+                                    </Text>
+                                    <Text style={[styles.signSymbol, { color: colors.primary }]}>
+                                      {getZodiacGlyph(p.sign as any)}
+                                    </Text>
+                                  </View>
+                                  <Text style={[styles.placementDescription, { color: colors.onSurface }]}>
+                                    {p.planet} in {p.sign}
+                                  </Text>
+                                  <Text style={[styles.houseText, { color: colors.onSurfaceVariant }]}>
+                                    House {p.house}
+                                  </Text>
+                                </View>
+                              );
+                            }
+                            const label = decoded?.pretty || code;
+                            return (
+                              <View key={`${code}-${idx}`} style={[styles.keyAspectPill, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                                <Text style={[styles.keyAspectText, { color: colors.onSurface }]}>{label}</Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              });
+            })()}
+            {topicData.synthesis && (
+              <View style={{ marginTop: 8 }}>
+                <Text style={[styles.subtopicsTitle, { color: colors.primary }]}>Synthesis</Text>
                 <Text style={[styles.subtopicContent, { color: colors.onSurface }]}>
-                  {typeof content === 'string' ? content : 'Analysis content not available'}
+                  {topicData.synthesis}
                 </Text>
               </View>
-            ))}
+            )}
           </View>
         </View>
       )}
@@ -261,16 +340,50 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
     return renderAnalysisButton();
   }
 
-  const subtopicAnalysis = fullAnalysis?.interpretation?.SubtopicAnalysis || {};
-  const availableTopics = TOPIC_ORDER.filter(key => 
-    subtopicAnalysis[key] && BROAD_TOPICS[key as keyof typeof BROAD_TOPICS]
-  );
+  // Prefer new broadCategoryAnalyses if present
+  const broad = fullAnalysis?.interpretation?.broadCategoryAnalyses;
+  const sel = fullAnalysis?.interpretation?.selectionData;
 
+  if (broad && Object.keys(broad).length > 0) {
+    const presentKeys = Object.keys(broad);
+    const orderedKeys = [
+      ...CORE_CATEGORY_ORDER.filter(k => presentKeys.includes(k)),
+      ...OPTIONAL_CATEGORY_ORDER.filter(k => presentKeys.includes(k)),
+      ...presentKeys.filter(k => !CORE_CATEGORY_ORDER.includes(k) && !OPTIONAL_CATEGORY_ORDER.includes(k)),
+    ];
+
+    return (
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          {orderedKeys.map(categoryKey => (
+            <View key={categoryKey}>
+              {/* Optional selection badge */}
+              {sel?.selectedCategories?.includes(categoryKey) && !CATEGORIES[categoryKey]?.isCore && (
+                <View style={{ alignSelf: 'flex-start', marginLeft: 16, marginBottom: 6 }}>
+                  <Text style={{ color: colors.primary, fontSize: 12 }}>Selected</Text>
+                </View>
+              )}
+              <TopicSection
+                topicKey={categoryKey}
+                topicData={broad[categoryKey]}
+                expanded={expandedTopics.has(categoryKey)}
+                onToggle={() => toggleTopic(categoryKey)}
+                colors={colors}
+              />
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    );
+  }
+
+  // Legacy rendering path
+  const subtopicAnalysis = fullAnalysis?.interpretation?.SubtopicAnalysis || {};
+  const legacyKeys = Object.keys(subtopicAnalysis);
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Topics */}
-        {availableTopics.map(topicKey => (
+        {legacyKeys.map(topicKey => (
           <TopicSection
             key={topicKey}
             topicKey={topicKey}
@@ -424,6 +537,86 @@ const styles = StyleSheet.create({
   },
   keystoneText: {
     fontSize: 12,
+  },
+  keyAspectsSection: {
+    marginTop: 8,
+  },
+  keyAspectsTitle: {
+    fontSize: 12,
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  keyAspectsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  keyAspectPill: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  keyAspectText: {
+    fontSize: 12,
+  },
+  // Aspect row styling to match PlanetCard
+  aspectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+    paddingVertical: 1,
+  },
+  aspectPlanets: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 50,
+    justifyContent: 'space-between',
+  },
+  planetSymbolSmall: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  aspectSymbol: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  aspectDescription: {
+    fontSize: 12,
+    flex: 1,
+    marginLeft: 6,
+  },
+  aspectOrb: {
+    fontSize: 10,
+    marginLeft: 6,
+    width: 40,
+    textAlign: 'right',
+  },
+  // Placement row styling to match PlanetCard
+  placementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+    paddingVertical: 1,
+  },
+  placementSymbols: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 50,
+    justifyContent: 'space-between',
+  },
+  placementDescription: {
+    fontSize: 12,
+    flex: 1,
+    marginLeft: 6,
+  },
+  signSymbol: {
+    fontSize: 14,
+  },
+  houseText: {
+    fontSize: 12,
+    marginLeft: 8,
   },
   subtopicsTitle: {
     fontSize: 14,

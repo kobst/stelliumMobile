@@ -34,6 +34,7 @@ export interface BasicAnalysis {
   };
 }
 
+// Legacy per-subtopic analysis structure
 export interface SubtopicAnalysis {
   [topicKey: string]: {
     label: string;
@@ -41,17 +42,66 @@ export interface SubtopicAnalysis {
       [subtopicKey: string]: string;
     };
     tensionFlow?: {
-      supportDensity: number;
-      challengeDensity: number;
-      polarityRatio: number;
-      quadrant: string;
-      totalAspects: number;
-      supportAspects: number;
-      challengeAspects: number;
-      keystoneAspects: any[];
-      description: string;
+      supportDensity?: number;
+      challengeDensity?: number;
+      polarityRatio?: number;
+      quadrant?: string;
+      totalAspects?: number;
+      supportAspects?: number;
+      challengeAspects?: number;
+      keystoneAspects?: any[];
+      description?: string;
     };
   };
+}
+
+// New broad category analysis structure
+export interface BroadCategoryAnalysisItem {
+  categoryName?: string;
+  isCore?: boolean;
+  overview?: string;
+  subtopics?: {
+    // LLM-generated subtopic names mapped to analysis + metadata
+    [subtopicName: string]: {
+      analysis?: string;
+      keyAspects?: string[];
+      energyPattern?: string;
+    };
+  };
+  // Post-editorial content. Prefer this over subtopics when rendering.
+  editedSubtopics?: {
+    [subtopicName: string]: string; // markdown or plain text
+  };
+  tensionFlow?: {
+    quadrant?: string;
+    supportDensity?: number;
+    challengeDensity?: number;
+    polarityRatio?: number;
+    totalAspects?: number;
+    supportAspects?: number;
+    challengeAspects?: number;
+    keystoneAspects?: any[];
+    description?: string;
+  };
+  synthesis?: string;
+  editorialComplete?: boolean;
+  editorialGeneratedAt?: string;
+}
+
+export interface BroadCategoryAnalyses {
+  // Keys like IDENTITY, EMOTIONAL_FOUNDATIONS, PARTNERSHIPS, CAREER, COMMUNICATION, etc.
+  [categoryKey: string]: BroadCategoryAnalysisItem;
+}
+
+export interface AnalysisMetadata {
+  timestamp?: string;
+  executionSummary?: any;
+}
+
+export interface SelectionData {
+  selectedCategories?: string[];
+  rejectedCategories?: string[];
+  notes?: any;
 }
 
 export interface VectorizationStatus {
@@ -69,7 +119,12 @@ export interface ChartAnalysisResponse {
   birthChartAnalysisId: string;
   interpretation: {
     basicAnalysis: BasicAnalysis;
-    SubtopicAnalysis: SubtopicAnalysis;
+    // New preferred structure
+    broadCategoryAnalyses?: BroadCategoryAnalyses;
+    analysisMetadata?: AnalysisMetadata;
+    selectionData?: SelectionData;
+    // Legacy fallback
+    SubtopicAnalysis?: SubtopicAnalysis;
   };
   vectorizationStatus: VectorizationStatus;
   // Legacy fields for backward compatibility
@@ -170,7 +225,12 @@ export const chartsApi = {
             },
             planets: analysis.interpretation?.basicAnalysis?.planetAnalysis || {},
           },
-          SubtopicAnalysis: analysis.interpretation?.topicAnalysis || {},
+          // Prefer new structure when present
+          broadCategoryAnalyses: analysis.interpretation?.broadCategoryAnalyses || undefined,
+          analysisMetadata: analysis.interpretation?.analysisMetadata || undefined,
+          selectionData: analysis.interpretation?.selectionData || undefined,
+          // Keep legacy fallback available
+          SubtopicAnalysis: analysis.interpretation?.topicAnalysis || analysis.interpretation?.SubtopicAnalysis || undefined,
         },
         vectorizationStatus: analysis.vectorizationStatus || {
           topicAnalysis: { isComplete: false, progress: 0 },
