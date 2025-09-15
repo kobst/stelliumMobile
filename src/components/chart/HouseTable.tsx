@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scrollView: {
-    maxHeight: 300,
+    maxHeight: 400,
   },
   row: {
     flexDirection: 'row',

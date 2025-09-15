@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme';
 import { SubjectDocument, User } from '../../types';
 import { extractPlanetaryData, getZodiacSignFromDate } from '../../utils/chartHelpers';
-import { planetarySymbols } from '../../../constants';
+import { AstroIcon } from '../../../utils/astrologyIcons';
 
 interface PlanetaryIconsProps {
   subject?: SubjectDocument | null;
@@ -71,9 +71,7 @@ const PlanetaryIcons: React.FC<PlanetaryIconsProps> = ({ subject, user }) => {
     return (
       <View style={styles.container}>
         <View style={styles.iconWrapper}>
-          <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
-            {planetarySymbols.Sun}
-          </Text>
+          <AstroIcon type="planet" name="Sun" size={14} color={colors.primary} />
           {sunSignSymbol ? (
             <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
               {sunSignSymbol}
@@ -92,32 +90,20 @@ const PlanetaryIcons: React.FC<PlanetaryIconsProps> = ({ subject, user }) => {
     <View style={styles.container}>
       {planetaryData.sun.sign && (
         <View style={styles.iconWrapper}>
-          <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
-            {planetarySymbols.Sun}
-          </Text>
-          <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
-            {getZodiacSymbol(planetaryData.sun.sign)}
-          </Text>
+          <AstroIcon type="planet" name="Sun" size={14} color={colors.primary} />
+          <AstroIcon type="zodiac" name={planetaryData.sun.sign} size={14} color={colors.primary} />
         </View>
       )}
       {planetaryData.moon.sign && (
         <View style={styles.iconWrapper}>
-          <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
-            {planetarySymbols.Moon}
-          </Text>
-          <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
-            {getZodiacSymbol(planetaryData.moon.sign)}
-          </Text>
+          <AstroIcon type="planet" name="Moon" size={14} color={colors.primary} />
+          <AstroIcon type="zodiac" name={planetaryData.moon.sign} size={14} color={colors.primary} />
         </View>
       )}
       {planetaryData.ascendant?.sign && (
         <View style={styles.iconWrapper}>
-          <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
-            {planetarySymbols.Ascendant}
-          </Text>
-          <Text style={[styles.planetaryIcon, { color: colors.primary }]}>
-            {getZodiacSymbol(planetaryData.ascendant.sign)}
-          </Text>
+          <AstroIcon type="planet" name="Ascendant" size={14} color={colors.primary} />
+          <AstroIcon type="zodiac" name={planetaryData.ascendant.sign} size={14} color={colors.primary} />
         </View>
       )}
     </View>
