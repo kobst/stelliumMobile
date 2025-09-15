@@ -23,6 +23,8 @@ import {
   getAspectStrength,
   hexToRgba,
 } from './ChartUtils';
+import { ChartSVGIcon, hasSVGPath } from './ChartSVGIcons';
+import { getZodiacIconFromConstant, getPlanetIconFromConstant } from '../../../utils/astrologyIcons';
 
 interface ChartWheelProps {
   birthChart?: BirthChart;
@@ -39,6 +41,18 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
 }) => {
   const { colors } = useTheme();
   const { size, centerX, centerY, outerRadius, innerRadius, planetRadius, houseRadius } = CHART_DIMENSIONS;
+  // Overlap + visibility config (kept in sync with renderPlanets logic)
+  const ICON_SIZE = 14; // planet icon size
+  const BG_RADIUS = 12; // background circle radius
+  const RADIAL_PUSH_INCREMENT = 8; // px per push when resolving overlaps
+  const MAX_ADJUSTMENT_ATTEMPTS = 3; // max pushes
+  const MAX_PUSH = RADIAL_PUSH_INCREMENT * MAX_ADJUSTMENT_ATTEMPTS;
+  // Compute viewBox margin needed so pushed-out planets are still visible
+  const neededRadius = planetRadius + MAX_PUSH + BG_RADIUS;
+  const overshoot = Math.max(0, neededRadius - Math.min(centerX, centerY));
+  const viewBox = overshoot > 0
+    ? `-${overshoot} -${overshoot} ${size + overshoot * 2} ${size + overshoot * 2}`
+    : `0 0 ${size} ${size}`;
 
   // Get ascendant degree for proper chart orientation
   const ascendantDegree = useMemo(() => {
@@ -105,19 +119,37 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
       const signRadius = (innerRadius + outerRadius) / 2;
       const { x: signX, y: signY } = getCirclePosition(signDegree, signRadius, centerX, centerY, ascendantDegree);
 
-      elements.push(
-        <SvgText
-          key={`zodiac-symbol-${i}`}
-          x={signX}
-          y={signY}
-          fontSize="18"
-          fill={ZODIAC_COLORS[signNames[i]] || colors.onSurface}
-          textAnchor="middle"
-          alignmentBaseline="middle"
-        >
-          {getZodiacGlyph(signNames[i])}
-        </SvgText>
-      );
+      const SignIcon = getZodiacIconFromConstant(signNames[i]);
+      const iconSize = 18;
+
+      if (SignIcon) {
+        elements.push(
+          <G
+            key={`zodiac-symbol-${i}`}
+            transform={`translate(${signX - iconSize / 2}, ${signY - iconSize / 2})`}
+          >
+            <SignIcon
+              width={`${iconSize}`}
+              height={`${iconSize}`}
+              fill={ZODIAC_COLORS[signNames[i]] || colors.onSurface}
+            />
+          </G>
+        );
+      } else {
+        elements.push(
+          <SvgText
+            key={`zodiac-symbol-${i}`}
+            x={signX}
+            y={signY}
+            fontSize="18"
+            fill={ZODIAC_COLORS[signNames[i]] || colors.onSurface}
+            textAnchor="middle"
+            alignmentBaseline="middle"
+          >
+            {getZodiacGlyph(signNames[i])}
+          </SvgText>
+        );
+      }
     }
 
     return elements;
@@ -172,7 +204,7 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
     return elements;
   };
 
-  // Render planets
+  // Render planets with simple overlap avoidance
   const renderPlanets = (): ReactElement[] | null => {
     if (!birthChart?.planets?.length) {return null;}
 
@@ -182,55 +214,98 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
     // Sort planets by degree to handle overlaps
     const sortedPlanets = [...filteredPlanets].sort((a, b) => a.full_degree - b.full_degree);
 
-    sortedPlanets.forEach((planet, index) => {
+    // Overlap avoidance config
+    const ICON_SIZE = 14; // size of planet glyphs
+    const BG_RADIUS = 12; // radius of background circle
+    const BOX_SIZE = Math.max(ICON_SIZE, BG_RADIUS * 2) + 6; // bounding box for collision detection with padding
+    const RADIAL_PUSH_INCREMENT = 8; // px to push outward when overlapping
+    const MAX_ADJUSTMENT_ATTEMPTS = 3; // limit pushes to keep inside viewBox
+
+    type Box = { x: number; y: number; w: number; h: number };
+    const occupied: Box[] = [];
+    const overlaps = (a: Box, b: Box) => !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+
+    sortedPlanets.forEach((planet) => {
       const planetColor = PLANET_COLORS[planet.name as PlanetName] || '#ffffff';
 
-      // Planet position (with slight offset to avoid overlaps)
+      // Find a non-overlapping position by pushing radially outward if needed
       let adjustedRadius = planetRadius;
-      const { x: planetX, y: planetY } = getCirclePosition(
-        planet.full_degree,
-        adjustedRadius,
-        centerX,
-        centerY,
-        ascendantDegree
-      );
+      let attempts = 0;
+      let pos = getCirclePosition(planet.full_degree, adjustedRadius, centerX, centerY, ascendantDegree);
+      let box: Box = { x: pos.x - BOX_SIZE / 2, y: pos.y - BOX_SIZE / 2, w: BOX_SIZE, h: BOX_SIZE };
+      let collided = occupied.some((b) => overlaps(box, b));
+      while (collided && attempts < MAX_ADJUSTMENT_ATTEMPTS) {
+        adjustedRadius += RADIAL_PUSH_INCREMENT;
+        pos = getCirclePosition(planet.full_degree, adjustedRadius, centerX, centerY, ascendantDegree);
+        box = { x: pos.x - BOX_SIZE / 2, y: pos.y - BOX_SIZE / 2, w: BOX_SIZE, h: BOX_SIZE };
+        collided = occupied.some((b) => overlaps(box, b));
+        attempts += 1;
+      }
 
-      // Planet background circle
+      // Reserve this position
+      occupied.push(box);
+
+      const planetX = pos.x;
+      const planetY = pos.y;
+
+      // Background circle
       elements.push(
         <Circle
-          key={`planet-bg-${planet.name}`}
+          key={`planet-bg-${planet.name}-${planet.full_degree}`}
           cx={planetX}
           cy={planetY}
-          r="12"
+          r={`${BG_RADIUS}`}
           fill={colors.background + 'CC'}
           stroke={planetColor}
           strokeWidth="2"
         />
       );
 
-      // Planet symbol
-      elements.push(
-        <SvgText
-          key={`planet-${planet.name}`}
-          x={planetX}
-          y={planetY}
-          fontSize="14"
-          fill={planetColor}
-          textAnchor="middle"
-          alignmentBaseline="middle"
-          fontWeight="bold"
-        >
-          {getPlanetGlyph(planet.name as PlanetName)}
-        </SvgText>
-      );
+      // Planet icon (SVG preferred)
+      const PlanetIcon = getPlanetIconFromConstant(planet.name);
+      if (PlanetIcon) {
+        elements.push(
+          <G
+            key={`planet-${planet.name}-${planet.full_degree}`}
+            transform={`translate(${planetX - ICON_SIZE / 2}, ${planetY - ICON_SIZE / 2})`}
+          >
+            <PlanetIcon width={`${ICON_SIZE}`} height={`${ICON_SIZE}`} fill={planetColor} />
+          </G>
+        );
+      } else if (hasSVGPath(planet.name)) {
+        elements.push(
+          <ChartSVGIcon
+            key={`planet-${planet.name}-${planet.full_degree}`}
+            planetName={planet.name}
+            x={planetX}
+            y={planetY}
+            size={ICON_SIZE}
+            fill={planetColor}
+          />
+        );
+      } else {
+        elements.push(
+          <SvgText
+            key={`planet-${planet.name}-${planet.full_degree}`}
+            x={planetX}
+            y={planetY}
+            fontSize={`${ICON_SIZE}`}
+            fill={planetColor}
+            textAnchor="middle"
+            alignmentBaseline="middle"
+            fontWeight="bold"
+          >
+            {getPlanetGlyph(planet.name as PlanetName)}
+          </SvgText>
+        );
+      }
 
-      // Planet degree marker on the wheel
+      // Degree hash mark on the wheel edge
       const { x: markerX1, y: markerY1 } = getCirclePosition(planet.full_degree, outerRadius, centerX, centerY, ascendantDegree);
       const { x: markerX2, y: markerY2 } = getCirclePosition(planet.full_degree, outerRadius + 10, centerX, centerY, ascendantDegree);
-
       elements.push(
         <Line
-          key={`planet-marker-${planet.name}`}
+          key={`planet-marker-${planet.name}-${planet.full_degree}`}
           x1={markerX1}
           y1={markerY1}
           x2={markerX2}
@@ -239,6 +314,21 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
           strokeWidth="2"
         />
       );
+
+      // If position was adjusted, draw an indicator line back to wheel
+      if (adjustedRadius !== planetRadius) {
+        elements.push(
+          <Line
+            key={`planet-indicator-${planet.name}-${planet.full_degree}`}
+            x1={planetX}
+            y1={planetY}
+            x2={markerX1}
+            y2={markerY1}
+            stroke={`${planetColor}80`}
+            strokeWidth="1"
+          />
+        );
+      }
     });
 
     return elements;
@@ -289,7 +379,7 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.chartContainer}>
-        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Svg width={size} height={size} viewBox={viewBox}>
           {/* Background circles and zodiac wheel */}
           {renderZodiacWheel()}
 

@@ -7,6 +7,7 @@ import {
   PLANET_COLORS,
 } from './ChartUtils';
 import { useTheme } from '../../theme';
+import { AstroIcon, getPlanetIconFromConstant, getZodiacIconFromConstant } from '../../../utils/astrologyIcons';
 
 interface PlanetCardProps {
   planet: string;
@@ -188,9 +189,12 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
       {!hideHeader && (
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <View style={[styles.symbolContainer, { backgroundColor: getPlanetColor(planet) + '20' }]}>
-            <Text style={[styles.symbol, { color: getPlanetColor(planet) }]}>
-              {getPlanetSymbol(planet)}
-            </Text>
+            <AstroIcon
+              type="planet"
+              name={planet}
+              size={20}
+              color={getPlanetColor(planet)}
+            />
           </View>
           <Text style={[styles.planetName, { color: getPlanetColor(planet) }]}>
             {planet}
@@ -208,17 +212,23 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
               {parsedData.positions.map((position, index) => (
                 <View key={index} style={styles.positionRow}>
                   <View style={styles.planetSymbolContainer}>
-                    <Text style={[styles.planetSymbolSmall, { color: getPlanetColor(position.planet) }]}>
-                      {getPlanetSymbol(position.planet)}
-                    </Text>
+                    <AstroIcon
+                      type="planet"
+                      name={position.planet}
+                      size={14}
+                      color={getPlanetColor(position.planet)}
+                    />
                   </View>
                   <Text style={[styles.positionText, { color: colors.onSurface }]}>
                     {position.planet} in {position.sign}
                   </Text>
                   <View style={styles.signSymbolContainer}>
-                    <Text style={[styles.signSymbol, { color: colors.primary }]}>
-                      {getZodiacGlyph(position.sign as any)}
-                    </Text>
+                    <AstroIcon
+                      type="zodiac"
+                      name={position.sign}
+                      size={14}
+                      color={colors.primary}
+                    />
                   </View>
                   <Text style={[styles.houseText, { color: colors.onSurfaceVariant }]}>
                     House {position.house}
@@ -238,15 +248,21 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
               {parsedData.aspects.slice(0, 5).map((aspect, index) => ( // Limit to 5 aspects
                 <View key={index} style={styles.aspectRow}>
                   <View style={styles.aspectPlanets}>
-                    <Text style={[styles.planetSymbolSmall, { color: getPlanetColor(aspect.planet1) }]}>
-                      {getPlanetSymbol(aspect.planet1)}
-                    </Text>
+                    <AstroIcon
+                      type="planet"
+                      name={aspect.planet1}
+                      size={12}
+                      color={getPlanetColor(aspect.planet1)}
+                    />
                     <Text style={[styles.aspectSymbol, { color: getAspectColor(aspect.aspectType as any) }]}>
                       {getAspectSymbol(aspect.aspectType)}
                     </Text>
-                    <Text style={[styles.planetSymbolSmall, { color: getPlanetColor(aspect.planet1 === planet ? aspect.planet2 : aspect.planet1) }]}>
-                      {getPlanetSymbol(aspect.planet1 === planet ? aspect.planet2 : aspect.planet1)}
-                    </Text>
+                    <AstroIcon
+                      type="planet"
+                      name={aspect.planet1 === planet ? aspect.planet2 : aspect.planet1}
+                      size={12}
+                      color={getPlanetColor(aspect.planet1 === planet ? aspect.planet2 : aspect.planet1)}
+                    />
                   </View>
                   <Text style={[styles.aspectDescription, { color: colors.onSurface }]}>
                     {aspect.orbDescription} {aspect.aspectType} to {aspect.planet1 === planet ? aspect.planet2 : aspect.planet1}
@@ -273,9 +289,12 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
                   <Text style={[styles.rulerText, { color: colors.onSurface }]}>
                     {ruler.sign} (House {ruler.house})
                   </Text>
-                  <Text style={[styles.signSymbol, { color: colors.primary }]}>
-                    {getZodiacGlyph(ruler.sign as any)}
-                  </Text>
+                  <AstroIcon
+                    type="zodiac"
+                    name={ruler.sign}
+                    size={14}
+                    color={colors.primary}
+                  />
                 </View>
               ))}
             </View>
