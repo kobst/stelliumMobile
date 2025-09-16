@@ -203,11 +203,9 @@ export const horoscopeTransformers = {
   getPeriodDisplayName: (period: HoroscopeFilter): string => {
     const names: Record<HoroscopeFilter, string> = {
       today: 'Today',
-      tomorrow: 'Tomorrow',
       thisWeek: 'This Week',
-      nextWeek: 'Next Week',
       thisMonth: 'This Month',
-      nextMonth: 'Next Month',
+      custom: 'Custom',
     };
 
     return names[period] || period;

@@ -34,11 +34,8 @@ interface HoroscopeContainerProps {
 
 interface HoroscopeCache {
   today: HoroscopeResponse | null;
-  tomorrow: HoroscopeResponse | null;
   thisWeek: HoroscopeResponse | null;
-  nextWeek: HoroscopeResponse | null;
   thisMonth: HoroscopeResponse | null;
-  nextMonth: HoroscopeResponse | null;
 }
 
 const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
@@ -56,11 +53,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   const [customHoroscopeError, setCustomHoroscopeError] = useState<string | null>(null);
   const [horoscopeCache, setHoroscopeCache] = useState<HoroscopeCache>({
     today: null,
-    tomorrow: null,
     thisWeek: null,
-    nextWeek: null,
     thisMonth: null,
-    nextMonth: null,
   });
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
   const [horoscopeError, setHoroscopeError] = useState<string | null>(null);
@@ -333,24 +327,12 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           startDate = getTodayRange().start.toISOString().split('T')[0];
           type = 'daily';
           break;
-        case 'tomorrow':
-          startDate = getTomorrowRange().start.toISOString().split('T')[0];
-          type = 'daily';
-          break;
         case 'thisWeek':
           startDate = getCurrentWeekRange().start;
           type = 'weekly';
           break;
-        case 'nextWeek':
-          startDate = getNextWeekRange().start;
-          type = 'weekly';
-          break;
         case 'thisMonth':
           startDate = getCurrentMonthRange().start;
-          type = 'monthly';
-          break;
-        case 'nextMonth':
-          startDate = getNextMonthRange().start;
           type = 'monthly';
           break;
       }
@@ -515,11 +497,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
 
   const tabOptions = [
     { key: 'today', label: 'Today' },
-    { key: 'tomorrow', label: 'Tomorrow' },
     { key: 'thisWeek', label: 'This Week' },
-    { key: 'nextWeek', label: 'Next Week' },
     { key: 'thisMonth', label: 'This Month' },
-    { key: 'nextMonth', label: 'Next Month' },
     { key: 'custom', label: 'Custom' },
   ] as const;
 
@@ -625,7 +604,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
         ) : horoscopeCache[activeTab] ? (
           <View style={styles.horoscopeCard}>
             <Text style={styles.horoscopeTitle}>
-              Your {activeTab === 'today' || activeTab === 'tomorrow' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
+              Your {activeTab === 'today' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
             </Text>
             <Text style={styles.horoscopeText}>
               {horoscopeCache[activeTab]?.horoscope.text || horoscopeCache[activeTab]?.horoscope.interpretation || 'No horoscope content available.'}
@@ -635,7 +614,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
             </Text>
 
             {/* Daily horoscope key transits */}
-            {(activeTab === 'today' || activeTab === 'tomorrow') && horoscopeCache[activeTab]?.horoscope.keyTransits && horoscopeCache[activeTab]!.horoscope.keyTransits!.length > 0 && (
+            {activeTab === 'today' && horoscopeCache[activeTab]?.horoscope.keyTransits && horoscopeCache[activeTab]!.horoscope.keyTransits!.length > 0 && (
               <View style={styles.keyTransitsSection}>
                 <Text style={styles.keyTransitsTitle}>Key Planetary Influences</Text>
                 {horoscopeCache[activeTab]!.horoscope.keyTransits!.map((transit, index) => (
@@ -652,7 +631,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
             )}
 
             {/* Weekly/Monthly horoscope key themes */}
-            {!(activeTab === 'today' || activeTab === 'tomorrow') && horoscopeCache[activeTab]?.horoscope.analysis?.keyThemes && (
+            {activeTab !== 'today' && horoscopeCache[activeTab]?.horoscope.analysis?.keyThemes && (
               <View style={styles.keyThemesSection}>
                 <Text style={styles.keyThemesTitle}>Key Themes</Text>
                 {horoscopeCache[activeTab]!.horoscope.analysis!.keyThemes!.map((theme, index) => (
@@ -670,7 +649,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
               <>
                 <ActivityIndicator size="large" color={colors.primary} style={styles.generatingSpinner} />
                 <Text style={styles.horoscopeGeneratingTitle}>
-                  Generating Your {activeTab === 'today' || activeTab === 'tomorrow' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
+                  Generating Your {activeTab === 'today' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
                 </Text>
                 <Text style={styles.horoscopeGeneratingText}>
                   We're analyzing the cosmic influences for this period...
@@ -679,7 +658,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
             ) : (
               <>
                 <Text style={styles.horoscopeErrorTitle}>
-                  Unable to Load {activeTab === 'today' || activeTab === 'tomorrow' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
+                  Unable to Load {activeTab === 'today' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
                 </Text>
                 <Text style={styles.horoscopeErrorText}>
                   We're experiencing issues loading this horoscope. Please try again.
@@ -773,9 +752,9 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
                   {activeTab === 'custom'
                     ? 'No transit events found for the selected date range.'
                     : `No significant transits found for ${
+                        activeTab === 'today' ? 'today' :
                         activeTab === 'thisWeek' ? 'this week' :
-                        activeTab === 'nextWeek' ? 'next week' :
-                        activeTab === 'thisMonth' ? 'this month' : 'next month'
+                        activeTab === 'thisMonth' ? 'this month' : 'this period'
                       }.`
                   }
                 </Text>
