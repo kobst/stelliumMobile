@@ -41,13 +41,19 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
 }) => {
   const { colors } = useTheme();
   const { size, centerX, centerY, outerRadius, innerRadius, planetRadius, houseRadius } = CHART_DIMENSIONS;
-  // Overlap + visibility config (kept in sync with renderPlanets logic)
+  // Overlap + visibility config (keep in sync with renderPlanets logic)
+  // Notes on tuning:
+  // - ICON_SIZE and BG_RADIUS affect collision box size; increase if icons grow.
+  // - RADIAL_PUSH_INCREMENT and MAX_ADJUSTMENT_ATTEMPTS control how far icons move out radially.
+  // - ANGLE_OFFSETS (in renderPlanets) are small angle jitters used if radial pushes still collide.
+  // - viewBox expands automatically based on MAX_PUSH to avoid clipping moved icons.
   const ICON_SIZE = 14; // planet icon size
   const BG_RADIUS = 12; // background circle radius
   const RADIAL_PUSH_INCREMENT = 8; // px per push when resolving overlaps
   const MAX_ADJUSTMENT_ATTEMPTS = 3; // max pushes
   const MAX_PUSH = RADIAL_PUSH_INCREMENT * MAX_ADJUSTMENT_ATTEMPTS;
-  // Compute viewBox margin needed so pushed-out planets are still visible
+  // Compute viewBox margin needed so pushed-out planets are still visible.
+  // Increase MAX_ADJUSTMENT_ATTEMPTS or RADIAL_PUSH_INCREMENT? viewBox will grow to fit automatically.
   const neededRadius = planetRadius + MAX_PUSH + BG_RADIUS;
   const overshoot = Math.max(0, neededRadius - Math.min(centerX, centerY));
   const viewBox = overshoot > 0
@@ -215,11 +221,14 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
     const sortedPlanets = [...filteredPlanets].sort((a, b) => a.full_degree - b.full_degree);
 
     // Overlap avoidance config
-    const ICON_SIZE = 14; // size of planet glyphs
-    const BG_RADIUS = 12; // radius of background circle
-    const BOX_SIZE = Math.max(ICON_SIZE, BG_RADIUS * 2) + 6; // bounding box for collision detection with padding
-    const RADIAL_PUSH_INCREMENT = 8; // px to push outward when overlapping
-    const MAX_ADJUSTMENT_ATTEMPTS = 3; // limit pushes to keep inside viewBox
+    const ICON_SIZE = 14; // size of planet glyphs (keep in sync)
+    const BG_RADIUS = 12; // radius of background circle (keep in sync)
+    // Bounding box used to detect icon collisions. Increase padding if icons still visually overlap.
+    const BOX_SIZE = Math.max(ICON_SIZE, BG_RADIUS * 2) + 6;
+    const RADIAL_PUSH_INCREMENT = 8; // px to push outward when overlapping (keep in sync)
+    const MAX_ADJUSTMENT_ATTEMPTS = 3; // limit pushes to keep inside viewBox (keep in sync)
+    // Small angular jitters to try if radial pushes still collide. Adjust order/magnitude for aesthetics.
+    const ANGLE_OFFSETS = [4, -4, 8, -8, 12, -12]; // degrees
 
     type Box = { x: number; y: number; w: number; h: number };
     const occupied: Box[] = [];
@@ -240,6 +249,33 @@ const ChartWheel: React.FC<ChartWheelProps> = ({
         box = { x: pos.x - BOX_SIZE / 2, y: pos.y - BOX_SIZE / 2, w: BOX_SIZE, h: BOX_SIZE };
         collided = occupied.some((b) => overlaps(box, b));
         attempts += 1;
+      }
+
+      // If still colliding at max radial push, try small angular offsets with minimal radius first
+      if (collided) {
+        let resolved = false;
+        for (const offset of ANGLE_OFFSETS) {
+          // Try with base radius to keep icons closer to wheel
+          let testPos = getCirclePosition(planet.full_degree + offset, planetRadius, centerX, centerY, ascendantDegree);
+          let testBox: Box = { x: testPos.x - BOX_SIZE / 2, y: testPos.y - BOX_SIZE / 2, w: BOX_SIZE, h: BOX_SIZE };
+          if (!occupied.some((b) => overlaps(testBox, b))) {
+            pos = testPos;
+            box = testBox;
+            adjustedRadius = planetRadius;
+            resolved = true;
+            break;
+          }
+          // Try with adjusted radius
+          testPos = getCirclePosition(planet.full_degree + offset, adjustedRadius, centerX, centerY, ascendantDegree);
+          testBox = { x: testPos.x - BOX_SIZE / 2, y: testPos.y - BOX_SIZE / 2, w: BOX_SIZE, h: BOX_SIZE };
+          if (!occupied.some((b) => overlaps(testBox, b))) {
+            pos = testPos;
+            box = testBox;
+            resolved = true;
+            break;
+          }
+        }
+        // If not resolved, we keep the last computed pos/box (might slightly overlap in worst case)
       }
 
       // Reserve this position
@@ -401,8 +437,8 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     borderRadius: 12,
-    padding: 16,
-    margin: 8,
+    padding: 8,
+    margin: 4,
     borderWidth: 1,
   },
   chartContainer: {
