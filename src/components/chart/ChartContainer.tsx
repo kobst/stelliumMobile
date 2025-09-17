@@ -196,8 +196,8 @@ const styles = StyleSheet.create({
   },
   chartSection: {
     alignItems: 'center',
-    padding: 16,
-    margin: 16,
+    padding: 8,
+    margin: 8,
     marginTop: 0,
     borderRadius: 12,
     borderWidth: 1,

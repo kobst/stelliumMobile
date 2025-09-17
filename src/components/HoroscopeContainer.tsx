@@ -24,6 +24,7 @@ import {
   dateRangesOverlap,
 } from '../utils/dateHelpers';
 import { useTheme } from '../theme';
+import { AstroIcon } from '../../utils/astrologyIcons';
 
 interface HoroscopeContainerProps {
   transitWindows?: TransitEvent[];
@@ -191,6 +192,21 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     return aspect.charAt(0).toUpperCase() + aspect.slice(1);
   };
 
+  // Helper function to get aspect symbols
+  const getAspectSymbol = (aspect: string): string => {
+    const aspectSymbols: { [key: string]: string } = {
+      'conjunction': '☌',
+      'sextile': '⚹',
+      'square': '□',
+      'trine': '△',
+      'opposition': '☍',
+      'quincunx': '⚻',
+      'inconjunct': '⚻', // Alternative name for quincunx
+    };
+
+    return aspectSymbols[aspect?.toLowerCase()] || aspect || '';
+  };
+
   // Helper function to add retrograde symbol to planet names
   const getPlanetDisplayName = (planet: string, isRetrograde?: boolean): string => {
     return `${planet}${isRetrograde ? ' ℞' : ''}`;
@@ -268,7 +284,87 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     );
   };
 
-  // Helper function to get transit description
+  // Component to render transit description with symbols
+  const TransitDescriptionWithSymbols: React.FC<{
+    transit: TransitEvent;
+    textStyle: any;
+    iconSize?: number;
+    iconColor?: string;
+  }> = ({ transit, textStyle, iconSize = 16, iconColor = colors.primary }) => {
+    // If transit has a pre-written description, use it as text
+    if (transit.description) {
+      return <Text style={textStyle}>{transit.description}</Text>;
+    }
+
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Transiting Planet Symbol and Name */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <AstroIcon type="planet" name={transit.transitingPlanet} size={iconSize} color={iconColor} />
+          <Text style={textStyle}> {transit.transitingPlanet}</Text>
+        </View>
+
+        {/* Retrograde indicator if applicable */}
+        {transit.isRetrograde && <Text style={textStyle}> ℞</Text>}
+
+        {/* Sign information with symbols and names */}
+        {transit.transitingSigns && transit.transitingSigns.length > 1 ? (
+          <>
+            <Text style={textStyle}> (moving from </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AstroIcon type="zodiac" name={transit.transitingSigns[0]} size={iconSize} color={iconColor} />
+              <Text style={textStyle}> {transit.transitingSigns[0]}</Text>
+            </View>
+            <Text style={textStyle}> to </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AstroIcon type="zodiac" name={transit.transitingSigns[transit.transitingSigns.length - 1]} size={iconSize} color={iconColor} />
+              <Text style={textStyle}> {transit.transitingSigns[transit.transitingSigns.length - 1]}</Text>
+            </View>
+            <Text style={textStyle}>)</Text>
+          </>
+        ) : transit.transitingSign ? (
+          <>
+            <Text style={textStyle}> in </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AstroIcon type="zodiac" name={transit.transitingSign} size={iconSize} color={iconColor} />
+              <Text style={textStyle}> {transit.transitingSign}</Text>
+            </View>
+          </>
+        ) : null}
+
+        {/* Aspect symbol and name */}
+        <Text style={textStyle}> {getAspectSymbol(transit.aspect)} {transit.aspect} </Text>
+
+        {/* Target type and planet */}
+        {transit.type === 'transit-to-natal' && <Text style={textStyle}>natal </Text>}
+        {transit.targetPlanet && (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <AstroIcon type="planet" name={transit.targetPlanet} size={iconSize} color={iconColor} />
+            <Text style={textStyle}> {transit.targetPlanet}</Text>
+          </View>
+        )}
+        {transit.targetIsRetrograde && <Text style={textStyle}> ℞</Text>}
+
+        {/* Target sign */}
+        {transit.targetSign && (
+          <>
+            <Text style={textStyle}> in </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <AstroIcon type="zodiac" name={transit.targetSign} size={iconSize} color={iconColor} />
+              <Text style={textStyle}> {transit.targetSign}</Text>
+            </View>
+          </>
+        )}
+
+        {/* Target house */}
+        {transit.targetHouse && (
+          <Text style={textStyle}> in {transit.targetHouse}th house</Text>
+        )}
+      </View>
+    );
+  };
+
+  // Helper function to get transit description (kept for backwards compatibility)
   const getTransitDescription = (transit: TransitEvent): string => {
     if (transit.description) {
       return transit.description;
@@ -371,9 +467,10 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     setTransitWindowsError(null);
 
     try {
-      // Default to 6 weeks from present date
+      // Query range: 3 days ago to 6 weeks forward (45 days total)
       const now = new Date();
       const fromDate = new Date(now);
+      fromDate.setDate(now.getDate() - 3); // Start 3 days ago
       const toDate = new Date(now);
       toDate.setDate(now.getDate() + 42); // 6 weeks forward (42 days)
 
@@ -384,13 +481,21 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       ));
 
       if (response.transitEvents && response.transitEvents.length > 0) {
-        setCustomTransitWindows(response.transitEvents);
-        // Set default custom date range to 6 weeks from now if not set
+        // Filter out transits that ended before today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+        const activeTransits = response.transitEvents.filter(transit => {
+          const transitEnd = new Date(transit.end);
+          return transitEnd >= today; // Keep transits ending today or later
+        });
+
+        setCustomTransitWindows(activeTransits);
+        // Set default custom date range to 6 weeks from today (for display purposes)
         if (!customDateRange) {
-          const now = new Date();
-          const sixWeeksOut = new Date(now);
-          sixWeeksOut.setDate(now.getDate() + 42);
-          setCustomDateRange({ start: now, end: sixWeeksOut });
+          const displayStart = new Date(); // Always start display range from today
+          const sixWeeksOut = new Date(displayStart);
+          sixWeeksOut.setDate(displayStart.getDate() + 42);
+          setCustomDateRange({ start: displayStart, end: sixWeeksOut });
         }
       } else {
         throw new Error('No transit data received');
@@ -794,9 +899,12 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
                         </View>
                       </TouchableOpacity>
                       <View style={styles.transitInfo}>
-                        <Text style={styles.transitDescription}>
-                          {getTransitDescription(transit)}
-                        </Text>
+                        <TransitDescriptionWithSymbols
+                          transit={transit}
+                          textStyle={styles.transitDescription}
+                          iconSize={16}
+                          iconColor={colors.onSurface}
+                        />
                         <Text style={styles.transitDateRange}>
                           {formatDateRange(transit.start, transit.end)}
                         </Text>
