@@ -11,10 +11,9 @@ interface CompleteFullAnalysisButtonProps {
 
 interface ProgressState {
   workflowId?: string;
-  progress?: number;
-  currentPhase?: string;
   isCompleted?: boolean;
   status?: string;
+  phase?: string;
 }
 
 const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
@@ -40,24 +39,21 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
     console.log('CompleteFullAnalysisButton - activeWorkflowState updated:', activeWorkflowState);
 
     if (activeWorkflowState && activeWorkflowState.workflowId) {
-      const progressPercentage = activeWorkflowState.progress?.percentage || activeWorkflowState.progress || 0;
-      const isCompleted = activeWorkflowState.completed || activeWorkflowState.isCompleted;
+      const isCompleted = activeWorkflowState.completed;
 
       const newProgressState = {
         workflowId: activeWorkflowState.workflowId,
-        progress: progressPercentage,
-        currentPhase: activeWorkflowState.progress?.currentPhase || `Analyzing... (${progressPercentage}%)`,
         isCompleted: isCompleted,
         status: activeWorkflowState.status,
+        phase: activeWorkflowState.phase,
       };
       console.log('CompleteFullAnalysisButton - setting progress state:', newProgressState);
       setProgressState(newProgressState);
 
-      // Set workflow started if there's an active workflow
-      if (progressPercentage >= 0 && !isCompleted) {
+      // Set workflow started if there's an active workflow that's not completed
+      if (!isCompleted && activeWorkflowState.phase === 'running') {
         setWorkflowStarted(true);
       }
-
 
       // Handle completion
       if (isCompleted) {
@@ -71,14 +67,6 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
     }
   }, [workflowState, creationWorkflowState, loadFullAnalysis, onAnalysisComplete]);
 
-  const getPhaseDescription = (progress: number): string => {
-    if (progress < 20) {return 'Initializing analysis...';}
-    if (progress < 40) {return 'Analyzing planetary positions...';}
-    if (progress < 60) {return 'Computing aspect patterns...';}
-    if (progress < 80) {return 'Generating interpretations...';}
-    if (progress < 95) {return 'Finalizing analysis...';}
-    return 'Complete!';
-  };
 
   const handleStartAnalysis = async () => {
     // Use the specific userId for the chart being viewed, fallback to activeUserContext, then userData
@@ -102,14 +90,11 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
   const activeWorkflowState = workflowState || creationWorkflowState;
   const hasActiveWorkflow = workflowStarted ||
                            chartLoading ||
-                           (activeWorkflowState && activeWorkflowState.workflowId && !activeWorkflowState.completed && !activeWorkflowState.isCompleted);
+                           (activeWorkflowState && activeWorkflowState.workflowId && !activeWorkflowState.completed);
 
   const getButtonText = (): string => {
     if (hasActiveWorkflow) {
-      if (progressState.progress && progressState.progress > 0) {
-        return 'Analysis in Progress...';
-      }
-      return 'Starting Analysis...';
+      return 'Analysis in Progress...';
     }
     return 'Complete Full Analysis';
   };
