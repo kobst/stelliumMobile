@@ -172,12 +172,12 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
           : `${el.planet}-${el.sign}`;
         return elId !== elementId;
       }));
-    } else if (selectedElements.length < 4) {
+    } else if (selectedElements.length < 3) {
       setSelectedElements([...selectedElements, element]);
     } else {
       Alert.alert(
         'Selection Limit',
-        'Maximum 4 elements — deselect one to add another.',
+        'Maximum 3 aspects and positions — deselect one to add another.',
         [{ text: 'OK', style: 'default' }]
       );
     }
@@ -479,7 +479,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               style={[styles.addButton, { backgroundColor: colors.secondary }]}
             >
               <Text style={[styles.addButtonText, { color: colors.onSecondary }]}>
-                +Add Elements ({selectedElements.length}/4)
+                +Add Aspects and Positions ({selectedElements.length}/3)
               </Text>
             </TouchableOpacity>
 
