@@ -205,7 +205,7 @@ export const horoscopeTransformers = {
       today: 'Today',
       thisWeek: 'This Week',
       thisMonth: 'This Month',
-      custom: 'Custom',
+      chat: 'Chat',
     };
 
     return names[period] || period;

@@ -126,9 +126,30 @@ export interface UserSubscription {
   expiresAt?: string;
 }
 
-export type HoroscopeFilter = 'today' | 'thisWeek' | 'thisMonth' | 'custom';
+export type HoroscopeFilter = 'today' | 'thisWeek' | 'thisMonth' | 'chat';
 
 export type TabName = 'horoscope' | 'chart' | 'relationships' | 'celebrity';
+
+// Horoscope Chat Types
+export interface HoroscopeChatMessage {
+  id: string;
+  type: 'user' | 'assistant' | 'error';
+  content: string;
+  timestamp: Date;
+  selectedTransits?: TransitEvent[];
+  loading?: boolean;
+}
+
+export interface HoroscopeChatHistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  metadata?: {
+    mode?: 'custom' | 'chat' | 'hybrid';
+    selectedTransits?: TransitEvent[];
+    period?: 'daily' | 'weekly' | 'monthly';
+  };
+}
 
 // Backend API Types
 export type PlanetName =

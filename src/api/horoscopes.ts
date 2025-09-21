@@ -36,6 +36,7 @@ export interface KeyTheme {
 
 export interface TransitWindowsResponse {
   transitEvents: TransitEvent[];
+  transitToTransitEvents?: TransitEvent[];
   dateRange?: {
     start: string;
     end: string;
@@ -44,17 +45,54 @@ export interface TransitWindowsResponse {
 
 export interface CustomHoroscopeRequest {
   userId: string;
-  transitEvents: TransitEvent[];
+  query?: string;
+  selectedTransits?: TransitEvent[];
+  transitEvents?: TransitEvent[]; // Backward compatibility
 }
 
 export interface CustomHoroscopeResponse {
   success: boolean;
   horoscope: {
-    text: string;
+    userId: string;
+    period: 'custom' | 'daily' | 'weekly' | 'monthly';
     startDate: string;
     endDate: string;
-    selectedTransits: TransitEvent[];
+    customTransitEvents: TransitEvent[];
+    interpretation: string;
+    userPrompt?: string;
+    generatedAt: string;
+    requestHash: string;
+    metadata: {
+      hasKnownBirthTime: boolean;
+      transitEventCount: number;
+      mode: 'custom' | 'chat' | 'hybrid';
+    };
   };
+  cached: boolean;
+}
+
+export interface CustomHoroscope {
+  _id: string;
+  userId: string;
+  period: 'custom';
+  startDate: string;
+  endDate: string;
+  customTransitEvents: TransitEvent[];
+  interpretation: string;
+  userPrompt?: string;
+  generatedAt: string;
+  requestHash: string;
+  metadata: {
+    hasKnownBirthTime: boolean;
+    transitEventCount: number;
+    mode: 'custom' | 'chat' | 'hybrid';
+  };
+}
+
+export interface CustomHoroscopeHistoryResponse {
+  success: boolean;
+  horoscopes: CustomHoroscope[];
+  count: number;
 }
 
 export const horoscopesApi = {
@@ -100,10 +138,26 @@ export const horoscopesApi = {
     });
   },
 
-  // Generate custom horoscope
-  generateCustomHoroscope: async (userId: string, transitEvents: TransitEvent[]): Promise<CustomHoroscopeResponse> => {
+  // Generate custom horoscope with new API
+  generateCustomHoroscope: async (userId: string, request: Omit<CustomHoroscopeRequest, 'userId'>): Promise<CustomHoroscopeResponse> => {
+    const requestBody: any = {};
+
+    if (request.query?.trim()) {
+      requestBody.query = request.query.trim();
+    }
+
+    if (request.selectedTransits?.length || request.transitEvents?.length) {
+      // Use selectedTransits if provided, otherwise fall back to transitEvents for backward compatibility
+      requestBody.selectedTransits = request.selectedTransits || request.transitEvents;
+    }
+
+    return apiClient.post<CustomHoroscopeResponse>(`/users/${userId}/horoscope/custom`, requestBody);
+  },
+
+  // Legacy method for backward compatibility
+  generateCustomHoroscopeFromTransits: async (userId: string, transitEvents: TransitEvent[]): Promise<CustomHoroscopeResponse> => {
     return apiClient.post<CustomHoroscopeResponse>(`/users/${userId}/horoscope/custom`, {
-      transitEvents,
+      selectedTransits: transitEvents,
     });
   },
 
@@ -126,6 +180,11 @@ export const horoscopesApi = {
     request: CustomHoroscopeRequest
   ): Promise<CustomHoroscopeResponse> => {
     return apiClient.post<CustomHoroscopeResponse>('/generateCustomHoroscope', request);
+  },
+
+  // Get custom horoscope history
+  getCustomHoroscopeHistory: async (userId: string, limit: number = 50): Promise<CustomHoroscopeHistoryResponse> => {
+    return apiClient.get<CustomHoroscopeHistoryResponse>(`/users/${userId}/horoscope/custom?limit=${limit}`);
   },
 
   // Get horoscope by time period
