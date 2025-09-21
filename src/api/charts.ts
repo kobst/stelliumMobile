@@ -4,16 +4,21 @@ import { User } from '../types';
 export interface AnalysisWorkflowResponse {
   success: boolean;
   workflowId: string;
-  status: string;
+  userId: string;
+  status: 'in_progress' | 'completed' | 'completed_with_failures' | 'failed' | 'unknown';
   completed: boolean;
-  progress?: {
-    percentage: number;
-    completedTasks: number;
-    totalTasks: number;
-    currentPhase: string;
-  };
+  phase: 'running' | 'complete';
   stepFunctionStatus: string;
+  startedAt?: string;
+  completedAt?: string;
+  executionArn?: string;
   message: string;
+  failures?: {
+    totalTasks: number;
+    completedTasks: number;
+    failedTasks: number;
+    completionRate: number;
+  };
 }
 
 // Structured analysis response based on frontend guide
@@ -140,10 +145,6 @@ export interface ChartAnalysisResponse {
   patterns?: any;
 }
 
-export interface PlanetOverviewRequest {
-  planetName: string;
-  birthData: any;
-}
 
 // Birth Chart Element Types for Chat
 export interface BirthChartPosition {

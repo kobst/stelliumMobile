@@ -19,7 +19,6 @@ export interface UseChartReturn {
   loadFullAnalysis: () => Promise<void>;
   startAnalysisWorkflow: () => Promise<void>;
   pollWorkflowStatus: (workflowId: string) => Promise<void>;
-  getPlanetOverview: (planetName: string) => Promise<string | null>;
   clearError: () => void;
 }
 
@@ -199,26 +198,6 @@ export const useChart = (userId?: string): UseChartReturn => {
     }
   }, [userId, userData?.id, loading, setStoreWorkflowState, setAnalysisState]);
 
-  const getPlanetOverview = useCallback(async (planetName: string): Promise<string | null> => {
-    if (!userData?.birthChart) {
-      setError('No birth chart data available');
-      return null;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await chartsApi.getPlanetOverview(planetName, userData.birthChart);
-      return response.analysis;
-    } catch (err) {
-      const errorMessage = err instanceof ApiError ? err.message : 'Failed to get planet overview';
-      setError(errorMessage);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [userData?.birthChart]);
 
   // Load full analysis on mount if user data is available
   useEffect(() => {
@@ -243,8 +222,7 @@ export const useChart = (userId?: string): UseChartReturn => {
   const isAnalysisInProgress = Boolean(
     activeWorkflowState?.workflowId &&
     !activeWorkflowState?.completed &&
-    !activeWorkflowState?.isCompleted &&
-    activeWorkflowState?.status !== 'error'
+    activeWorkflowState?.status === 'in_progress'
   );
 
   return {
@@ -259,7 +237,6 @@ export const useChart = (userId?: string): UseChartReturn => {
     loadFullAnalysis,
     startAnalysisWorkflow,
     pollWorkflowStatus,
-    getPlanetOverview,
     clearError,
   };
 };
