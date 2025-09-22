@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
 import { useTheme } from '../../theme';
@@ -108,21 +108,8 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
   // The parent component (tabs) should determine when to show this button
   // based on whether analysis data exists. We only hide during active workflow.
 
-  // Show inline loading state when analysis is in progress
-  if (hasActiveWorkflow) {
-    return (
-      <View style={styles.inlineLoadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
-        <Text style={[styles.inlineLoadingTitle, { color: colors.onSurface }]}>Generating Your Detailed Analysis</Text>
-        <Text style={[styles.inlineLoadingSubtitle, { color: colors.onSurfaceVariant }]}>
-          We're creating your comprehensive 360° life analysis with insights across all major life areas.
-        </Text>
-        <Text style={[styles.inlineLoadingTime, { color: colors.onSurfaceVariant }]}>
-          This typically takes 1-2 minutes...
-        </Text>
-      </View>
-    );
-  }
+  // Don't show inline loading - let tabs handle loading state consistently
+  // When workflow is active, button should be hidden by parent tab
 
   // Show error state
   if (error) {
@@ -181,32 +168,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Inline loading state
-  inlineLoadingContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-  },
-  spinner: {
-    marginBottom: 16,
-  },
-  inlineLoadingTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  inlineLoadingSubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  inlineLoadingTime: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
   progressContainer: {
     marginTop: 16,
     paddingHorizontal: 16,
