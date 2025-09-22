@@ -199,13 +199,8 @@ export const useChart = (userId?: string): UseChartReturn => {
   }, [userId, userData?.id, loading, setStoreWorkflowState, setAnalysisState]);
 
 
-  // Load full analysis on mount if user data is available
-  useEffect(() => {
-    if (userData?.id && !fullAnalysis && !loading) {
-      console.log('useChart - Auto-loading full analysis for user:', userData.id);
-      loadFullAnalysis();
-    }
-  }, [userData?.id, fullAnalysis, loading, loadFullAnalysis]);
+  // Don't auto-load analysis - let users explicitly trigger it with the button
+  // This prevents flashing between loading states when switching tabs
 
   // Check for meaningful analysis data (not just basic overview)
   const hasAnalysisData = Boolean(

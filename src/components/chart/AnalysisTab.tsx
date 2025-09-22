@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, Text, TouchableOpacity, ActivityIndicator
 import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
 import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
+import { AnalysisLoadingView } from '../ui/AnalysisLoadingView';
 import { useTheme } from '../../theme';
 import { decodeAstroCode } from '../../utils/astroCode';
 import { getAspectColor, getPlanetGlyph, getZodiacGlyph, PLANET_COLORS } from './ChartUtils';
@@ -316,23 +317,9 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
     </ScrollView>
   );
 
-  // Show loading state for initial loading or when analysis is in progress
-  if (loading || isAnalysisInProgress) {
-    const progressText = isAnalysisInProgress && workflowState?.progress
-      ? `Analyzing... ${workflowState.progress.percentage}% complete (${workflowState.progress.completedTasks}/${workflowState.progress.totalTasks} tasks)`
-      : 'Loading analysis...';
-
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>{progressText}</Text>
-        {isAnalysisInProgress && workflowState?.progress && (
-          <Text style={[styles.progressText, { color: colors.onSurfaceVariant }]}>
-            Current phase: {workflowState.progress.currentPhase}
-          </Text>
-        )}
-      </View>
-    );
+  // Show loading state when analysis is in progress
+  if (isAnalysisInProgress) {
+    return <AnalysisLoadingView isAnalysisInProgress={isAnalysisInProgress} workflowState={workflowState} />;
   }
 
   // Show button if no analysis data available
@@ -357,12 +344,6 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
         <View style={styles.content}>
           {orderedKeys.map(categoryKey => (
             <View key={categoryKey}>
-              {/* Optional selection badge */}
-              {sel?.selectedCategories?.includes(categoryKey) && !CATEGORIES[categoryKey]?.isCore && (
-                <View style={{ alignSelf: 'flex-start', marginLeft: 16, marginBottom: 6 }}>
-                  <Text style={{ color: colors.primary, fontSize: 12 }}>Selected</Text>
-                </View>
-              )}
               <TopicSection
                 topicKey={categoryKey}
                 topicData={broad[categoryKey]}

@@ -5,6 +5,7 @@ import { useStore } from '../../store';
 import { BirthChart } from '../../types';
 import PlanetCard from './PlanetCard';
 import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
+import { AnalysisLoadingView } from '../ui/AnalysisLoadingView';
 import { useTheme } from '../../theme';
 import { getPlanetGlyph } from './ChartUtils';
 
@@ -140,23 +141,9 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
     </ScrollView>
   );
 
-  // Show loading state for initial loading or when analysis is in progress
-  if (loading || isAnalysisInProgress) {
-    const progressText = isAnalysisInProgress && workflowState?.progress
-      ? `Analyzing... ${workflowState.progress.percentage}% complete (${workflowState.progress.completedTasks}/${workflowState.progress.totalTasks} tasks)`
-      : 'Loading analysis...';
-
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>{progressText}</Text>
-        {isAnalysisInProgress && workflowState?.progress && (
-          <Text style={[styles.progressText, { color: colors.onSurfaceVariant }]}>
-            Current phase: {workflowState.progress.currentPhase}
-          </Text>
-        )}
-      </View>
-    );
+  // Show loading state when analysis is in progress
+  if (isAnalysisInProgress) {
+    return <AnalysisLoadingView isAnalysisInProgress={isAnalysisInProgress} workflowState={workflowState} />;
   }
 
   // Show button if no analysis data available
@@ -218,6 +205,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 8,
+  },
+  timingText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   progressText: {
     fontSize: 14,
