@@ -43,8 +43,6 @@ export interface UseRelationshipWorkflowReturn {
 
 // Simple component-level polling (matching birth chart pattern)
 export const useRelationshipWorkflow = (compositeChartId?: string): UseRelationshipWorkflowReturn => {
-  console.log('🏗️ useRelationshipWorkflow hook initialized for:', compositeChartId);
-  console.log('📍 Hook initialization - timestamp:', new Date().toISOString());
 
   // Data states
   const [analysisData, setAnalysisData] = useState<RelationshipAnalysisResponse | null>(null);
@@ -66,6 +64,7 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
 
   const clearError = () => setError(null);
 
+
   // Update analysis data from workflow response - Cluster system
   const updateAnalysisFromWorkflow = useCallback((analysisData: RelationshipAnalysisResponse) => {
     console.log('Updating cluster analysis from workflow:', analysisData);
@@ -84,12 +83,12 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
         clusterScoring: analysisData.clusterScoring,
         completeAnalysis: analysisData.completeAnalysis,
         startedFromCreation: true,
-        isPaused: workflowStatus?.workflowStatus?.status === 'paused_after_scores',
+        isPaused: workflowStatus?.status === 'paused_after_scores',
       });
     }
 
     setAnalysisData(analysisData);
-  }, [setRelationshipWorkflowState, workflowStatus?.workflowStatus?.status]);
+  }, [setRelationshipWorkflowState, workflowStatus?.status]);
 
   // Initialize composite chart data - Cluster system
   const initializeCompositeChartData = useCallback(async (compositeChart: any) => {
@@ -178,7 +177,7 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
           });
 
           setRelationshipWorkflowState({
-            isPaused: response.workflowStatus?.status === 'paused_after_scores',
+            isPaused: response.status === 'paused_after_scores',
             hasScores: true,
             scores: clusterScores,
             clusterScoring: clusterScoring,
@@ -194,6 +193,29 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
       setError(errorMessage);
     }
   }, [setRelationshipWorkflowState, updateAnalysisFromWorkflow]);
+
+  // Check if polling should be active for this chart on hook initialization
+  useEffect(() => {
+    if (compositeChartId) {
+      // Check if polling is active for this chart
+      if (relationshipWorkflowState.isPollingActive &&
+          relationshipWorkflowState.activeCompositeChartId === compositeChartId) {
+        console.log('🔄 Hook remounted during active polling - checking status for:', compositeChartId);
+        checkWorkflowStatus(compositeChartId);
+      }
+      // Check if workflow was completed for this chart
+      else if (relationshipWorkflowState.completedWorkflowStatus &&
+               relationshipWorkflowState.completedWorkflowStatus.compositeChartId === compositeChartId) {
+        console.log('🎯 Hook remounted after completion - restoring completed status for:', compositeChartId);
+        setWorkflowStatus(relationshipWorkflowState.completedWorkflowStatus);
+      }
+    }
+  }, [compositeChartId, relationshipWorkflowState.isPollingActive, relationshipWorkflowState.activeCompositeChartId, relationshipWorkflowState.completedWorkflowStatus, checkWorkflowStatus]);
+
+  // Debug: Track workflowStatus changes
+  useEffect(() => {
+    console.log('📊 WorkflowStatus state changed to:', workflowStatus?.status, 'for:', compositeChartId);
+  }, [workflowStatus?.status, compositeChartId]);
 
   // Start full analysis workflow (simple like birth chart)
   const startFullRelationshipAnalysis = useCallback(async (targetCompositeChartId: string) => {
@@ -223,9 +245,7 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
 
         const pollInterval = setInterval(async () => {
           try {
-            console.log('📡 Polling status for:', targetCompositeChartId);
             const response = await relationshipsApi.getRelationshipWorkflowStatus(targetCompositeChartId);
-            console.log('📊 Poll response:', response.workflowStatus?.status);
 
             if (response.success) {
               setWorkflowStatus(response);
@@ -239,27 +259,28 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
               }
 
               // Check if workflow is complete
-              if (response.workflowStatus?.status === 'completed' ||
-                  response.workflowStatus?.status === 'error') {
-                console.log('🛑 Polling: Workflow finished with status:', response.workflowStatus?.status);
+              if (response.status === 'completed' ||
+                  response.status === 'failed') {
+                console.log('🎉 Workflow completed! Status:', response.status, 'for:', targetCompositeChartId);
 
                 // IMPORTANT: Set final workflow status before stopping polling
+                console.log('📝 Setting final workflow status to completed:', response);
                 setWorkflowStatus(response);
 
                 clearInterval(pollInterval);
                 setIsPolling(false);
                 setIsStartingAnalysis(false);
 
-                if (response.workflowStatus?.status === 'completed') {
+                if (response.status === 'completed') {
                   setRelationshipWorkflowState({
                     completed: true,
                     isPaused: false,
                     isPollingActive: false, // Stop tracking active polling
                     activeCompositeChartId: null,
+                    completedWorkflowStatus: response, // Store completed status for remounts
                   });
 
                   // Store completion status to survive remounts
-                  console.log('✅ Setting completion status in store for:', targetCompositeChartId);
                 } else {
                   // For errors, also stop tracking active polling
                   setRelationshipWorkflowState({
@@ -277,7 +298,6 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
 
             // Enhanced error recovery
             if (newRetryCount >= 5) {
-              console.log('🛑 Too many polling errors, stopping polling');
               clearInterval(pollInterval);
               setIsPolling(false);
               setError('Workflow polling failed after multiple retries');
@@ -287,7 +307,6 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
 
         // Auto-cleanup after 10 minutes
         setTimeout(() => {
-          console.log('⏰ Polling timeout reached');
           clearInterval(pollInterval);
           setIsPolling(false);
 
@@ -308,16 +327,24 @@ export const useRelationshipWorkflow = (compositeChartId?: string): UseRelations
     }
   }, [loading, retryCount, updateAnalysisFromWorkflow, setRelationshipWorkflowState, isStartingAnalysis]);
 
-  // Computed states
-  const isWorkflowRunning = workflowStatus?.workflowStatus?.status === 'running';
-  const workflowComplete = workflowStatus?.workflowStatus?.status === 'completed';
-  const workflowError = workflowStatus?.workflowStatus?.status === 'error';
+  // Computed states - also consider store polling state for robustness
+  const isWorkflowRunning = workflowStatus?.status === 'in_progress' ||
+    (relationshipWorkflowState.isPollingActive && relationshipWorkflowState.activeCompositeChartId === compositeChartId);
+  const workflowComplete = workflowStatus?.status === 'completed';
+  const workflowError = workflowStatus?.status === 'failed';
 
-  // Progress calculation
+  console.log('🟢 Hook computed states - status:', workflowStatus?.status, 'isWorkflowRunning:', isWorkflowRunning, 'storePollingActive:', relationshipWorkflowState.isPollingActive, 'activeChartId:', relationshipWorkflowState.activeCompositeChartId);
+
+
+
+  // Progress calculation - simplified since new API doesn't include progress percentage
   const computeWorkflowProgress = useCallback(() => {
-    if (!workflowStatus?.workflowStatus?.progress) {return 0;}
-    return workflowStatus.workflowStatus.progress.percentage || 0;
-  }, [workflowStatus?.workflowStatus?.progress]);
+    if (!workflowStatus) return 0;
+    // Return basic progress based on status
+    if (workflowStatus.status === 'completed') return 100;
+    if (workflowStatus.status === 'in_progress') return 50;
+    return 0;
+  }, [workflowStatus]);
 
   // Get current step description
   const getCurrentStepDescription = useCallback(() => {

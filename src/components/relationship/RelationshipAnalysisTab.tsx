@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../theme';
 import { ClusterScoring, ClusterAnalysis, ClusterScoredItem, RelationshipAnalysisResponse } from '../../api/relationships';
 import CompleteRelationshipAnalysisButton from './CompleteRelationshipAnalysisButton';
 import RelationshipTensionFlow from '../relationships/RelationshipTensionFlow';
 import CategoryHighlights from './CategoryHighlights';
+import { AnalysisLoadingView } from '../ui/AnalysisLoadingView';
+import { useRelationshipWorkflow } from '../../hooks/useRelationshipWorkflow';
 
 interface RelationshipAnalysisTabProps {
   analysisData: RelationshipAnalysisResponse | null;
@@ -23,6 +25,20 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
 }) => {
   const { colors } = useTheme();
   const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set());
+
+  // Get workflow state for this relationship (match birth chart pattern)
+  const {
+    workflowStatus,
+    isWorkflowRunning,
+    isStartingAnalysis,
+    isPolling
+  } = useRelationshipWorkflow(relationshipId);
+
+  // Check multiple states for analysis in progress
+  const isAnalysisInProgress = isWorkflowRunning || isStartingAnalysis || isPolling;
+
+  console.log('🔴 RelationshipAnalysisTab - isAnalysisInProgress:', isAnalysisInProgress, 'workflowStatus:', workflowStatus?.status, 'isWorkflowRunning:', isWorkflowRunning);
+
 
   const clusterInfo: { [key: string]: { icon: string; name: string; color: string } } = {
     'Harmony': { icon: '🎵', name: 'Harmony & Balance', color: '#4CAF50' },
@@ -55,6 +71,17 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
           Loading cluster analysis...
         </Text>
       </View>
+    );
+  }
+
+  // Show loading state when analysis is in progress (match birth chart pattern)
+  if (isAnalysisInProgress) {
+    return (
+      <AnalysisLoadingView
+        isAnalysisInProgress={isAnalysisInProgress}
+        workflowState={workflowStatus}
+        analysisType="relationship"
+      />
     );
   }
 

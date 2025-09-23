@@ -9,11 +9,13 @@ interface AnalysisLoadingViewProps {
     phase?: string;
     startedAt?: string;
   } | null;
+  analysisType?: 'birth_chart' | 'relationship';
 }
 
 export const AnalysisLoadingView: React.FC<AnalysisLoadingViewProps> = ({
   isAnalysisInProgress,
   workflowState,
+  analysisType = 'birth_chart',
 }) => {
   const { colors } = useTheme();
 
@@ -22,7 +24,13 @@ export const AnalysisLoadingView: React.FC<AnalysisLoadingViewProps> = ({
       return workflowState.message;
     }
     if (isAnalysisInProgress && workflowState?.phase === 'running') {
+      if (analysisType === 'relationship') {
+        return 'Generating your detailed compatibility analysis...';
+      }
       return 'Generating your complete astrological analysis...';
+    }
+    if (analysisType === 'relationship') {
+      return 'Loading compatibility analysis...';
     }
     return 'Loading analysis...';
   };
@@ -47,7 +55,10 @@ export const AnalysisLoadingView: React.FC<AnalysisLoadingViewProps> = ({
       </Text>
       {isAnalysisInProgress && (
         <Text style={[styles.timingText, { color: colors.onSurfaceVariant }]}>
-          This process should take 5-7 minutes
+          {analysisType === 'relationship'
+            ? 'This process should take 3-5 minutes'
+            : 'This process should take 5-7 minutes'
+          }
         </Text>
       )}
       {getStatusMessage() && (

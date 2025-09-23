@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRelationshipWorkflow } from '../../hooks/useRelationshipWorkflow';
 import { useStore } from '../../store';
 
@@ -58,30 +58,8 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
     return null;
   }
 
-  // Show loading state when analysis is in progress
-  if (isAnalysisInProgress) {
-    const progress = computeWorkflowProgress();
-
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8b5cf6" style={styles.spinner} />
-        <Text style={styles.loadingTitle}>Generating Your Detailed Analysis</Text>
-        <Text style={styles.loadingSubtitle}>
-          We're creating your comprehensive compatibility report with insights across all 7 relationship dimensions.
-        </Text>
-        <Text style={styles.loadingTime}>
-          This typically takes 1-2 minutes. You can navigate away and come back - we'll notify you when it's ready.
-        </Text>
-        {progress > 0 && (
-          <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>
-              {Math.round(progress)}% Complete
-            </Text>
-          </View>
-        )}
-      </View>
-    );
-  }
+  // Don't show inline loading - let tabs handle loading state consistently
+  // When workflow is active, button should be hidden by parent tab
 
   // Show error state
   if (workflowError || error) {
@@ -129,49 +107,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Loading state
-  loadingContainer: {
-    alignItems: 'center',
-    padding: 20,
-    marginTop: 40,
-  },
-  spinner: {
-    marginBottom: 20,
-  },
-  loadingTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  loadingSubtitle: {
-    fontSize: 15,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 22,
-    paddingHorizontal: 20,
-  },
-  loadingTime: {
-    fontSize: 14,
-    color: '#9ca3af',
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 20,
-  },
-  progressContainer: {
-    marginTop: 20,
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  progressText: {
-    fontSize: 14,
-    color: '#4f46e5',
-    fontWeight: '600',
-  },
 
   // Error state
   errorContainer: {
