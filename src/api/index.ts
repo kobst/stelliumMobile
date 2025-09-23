@@ -25,7 +25,6 @@ export type {
 export type {
   AnalysisWorkflowResponse,
   ChartAnalysisResponse,
-  PlanetOverviewRequest,
 } from './charts';
 
 export type {
@@ -37,10 +36,6 @@ export type {
 } from './horoscopes';
 
 export type {
-  RelationshipCreateRequest,
-  RelationshipResponse,
-  RelationshipScore,
-  RelationshipWorkflowResponse,
   UserCompositeChart,
   RelationshipAnalysisStatus,
   RelationshipAnalysisResponse,
@@ -52,7 +47,6 @@ export type {
 
 export type {
   Celebrity,
-  CreateCelebrityRequest,
   CelebritySearchRequest,
   CelebrityCompatibilityResponse,
 } from './celebrities';

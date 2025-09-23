@@ -118,6 +118,7 @@ export interface RelationshipWorkflowState {
   // Active polling state (minimal, just to survive remounts)
   isPollingActive?: boolean;
   activeCompositeChartId?: string;
+  completedWorkflowStatus?: any; // RelationshipWorkflowStatusResponse when completed
 }
 
 export interface UserSubscription {

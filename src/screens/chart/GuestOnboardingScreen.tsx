@@ -238,7 +238,6 @@ const GuestOnboardingScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.header}>Add New Birth Chart</Text>
       <View style={styles.formGroup}>
         <Text style={styles.label}>Their name is</Text>
         <View style={styles.nameRow}>

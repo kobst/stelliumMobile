@@ -191,5 +191,3 @@ console.log('Creating API client singleton...');
 export const apiClient = new ApiClient();
 console.log('API client singleton created');
 
-// Export the error class for use in other modules
-export { ApiError };

@@ -308,47 +308,16 @@ export interface RelationshipAnalysisResponse {
 // Workflow Status Response
 export interface RelationshipWorkflowStatusResponse {
   success: boolean;
-  workflowStatus: {
-    status: 'not_started' | 'running' | 'paused_after_scores' | 'completed' | 'error' | 'failed';
-    progress?: {
-      percentage: number;
-      completed: number;
-      total: number;
-    };
-    stepFunctions?: {
-      executionArn: string;
-      status: string;
-      startedAt: Date;
-      completedAt?: Date;
-      duration?: string;
-    };
-  };
-
-  // NEW: Unified response structure (same as fetchRelationshipAnalysis)
-  clusterAnalysis?: {
-    clusters: {
-      Harmony: ClusterMetrics;
-      Passion: ClusterMetrics;
-      Connection: ClusterMetrics;
-      Stability: ClusterMetrics;
-      Growth: ClusterMetrics;
-    };
-  };
-  overall?: OverallAnalysis;
-  completeAnalysis?: Record<string, ClusterAnalysis>;
-  holisticOverview?: string;
-  initialOverview?: string;
-  tensionFlowAnalysis?: TensionFlowAnalysis;
-
-  // Core analysis data for backward compatibility
-  analysisData?: RelationshipAnalysisResponse;
+  workflowId: string;
   compositeChartId: string;
-
-  debug?: {
-    mode: 'step-functions';
-    stepFunctionsAvailable: boolean;
-    executionFound: boolean;
-  };
+  status: 'in_progress' | 'completed' | 'completed_with_failures' | 'failed' | 'paused_after_scores' | 'unknown';
+  completed: boolean;
+  phase: 'running' | 'complete' | 'paused';
+  stepFunctionStatus: string;
+  startedAt?: string;
+  completedAt?: string;
+  executionArn: string;
+  message: string;
 }
 
 // Workflow Start Response
