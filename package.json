@@ -4,9 +4,17 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "android:dev": "ENVFILE=.env.dev react-native run-android --mode=devdebug --appIdSuffix=dev",
+    "android:prod": "ENVFILE=.env.prod react-native run-android --mode=proddebug",
+    "android:build:dev": "cd android && ./gradlew assembleDevRelease",
+    "android:build:prod": "cd android && ./gradlew assembleProdRelease",
     "ios": "react-native run-ios",
+    "ios:dev": "ENVFILE=.env.dev react-native run-ios --scheme StelliumApp.Dev",
+    "ios:prod": "ENVFILE=.env.prod react-native run-ios --scheme StelliumApp.Prod",
     "lint": "eslint .",
     "start": "react-native start",
+    "start:dev": "ENVFILE=.env.dev react-native start",
+    "start:prod": "ENVFILE=.env.prod react-native start",
     "test": "jest"
   },
   "dependencies": {
@@ -19,6 +27,7 @@
     "@react-navigation/stack": "^7.4.2",
     "react": "19.0.0",
     "react-native": "0.79.2",
+    "react-native-config": "^1.5.9",
     "react-native-dotenv": "^3.4.11",
     "react-native-fbsdk-next": "^13.4.1",
     "react-native-gesture-handler": "^2.27.1",

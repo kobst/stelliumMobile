@@ -109,6 +109,8 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "StelliumApp" */;
 			buildPhases = (
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
+				E75420452E8CA9D600F73FC1 /* Setup Environment Config */,
+				E75420462E8CAA6C00F73FC1 /* Select Firebase Config */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
@@ -259,6 +261,42 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StelliumApp/Pods-StelliumApp-resources.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		E75420452E8CA9D600F73FC1 /* Setup Environment Config */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Setup Environment Config";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\"${PROJECT_DIR}/scripts/env-config.sh\"\n";
+		};
+		E75420462E8CAA6C00F73FC1 /* Select Firebase Config */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Select Firebase Config";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [[ \"${CONFIGURATION}\" == *\"Dev\"* ]]; then\n      cp \"${PROJECT_DIR}/GoogleService-Info-Dev.plist\" \"${PROJECT_DIR}/GoogleService-Info.plist\"\n  else\n      cp \"${PROJECT_DIR}/GoogleService-Info-Prod.plist\" \"${PROJECT_DIR}/GoogleService-Info.plist\"\n  fi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

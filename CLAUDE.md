@@ -6,13 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 StelliumApp is a React Native mobile application for AI-powered astrology guidance. It uses Firebase Authentication, Google Sign-In, and connects to a backend API for astrological analysis and birth chart generation.
 
+## Branch Strategy
+
+- **`dev`**: Development branch - day-to-day development work, points to dev API
+- **`main`** (or `prod`): Production branch - release-ready code, points to prod API
+  - Protected with PR requirements and status checks
+  - All changes must go through pull request review
+  - Never commit directly to this branch
+
 ## Development Commands
 
 ```bash
-# Start development
-npm start              # Start Metro bundler
-npm run android        # Run on Android device/emulator
-npm run ios           # Run on iOS device/simulator
+# Environment-specific commands
+npm run start:dev      # Start Metro bundler with dev config
+npm run start:prod     # Start Metro bundler with prod config
+
+# Android
+npm run android:dev    # Run dev build on Android
+npm run android:prod   # Run prod build on Android
+npm run android:build:dev   # Build dev release APK
+npm run android:build:prod  # Build prod release APK
+
+# iOS (requires Xcode scheme setup - see IOS_SETUP.md)
+npm run ios:dev        # Run dev build on iOS
+npm run ios:prod       # Run prod build on iOS
 
 # Code quality
 npm run lint          # Run ESLint
@@ -22,6 +39,23 @@ npm test             # Run Jest tests
 bundle install        # Install Ruby gems
 bundle exec pod install  # Install iOS CocoaPods dependencies (run from ios/ directory)
 ```
+
+## Environment Configuration
+
+The app uses `react-native-config` for environment-specific configuration:
+
+- **Dev environment** (`.env.dev`): Points to `https://api.dev.stellium.ai`
+- **Prod environment** (`.env.prod`): Points to `https://api.stellium.ai`
+
+### Android Build Flavors
+- `dev`: Bundle ID `com.stelliumapp.dev`, app name "Stellium Dev"
+- `prod`: Bundle ID `com.stelliumapp`, app name "Stellium"
+
+### iOS Schemes
+- `StelliumApp.Dev`: Bundle ID `com.stelliumapp.dev`, app name "Stellium Dev"
+- `StelliumApp.Prod`: Bundle ID `com.stelliumapp`, app name "Stellium"
+
+See `IOS_SETUP.md` for detailed iOS configuration instructions.
 
 ## Architecture
 

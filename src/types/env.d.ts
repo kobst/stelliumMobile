@@ -1,4 +1,10 @@
-declare module '@env' {
-  export const REACT_APP_SERVER_URL: string;
-  export const REACT_APP_GOOGLE_API_KEY: string;
+declare module 'react-native-config' {
+  export interface NativeConfig {
+    API_URL: string;
+    GOOGLE_API_KEY: string;
+    ENV: string;
+  }
+
+  export const Config: NativeConfig;
+  export default Config;
 }

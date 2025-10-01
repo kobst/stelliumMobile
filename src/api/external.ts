@@ -1,4 +1,4 @@
-import { REACT_APP_GOOGLE_API_KEY } from '@env';
+import Config from 'react-native-config';
 
 export interface TimeZoneResponse {
   dstOffset: number;
@@ -15,7 +15,7 @@ export const externalApi = {
     lon: number,
     epochTimeSeconds: number
   ): Promise<number> => {
-    const apiKey = REACT_APP_GOOGLE_API_KEY;
+    const apiKey = Config.GOOGLE_API_KEY;
     const url = `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lon}&timestamp=${epochTimeSeconds}&key=${apiKey}`;
 
     console.log('\n=== FETCHING TIMEZONE ===');
@@ -57,7 +57,7 @@ export const externalApi = {
     lng: number;
     formattedAddress: string;
   }> => {
-    const apiKey = REACT_APP_GOOGLE_API_KEY;
+    const apiKey = Config.GOOGLE_API_KEY;
     const encodedLocation = encodeURIComponent(location);
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedLocation}&key=${apiKey}`;
 
@@ -86,7 +86,7 @@ export const externalApi = {
 
   // Reverse geocode coordinates to get location
   reverseGeocode: async (lat: number, lng: number): Promise<string> => {
-    const apiKey = REACT_APP_GOOGLE_API_KEY;
+    const apiKey = Config.GOOGLE_API_KEY;
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
 
     try {
