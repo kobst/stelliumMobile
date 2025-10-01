@@ -9,13 +9,11 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import Config from 'react-native-config';
 import { externalApi } from '../../api';
 import { usersApi } from '../../api';
 import { useStore } from '../../store';
 import { useTheme } from '../../theme';
-
-const GOOGLE_API = process.env.REACT_APP_GOOGLE_API_KEY;
-const SERVER_URL = process.env.REACT_APP_SERVER_URL;
 
 const GuestOnboardingScreen: React.FC = () => {
   const navigation = useNavigation();

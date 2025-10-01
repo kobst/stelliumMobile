@@ -48,7 +48,6 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
 }) => {
   const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<HoroscopeFilter>('today');
-  const [showTransits, setShowTransits] = useState(true);
   const [horoscopeCache, setHoroscopeCache] = useState<HoroscopeCache>({
     today: null,
     thisWeek: null,
@@ -104,36 +103,6 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       throw error;
     }
   };
-
-  // Filter transit events based on active tab (excluding chat tab)
-  const filteredTransits = useMemo(() => {
-    if (activeTab === 'chat') {
-      return []; // Chat tab doesn't use this filtered list
-    }
-
-    if (!transitWindows || transitWindows.length === 0) {
-      return [];
-    }
-
-    const dateRange = getDateRangeForPeriod(activeTab, customDateRange || undefined);
-
-    const transitsToFilter = transitWindows.filter(transit => {
-      const transitStart = new Date(transit.start);
-      const transitEnd = new Date(transit.end);
-
-      return dateRangesOverlap(
-        { start: transitStart, end: transitEnd },
-        dateRange
-      );
-    });
-
-    return transitsToFilter.sort((a, b) => {
-      // Sort by priority (high to low), then by start date
-      const priorityDiff = (b.priority || 0) - (a.priority || 0);
-      if (priorityDiff !== 0) return priorityDiff;
-      return new Date(a.start).getTime() - new Date(b.start).getTime();
-    });
-  }, [transitWindows, activeTab, customDateRange]);
 
   // Helper function to capitalize aspect names
   const capitalizeAspect = (aspect: string): string => {
@@ -567,61 +536,6 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
               )}
             </View>
           )}
-
-          {/* Collapsible Transit Section - Only visible for non-chat tabs */}
-          {activeTab !== 'chat' && (
-            <View style={styles.transitSection}>
-              <TouchableOpacity
-                style={styles.transitToggle}
-                onPress={() => setShowTransits(!showTransits)}
-              >
-                <Text style={styles.transitToggleText}>
-                  {showTransits ? 'Hide' : 'Show'} Transit Details
-                </Text>
-              </TouchableOpacity>
-
-              {showTransits && (
-                <View style={styles.transitDetailsContainer}>
-                  {filteredTransits.length === 0 ? (
-                    <Text style={styles.noTransitsText}>
-                      {`No significant transits found for ${
-                          activeTab === 'today' ? 'today' :
-                          activeTab === 'thisWeek' ? 'this week' :
-                          activeTab === 'thisMonth' ? 'this month' : 'this period'
-                        }.`
-                      }
-                    </Text>
-                  ) : (
-                    filteredTransits.map((transit, index) => (
-                      <View key={index} style={styles.transitRow}>
-                        <View style={styles.transitInfo}>
-                          <TransitDescriptionWithSymbols
-                            transit={transit}
-                            textStyle={styles.transitDescription}
-                            iconSize={16}
-                            iconColor={colors.onSurface}
-                          />
-                          <Text style={styles.transitDateRange}>
-                            {formatDateRange(transit.start, transit.end)}
-                          </Text>
-                          {transit.isExactInRange && transit.exact && (
-                            <Text style={styles.transitExactDate}>
-                              Exact: {formatDate(transit.exact)}
-                            </Text>
-                          )}
-                          {transit.orbAtStart !== undefined && transit.orbAtEnd !== undefined && (
-                            <Text style={styles.transitOrbInfo}>
-                              Orb: {transit.orbAtStart.toFixed(1)}° → {transit.orbAtEnd.toFixed(1)}° ({transit.orbDirection})
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                    ))
-                  )}
-                </View>
-              )}
-            </View>
-          )}
         </View>
         </ScrollView>
       )}
@@ -845,62 +759,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.onError,
     fontSize: 14,
     fontWeight: '500',
-  },
-  transitSection: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  transitToggle: {
-    backgroundColor: colors.surfaceVariant,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  transitToggleText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  transitDetailsContainer: {
-    marginTop: 16,
-  },
-  noTransitsText: {
-    color: colors.onSurfaceVariant,
-    fontSize: 14,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    padding: 16,
-  },
-  transitRow: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  transitInfo: {
-    flex: 1,
-  },
-  transitDescription: {
-    fontSize: 14,
-    color: colors.onSurface,
-    marginBottom: 4,
-  },
-  transitDateRange: {
-    fontSize: 12,
-    color: colors.onSurfaceVariant,
-    marginBottom: 2,
-  },
-  transitExactDate: {
-    fontSize: 12,
-    color: colors.onSurfaceVariant,
-  },
-  transitOrbInfo: {
-    fontSize: 11,
-    color: colors.onSurfaceVariant,
-    fontStyle: 'italic',
   },
 });
 

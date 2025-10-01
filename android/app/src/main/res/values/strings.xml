@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">StelliumApp</string>
     <string name="facebook_app_id">561705813647639</string>
     <string name="facebook_client_token">5590843ccc9144748fc5894ae9fc7d5e</string>
     <string name="fb_login_protocol_scheme">fb561705813647639</string>

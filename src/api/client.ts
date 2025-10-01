@@ -1,8 +1,4 @@
-import { REACT_APP_SERVER_URL } from '@env';
-
-console.log('\n=== API CLIENT MODULE LOADING ===');
-console.log('REACT_APP_SERVER_URL from @env:', REACT_APP_SERVER_URL);
-console.log('==============================\n');
+import Config from 'react-native-config';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -28,15 +24,10 @@ class ApiClient {
   private defaultHeaders: Record<string, string>;
 
   constructor() {
-    this.baseURL = REACT_APP_SERVER_URL || '';
+    this.baseURL = Config.API_URL || '';
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     };
-
-    console.log('\n=== API CLIENT INITIALIZED ===');
-    console.log('Base URL:', this.baseURL);
-    console.log('Default headers:', this.defaultHeaders);
-    console.log('============================\n');
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
@@ -65,12 +56,6 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
-    console.log('\n=== API REQUEST ===');
-    console.log('Method:', options.method || 'GET');
-    console.log('Full URL:', url);
-    console.log('Base URL:', this.baseURL);
-    console.log('Endpoint:', endpoint);
-
     const config: RequestInit = {
       ...options,
       headers: {
@@ -79,33 +64,11 @@ class ApiClient {
       },
     };
 
-    console.log('Headers:', config.headers);
-    if (options.body) {
-      console.log('Request body:', options.body);
-    }
-
     try {
-      console.log('\nMaking fetch request...');
       const response = await fetch(url, config);
-
-      console.log('\n=== API RESPONSE ===');
-      console.log('Status:', response.status);
-      console.log('Status text:', response.statusText);
-      console.log('OK:', response.ok);
-      console.log('Headers:', Object.fromEntries(response.headers.entries()));
-
-      const result = await this.handleResponse<T>(response);
-      console.log('Response data:', JSON.stringify(result, null, 2));
-      console.log('==================\n');
-
-      return result;
+      return await this.handleResponse<T>(response);
     } catch (error) {
-      console.error('\n=== API REQUEST ERROR ===');
-      console.error(`API request failed: ${endpoint}`);
-      console.error('Error:', error);
-      console.error('Error type:', error?.constructor?.name);
-      console.error('Error message:', error?.message);
-      console.error('=======================\n');
+      console.error(`API request failed: ${endpoint}`, error);
       throw error;
     }
   }
@@ -187,7 +150,5 @@ class ApiClient {
 }
 
 // Create and export a singleton instance
-console.log('Creating API client singleton...');
 export const apiClient = new ApiClient();
-console.log('API client singleton created');
 

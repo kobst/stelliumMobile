@@ -10,18 +10,17 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
+import Config from 'react-native-config';
 import { externalApi } from '../api';
 import { usersApi } from '../api';
 import { useStore } from '../store';
 import { userTransformers } from '../transformers/user';
 import { useTheme } from '../theme';
 
-const GOOGLE_API = process.env.REACT_APP_GOOGLE_API_KEY;
-const SERVER_URL = process.env.REACT_APP_SERVER_URL;
-
 console.log('=== ENVIRONMENT CONFIG ===');
-console.log('SERVER_URL:', SERVER_URL);
-console.log('GOOGLE_API_KEY:', GOOGLE_API ? 'Set' : 'Not set');
+console.log('API_URL:', Config.API_URL);
+console.log('GOOGLE_API_KEY:', Config.GOOGLE_API_KEY ? 'Set' : 'Not set');
+console.log('ENV:', Config.ENV);
 console.log('========================');
 
 const UserOnboardingScreen: React.FC = () => {
