@@ -78,7 +78,7 @@ const UserOnboardingWizard: React.FC = () => {
     setLat(null);
     setLon(null);
     setPlaceOfBirth('');
-    if (!text || !GOOGLE_API) {
+    if (!text || !Config.GOOGLE_API_KEY) {
       setSuggestions([]);
       return;
     }
@@ -86,7 +86,7 @@ const UserOnboardingWizard: React.FC = () => {
       const resp = await fetch(
         `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
           text,
-        )}&types=(cities)&key=${GOOGLE_API}`,
+        )}&types=(cities)&key=${Config.GOOGLE_API_KEY}`,
       );
       const data = await resp.json();
       if (data.status === 'OK') {
@@ -104,7 +104,7 @@ const UserOnboardingWizard: React.FC = () => {
     setPlaceQuery(place.description);
     try {
       const resp = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&key=${GOOGLE_API}`,
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&key=${Config.GOOGLE_API_KEY}`,
       );
       const data = await resp.json();
       if (data.status === 'OK') {
@@ -118,7 +118,7 @@ const UserOnboardingWizard: React.FC = () => {
 
   const handleSubmit = async () => {
     console.log('\n=== FORM SUBMISSION STARTED ===');
-    console.log('Current endpoint:', SERVER_URL);
+    console.log('Current endpoint:', Config.API_URL);
 
     setIsSubmitting(true);
 
