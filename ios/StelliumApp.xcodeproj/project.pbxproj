@@ -26,6 +26,7 @@
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = StelliumApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		87E8A41586A752C42FA53438 /* Pods_StelliumApp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_StelliumApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E776FF842DEC027700627A60 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		E787EA882E91949B0002241D /* StelliumApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = StelliumApp.entitlements; path = StelliumApp/StelliumApp.entitlements; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -44,6 +45,7 @@
 		13B07FAE1A68108700A75B9A /* StelliumApp */ = {
 			isa = PBXGroup;
 			children = (
+				E787EA882E91949B0002241D /* StelliumApp.entitlements */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				E776FF842DEC027700627A60 /* GoogleService-Info.plist */,
@@ -110,7 +112,7 @@
 			buildPhases = (
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
 				E75420452E8CA9D600F73FC1 /* Setup Environment Config */,
-				E75420462E8CAA6C00F73FC1 /* Select Firebase Config */,
+				E7AEF7E42E90DC4000645D86 /* Copy Firebase Config */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
@@ -280,7 +282,7 @@
 			shellPath = /bin/sh;
 			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\"${PROJECT_DIR}/scripts/env-config.sh\"\n";
 		};
-		E75420462E8CAA6C00F73FC1 /* Select Firebase Config */ = {
+		E7AEF7E42E90DC4000645D86 /* Copy Firebase Config */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -289,14 +291,14 @@
 			);
 			inputPaths = (
 			);
-			name = "Select Firebase Config";
+			name = "Copy Firebase Config";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [[ \"${CONFIGURATION}\" == *\"Dev\"* ]]; then\n      cp \"${PROJECT_DIR}/GoogleService-Info-Dev.plist\" \"${PROJECT_DIR}/GoogleService-Info.plist\"\n  else\n      cp \"${PROJECT_DIR}/GoogleService-Info-Prod.plist\" \"${PROJECT_DIR}/GoogleService-Info.plist\"\n  fi\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\"${PROJECT_DIR}/scripts/firebase-config.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -318,8 +320,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = StelliumApp/StelliumApp.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4A67537292;
+				DEVELOPMENT_TEAM = 38U6C5NF2M;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = StelliumApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -333,8 +338,9 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.stelliumapp;
 				PRODUCT_NAME = StelliumApp;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -347,8 +353,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = StelliumApp/StelliumApp.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4A67537292;
+				DEVELOPMENT_TEAM = 38U6C5NF2M;
 				INFOPLIST_FILE = StelliumApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -361,8 +370,9 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.stelliumapp;
 				PRODUCT_NAME = StelliumApp;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
