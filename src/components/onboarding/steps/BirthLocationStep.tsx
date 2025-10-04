@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -26,21 +26,25 @@ export const BirthLocationStep: React.FC<BirthLocationStepProps> = ({
 }) => {
   const { colors } = useTheme();
   const styles = createStyles(colors);
+  const [isFocused, setIsFocused] = useState(false);
 
   return (
     <WizardStep
       title="Where were you born?"
       subtitle="Your birth location is essential for accurate chart calculations"
-      icon="🌍"
     >
       <View style={styles.formGroup}>
-        <Text style={styles.label}>I was born in</Text>
+        {(isFocused || placeQuery) && (
+          <Text style={styles.label}>Birth Location</Text>
+        )}
         <TextInput
-          style={styles.input}
+          style={[styles.input, isFocused && styles.inputFocused]}
           placeholder="City, Country"
           placeholderTextColor={colors.onSurfaceVariant}
           value={placeQuery}
           onChangeText={onPlaceQueryChange}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           autoCapitalize="words"
           autoCorrect={false}
         />
@@ -53,12 +57,9 @@ export const BirthLocationStep: React.FC<BirthLocationStepProps> = ({
                 style={styles.suggestion}
                 onPress={() => onPlaceSelect(suggestion)}
               >
-                <View style={styles.suggestionContent}>
-                  <Text style={styles.suggestionText}>
-                    {suggestion.description}
-                  </Text>
-                  <Text style={styles.suggestionIcon}>📍</Text>
-                </View>
+                <Text style={styles.suggestionText}>
+                  {suggestion.description}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -66,19 +67,15 @@ export const BirthLocationStep: React.FC<BirthLocationStepProps> = ({
 
         {placeOfBirth && (
           <View style={styles.selectedLocationContainer}>
-            <View style={styles.selectedLocationHeader}>
-              <Text style={styles.selectedLocationIcon}>✅</Text>
-              <Text style={styles.selectedLocationLabel}>Selected location:</Text>
+            <View style={styles.checkmarkContainer}>
+              <Text style={styles.checkmark}>✓</Text>
             </View>
-            <Text style={styles.selectedLocationText}>{placeOfBirth}</Text>
+            <View style={styles.selectedTextContainer}>
+              <Text style={styles.selectedLocationLabel}>Selected location</Text>
+              <Text style={styles.selectedLocationText}>{placeOfBirth}</Text>
+            </View>
           </View>
         )}
-      </View>
-
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
-          💡 We use this to determine your local time zone and calculate accurate planetary positions for your birth moment
-        </Text>
       </View>
     </WizardStep>
   );
@@ -86,86 +83,105 @@ export const BirthLocationStep: React.FC<BirthLocationStepProps> = ({
 
 const createStyles = (colors: any) => StyleSheet.create({
   formGroup: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   label: {
-    color: colors.onBackground,
-    marginBottom: 12,
-    fontSize: 18,
+    color: colors.primary,
+    fontSize: 15,
     fontWeight: '600',
+    marginBottom: 10,
+    marginLeft: 4,
   },
   input: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.border,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
     color: colors.onSurface,
     backgroundColor: colors.surface,
     fontSize: 16,
     fontWeight: '500',
   },
+  inputFocused: {
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   suggestionsContainer: {
-    marginTop: 8,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   suggestion: {
     paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
-  },
-  suggestionContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   suggestionText: {
     color: colors.onSurface,
     fontSize: 16,
-    flex: 1,
-  },
-  suggestionIcon: {
-    fontSize: 16,
-    marginLeft: 12,
+    fontWeight: '500',
   },
   selectedLocationContainer: {
-    backgroundColor: colors.surfaceVariant,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-  },
-  selectedLocationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 20,
+    gap: 14,
   },
-  selectedLocationIcon: {
-    fontSize: 16,
-    marginRight: 8,
+  checkmarkContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkmark: {
+    color: colors.onPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  selectedTextContainer: {
+    flex: 1,
   },
   selectedLocationLabel: {
     color: colors.onSurfaceMed,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   selectedLocationText: {
     color: colors.onSurface,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   infoContainer: {
     backgroundColor: colors.surfaceVariant,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    padding: 18,
   },
   infoText: {
     color: colors.onSurfaceMed,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
   },
 });

@@ -26,12 +26,12 @@ const UserOnboardingWizard: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [gender, setGender] = useState('');
-  const [birthYear, setBirthYear] = useState('');
-  const [birthMonth, setBirthMonth] = useState('');
-  const [birthDay, setBirthDay] = useState('');
-  const [birthHour, setBirthHour] = useState('');
-  const [birthMinute, setBirthMinute] = useState('');
-  const [amPm, setAmPm] = useState<'AM' | 'PM'>('AM');
+  const [birthYear, setBirthYear] = useState(String(new Date().getFullYear() - 25));
+  const [birthMonth, setBirthMonth] = useState('01');
+  const [birthDay, setBirthDay] = useState('01');
+  const [birthHour, setBirthHour] = useState('12');
+  const [birthMinute, setBirthMinute] = useState('00');
+  const [amPm, setAmPm] = useState<'AM' | 'PM'>('PM');
   const [unknownTime, setUnknownTime] = useState(false);
   const [placeQuery, setPlaceQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -47,8 +47,6 @@ const UserOnboardingWizard: React.FC = () => {
     const errs: string[] = [];
     if (!firstName.trim()) {errs.push('First name is required');}
     if (!lastName.trim()) {errs.push('Last name is required');}
-    if (!birthYear || !birthMonth || !birthDay) {errs.push('Complete birth date is required');}
-    if (!unknownTime && (!birthHour || !birthMinute)) {errs.push('Birth time is required');}
     if (!lat || !lon) {errs.push('Location is required');}
     if (!gender) {errs.push('Gender/Sex is required');}
 

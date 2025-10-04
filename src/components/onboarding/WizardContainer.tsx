@@ -67,24 +67,23 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Progress Indicator */}
-      <View style={styles.progressContainer}>
-        <Text style={styles.progressText}>
-          Step {currentStep + 1} of {totalSteps}
-        </Text>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${((currentStep + 1) / totalSteps) * 100}%` },
-            ]}
-          />
-        </View>
-      </View>
-
       {/* Steps Container */}
       <View style={styles.stepsContainer}>
         {children[currentStep]}
+      </View>
+
+      {/* Progress Dots at Bottom */}
+      <View style={styles.progressDotsContainer}>
+        {Array.from({ length: totalSteps }).map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.progressDot,
+              index <= currentStep && styles.progressDotActive,
+              index === currentStep && styles.progressDotCurrent,
+            ]}
+          />
+        ))}
       </View>
 
       {/* Navigation Buttons */}
@@ -119,67 +118,78 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  progressContainer: {
-    padding: 20,
-    paddingBottom: 10,
-  },
-  progressText: {
-    color: colors.onSurfaceMed,
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: colors.surfaceVariant,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
-  },
   stepsContainer: {
     flex: 1,
+  },
+  progressDotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 10,
+  },
+  progressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.surfaceVariant,
+  },
+  progressDotActive: {
+    backgroundColor: colors.primary,
+    opacity: 0.5,
+  },
+  progressDotCurrent: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+    opacity: 1,
   },
   navigationContainer: {
     flexDirection: 'row',
     padding: 20,
-    paddingTop: 10,
+    paddingTop: 0,
+    paddingBottom: 24,
     alignItems: 'center',
   },
   backButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   backButtonText: {
     color: colors.onSurface,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   spacer: {
     flex: 1,
   },
   nextButton: {
     backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    minWidth: 120,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    minWidth: 140,
     alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   nextButtonDisabled: {
     backgroundColor: colors.onSurfaceLow,
-    opacity: 0.6,
+    opacity: 0.5,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   nextButtonText: {
     color: colors.onPrimary,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

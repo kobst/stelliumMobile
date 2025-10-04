@@ -32,9 +32,6 @@ export const WizardStep: React.FC<WizardStepProps> = ({
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        {icon && (
-          <Text style={styles.icon}>{icon}</Text>
-        )}
         <Text style={styles.title}>{title}</Text>
         {subtitle && (
           <Text style={styles.subtitle}>{subtitle}</Text>
@@ -56,14 +53,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: 20,
+    paddingTop: 16,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
-  },
-  icon: {
-    fontSize: 40,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   title: {
     fontSize: 28,
@@ -71,12 +65,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.onBackground,
     textAlign: 'center',
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.onSurfaceMed,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   formContainer: {
     flex: 1,

@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import { WizardStep } from '../WizardStep';
+import { ScrollPicker } from '../ScrollPicker';
 import { useTheme } from '../../../theme';
 
 interface BirthDateTimeStepProps {
@@ -45,6 +45,42 @@ export const BirthDateTimeStep: React.FC<BirthDateTimeStepProps> = ({
   const { colors } = useTheme();
   const styles = createStyles(colors);
 
+  // Generate picker data
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - 100;
+    return Array.from({ length: 101 }, (_, i) => String(currentYear - i));
+  }, []);
+
+  const months = useMemo(() =>
+    Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')),
+  []);
+
+  // Calculate days in the selected month
+  const days = useMemo(() => {
+    const year = parseInt(birthYear) || new Date().getFullYear();
+    const month = parseInt(birthMonth) || 1;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    return Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, '0'));
+  }, [birthYear, birthMonth]);
+
+  const hours = useMemo(() =>
+    Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')),
+  []);
+
+  const minutes = useMemo(() =>
+    Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')),
+  []);
+
+  // Auto-adjust day if it exceeds the max for the selected month
+  useEffect(() => {
+    const maxDay = days.length;
+    const currentDay = parseInt(birthDay);
+    if (currentDay > maxDay) {
+      onBirthDayChange(String(maxDay).padStart(2, '0'));
+    }
+  }, [days, birthDay]);
+
   const RadioButton: React.FC<{
     selected: boolean;
     onPress: () => void;
@@ -62,57 +98,35 @@ export const BirthDateTimeStep: React.FC<BirthDateTimeStepProps> = ({
     <WizardStep
       title="When were you born?"
       subtitle="Your birth date and time create the foundation of your chart"
-      icon="🌙"
     >
       <View style={styles.formGroup}>
-        <Text style={styles.label}>My birth date is</Text>
-        <View style={styles.dateRow}>
-          <View style={styles.dateInputContainer}>
-            <Text style={styles.dateLabel}>Year</Text>
-            <TextInput
-              style={[styles.input, styles.dateInput]}
-              placeholder="YYYY"
-              placeholderTextColor={colors.onSurfaceVariant}
-              value={birthYear}
-              onChangeText={(text) => {
-                if (/^\d{0,4}$/.test(text)) {
-                  onBirthYearChange(text);
-                }
-              }}
-              keyboardType="numeric"
-              maxLength={4}
+        <Text style={styles.label}>Birth date</Text>
+        <View style={styles.pickerRow}>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerLabel}>YEAR</Text>
+            <ScrollPicker
+              items={years}
+              selectedValue={birthYear}
+              onValueChange={onBirthYearChange}
+              height={140}
             />
           </View>
-          <View style={styles.dateInputContainer}>
-            <Text style={styles.dateLabel}>Month</Text>
-            <TextInput
-              style={[styles.input, styles.dateInput]}
-              placeholder="MM"
-              placeholderTextColor={colors.onSurfaceVariant}
-              value={birthMonth}
-              onChangeText={(text) => {
-                if (/^\d{0,2}$/.test(text) && (text === '' || (parseInt(text) >= 1 && parseInt(text) <= 12))) {
-                  onBirthMonthChange(text);
-                }
-              }}
-              keyboardType="numeric"
-              maxLength={2}
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerLabel}>MONTH</Text>
+            <ScrollPicker
+              items={months}
+              selectedValue={birthMonth.padStart(2, '0')}
+              onValueChange={onBirthMonthChange}
+              height={140}
             />
           </View>
-          <View style={styles.dateInputContainer}>
-            <Text style={styles.dateLabel}>Day</Text>
-            <TextInput
-              style={[styles.input, styles.dateInput]}
-              placeholder="DD"
-              placeholderTextColor={colors.onSurfaceVariant}
-              value={birthDay}
-              onChangeText={(text) => {
-                if (/^\d{0,2}$/.test(text) && (text === '' || parseInt(text) <= 31)) {
-                  onBirthDayChange(text);
-                }
-              }}
-              keyboardType="numeric"
-              maxLength={2}
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerLabel}>DAY</Text>
+            <ScrollPicker
+              items={days}
+              selectedValue={birthDay.padStart(2, '0')}
+              onValueChange={onBirthDayChange}
+              height={140}
             />
           </View>
         </View>
@@ -135,38 +149,24 @@ export const BirthDateTimeStep: React.FC<BirthDateTimeStepProps> = ({
 
         {!unknownTime && (
           <View style={styles.timeContainer}>
-            <View style={styles.timeRow}>
-              <View style={styles.timeInputContainer}>
-                <Text style={styles.timeLabel}>Hour</Text>
-                <TextInput
-                  style={[styles.input, styles.timeInput]}
-                  placeholder="HH"
-                  placeholderTextColor={colors.onSurfaceVariant}
-                  value={birthHour}
-                  onChangeText={(text) => {
-                    if (/^\d{0,2}$/.test(text) && (text === '' || (parseInt(text) >= 1 && parseInt(text) <= 12))) {
-                      onBirthHourChange(text);
-                    }
-                  }}
-                  keyboardType="numeric"
-                  maxLength={2}
+            <View style={styles.timePickerRow}>
+              <View style={styles.timePickerContainer}>
+                <Text style={styles.pickerLabel}>HOUR</Text>
+                <ScrollPicker
+                  items={hours}
+                  selectedValue={birthHour.padStart(2, '0')}
+                  onValueChange={onBirthHourChange}
+                  height={120}
                 />
               </View>
               <Text style={styles.timeSeparator}>:</Text>
-              <View style={styles.timeInputContainer}>
-                <Text style={styles.timeLabel}>Min</Text>
-                <TextInput
-                  style={[styles.input, styles.timeInput]}
-                  placeholder="MM"
-                  placeholderTextColor={colors.onSurfaceVariant}
-                  value={birthMinute}
-                  onChangeText={(text) => {
-                    if (/^\d{0,2}$/.test(text) && (text === '' || parseInt(text) <= 59)) {
-                      onBirthMinuteChange(text);
-                    }
-                  }}
-                  keyboardType="numeric"
-                  maxLength={2}
+              <View style={styles.timePickerContainer}>
+                <Text style={styles.pickerLabel}>MIN</Text>
+                <ScrollPicker
+                  items={minutes}
+                  selectedValue={birthMinute.padStart(2, '0')}
+                  onValueChange={onBirthMinuteChange}
+                  height={120}
                 />
               </View>
             </View>
@@ -199,87 +199,76 @@ export const BirthDateTimeStep: React.FC<BirthDateTimeStepProps> = ({
 
 const createStyles = (colors: any) => StyleSheet.create({
   formGroup: {
-    marginBottom: 32,
+    marginBottom: 20,
   },
   label: {
     color: colors.onBackground,
     marginBottom: 12,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
-  dateRow: {
+  pickerRow: {
     flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-end',
+    gap: 10,
+    justifyContent: 'space-between',
   },
-  dateInputContainer: {
+  pickerContainer: {
     flex: 1,
   },
-  dateLabel: {
+  pickerLabel: {
     color: colors.onSurfaceMed,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 10,
+    fontWeight: '700',
     marginBottom: 6,
-  },
-  dateInput: {
     textAlign: 'center',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 16,
-    color: colors.onSurface,
-    backgroundColor: colors.surface,
-    fontSize: 16,
-    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   timeToggleRow: {
     flexDirection: 'row',
-    gap: 24,
-    marginBottom: 16,
+    gap: 20,
+    marginBottom: 12,
+    justifyContent: 'center',
   },
   timeContainer: {
-    marginTop: 16,
+    marginTop: 12,
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: 14,
+    padding: 14,
   },
-  timeRow: {
+  timePickerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 12,
-    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 12,
   },
-  timeInputContainer: {
+  timePickerContainer: {
     flex: 1,
-  },
-  timeLabel: {
-    color: colors.onSurfaceMed,
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 6,
-  },
-  timeInput: {
-    textAlign: 'center',
   },
   timeSeparator: {
     color: colors.onBackground,
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontWeight: '700',
+    marginTop: 24,
   },
   amPmRow: {
     flexDirection: 'row',
-    gap: 24,
+    gap: 32,
     justifyContent: 'center',
   },
   radioContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.border,
     alignItems: 'center',
@@ -287,28 +276,29 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   radioOuterSelected: {
     borderColor: colors.primary,
+    backgroundColor: colors.primary + '20',
   },
   radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: colors.primary,
   },
   radioLabel: {
     color: colors.onBackground,
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 17,
+    fontWeight: '600',
   },
   infoContainer: {
     backgroundColor: colors.surfaceVariant,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
+    borderRadius: 14,
+    padding: 18,
+    marginTop: 20,
   },
   infoText: {
     color: colors.onSurfaceMed,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
   },
 });

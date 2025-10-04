@@ -37,7 +37,6 @@ export const GenderStep: React.FC<GenderStepProps> = ({
     <WizardStep
       title="Tell us about yourself"
       subtitle="This helps us personalize your astrological insights"
-      icon="🌟"
     >
       <View style={styles.formGroup}>
         <Text style={styles.label}>My gender is</Text>
