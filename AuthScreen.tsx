@@ -12,9 +12,19 @@ import {
   Platform,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {LoginManager, AccessToken} from 'react-native-fbsdk-next';
 import { GOOGLE_WEB_CLIENT_ID } from './src/config/firebase';
+
+// Dynamic import with fallback for Google Sign-In
+let GoogleSignin: any = null;
+let statusCodes: any = null;
+try {
+  const googleSignInModule = require('@react-native-google-signin/google-signin');
+  GoogleSignin = googleSignInModule.GoogleSignin;
+  statusCodes = googleSignInModule.statusCodes;
+} catch (error) {
+  console.error('Failed to load Google Sign-In module:', error);
+}
 
 // For Apple Sign-In, we'll use a community package
 // Note: Requires configuration in Xcode and Apple Developer Console
@@ -134,6 +144,9 @@ const AuthScreen: React.FC = () => {
   const signInWithGoogle = async () => {
     setLoading(true);
     try {
+      if (!GoogleSignin) {
+        throw new Error('Google Sign-In is not available');
+      }
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
       if (userInfo.data?.idToken) {

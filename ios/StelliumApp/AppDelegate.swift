@@ -4,6 +4,7 @@ import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import FirebaseCore
 import FBSDKCoreKit
+import GoogleSignIn
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -46,8 +47,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey : Any] = [:]
   ) -> Bool {
-    
-    ApplicationDelegate.shared.application(
+
+    // Handle Google Sign-In URL
+    if GIDSignIn.sharedInstance.handle(url) {
+      return true
+    }
+
+    return ApplicationDelegate.shared.application(
       app,
       open: url,
       sourceApplication: options[UIApplication.OpenURLOptionsKey.sourceApplication] as? String,
