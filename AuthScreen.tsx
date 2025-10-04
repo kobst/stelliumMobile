@@ -9,20 +9,39 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
-  Dimensions,
+  Platform,
 } from 'react-native';
-import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
+import auth from '@react-native-firebase/auth';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {LoginManager, AccessToken} from 'react-native-fbsdk-next';
-import { useTheme } from './src/theme';
-import { GOOGLE_WEB_CLIENT_ID, FACEBOOK_APP_ID } from './src/config/firebase';
+import { GOOGLE_WEB_CLIENT_ID } from './src/config/firebase';
 
-type AuthMode = 'signin' | 'signup' | 'phone';
+// For Apple Sign-In, we'll use a community package
+// Note: Requires configuration in Xcode and Apple Developer Console
+let appleAuth: any = null;
+if (Platform.OS === 'ios') {
+  try {
+    appleAuth = require('@invertase/react-native-apple-authentication').appleAuth;
+  } catch (e) {
+    console.log('Apple Auth not available - install @invertase/react-native-apple-authentication');
+  }
+}
 
-const { width } = Dimensions.get('window');
+type AuthMode = 'signin' | 'signup';
+
+// Hardcoded colors for AuthScreen - darker to match onboarding wizard
+const colors = {
+  background: '#1C1B1F',      // Dark background like wizard
+  onBackground: '#E6E1E5',    // Light text on dark
+  surface: '#2B2930',         // Slightly lighter surface for inputs
+  onSurface: '#E6E1E5',       // Light text
+  onSurfaceVariant: '#CAC4D0', // Muted text for placeholders
+  primary: '#D0BCFF',         // Lighter purple for dark mode
+  onPrimary: '#381E72',       // Dark text on primary button
+  border: '#49454F',          // Subtle border
+};
 
 const AuthScreen: React.FC = () => {
-  const { colors } = useTheme();
 
   // State for different auth modes
   const [authMode, setAuthMode] = useState<AuthMode>('signin');
@@ -33,15 +52,16 @@ const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Phone auth fields
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [confirm, setConfirm] = useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
-  const [code, setCode] = useState('');
-
   useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: GOOGLE_WEB_CLIENT_ID,
-    });
+    try {
+      if (GoogleSignin && GoogleSignin.configure) {
+        GoogleSignin.configure({
+          webClientId: GOOGLE_WEB_CLIENT_ID,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to configure Google Sign-In:', error);
+    }
   }, []);
 
   // Email/Password Authentication
@@ -156,57 +176,36 @@ const AuthScreen: React.FC = () => {
     }
   };
 
-  const signInWithPhone = async () => {
-    if (!phoneNumber) {
-      Alert.alert('Error', 'Please enter a phone number');
+  const signInWithApple = async () => {
+    if (Platform.OS !== 'ios' || !appleAuth) {
+      Alert.alert('Error', 'Apple Sign-In is only available on iOS');
       return;
     }
 
     setLoading(true);
     try {
-      const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
-      setConfirm(confirmation);
-    } catch (error: any) {
-      console.error('Phone Auth Error:', error);
-      let errorMessage = 'Phone authentication failed. Please check the number and try again.';
+      // Start the sign-in request
+      const appleAuthRequestResponse = await appleAuth.performRequest({
+        requestedOperation: appleAuth.Operation.LOGIN,
+        requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
+      });
 
-      if (error.code === 'auth/invalid-phone-number') {
-        errorMessage = 'Invalid phone number format.';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many requests. Please try again later.';
+      // Ensure we have an identity token
+      if (!appleAuthRequestResponse.identityToken) {
+        throw new Error('Apple Sign-In failed - no identity token returned');
       }
 
-      Alert.alert('Error', errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Create a Firebase credential from the response
+      const {identityToken, nonce} = appleAuthRequestResponse;
+      const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
 
-  const confirmCode = async () => {
-    if (!code) {
-      Alert.alert('Error', 'Please enter the verification code');
-      return;
-    }
-
-    if (!confirm) {
-      Alert.alert('Error', 'No confirmation object available. Please try sending the code again.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await confirm.confirm(code);
+      // Sign in with Firebase
+      await auth().signInWithCredential(appleCredential);
     } catch (error: any) {
-      console.error('Code Confirmation Error:', error);
-      let errorMessage = 'Invalid verification code. Please try again.';
-
-      if (error.code === 'auth/invalid-verification-code') {
-        errorMessage = 'The verification code is invalid.';
-      } else if (error.code === 'auth/code-expired') {
-        errorMessage = 'The verification code has expired. Please request a new one.';
+      console.error('Apple Sign-In Error:', error);
+      if (error.code !== 'ERR_CANCELED') {
+        Alert.alert('Error', 'Apple Sign-In failed. Please try again.');
       }
-
-      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -216,9 +215,6 @@ const AuthScreen: React.FC = () => {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
-    setPhoneNumber('');
-    setCode('');
-    setConfirm(null);
     setLoading(false);
   };
 
@@ -227,57 +223,6 @@ const AuthScreen: React.FC = () => {
     setAuthMode(mode);
   };
 
-  // Phone verification screen
-  if (confirm) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.headerContainer}>
-            <Text style={[styles.title, { color: colors.onBackground }]}>Verify Phone Number</Text>
-            <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
-              Enter the verification code sent to {phoneNumber}
-            </Text>
-          </View>
-
-          <View style={styles.formContainer}>
-            <TextInput
-              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
-              placeholder="Verification code"
-              placeholderTextColor={colors.onSurfaceVariant}
-              value={code}
-              onChangeText={setCode}
-              keyboardType="number-pad"
-              maxLength={6}
-              autoFocus
-            />
-
-            <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-              onPress={confirmCode}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.onPrimary} />
-              ) : (
-                <Text style={[styles.buttonText, { color: colors.onPrimary }]}>Verify Code</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.textButton}
-              onPress={() => {
-                setConfirm(null);
-                setCode('');
-              }}
-            >
-              <Text style={[styles.linkText, { color: colors.primary }]}>Go Back</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
   // Main authentication screen
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -285,8 +230,7 @@ const AuthScreen: React.FC = () => {
         <View style={styles.headerContainer}>
           <Text style={[styles.title, { color: colors.onBackground }]}>Welcome to Stellium</Text>
           <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
-            {authMode === 'signin' ? 'Sign in to your account' :
-             authMode === 'signup' ? 'Create your account' : 'Sign in with phone number'}
+            {authMode === 'signin' ? 'Sign in to your account' : 'Create your account'}
           </Text>
         </View>
 
@@ -304,6 +248,20 @@ const AuthScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
+          {Platform.OS === 'ios' && appleAuth && (
+            <TouchableOpacity
+              style={[styles.socialButton, { backgroundColor: '#000000', borderColor: '#000000' }]}
+              onPress={signInWithApple}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={[styles.socialButtonText, { color: 'white' }]}>Continue with Apple</Text>
+              )}
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={[styles.socialButton, { backgroundColor: '#1877F2', borderColor: '#1877F2' }]}
             onPress={signInWithFacebook}
@@ -320,133 +278,68 @@ const AuthScreen: React.FC = () => {
         {/* Divider */}
         <View style={styles.dividerContainer}>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <Text style={[styles.dividerText, { color: colors.onSurfaceVariant }]}>OR</Text>
+          <Text style={[styles.dividerText, { color: colors.onSurfaceVariant }]}>or use email</Text>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
         </View>
 
-        {/* Auth Mode Selector */}
-        <View style={styles.modeSelector}>
-          <TouchableOpacity
-            style={[
-              styles.modeButton,
-              authMode === 'signin' && { backgroundColor: colors.primary },
-              { borderColor: colors.border },
-            ]}
-            onPress={() => switchAuthMode('signin')}
-          >
-            <Text style={[
-              styles.modeButtonText,
-              { color: authMode === 'signin' ? colors.onPrimary : colors.onSurface },
-            ]}>Email</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.modeButton,
-              authMode === 'signup' && { backgroundColor: colors.primary },
-              { borderColor: colors.border },
-            ]}
-            onPress={() => switchAuthMode('signup')}
-          >
-            <Text style={[
-              styles.modeButtonText,
-              { color: authMode === 'signup' ? colors.onPrimary : colors.onSurface },
-            ]}>Sign Up</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.modeButton,
-              authMode === 'phone' && { backgroundColor: colors.primary },
-              { borderColor: colors.border },
-            ]}
-            onPress={() => switchAuthMode('phone')}
-          >
-            <Text style={[
-              styles.modeButtonText,
-              { color: authMode === 'phone' ? colors.onPrimary : colors.onSurface },
-            ]}>Phone</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Form Fields */}
+        {/* Email/Password Form */}
         <View style={styles.formContainer}>
-          {authMode === 'phone' ? (
-            // Phone Number Input
-            <>
-              <TextInput
-                style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
-                placeholder="Phone number (+1234567890)"
-                placeholderTextColor={colors.onSurfaceVariant}
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-              />
+          <TextInput
+            style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
+            placeholder="Email address"
+            placeholderTextColor={colors.onSurfaceVariant}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+          />
 
-              <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-                onPress={signInWithPhone}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color={colors.onPrimary} />
-                ) : (
-                  <Text style={[styles.buttonText, { color: colors.onPrimary }]}>Send Verification Code</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          ) : (
-            // Email/Password Inputs
-            <>
-              <TextInput
-                style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
-                placeholder="Email address"
-                placeholderTextColor={colors.onSurfaceVariant}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
+          <TextInput
+            style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
+            placeholder="Password"
+            placeholderTextColor={colors.onSurfaceVariant}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete={authMode === 'signup' ? 'password-new' : 'password'}
+          />
 
-              <TextInput
-                style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
-                placeholder="Password"
-                placeholderTextColor={colors.onSurfaceVariant}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete={authMode === 'signup' ? 'password-new' : 'password'}
-              />
-
-              {authMode === 'signup' && (
-                <TextInput
-                  style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
-                  placeholder="Confirm password"
-                  placeholderTextColor={colors.onSurfaceVariant}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  autoComplete="password-new"
-                />
-              )}
-
-              <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-                onPress={authMode === 'signin' ? signInWithEmail : signUpWithEmail}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color={colors.onPrimary} />
-                ) : (
-                  <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
-                    {authMode === 'signin' ? 'Sign In' : 'Create Account'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </>
+          {authMode === 'signup' && (
+            <TextInput
+              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.onSurface }]}
+              placeholder="Confirm password"
+              placeholderTextColor={colors.onSurfaceVariant}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              autoComplete="password-new"
+            />
           )}
+
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+            onPress={authMode === 'signin' ? signInWithEmail : signUpWithEmail}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.onPrimary} />
+            ) : (
+              <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
+                {authMode === 'signin' ? 'Sign In' : 'Create Account'}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Toggle Sign In / Sign Up */}
+          <TouchableOpacity
+            style={styles.textButton}
+            onPress={() => switchAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
+          >
+            <Text style={[styles.linkText, { color: colors.primary }]}>
+              {authMode === 'signin' ? "New here? Create account" : "Already have an account? Sign in"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -506,25 +399,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     fontSize: 14,
     fontWeight: '500',
-  },
-  modeSelector: {
-    flexDirection: 'row',
-    marginBottom: 24,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  modeButton: {
-    flex: 1,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    marginHorizontal: 1,
-    borderRadius: 6,
-  },
-  modeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   formContainer: {
     marginBottom: 24,

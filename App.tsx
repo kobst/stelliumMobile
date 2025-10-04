@@ -7,19 +7,58 @@
 
 import React, {useEffect, useState} from 'react';
 import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthScreen from './AuthScreen';
 import RootNavigator from './src/navigation';
 import LoadingScreen from './src/components/LoadingScreen';
+import SplashScreen from './src/screens/SplashScreen';
+import OnboardingCarousel from './src/screens/OnboardingCarousel';
 import {useStore} from './src/store';
 import {usersApi} from './src/api';
 import {userTransformers} from './src/transformers/user';
 import {SubjectDocument} from './src/types';
 import { ThemeProvider } from './src/theme';
 
+const ONBOARDING_COMPLETE_KEY = '@stellium_onboarding_complete';
+
 const App: React.FC = () => {
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [isLoadingUserData, setIsLoadingUserData] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const { setUserData, initializeFromStorage } = useStore();
+
+  // Check if user has completed onboarding
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        if (!completed) {
+          setShowOnboarding(true);
+        }
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+      } finally {
+        setIsCheckingOnboarding(false);
+      }
+    };
+    checkOnboarding();
+  }, []);
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
+  const handleOnboardingComplete = async () => {
+    try {
+      await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+      setShowOnboarding(false);
+    } catch (error) {
+      console.error('Error saving onboarding status:', error);
+      setShowOnboarding(false);
+    }
+  };
 
   useEffect(() => {
     console.log('App.tsx: Initializing app...');
@@ -109,6 +148,36 @@ const App: React.FC = () => {
   }, [initializeFromStorage, setUserData]);
 
   console.log('App.tsx: Rendering decision - user exists:', !!user, 'loading:', isLoadingUserData);
+
+  // Show splash screen first
+  if (showSplash) {
+    console.log('App.tsx: Showing SplashScreen');
+    return (
+      <ThemeProvider>
+        <SplashScreen onComplete={handleSplashComplete} />
+      </ThemeProvider>
+    );
+  }
+
+  // Show onboarding if not completed and still checking
+  if (isCheckingOnboarding) {
+    console.log('App.tsx: Checking onboarding status...');
+    return (
+      <ThemeProvider>
+        <LoadingScreen message="Loading..." />
+      </ThemeProvider>
+    );
+  }
+
+  // Show onboarding carousel if first time user
+  if (showOnboarding && !user) {
+    console.log('App.tsx: Showing OnboardingCarousel');
+    return (
+      <ThemeProvider>
+        <OnboardingCarousel onComplete={handleOnboardingComplete} />
+      </ThemeProvider>
+    );
+  }
 
   if (!user) {
     console.log('App.tsx: Showing AuthScreen (user not authenticated)');
