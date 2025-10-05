@@ -9,7 +9,7 @@ import {
 import { WizardStep } from '../WizardStep';
 import { useTheme } from '../../../theme';
 
-interface BirthLocationStepProps {
+interface GuestBirthLocationStepProps {
   placeQuery: string;
   suggestions: any[];
   placeOfBirth: string;
@@ -17,7 +17,7 @@ interface BirthLocationStepProps {
   onPlaceSelect: (place: any) => void;
 }
 
-export const BirthLocationStep: React.FC<BirthLocationStepProps> = ({
+export const GuestBirthLocationStep: React.FC<GuestBirthLocationStepProps> = ({
   placeQuery,
   suggestions,
   placeOfBirth,
@@ -30,7 +30,7 @@ export const BirthLocationStep: React.FC<BirthLocationStepProps> = ({
 
   return (
     <WizardStep
-      title="Where were you born?"
+      title="Where were they born?"
       subtitle="Birthplace helps calculate accurate planetary positions"
     >
       <View style={styles.formGroup}>
@@ -172,16 +172,5 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.onSurface,
     fontSize: 16,
     fontWeight: '600',
-  },
-  infoContainer: {
-    backgroundColor: colors.surfaceVariant,
-    borderRadius: 14,
-    padding: 18,
-  },
-  infoText: {
-    color: colors.onSurfaceMed,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
   },
 });

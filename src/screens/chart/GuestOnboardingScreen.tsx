@@ -1,51 +1,48 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import { Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Config from 'react-native-config';
 import { externalApi } from '../../api';
 import { usersApi } from '../../api';
 import { useStore } from '../../store';
-import { useTheme } from '../../theme';
+
+import { WizardContainer } from '../../components/onboarding/WizardContainer';
+import { GuestNameGenderStep } from '../../components/onboarding/steps/GuestNameGenderStep';
+import { GuestBirthLocationStep } from '../../components/onboarding/steps/GuestBirthLocationStep';
+import { GuestBirthDateTimeStep } from '../../components/onboarding/steps/GuestBirthDateTimeStep';
+import { LoadingOverlay } from '../../components/LoadingOverlay';
 
 const GuestOnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const { userData } = useStore();
-  const { colors } = useTheme();
   const { onGuestCreated } = route.params || {};
 
+  // Form state
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [birthYear, setBirthYear] = useState('');
-  const [birthMonth, setBirthMonth] = useState('');
-  const [birthDay, setBirthDay] = useState('');
-  const [birthHour, setBirthHour] = useState('');
-  const [birthMinute, setBirthMinute] = useState('');
-  const [amPm, setAmPm] = useState<'AM' | 'PM'>('AM');
+  const [gender, setGender] = useState('');
+  const [birthYear, setBirthYear] = useState(String(new Date().getFullYear() - 25));
+  const [birthMonth, setBirthMonth] = useState('01');
+  const [birthDay, setBirthDay] = useState('01');
+  const [birthHour, setBirthHour] = useState('12');
+  const [birthMinute, setBirthMinute] = useState('00');
+  const [amPm, setAmPm] = useState<'AM' | 'PM'>('PM');
+  const [unknownTime, setUnknownTime] = useState(false);
   const [placeQuery, setPlaceQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
   const [placeOfBirth, setPlaceOfBirth] = useState('');
-  const [gender, setGender] = useState('');
-  const [unknownTime, setUnknownTime] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Wizard state
+  const [currentStep, setCurrentStep] = useState(0);
 
   const validateForm = (): string[] => {
     const errs: string[] = [];
     if (!firstName.trim()) {errs.push('First name is required');}
     if (!lastName.trim()) {errs.push('Last name is required');}
-    if (!birthYear || !birthMonth || !birthDay) {errs.push('Complete birth date is required');}
-    if (!unknownTime && (!birthHour || !birthMinute)) {errs.push('Birth time is required');}
     if (!lat || !lon) {errs.push('Location is required');}
     if (!gender) {errs.push('Gender/Sex is required');}
 
@@ -121,10 +118,10 @@ const GuestOnboardingScreen: React.FC = () => {
     const formErrors = validateForm();
     if (formErrors.length > 0) {
       console.log('Form validation failed:', formErrors);
-      setErrors(formErrors);
+      Alert.alert('Validation Error', formErrors.join('\n'));
       return;
     }
-    setErrors([]);
+
     setIsSubmitting(true);
 
     try {
@@ -212,322 +209,84 @@ const GuestOnboardingScreen: React.FC = () => {
       console.error('Error details:', error);
       console.error('Error stack:', error.stack);
       console.error('===========================\n');
-      setErrors([error.message || 'An error occurred while creating the guest profile. Please try again.']);
+      Alert.alert('Error', error.message || 'An error occurred while creating the guest profile. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const styles = createStyles(colors);
+  const getStepValidation = (stepIndex: number): boolean => {
+    switch (stepIndex) {
+      case 0: // Name & Gender
+        return Boolean(firstName.trim() && lastName.trim() && gender);
+      case 1: // Birth Location
+        return Boolean(lat && lon && placeOfBirth);
+      case 2: // Birth Date & Time
+        const hasDate = Boolean(birthYear && birthMonth && birthDay);
+        const hasTime = unknownTime || Boolean(birthHour && birthMinute);
+        return hasDate && hasTime;
+      default:
+        return false;
+    }
+  };
 
-  // RadioButton component
-  const RadioButton: React.FC<{
-    selected: boolean;
-    onPress: () => void;
-    label: string;
-  }> = ({ selected, onPress, label }) => (
-    <TouchableOpacity style={styles.radioContainer} onPress={onPress}>
-      <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
-        {selected && <View style={styles.radioInner} />}
-      </View>
-      <Text style={styles.radioLabel}>{label}</Text>
-    </TouchableOpacity>
-  );
+  const handleStepChange = (step: number) => {
+    setCurrentStep(step);
+  };
+
+  const steps = [
+    <GuestNameGenderStep
+      key="name-gender"
+      firstName={firstName}
+      lastName={lastName}
+      gender={gender}
+      onFirstNameChange={setFirstName}
+      onLastNameChange={setLastName}
+      onGenderChange={setGender}
+    />,
+    <GuestBirthLocationStep
+      key="location"
+      placeQuery={placeQuery}
+      suggestions={suggestions}
+      placeOfBirth={placeOfBirth}
+      onPlaceQueryChange={searchPlaces}
+      onPlaceSelect={selectPlace}
+    />,
+    <GuestBirthDateTimeStep
+      key="datetime"
+      birthYear={birthYear}
+      birthMonth={birthMonth}
+      birthDay={birthDay}
+      birthHour={birthHour}
+      birthMinute={birthMinute}
+      amPm={amPm}
+      unknownTime={unknownTime}
+      onBirthYearChange={setBirthYear}
+      onBirthMonthChange={setBirthMonth}
+      onBirthDayChange={setBirthDay}
+      onBirthHourChange={setBirthHour}
+      onBirthMinuteChange={setBirthMinute}
+      onAmPmChange={setAmPm}
+      onUnknownTimeChange={setUnknownTime}
+    />,
+  ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Their name is</Text>
-        <View style={styles.nameRow}>
-          <TextInput
-            style={[styles.input, styles.nameInput]}
-            placeholder="First Name"
-            placeholderTextColor={colors.onSurfaceVariant}
-            value={firstName}
-            onChangeText={setFirstName}
-          />
-          <TextInput
-            style={[styles.input, styles.nameInput]}
-            placeholder="Last Name"
-            placeholderTextColor={colors.onSurfaceVariant}
-            value={lastName}
-            onChangeText={setLastName}
-          />
-        </View>
-      </View>
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>They were born in</Text>
-        <TextInput
-          style={[styles.input, styles.fullWidth]}
-          placeholder="City, Country"
-          placeholderTextColor={colors.onSurfaceVariant}
-          value={placeQuery}
-          onChangeText={searchPlaces}
-        />
-      </View>
-      {suggestions.map(s => (
-        <TouchableOpacity
-          key={s.place_id}
-          style={styles.suggestion}
-          onPress={() => selectPlace(s)}
-        >
-          <Text style={styles.suggestionText}>{s.description}</Text>
-        </TouchableOpacity>
-      ))}
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>on this date</Text>
-        <View style={styles.dateRow}>
-          <TextInput
-            style={[styles.input, styles.dateInput]}
-            placeholder="YYYY"
-            placeholderTextColor={colors.onSurfaceVariant}
-            value={birthYear}
-            onChangeText={(text) => {
-              if (/^\d{0,4}$/.test(text)) {
-                setBirthYear(text);
-              }
-            }}
-            keyboardType="numeric"
-            maxLength={4}
-          />
-          <TextInput
-            style={[styles.input, styles.dateInput]}
-            placeholder="MM"
-            placeholderTextColor={colors.onSurfaceVariant}
-            value={birthMonth}
-            onChangeText={(text) => {
-              if (/^\d{0,2}$/.test(text) && (text === '' || (parseInt(text) >= 1 && parseInt(text) <= 12))) {
-                setBirthMonth(text);
-              }
-            }}
-            keyboardType="numeric"
-            maxLength={2}
-          />
-          <TextInput
-            style={[styles.input, styles.dateInput]}
-            placeholder="DD"
-            placeholderTextColor={colors.onSurfaceVariant}
-            value={birthDay}
-            onChangeText={(text) => {
-              if (/^\d{0,2}$/.test(text) && (text === '' || parseInt(text) <= 31)) {
-                setBirthDay(text);
-              }
-            }}
-            keyboardType="numeric"
-            maxLength={2}
-          />
-        </View>
-      </View>
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>at this time</Text>
-        <View style={styles.radioGroup}>
-          <RadioButton
-            selected={!unknownTime}
-            onPress={() => setUnknownTime(false)}
-            label="Known Time"
-          />
-          <RadioButton
-            selected={unknownTime}
-            onPress={() => setUnknownTime(true)}
-            label="Unknown Time"
-          />
-        </View>
-        {!unknownTime && (
-          <View>
-            <View style={styles.timeRow}>
-              <TextInput
-                style={[styles.input, styles.timeInput]}
-                placeholder="HH"
-                placeholderTextColor={colors.onSurfaceVariant}
-                value={birthHour}
-                onChangeText={(text) => {
-                  if (/^\d{0,2}$/.test(text) && (text === '' || (parseInt(text) >= 1 && parseInt(text) <= 12))) {
-                    setBirthHour(text);
-                  }
-                }}
-                keyboardType="numeric"
-                maxLength={2}
-              />
-              <Text style={styles.timeSeparator}>:</Text>
-              <TextInput
-                style={[styles.input, styles.timeInput]}
-                placeholder="MM"
-                placeholderTextColor={colors.onSurfaceVariant}
-                value={birthMinute}
-                onChangeText={(text) => {
-                  if (/^\d{0,2}$/.test(text) && (text === '' || parseInt(text) <= 59)) {
-                    setBirthMinute(text);
-                  }
-                }}
-                keyboardType="numeric"
-                maxLength={2}
-              />
-            </View>
-            <View style={styles.amPmRow}>
-              <RadioButton
-                selected={amPm === 'AM'}
-                onPress={() => setAmPm('AM')}
-                label="AM"
-              />
-              <RadioButton
-                selected={amPm === 'PM'}
-                onPress={() => setAmPm('PM')}
-                label="PM"
-              />
-            </View>
-          </View>
-        )}
-      </View>
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Their gender/sex is</Text>
-        <View style={styles.radioGroup}>
-          <RadioButton
-            selected={gender === 'male'}
-            onPress={() => setGender('male')}
-            label="Male"
-          />
-          <RadioButton
-            selected={gender === 'female'}
-            onPress={() => setGender('female')}
-            label="Female"
-          />
-          <RadioButton
-            selected={gender === 'nonbinary'}
-            onPress={() => setGender('nonbinary')}
-            label="Non-binary"
-          />
-        </View>
-      </View>
-      <TouchableOpacity
-        style={[styles.submit, isSubmitting && styles.submitDisabled]}
-        onPress={handleSubmit}
-        disabled={isSubmitting}
+    <>
+      <WizardContainer
+        totalSteps={3}
+        onComplete={handleSubmit}
+        canGoNext={getStepValidation(currentStep) && !isSubmitting}
+        canGoBack={!isSubmitting}
+        currentStep={currentStep}
+        onStepChange={handleStepChange}
+        completeButtonText="Create Chart"
       >
-        <Text style={styles.submitText}>
-          {isSubmitting ? 'Creating...' : 'Create Birth Chart'}
-        </Text>
-      </TouchableOpacity>
-      {errors.length > 0 && (
-        <View style={styles.errorContainer}>
-          {errors.map((e, i) => (
-            <Text key={i} style={styles.errorText}>{e}</Text>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+        {steps}
+      </WizardContainer>
+      <LoadingOverlay visible={isSubmitting} />
+    </>
   );
 };
-
-const createStyles = (colors: any) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 16 },
-  header: {
-    color: colors.onBackground,
-    fontWeight: 'bold',
-    fontSize: 24,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  formGroup: { marginBottom: 16 },
-  label: { color: colors.onBackground, marginBottom: 8, fontSize: 16 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 4,
-    padding: 12,
-    color: colors.onSurface,
-    backgroundColor: colors.surface,
-    marginBottom: 8,
-    fontSize: 16,
-  },
-  fullWidth: { width: '100%' },
-  nameRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  nameInput: {
-    flex: 1,
-  },
-  dateRow: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-  },
-  dateInput: {
-    width: 80,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 8,
-  },
-  timeInput: {
-    width: 60,
-  },
-  timeSeparator: {
-    color: colors.onBackground,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  amPmRow: {
-    flexDirection: 'row',
-    gap: 20,
-    marginTop: 10,
-  },
-  radioGroup: {
-    flexDirection: 'row',
-    gap: 20,
-    marginBottom: 8,
-  },
-  radioContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioOuterSelected: {
-    borderColor: colors.primary,
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.primary,
-  },
-  radioLabel: {
-    color: colors.onBackground,
-    fontSize: 16,
-  },
-  submit: {
-    backgroundColor: colors.primary,
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  submitDisabled: {
-    backgroundColor: colors.onSurfaceVariant,
-  },
-  submitText: { color: colors.onPrimary, fontWeight: 'bold', fontSize: 16 },
-  suggestion: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-    backgroundColor: colors.surface,
-  },
-  suggestionText: { color: colors.onSurface },
-  errorContainer: { marginTop: 12 },
-  errorText: { color: colors.error, fontSize: 14 },
-});
 
 export default GuestOnboardingScreen;
