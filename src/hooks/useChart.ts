@@ -140,7 +140,12 @@ export const useChart = (userId?: string): UseChartReturn => {
           setWorkflowState(statusResponse);
           setStoreWorkflowState(statusResponse);
 
-          if (statusResponse.completed) {
+          // Check if workflow is completed (handle both 'completed' and status-based completion)
+          const isWorkflowDone = statusResponse.completed ||
+                                 statusResponse.status === 'completed' ||
+                                 statusResponse.status === 'completed_with_failures';
+
+          if (isWorkflowDone) {
             console.log('useChart - Workflow completed, fetching analysis data');
             clearInterval(pollInterval);
             setLoading(false);
