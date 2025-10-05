@@ -57,21 +57,22 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: colors.onBackground,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.onSurfaceMed,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 18,
+    paddingHorizontal: 16,
   },
   formContainer: {
     flex: 1,
