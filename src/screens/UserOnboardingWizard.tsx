@@ -8,10 +8,10 @@ import { useStore } from '../store';
 import { userTransformers } from '../transformers/user';
 
 import { WizardContainer } from '../components/onboarding/WizardContainer';
-import { NameStep } from '../components/onboarding/steps/NameStep';
-import { GenderStep } from '../components/onboarding/steps/GenderStep';
+import { NameGenderStep } from '../components/onboarding/steps/NameGenderStep';
 import { BirthLocationStep } from '../components/onboarding/steps/BirthLocationStep';
 import { BirthDateTimeStep } from '../components/onboarding/steps/BirthDateTimeStep';
+import { LoadingOverlay } from '../components/LoadingOverlay';
 
 console.log('=== ENVIRONMENT CONFIG ===');
 console.log('API_URL:', Config.API_URL);
@@ -264,13 +264,11 @@ const UserOnboardingWizard: React.FC = () => {
 
   const getStepValidation = (stepIndex: number): boolean => {
     switch (stepIndex) {
-      case 0: // Name
-        return Boolean(firstName.trim() && lastName.trim());
-      case 1: // Gender
-        return Boolean(gender);
-      case 2: // Birth Location
+      case 0: // Name & Gender
+        return Boolean(firstName.trim() && lastName.trim() && gender);
+      case 1: // Birth Location
         return Boolean(lat && lon && placeOfBirth);
-      case 3: // Birth Date & Time
+      case 2: // Birth Date & Time
         const hasDate = Boolean(birthYear && birthMonth && birthDay);
         const hasTime = unknownTime || Boolean(birthHour && birthMinute);
         return hasDate && hasTime;
@@ -284,16 +282,13 @@ const UserOnboardingWizard: React.FC = () => {
   };
 
   const steps = [
-    <NameStep
-      key="name"
+    <NameGenderStep
+      key="name-gender"
       firstName={firstName}
       lastName={lastName}
+      gender={gender}
       onFirstNameChange={setFirstName}
       onLastNameChange={setLastName}
-    />,
-    <GenderStep
-      key="gender"
-      gender={gender}
       onGenderChange={setGender}
     />,
     <BirthLocationStep
@@ -324,16 +319,19 @@ const UserOnboardingWizard: React.FC = () => {
   ];
 
   return (
-    <WizardContainer
-      totalSteps={4}
-      onComplete={handleSubmit}
-      canGoNext={getStepValidation(currentStep) && !isSubmitting}
-      canGoBack={!isSubmitting}
-      currentStep={currentStep}
-      onStepChange={handleStepChange}
-    >
-      {steps}
-    </WizardContainer>
+    <>
+      <WizardContainer
+        totalSteps={3}
+        onComplete={handleSubmit}
+        canGoNext={getStepValidation(currentStep) && !isSubmitting}
+        canGoBack={!isSubmitting}
+        currentStep={currentStep}
+        onStepChange={handleStepChange}
+      >
+        {steps}
+      </WizardContainer>
+      <LoadingOverlay visible={isSubmitting} />
+    </>
   );
 };
 
