@@ -10,7 +10,7 @@ import { WizardStep } from '../WizardStep';
 import { RadioButton } from '../RadioButton';
 import { useTheme } from '../../../theme';
 
-interface BirthDateTimeStepProps {
+interface GuestBirthDateTimeStepProps {
   birthYear: string;
   birthMonth: string;
   birthDay: string;
@@ -27,7 +27,7 @@ interface BirthDateTimeStepProps {
   onUnknownTimeChange: (unknown: boolean) => void;
 }
 
-export const BirthDateTimeStep: React.FC<BirthDateTimeStepProps> = ({
+export const GuestBirthDateTimeStep: React.FC<GuestBirthDateTimeStepProps> = ({
   birthYear,
   birthMonth,
   birthDay,
@@ -96,8 +96,8 @@ export const BirthDateTimeStep: React.FC<BirthDateTimeStepProps> = ({
 
   return (
     <WizardStep
-      title="When were you born?"
-      subtitle="Date and time form the foundation of your chart"
+      title="When were they born?"
+      subtitle="Date and time form the foundation of their chart"
     >
       <View style={styles.formGroup}>
         <Text style={styles.label}>Birth date</Text>

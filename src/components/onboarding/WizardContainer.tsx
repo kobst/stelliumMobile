@@ -18,6 +18,7 @@ interface WizardContainerProps {
   backButtonText?: string;
   currentStep?: number;
   onStepChange?: (step: number) => void;
+  completeButtonText?: string;
 }
 
 export const WizardContainer: React.FC<WizardContainerProps> = ({
@@ -30,6 +31,7 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
   backButtonText = 'Back',
   currentStep: externalCurrentStep,
   onStepChange,
+  completeButtonText = 'Create My Chart',
 }) => {
   const { colors } = useTheme();
   const [internalCurrentStep, setInternalCurrentStep] = useState(0);
@@ -72,18 +74,11 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
         {children[currentStep]}
       </View>
 
-      {/* Progress Dots at Bottom */}
-      <View style={styles.progressDotsContainer}>
-        {Array.from({ length: totalSteps }).map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.progressDot,
-              index <= currentStep && styles.progressDotActive,
-              index === currentStep && styles.progressDotCurrent,
-            ]}
-          />
-        ))}
+      {/* Step Counter Text */}
+      <View style={styles.stepCounterContainer}>
+        <Text style={styles.stepCounterText}>
+          Step {currentStep + 1} of {totalSteps}
+        </Text>
       </View>
 
       {/* Navigation Buttons */}
@@ -105,7 +100,7 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
           disabled={!canGoNext}
         >
           <Text style={styles.nextButtonText}>
-            {isLastStep ? 'Create My Chart' : nextButtonText}
+            {isLastStep ? completeButtonText : nextButtonText}
           </Text>
         </TouchableOpacity>
       </View>
@@ -121,29 +116,14 @@ const createStyles = (colors: any) => StyleSheet.create({
   stepsContainer: {
     flex: 1,
   },
-  progressDotsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  stepCounterContainer: {
+    paddingVertical: 16,
     alignItems: 'center',
-    paddingVertical: 20,
-    gap: 10,
   },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.surfaceVariant,
-  },
-  progressDotActive: {
-    backgroundColor: colors.primary,
-    opacity: 0.5,
-  },
-  progressDotCurrent: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.primary,
-    opacity: 1,
+  stepCounterText: {
+    fontSize: 14,
+    color: colors.onSurfaceMed,
+    fontWeight: '500',
   },
   navigationContainer: {
     flexDirection: 'row',
