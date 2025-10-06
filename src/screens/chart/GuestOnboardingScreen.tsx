@@ -10,6 +10,7 @@ import { WizardContainer } from '../../components/onboarding/WizardContainer';
 import { GuestNameGenderStep } from '../../components/onboarding/steps/GuestNameGenderStep';
 import { GuestBirthLocationStep } from '../../components/onboarding/steps/GuestBirthLocationStep';
 import { GuestBirthDateTimeStep } from '../../components/onboarding/steps/GuestBirthDateTimeStep';
+import { ReviewStep } from '../../components/onboarding/steps/ReviewStep';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 
 const GuestOnboardingScreen: React.FC = () => {
@@ -225,6 +226,8 @@ const GuestOnboardingScreen: React.FC = () => {
         const hasDate = Boolean(birthYear && birthMonth && birthDay);
         const hasTime = unknownTime || Boolean(birthHour && birthMinute);
         return hasDate && hasTime;
+      case 3: // Review
+        return true;
       default:
         return false;
     }
@@ -269,12 +272,27 @@ const GuestOnboardingScreen: React.FC = () => {
       onAmPmChange={setAmPm}
       onUnknownTimeChange={setUnknownTime}
     />,
+    <ReviewStep
+      key="review"
+      firstName={firstName}
+      lastName={lastName}
+      gender={gender}
+      birthYear={birthYear}
+      birthMonth={birthMonth}
+      birthDay={birthDay}
+      birthHour={birthHour}
+      birthMinute={birthMinute}
+      amPm={amPm}
+      unknownTime={unknownTime}
+      placeOfBirth={placeOfBirth}
+      onEditStep={setCurrentStep}
+    />,
   ];
 
   return (
     <>
       <WizardContainer
-        totalSteps={3}
+        totalSteps={4}
         onComplete={handleSubmit}
         canGoNext={getStepValidation(currentStep) && !isSubmitting}
         canGoBack={!isSubmitting}

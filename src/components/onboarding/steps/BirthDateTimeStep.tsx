@@ -135,7 +135,7 @@ export const BirthDateTimeStep: React.FC<BirthDateTimeStepProps> = ({
               mode="time"
               display="spinner"
               onChange={handleTimeChange}
-              locale="en_US"
+              is24Hour={false}
             />
           </View>
         )}
