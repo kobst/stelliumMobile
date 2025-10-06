@@ -317,8 +317,8 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
     </ScrollView>
   );
 
-  // Show loading state when analysis is in progress
-  if (isAnalysisInProgress) {
+  // Show loading state when analysis is in progress OR when initially loading existing analysis
+  if (isAnalysisInProgress || loading) {
     return <AnalysisLoadingView isAnalysisInProgress={isAnalysisInProgress} workflowState={workflowState} />;
   }
 
