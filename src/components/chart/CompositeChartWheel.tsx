@@ -14,6 +14,7 @@ import {
   getZodiacGlyph,
   filterPlanets,
 } from './ChartUtils';
+import { zodiacIcons, planetIcons } from '../../../utils/astrologyIcons';
 
 interface CompositeChartWheelProps {
   compositeChart: CompositeChart;
@@ -103,19 +104,14 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
       const signRadius = (innerRadius + outerRadius) / 2;
       const { x: signX, y: signY } = getCirclePosition(signDegree, signRadius, centerX, centerY, ascendantDegree);
 
-      elements.push(
-        <SvgText
-          key={`zodiac-symbol-${i}`}
-          x={signX}
-          y={signY}
-          fontSize="18"
-          fill={ZODIAC_COLORS[signNames[i]] || colors.onSurface}
-          textAnchor="middle"
-          alignmentBaseline="middle"
-        >
-          {getZodiacGlyph(signNames[i])}
-        </SvgText>
-      );
+      const ZodiacIconComponent = zodiacIcons[signNames[i].toLowerCase() as keyof typeof zodiacIcons];
+      if (ZodiacIconComponent) {
+        elements.push(
+          <G key={`zodiac-symbol-${i}`} x={signX - 9} y={signY - 9}>
+            <ZodiacIconComponent width={18} height={18} fill={ZODIAC_COLORS[signNames[i]] || colors.onSurface} />
+          </G>
+        );
+      }
     }
 
     return elements;
@@ -202,20 +198,14 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
       );
 
       // Planet symbol
-      elements.push(
-        <SvgText
-          key={`composite-planet-${planet.name}`}
-          x={planetX}
-          y={planetY}
-          fontSize="16"
-          fill={planetColor}
-          textAnchor="middle"
-          alignmentBaseline="middle"
-          fontWeight="bold"
-        >
-          {getPlanetGlyph(planet.name as PlanetName)}
-        </SvgText>
-      );
+      const PlanetIconComponent = planetIcons[planet.name.toLowerCase() as keyof typeof planetIcons];
+      if (PlanetIconComponent) {
+        elements.push(
+          <G key={`composite-planet-${planet.name}`} x={planetX - 8} y={planetY - 8}>
+            <PlanetIconComponent width={16} height={16} fill={planetColor} />
+          </G>
+        );
+      }
 
       // Planet degree marker on the wheel
       const { x: markerX1, y: markerY1 } = getCirclePosition(planet.full_degree, outerRadius, centerX, centerY, ascendantDegree);

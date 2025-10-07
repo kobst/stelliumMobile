@@ -91,20 +91,26 @@ const PlanetaryIcons: React.FC<PlanetaryIconsProps> = ({ subject, user }) => {
       {planetaryData.sun.sign && (
         <View style={styles.iconWrapper}>
           <AstroIcon type="planet" name="Sun" size={14} color={colors.primary} />
-          <AstroIcon type="zodiac" name={planetaryData.sun.sign} size={14} color={colors.primary} />
+          <Text style={[styles.signText, { color: colors.primary }]}>{planetaryData.sun.sign}</Text>
         </View>
       )}
       {planetaryData.moon.sign && (
-        <View style={styles.iconWrapper}>
-          <AstroIcon type="planet" name="Moon" size={14} color={colors.primary} />
-          <AstroIcon type="zodiac" name={planetaryData.moon.sign} size={14} color={colors.primary} />
-        </View>
+        <>
+          <Text style={[styles.separatorText, { color: colors.onSurfaceVariant }]}>|</Text>
+          <View style={styles.iconWrapper}>
+            <AstroIcon type="planet" name="Moon" size={14} color={colors.primary} />
+            <Text style={[styles.signText, { color: colors.primary }]}>{planetaryData.moon.sign}</Text>
+          </View>
+        </>
       )}
       {planetaryData.ascendant?.sign && (
-        <View style={styles.iconWrapper}>
-          <AstroIcon type="planet" name="Ascendant" size={14} color={colors.primary} />
-          <AstroIcon type="zodiac" name={planetaryData.ascendant.sign} size={14} color={colors.primary} />
-        </View>
+        <>
+          <Text style={[styles.separatorText, { color: colors.onSurfaceVariant }]}>|</Text>
+          <View style={styles.iconWrapper}>
+            <AstroIcon type="planet" name="Ascendant" size={14} color={colors.primary} />
+            <Text style={[styles.signText, { color: colors.primary }]}>{planetaryData.ascendant.sign}</Text>
+          </View>
+        </>
       )}
     </View>
   );
@@ -113,17 +119,27 @@ const PlanetaryIcons: React.FC<PlanetaryIconsProps> = ({ subject, user }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 4,
     marginBottom: 2,
   },
   iconWrapper: {
     flexDirection: 'row',
-    marginRight: 8,
+    alignItems: 'center',
+    gap: 4,
   },
   planetaryIcon: {
     fontSize: 14,
     fontWeight: '500',
     backgroundColor: 'transparent',
+  },
+  signText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  separatorText: {
+    fontSize: 14,
+    marginHorizontal: 6,
   },
 });
 

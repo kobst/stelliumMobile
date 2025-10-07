@@ -5,7 +5,7 @@ import { ProfileAvatar } from '../profile';
 
 interface AnalysisHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: string | React.ReactNode;
   meta?: string;
 }
 
@@ -18,7 +18,11 @@ export const AnalysisHeader: React.FC<AnalysisHeaderProps> = ({ title, subtitle,
         <View style={styles.textContent}>
           <Text style={[styles.title, { color: colors.onSurfaceHigh }]}>{title}</Text>
           {subtitle && (
-            <Text style={[styles.subtitle, { color: colors.onSurfaceHigh }]}>{subtitle}</Text>
+            typeof subtitle === 'string' ? (
+              <Text style={[styles.subtitle, { color: colors.onSurfaceHigh }]}>{subtitle}</Text>
+            ) : (
+              subtitle
+            )
           )}
           {meta && (
             <Text style={[styles.meta, { color: colors.onSurfaceMed }]}>{meta}</Text>
