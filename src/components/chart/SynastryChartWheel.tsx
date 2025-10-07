@@ -13,6 +13,7 @@ import {
   getZodiacGlyph,
   filterPlanets,
 } from './ChartUtils';
+import { zodiacIcons, planetIcons } from '../../../utils/astrologyIcons';
 
 interface SynastryChartWheelProps {
   basePlanets: BackendPlanet[];
@@ -101,19 +102,14 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
       const signRadius = (innerRadius + outerRadius) / 2;
       const { x: signX, y: signY } = getCirclePosition(signDegree, signRadius, centerX, centerY, ascendantDegree);
 
-      elements.push(
-        <SvgText
-          key={`zodiac-symbol-${i}`}
-          x={signX}
-          y={signY}
-          fontSize="18"
-          fill={ZODIAC_COLORS[signNames[i]] || colors.onSurface}
-          textAnchor="middle"
-          alignmentBaseline="middle"
-        >
-          {getZodiacGlyph(signNames[i])}
-        </SvgText>
-      );
+      const ZodiacIconComponent = zodiacIcons[signNames[i].toLowerCase() as keyof typeof zodiacIcons];
+      if (ZodiacIconComponent) {
+        elements.push(
+          <G key={`zodiac-symbol-${i}`} x={signX - 9} y={signY - 9}>
+            <ZodiacIconComponent width={18} height={18} fill={ZODIAC_COLORS[signNames[i]] || colors.onSurface} />
+          </G>
+        );
+      }
     }
 
     return elements;
@@ -199,20 +195,14 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
       );
 
       // Planet symbol
-      elements.push(
-        <SvgText
-          key={`base-planet-${planet.name}`}
-          x={planetX}
-          y={planetY}
-          fontSize="14"
-          fill={planetColor}
-          textAnchor="middle"
-          alignmentBaseline="middle"
-          fontWeight="bold"
-        >
-          {getPlanetGlyph(planet.name as PlanetName)}
-        </SvgText>
-      );
+      const PlanetIconComponent = planetIcons[planet.name.toLowerCase() as keyof typeof planetIcons];
+      if (PlanetIconComponent) {
+        elements.push(
+          <G key={`base-planet-${planet.name}`} x={planetX - 7} y={planetY - 7}>
+            <PlanetIconComponent width={14} height={14} fill={planetColor} />
+          </G>
+        );
+      }
 
       // Planet degree marker on the wheel
       const { x: markerX1, y: markerY1 } = getCirclePosition(planet.full_degree, outerRadius, centerX, centerY, ascendantDegree);
@@ -267,20 +257,14 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
       );
 
       // Planet symbol (smaller for transits)
-      elements.push(
-        <SvgText
-          key={`transit-planet-${planet.name}`}
-          x={planetX}
-          y={planetY}
-          fontSize="12"
-          fill={planetColor}
-          textAnchor="middle"
-          alignmentBaseline="middle"
-          fontWeight="bold"
-        >
-          {getPlanetGlyph(planet.name as PlanetName)}
-        </SvgText>
-      );
+      const TransitPlanetIconComponent = planetIcons[planet.name.toLowerCase() as keyof typeof planetIcons];
+      if (TransitPlanetIconComponent) {
+        elements.push(
+          <G key={`transit-planet-${planet.name}`} x={planetX - 6} y={planetY - 6}>
+            <TransitPlanetIconComponent width={12} height={12} fill={planetColor} />
+          </G>
+        );
+      }
 
       // Planet degree marker (shorter for transits)
       const { x: markerX1, y: markerY1 } = getCirclePosition(planet.full_degree, outerRadius + 12, centerX, centerY, ascendantDegree);

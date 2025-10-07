@@ -26,6 +26,8 @@ import BirthChartChatTab from '../../components/chart/BirthChartChatTab';
 import CompleteFullAnalysisButton from '../../components/chart/CompleteFullAnalysisButton';
 import { BirthChartElement } from '../../api/charts';
 import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
+import { extractPlanetaryData } from '../../utils/chartHelpers';
+import { AstroIcon } from '../../../utils/astrologyIcons';
 
 const ChartScreen: React.FC = () => {
   const route = useRoute<any>();
@@ -66,9 +68,55 @@ const ChartScreen: React.FC = () => {
     { label: 'Tables', value: 'tables' },
   ];
 
-  // Create birth info string for regular users
+  // Helper to get planetary signs description
+  const getPlanetarySignsElement = (subject: any) => {
+    if (!subject?.birthChart) {return null;}
+
+    try {
+      const planetaryData = extractPlanetaryData(subject);
+
+      return (
+        <View style={styles.planetarySignsContainer}>
+          {planetaryData.sun.sign && (
+            <View style={styles.signGroup}>
+              <AstroIcon type="planet" name="Sun" size={12} color={colors.onSurfaceHigh} />
+              <Text style={[styles.signText, { color: colors.onSurfaceHigh }]}>
+                {planetaryData.sun.sign}
+              </Text>
+            </View>
+          )}
+          {planetaryData.moon.sign && (
+            <>
+              <Text style={[styles.separator, { color: colors.onSurfaceHigh }]}>•</Text>
+              <View style={styles.signGroup}>
+                <AstroIcon type="planet" name="Moon" size={12} color={colors.onSurfaceHigh} />
+                <Text style={[styles.signText, { color: colors.onSurfaceHigh }]}>
+                  {planetaryData.moon.sign}
+                </Text>
+              </View>
+            </>
+          )}
+          {planetaryData.ascendant?.sign && (
+            <>
+              <Text style={[styles.separator, { color: colors.onSurfaceHigh }]}>•</Text>
+              <View style={styles.signGroup}>
+                <AstroIcon type="planet" name="Ascendant" size={12} color={colors.onSurfaceHigh} />
+                <Text style={[styles.signText, { color: colors.onSurfaceHigh }]}>
+                  {planetaryData.ascendant.sign}
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
+      );
+    } catch (error) {
+      return null;
+    }
+  };
+
+  // Create birth date/time/location string
   const getBirthInfo = (subject: any): string => {
-    if (!subject) {return 'Birth Chart';}
+    if (!subject) {return '';}
 
     try {
       // Handle different date formats
@@ -80,7 +128,7 @@ const ChartScreen: React.FC = () => {
         // User type
         birthDate = new Date(subject.birthYear, subject.birthMonth - 1, subject.birthDay);
       } else {
-        return 'Birth Chart';
+        return '';
       }
 
       const formattedDate = birthDate.toLocaleDateString('en-US', {
@@ -105,9 +153,9 @@ const ChartScreen: React.FC = () => {
       const location = subject.placeOfBirth || subject.birthLocation;
       const locationString = location ? ` in ${location}` : '';
 
-      return `Born ${formattedDate}${timeString}${locationString}`;
+      return `${formattedDate}${timeString}${locationString}`;
     } catch (error) {
-      return 'Birth Chart';
+      return '';
     }
   };
 
@@ -231,12 +279,16 @@ const ChartScreen: React.FC = () => {
     }
   };
 
+  const planetarySigns = getPlanetarySignsElement(subject);
+  const birthInfo = getBirthInfo(subject);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Analysis Header */}
       <AnalysisHeader
         title={subject?.name || 'Unknown'}
-        subtitle={getBirthInfo(subject)}
+        subtitle={planetarySigns || birthInfo}
+        meta={planetarySigns ? birthInfo : undefined}
       />
 
       {/* Top Tab Bar */}
@@ -288,6 +340,25 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
+  },
+  planetarySignsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 4,
+  },
+  signGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  signText: {
+    fontSize: 13,
+    fontWeight: '400',
+  },
+  separator: {
+    fontSize: 13,
+    marginHorizontal: 4,
   },
   errorSection: {
     margin: 16,

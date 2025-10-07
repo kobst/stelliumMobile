@@ -7,6 +7,7 @@ import {
   ZODIAC_COLORS,
 } from './ChartUtils';
 import { useTheme } from '../../theme/useTheme';
+import { AstroIcon } from '../../../utils/astrologyIcons';
 
 interface HouseTableProps {
   houses: BackendHouse[];
@@ -30,16 +31,14 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
           <Text style={[styles.houseNumber, { color: colors.text }]}>{house.house}</Text>
         </View>
 
-        {/* Sign Symbol */}
-        <View style={styles.symbolCell}>
-          <Text style={[styles.signSymbol, { color: signColor }]}>
-            {house.sign ? getZodiacGlyph(house.sign as ZodiacSign) : '-'}
-          </Text>
-        </View>
-
-        {/* Sign Name */}
-        <View style={styles.signCell}>
-          <Text style={[styles.signName, { color: colors.text }]}>{house.sign || 'Unknown'}</Text>
+        {/* Sign (Symbol + Name combined) */}
+        <View style={styles.houseSignCell}>
+          {house.sign ? (
+            <AstroIcon type="zodiac" name={house.sign as ZodiacSign} size={20} color={signColor} />
+          ) : (
+            <Text style={[styles.signSymbol, { color: signColor }]}>-</Text>
+          )}
+          <Text style={[styles.signName, { color: colors.text, marginLeft: 8 }]}>{house.sign || 'Unknown'}</Text>
         </View>
 
         {/* Degree */}
@@ -73,10 +72,7 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
         <View style={styles.houseCell}>
           <Text style={[styles.headerText, { color: colors.textSecondary }]}>House</Text>
         </View>
-        <View style={styles.symbolCell}>
-          <Text style={[styles.headerText, { color: colors.textSecondary }]}>♈</Text>
-        </View>
-        <View style={styles.signCell}>
+        <View style={styles.signHeaderCell}>
           <Text style={[styles.headerText, { color: colors.textSecondary }]}>Sign</Text>
         </View>
         <View style={styles.degreeCell}>
@@ -139,6 +135,17 @@ const styles = StyleSheet.create({
   signCell: {
     flex: 2,
     paddingLeft: 8,
+  },
+  houseSignCell: {
+    flexDirection: 'row',
+    flex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signHeaderCell: {
+    width: 50 + 8, // symbolCell width + signCell padding
+    flex: 2,
+    alignItems: 'center',
   },
   degreeCell: {
     flex: 1,
