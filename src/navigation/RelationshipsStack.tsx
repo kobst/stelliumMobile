@@ -25,7 +25,7 @@ const RelationshipsStack: React.FC = () => {
       <Stack.Screen
         name="RelationshipsMain"
         component={RelationshipsScreen}
-        options={{ title: 'Relationships' }}
+        options={{ title: 'Relationships', headerShown: false }}
       />
       <Stack.Screen
         name="RelationshipAnalysis"
