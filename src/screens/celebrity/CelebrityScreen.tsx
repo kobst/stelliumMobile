@@ -15,10 +15,12 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useStore } from '../../store';
 import { useCelebrities } from '../../hooks/useCelebrities';
 import { Celebrity } from '../../api/celebrities';
-import CelebrityRelationships from '../../components/CelebrityRelationships';
 import { HeaderWithProfile } from '../../components/navigation';
 import { useTheme } from '../../theme';
 import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
+import PlanetaryIcons from '../../components/chart/PlanetaryIcons';
+import AnalysisTypeIndicator from '../../components/chart/AnalysisTypeIndicator';
+import { SubjectDocument } from '../../types';
 
 type CelebrityStackParamList = {
   CelebrityMain: undefined;
@@ -29,13 +31,10 @@ type CelebrityStackParamList = {
 
 type CelebrityScreenNavigationProp = StackNavigationProp<CelebrityStackParamList, 'CelebrityMain'>;
 
-type TabType = 'individuals' | 'relationships';
-
 const CelebrityScreen: React.FC = () => {
   const navigation = useNavigation<CelebrityScreenNavigationProp>();
   const { userData } = useStore();
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState<TabType>('individuals');
   const [searchText, setSearchText] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -69,66 +68,64 @@ const CelebrityScreen: React.FC = () => {
     }, 500);
 
     return () => clearTimeout(searchTimer);
-  }, [searchText, searchCelebrities, clearSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchText]);
 
   const handleCelebrityPress = (celebrity: Celebrity) => {
     navigation.navigate('CelebrityDetail', { celebrity });
   };
 
-  const renderTabSwitcher = () => (
-    <View style={[styles.tabSwitcher, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <TouchableOpacity
-        style={[
-          styles.tabButton,
-          activeTab === 'individuals' && { backgroundColor: colors.primary },
-        ]}
-        onPress={() => setActiveTab('individuals')}
-      >
-        <Text
-          style={[
-            { color: colors.onSurfaceVariant },
-            activeTab === 'individuals' && { color: colors.onPrimary, fontWeight: '600' },
-          ]}
-        >
-          Individuals
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[
-          styles.tabButton,
-          activeTab === 'relationships' && { backgroundColor: colors.primary },
-        ]}
-        onPress={() => setActiveTab('relationships')}
-      >
-        <Text
-          style={[
-            { color: colors.onSurfaceVariant },
-            activeTab === 'relationships' && { color: colors.onPrimary, fontWeight: '600' },
-          ]}
-        >
-          Relationships
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const renderCelebrityItem = ({ item }: { item: Celebrity }) => {
+    // Parse date-only string to avoid timezone shifts
+    const birthDate = parseDateStringAsLocalDate(item.dateOfBirth);
 
-  const renderCelebrityItem = ({ item }: { item: Celebrity }) => (
-    <TouchableOpacity
-      style={[styles.celebrityItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      onPress={() => handleCelebrityPress(item)}
-    >
-      <View style={styles.celebrityInfo}>
-        <Text style={[styles.celebrityName, { color: colors.onSurface }]}>{item.firstName} {item.lastName}</Text>
-        <Text style={[styles.celebrityDetails, { color: colors.onSurfaceVariant }]}>
-          {parseDateStringAsLocalDate(item.dateOfBirth).toLocaleDateString()}
-        </Text>
-        <Text style={[styles.celebrityLocation, { color: colors.onSurfaceVariant }]}>
-          Born in {item.placeOfBirth}
-        </Text>
-      </View>
-      <Text style={[styles.viewChartText, { color: colors.primary }]}>View Chart →</Text>
-    </TouchableOpacity>
-  );
+    // Convert Celebrity to SubjectDocument format for PlanetaryIcons
+    const celebrityAsSubject: SubjectDocument = {
+      _id: item._id,
+      createdAt: '',
+      updatedAt: '',
+      kind: item.kind || 'celebrity',
+      ownerUserId: null,
+      isCelebrity: item.isCelebrity || true,
+      isReadOnly: item.isReadOnly || true,
+      firstName: item.firstName,
+      lastName: item.lastName,
+      dateOfBirth: item.dateOfBirth,
+      placeOfBirth: item.placeOfBirth,
+      birthTimeUnknown: false,
+      totalOffsetHours: item.totalOffsetHours || 0,
+      birthChart: item.birthChart,
+    };
+
+    return (
+      <TouchableOpacity
+        style={[styles.guestCard, { backgroundColor: colors.surface }]}
+        onPress={() => handleCelebrityPress(item)}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.guestAvatar, { backgroundColor: colors.surfaceVariant }]}>
+          <Text style={[styles.avatarText, { color: colors.onSurfaceVariant }]}>
+            {item.firstName[0]}{item.lastName[0]}
+          </Text>
+        </View>
+        <View style={styles.guestInfo}>
+          <Text style={[styles.guestName, { color: colors.onSurface }]}>
+            {item.firstName} {item.lastName}
+          </Text>
+          <PlanetaryIcons subject={celebrityAsSubject} />
+          <Text style={[styles.guestDetails, { color: colors.onSurfaceVariant }]}>
+            {birthDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })} - {item.placeOfBirth}
+          </Text>
+          <AnalysisTypeIndicator analysisStatus={celebrityAsSubject.analysisStatus} />
+        </View>
+        <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
+      </TouchableOpacity>
+    );
+  };
 
   if (!userData) {
     return (
@@ -145,12 +142,9 @@ const CelebrityScreen: React.FC = () => {
   const displayData = searchText.length > 2 ? searchResults : celebrities;
 
   const renderHeader = () => (
-    <View>
-      {/* Tab Switcher */}
-      {renderTabSwitcher()}
-
+    <View style={styles.headerContainer}>
       {/* Error Display */}
-      {error && activeTab === 'individuals' && (
+      {error && (
         <View style={[styles.errorSection, { backgroundColor: colors.surface, borderColor: colors.error }]}>
           <Text style={[styles.errorText, { color: colors.error }]}>Error: {error}</Text>
           <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.error }]} onPress={clearError}>
@@ -159,67 +153,41 @@ const CelebrityScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Header */}
-      <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
-          {activeTab === 'individuals' ? 'Celebrity Birth Charts' : 'Celebrity Relationships'}
-        </Text>
-        <Text style={[styles.sectionSubtitle, { color: colors.onSurfaceVariant }]}>
-          {activeTab === 'individuals'
-            ? 'Explore the cosmic blueprints of famous personalities'
-            : 'Discover your cosmic connections with celebrities'
-          }
-        </Text>
+      {/* Search */}
+      <View style={[styles.searchSection, { backgroundColor: colors.surface }]}>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={[styles.searchInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.onSurface }]}
+            placeholder="Search celebrities..."
+            placeholderTextColor={colors.onSurfaceVariant}
+            value={searchText}
+            onChangeText={setSearchText}
+          />
+          {isSearching && (
+            <ActivityIndicator size="small" color={colors.primary} style={styles.searchLoader} />
+          )}
+        </View>
+        {searchText.length > 0 && searchText.length <= 2 && (
+          <Text style={[styles.searchHint, { color: colors.onSurfaceVariant }]}>Type at least 3 characters to search</Text>
+        )}
       </View>
 
-      {/* Search - Only show for individuals tab */}
-      {activeTab === 'individuals' && (
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Search Celebrities</Text>
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={[styles.searchInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.onSurface }]}
-              placeholder="Search by name..."
-              placeholderTextColor={colors.onSurfaceVariant}
-              value={searchText}
-              onChangeText={setSearchText}
-            />
-            {isSearching && (
-              <ActivityIndicator size="small" color={colors.primary} style={styles.searchLoader} />
-            )}
-          </View>
-          {searchText.length > 0 && searchText.length <= 2 && (
-            <Text style={[styles.searchHint, { color: colors.onSurfaceVariant }]}>Type at least 3 characters to search</Text>
-          )}
+      {/* Loading State */}
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading celebrities...</Text>
         </View>
       )}
 
-      {/* Results Section Header - Only show for individuals tab */}
-      {activeTab === 'individuals' && (
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
-            {searchText.length > 2
-              ? `Search Results (${searchResults.length})`
-              : `Celebrities (${displayData.length})`
-            }
-          </Text>
-
-          {loading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading celebrities...</Text>
-            </View>
-          )}
-
-          {!loading && displayData.length === 0 && (
-            <Text style={[styles.noResultsText, { color: colors.onSurfaceVariant }]}>
-              {searchText.length > 2
-                ? 'No celebrities found matching your search'
-                : 'No celebrities available'
-              }
-            </Text>
-          )}
-        </View>
+      {/* Empty State */}
+      {!loading && displayData.length === 0 && (
+        <Text style={[styles.noResultsText, { color: colors.onSurfaceVariant }]}>
+          {searchText.length > 2
+            ? 'No celebrities found matching your search'
+            : 'No celebrities available'
+          }
+        </Text>
       )}
     </View>
   );
@@ -246,25 +214,6 @@ const CelebrityScreen: React.FC = () => {
     }
   };
 
-  if (activeTab === 'relationships') {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <HeaderWithProfile title="Celebrity" showSafeArea={false} />
-        {renderHeader()}
-        <CelebrityRelationships onCelebrityPress={handleCelebrityPress} />
-      </SafeAreaView>
-    );
-  }
-
-  if (!loading && displayData.length === 0) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <HeaderWithProfile title="Celebrity" showSafeArea={false} />
-        {renderHeader()}
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <HeaderWithProfile title="Celebrity" showSafeArea={false} />
@@ -278,8 +227,8 @@ const CelebrityScreen: React.FC = () => {
         onEndReachedThreshold={0.5}
         refreshing={refreshing}
         onRefresh={refreshCelebrities}
-        showsVerticalScrollIndicator={true}
-        style={styles.celebrityList}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
       />
     </SafeAreaView>
   );
@@ -289,37 +238,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  tabSwitcher: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 4,
-    margin: 16,
+  listContent: {
+    padding: 16,
+  },
+  headerContainer: {
     marginBottom: 8,
-    borderWidth: 1,
   },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  section: {
-    margin: 16,
+  searchSection: {
     padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
     marginBottom: 16,
-    lineHeight: 20,
   },
   searchContainer: {
     position: 'relative',
@@ -334,7 +262,7 @@ const styles = StyleSheet.create({
   },
   searchLoader: {
     position: 'absolute',
-    right: 12,
+    right: 28,
     top: 12,
   },
   searchHint: {
@@ -342,23 +270,39 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginBottom: 8,
   },
-  categoryGrid: {
+  guestCard: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-  },
-  categoryButton: {
-    flex: 1,
-    minWidth: '48%',
-    padding: 12,
-    margin: 4,
-    borderRadius: 8,
     alignItems: 'center',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
   },
-  categoryButtonText: {
+  guestAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  guestInfo: {
+    flex: 1,
+  },
+  guestName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  guestDetails: {
     fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
+  },
+  chevron: {
+    fontSize: 24,
+    fontWeight: '300',
   },
   loadingContainer: {
     alignItems: 'center',
@@ -373,37 +317,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 32,
     fontStyle: 'italic',
-  },
-  celebrityList: {
-    marginTop: 8,
-  },
-  celebrityItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-  },
-  celebrityInfo: {
-    flex: 1,
-  },
-  celebrityName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  celebrityDetails: {
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  celebrityLocation: {
-    fontSize: 12,
-  },
-  viewChartText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   errorSection: {
     margin: 16,
