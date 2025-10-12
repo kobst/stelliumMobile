@@ -30,6 +30,8 @@ export const WizardStep: React.FC<WizardStepProps> = ({
       style={styles.container}
       contentContainerStyle={[styles.content, contentContainerStyle]}
       showsVerticalScrollIndicator={false}
+      nestedScrollEnabled={true}
+      scrollEnabled={true}
     >
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>

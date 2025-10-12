@@ -46,14 +46,6 @@ export const GuestBirthDateTimeStep: React.FC<GuestBirthDateTimeStepProps> = ({
   const { colors } = useTheme();
   const styles = createStyles(colors);
 
-  // Create date object from current values
-  const currentDate = useMemo(() => {
-    const year = parseInt(birthYear) || new Date().getFullYear() - 25;
-    const month = parseInt(birthMonth) || 1;
-    const day = parseInt(birthDay) || 1;
-    return new Date(year, month - 1, day);
-  }, [birthYear, birthMonth, birthDay]);
-
   // Create time object from current values
   const currentTime = useMemo(() => {
     let hour = parseInt(birthHour) || 12;
@@ -66,10 +58,18 @@ export const GuestBirthDateTimeStep: React.FC<GuestBirthDateTimeStepProps> = ({
       hour = hour === 12 ? 12 : hour + 12;
     }
 
-    const date = new Date();
+    const date = new Date(2000, 0, 1);
     date.setHours(hour, minute, 0, 0);
     return date;
   }, [birthHour, birthMinute, amPm]);
+
+  // Create date object from current values
+  const currentDate = useMemo(() => {
+    const year = parseInt(birthYear) || new Date().getFullYear() - 25;
+    const month = parseInt(birthMonth) || 1;
+    const day = parseInt(birthDay) || 1;
+    return new Date(year, month - 1, day);
+  }, [birthYear, birthMonth, birthDay]);
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (selectedDate) {
@@ -88,7 +88,7 @@ export const GuestBirthDateTimeStep: React.FC<GuestBirthDateTimeStepProps> = ({
       const newAmPm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12 || 12;
 
-      onBirthHourChange(String(hours).padStart(2, '0'));
+      onBirthHourChange(String(hours));
       onBirthMinuteChange(String(minutes).padStart(2, '0'));
       onAmPmChange(newAmPm);
     }
@@ -129,7 +129,11 @@ export const GuestBirthDateTimeStep: React.FC<GuestBirthDateTimeStepProps> = ({
         </View>
 
         {!unknownTime && (
-          <View style={styles.timePickerContainer}>
+          <View
+            style={styles.timePickerContainer}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+          >
             <DateTimePicker
               value={currentTime}
               mode="time"
