@@ -418,7 +418,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
         {/* Relationship Header */}
         <View style={[styles.overviewHeader, { backgroundColor: colors.surface }]}>
           <Text style={[styles.relationshipTier, { color: colors.primary }]}>
-            {clusterScoring.overall.tier} Relationship
+            {clusterScoring.overall.tier}
           </Text>
           <Text style={[styles.relationshipProfile, { color: colors.onSurface }]}>
             {clusterScoring.overall.profile}
@@ -428,31 +428,11 @@ const RelationshipAnalysisScreen: React.FC = () => {
         {/* Initial Overview */}
         {analysisData?.initialOverview && (
           <View style={[styles.overviewCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.overviewTitle, { color: colors.onSurface }]}>
-              💫 Relationship Overview
-            </Text>
             <Text style={[styles.overviewText, { color: colors.onSurfaceVariant }]}>
               {analysisData.initialOverview}
             </Text>
           </View>
         )}
-
-        {/* V3 Clusters Summary */}
-        <View style={[styles.clustersCard, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.clustersTitle, { color: colors.onSurface }]}>
-            🎵 Cluster Highlights
-          </Text>
-          {Object.entries(clusterScoring.clusters).map(([clusterName, clusterData]) => (
-            <View key={clusterName} style={styles.clusterRow}>
-              <Text style={[styles.clusterName, { color: colors.onSurface }]}>
-                {clusterName}
-              </Text>
-              <Text style={[styles.clusterScore, { color: colors.primary }]}>
-                {clusterData.score > 1 ? Math.round(clusterData.score) : Math.round(clusterData.score * 100)}%
-              </Text>
-            </View>
-          ))}
-        </View>
 
       </ScrollView>
     );
@@ -950,7 +930,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   relationshipProfile: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
   },
   overviewCard: {
