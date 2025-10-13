@@ -64,9 +64,18 @@ export const userTransformers = {
       birthLocation: subject.placeOfBirth || '',
       timezone: (subject.totalOffsetHours || 0).toString(),
       birthChart: subject.birthChart,
+      // Profile photo fields
+      profilePhotoUrl: subject.profilePhotoUrl,
+      profilePhotoKey: subject.profilePhotoKey,
+      profilePhotoUpdatedAt: subject.profilePhotoUpdatedAt,
     };
 
     console.log('Transformed User:', JSON.stringify(transformedUser, null, 2));
+    console.log('Profile photo fields:', {
+      profilePhotoUrl: transformedUser.profilePhotoUrl,
+      profilePhotoKey: transformedUser.profilePhotoKey,
+      profilePhotoUpdatedAt: transformedUser.profilePhotoUpdatedAt,
+    });
     console.log('====================================\n');
 
     return transformedUser;
@@ -137,11 +146,20 @@ export const userTransformers = {
       birthLocation: birthData.birthLocation || birthData.placeOfBirth,
       timezone: timezone,
       birthChart: userData.birthChart || apiResponse.birthChart,
+      // Profile photo fields
+      profilePhotoUrl: userData.profilePhotoUrl || apiResponse.profilePhotoUrl,
+      profilePhotoKey: userData.profilePhotoKey || apiResponse.profilePhotoKey,
+      profilePhotoUpdatedAt: userData.profilePhotoUpdatedAt || apiResponse.profilePhotoUpdatedAt,
     };
 
     console.log('Final transformed user:', JSON.stringify(transformedUser, null, 2));
     console.log('birthLocation:', transformedUser.birthLocation);
     console.log('timezone:', transformedUser.timezone);
+    console.log('Profile photo fields:', {
+      profilePhotoUrl: transformedUser.profilePhotoUrl,
+      profilePhotoKey: transformedUser.profilePhotoKey,
+      profilePhotoUpdatedAt: transformedUser.profilePhotoUpdatedAt,
+    });
     console.log('=======================\n');
 
     return transformedUser;

@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   SafeAreaView,
+  Alert,
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../../store';
 import { useChart } from '../../hooks/useChart';
 import { ChartTabNavigator } from '../../components';
@@ -24,10 +25,18 @@ import PlanetsTab from '../../components/chart/PlanetsTab';
 import AnalysisTab from '../../components/chart/AnalysisTab';
 import BirthChartChatTab from '../../components/chart/BirthChartChatTab';
 import CompleteFullAnalysisButton from '../../components/chart/CompleteFullAnalysisButton';
+import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { BirthChartElement } from '../../api/charts';
 import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
 import { extractPlanetaryData } from '../../utils/chartHelpers';
 import { AstroIcon } from '../../../utils/astrologyIcons';
+import {
+  pickImageFromLibrary,
+  pickImageFromCamera,
+  uploadProfilePhotoPresigned,
+  ImageResult,
+} from '../../utils/imageHelpers';
+import { usersApi } from '../../api/users';
 
 const ChartScreen: React.FC = () => {
   const route = useRoute<any>();
@@ -36,7 +45,214 @@ const ChartScreen: React.FC = () => {
   const { colors } = useTheme();
 
   // Use the subject passed from navigation, or fall back to logged-in user
-  const subject = route.params?.subject || userData;
+  const [subject, setSubject] = useState(route.params?.subject || userData);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  // Helper to get subject ID from either User or SubjectDocument type
+  const getSubjectId = (subject: any): string | undefined => {
+    return subject?.id || subject?._id;
+  };
+
+  // Helper to get subject name from either User or SubjectDocument type
+  const getSubjectName = (subject: any): string => {
+    if (!subject) return 'Unknown';
+
+    // Handle SubjectDocument type (has firstName and lastName)
+    if (subject.firstName && subject.lastName) {
+      return `${subject.firstName} ${subject.lastName}`;
+    }
+
+    // Handle User type (has name field)
+    if (subject.name) {
+      return subject.name;
+    }
+
+    return 'Unknown';
+  };
+
+  // Update subject when route params change
+  useEffect(() => {
+    setSubject(route.params?.subject || userData);
+  }, [route.params?.subject, userData]);
+
+  // Refresh subject data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const refreshSubjectData = async () => {
+        const subjectId = getSubjectId(route.params?.subject || userData);
+        if (!subjectId) return;
+
+        // Only refresh if this is a guest subject (not home user)
+        if (subjectId === userData?.id) {
+          // For home user, just use userData from store
+          setSubject(userData);
+          return;
+        }
+
+        try {
+          console.log('ChartScreen - Refreshing subject data on focus for:', subjectId);
+          const updatedSubjectDoc = await usersApi.getUser(subjectId);
+          setSubject(updatedSubjectDoc);
+          console.log('ChartScreen - Subject refreshed:', {
+            _id: updatedSubjectDoc._id,
+            firstName: updatedSubjectDoc.firstName,
+            lastName: updatedSubjectDoc.lastName,
+            profilePhotoUrl: updatedSubjectDoc.profilePhotoUrl,
+          });
+        } catch (error) {
+          console.error('Failed to refresh subject data:', error);
+        }
+      };
+
+      refreshSubjectData();
+    }, [route.params?.subject, userData])
+  );
+
+  // Guest photo management handlers
+  const handleGuestPhotoLongPress = () => {
+    const subjectId = getSubjectId(subject);
+    if (!subjectId) return;
+
+    // Only show photo management for guest subjects (not home user)
+    if (subjectId === userData?.id) return;
+
+    const options = [
+      {
+        text: 'Change Photo',
+        onPress: () => handleChangeGuestPhoto(),
+      },
+    ];
+
+    if (subject.profilePhotoUrl) {
+      options.push({
+        text: 'Remove Photo',
+        onPress: () => handleRemoveGuestPhoto(),
+        style: 'destructive' as const,
+      });
+    }
+
+    options.push({
+      text: 'Cancel',
+      style: 'cancel' as const,
+    });
+
+    Alert.alert('Profile Photo', 'Select an option', options);
+  };
+
+  const handleChangeGuestPhoto = () => {
+    Alert.alert(
+      'Choose Photo Source',
+      'Select where to get the photo from:',
+      [
+        {
+          text: 'Photo Library',
+          onPress: async () => {
+            const result = await pickImageFromLibrary();
+            if (result) {
+              await handleGuestImageSelected(result);
+            }
+          },
+        },
+        {
+          text: 'Take Photo',
+          onPress: async () => {
+            const result = await pickImageFromCamera();
+            if (result) {
+              await handleGuestImageSelected(result);
+            }
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const handleGuestImageSelected = async (imageResult: ImageResult) => {
+    const subjectId = getSubjectId(subject);
+    if (!subjectId) return;
+
+    setIsUploadingPhoto(true);
+
+    try {
+      console.log('ChartScreen - Starting guest photo upload for subject:', subjectId);
+      const result = await uploadProfilePhotoPresigned(
+        subjectId,
+        imageResult.uri,
+        imageResult.type
+      );
+
+      console.log('ChartScreen - Upload result:', result);
+
+      // Refresh subject data from API to get updated photo
+      console.log('ChartScreen - Fetching updated subject data...');
+      const updatedSubjectDoc = await usersApi.getUser(subjectId);
+      console.log('ChartScreen - Raw updated subject from API:', {
+        _id: updatedSubjectDoc._id,
+        firstName: updatedSubjectDoc.firstName,
+        lastName: updatedSubjectDoc.lastName,
+        profilePhotoUrl: updatedSubjectDoc.profilePhotoUrl,
+        profilePhotoKey: updatedSubjectDoc.profilePhotoKey,
+        profilePhotoUpdatedAt: updatedSubjectDoc.profilePhotoUpdatedAt,
+      });
+
+      // Update the subject state directly with the SubjectDocument
+      // (ProfileAvatar can handle both User and SubjectDocument types)
+      setSubject(updatedSubjectDoc);
+      console.log('ChartScreen - Subject state updated with new photo data');
+
+      Alert.alert('Success', 'Profile photo updated successfully');
+    } catch (error: any) {
+      console.error('Failed to upload guest profile photo:', error);
+      Alert.alert('Upload Failed', error.message || 'Failed to upload profile photo');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemoveGuestPhoto = async () => {
+    const subjectId = getSubjectId(subject);
+    if (!subjectId) return;
+
+    Alert.alert(
+      'Remove Photo',
+      'Are you sure you want to remove this profile photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setIsUploadingPhoto(true);
+
+            try {
+              console.log('ChartScreen - Removing photo for subject:', subjectId);
+              await usersApi.deleteProfilePhoto(subjectId);
+
+              // Refresh subject data from API
+              console.log('ChartScreen - Fetching updated subject after removal...');
+              const updatedSubjectDoc = await usersApi.getUser(subjectId);
+              console.log('ChartScreen - Updated subject after removal:', {
+                _id: updatedSubjectDoc._id,
+                profilePhotoUrl: updatedSubjectDoc.profilePhotoUrl,
+                profilePhotoKey: updatedSubjectDoc.profilePhotoKey,
+              });
+              setSubject(updatedSubjectDoc);
+
+              Alert.alert('Success', 'Profile photo removed successfully');
+            } catch (error: any) {
+              console.error('Failed to remove guest profile photo:', error);
+              Alert.alert('Remove Failed', error.message || 'Failed to remove profile photo');
+            } finally {
+              setIsUploadingPhoto(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const {
     overview,
@@ -48,7 +264,7 @@ const ChartScreen: React.FC = () => {
     hasAnalysisData,
     workflowState,
     isAnalysisInProgress,
-  } = useChart(subject?.id);
+  } = useChart(getSubjectId(subject));
 
   // Navigation state
   const [activeTab, setActiveTab] = useState('chart');
@@ -214,8 +430,8 @@ const ChartScreen: React.FC = () => {
               birthChart={subject?.birthChart}
               loading={chartLoading}
               error={chartError}
-              userName={subject?.name}
-              userId={subject?.id}
+              userName={getSubjectName(subject)}
+              userId={getSubjectId(subject)}
               overview={overview}
             />
           );
@@ -226,11 +442,11 @@ const ChartScreen: React.FC = () => {
           );
         }
       case 'patterns':
-        return <PatternsTab userId={subject?.id} birthChart={subject?.birthChart} />;
+        return <PatternsTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       case 'planets':
-        return <PlanetsTab userId={subject?.id} birthChart={subject?.birthChart} />;
+        return <PlanetsTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       case 'analysis':
-        return <AnalysisTab userId={subject?.id} />;
+        return <AnalysisTab userId={getSubjectId(subject)} />;
       case 'chat':
         // Show consistent loading state for chat tab during analysis
         if (chartLoading || isAnalysisInProgress) {
@@ -261,7 +477,7 @@ const ChartScreen: React.FC = () => {
                   </Text>
                 </View>
                 <View style={styles.missingAnalysisContainer}>
-                  <CompleteFullAnalysisButton userId={subject?.id} onAnalysisComplete={loadFullAnalysis} />
+                  <CompleteFullAnalysisButton userId={getSubjectId(subject)} onAnalysisComplete={loadFullAnalysis} />
                 </View>
               </View>
             </ScrollView>
@@ -269,7 +485,7 @@ const ChartScreen: React.FC = () => {
         }
         return (
           <BirthChartChatTab
-            userId={subject?.id}
+            userId={getSubjectId(subject)}
             birthChart={subject?.birthChart}
             preSelectedElements={preSelectedChatElements}
           />
@@ -286,9 +502,11 @@ const ChartScreen: React.FC = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Analysis Header */}
       <AnalysisHeader
-        title={subject?.name || 'Unknown'}
+        title={getSubjectName(subject)}
         subtitle={planetarySigns || birthInfo}
         meta={planetarySigns ? birthInfo : undefined}
+        subject={subject}
+        onAvatarLongPress={subject && getSubjectId(subject) !== userData?.id ? handleGuestPhotoLongPress : undefined}
       />
 
       {/* Top Tab Bar */}
@@ -330,6 +548,8 @@ const ChartScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       )}
+
+      <LoadingOverlay visible={isUploadingPhoto} message="Updating photo..." />
     </SafeAreaView>
   );
 };

@@ -6,6 +6,7 @@ import { externalApi } from '../api';
 import { usersApi } from '../api';
 import { useStore } from '../store';
 import { userTransformers } from '../transformers/user';
+import { uploadProfilePhotoPresigned } from '../utils/imageHelpers';
 
 import { WizardContainer } from '../components/onboarding/WizardContainer';
 import { NameGenderStep } from '../components/onboarding/steps/NameGenderStep';
@@ -27,6 +28,8 @@ const UserOnboardingWizard: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [gender, setGender] = useState('');
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [profileImageMimeType, setProfileImageMimeType] = useState('');
   const [birthYear, setBirthYear] = useState(String(new Date().getFullYear() - 25));
   const [birthMonth, setBirthMonth] = useState('01');
   const [birthDay, setBirthDay] = useState('01');
@@ -113,6 +116,11 @@ const UserOnboardingWizard: React.FC = () => {
         setPlaceOfBirth(data.result.formatted_address);
       }
     } catch {}
+  };
+
+  const handleProfileImageChange = (uri: string | null, mimeType: string) => {
+    setProfileImageUri(uri);
+    setProfileImageMimeType(mimeType);
   };
 
   const handleSubmit = async () => {
@@ -241,9 +249,39 @@ const UserOnboardingWizard: React.FC = () => {
       }
       console.log('\nAPI Response:', JSON.stringify(response, null, 2));
 
+      // Get the subject ID from the response (_id is the MongoDB ID)
+      const subjectId = response._id || response.userId || response.id;
+      console.log('Subject ID for photo upload:', subjectId);
+
       // Transform the API response to our User type
       const createdUser = userTransformers.apiResponseToUser(response);
       console.log('\nTransformed user:', JSON.stringify(createdUser, null, 2));
+
+      // Upload profile photo if provided
+      if (profileImageUri && profileImageMimeType) {
+        console.log('\nUploading profile photo...');
+        console.log('Using subject ID:', subjectId);
+        try {
+          const photoResult = await uploadProfilePhotoPresigned(
+            subjectId,
+            profileImageUri,
+            profileImageMimeType
+          );
+          console.log('Profile photo uploaded successfully:', photoResult.profilePhotoUrl);
+
+          // Update the created user with photo URL
+          createdUser.profilePhotoUrl = photoResult.profilePhotoUrl;
+          createdUser.profilePhotoKey = photoResult.profilePhotoKey;
+        } catch (photoError) {
+          console.error('Profile photo upload failed:', photoError);
+          // Don't fail the entire onboarding if photo upload fails
+          Alert.alert(
+            'Photo Upload Failed',
+            'Your account was created successfully, but the profile photo failed to upload. You can add it later in settings.',
+            [{ text: 'OK' }]
+          );
+        }
+      }
 
       // Store the created user in the store
       console.log('\nStoring created user in store...');
@@ -290,9 +328,11 @@ const UserOnboardingWizard: React.FC = () => {
       firstName={firstName}
       lastName={lastName}
       gender={gender}
+      profileImageUri={profileImageUri}
       onFirstNameChange={setFirstName}
       onLastNameChange={setLastName}
       onGenderChange={setGender}
+      onProfileImageChange={handleProfileImageChange}
     />,
     <BirthLocationStep
       key="location"
@@ -332,6 +372,7 @@ const UserOnboardingWizard: React.FC = () => {
       amPm={amPm}
       unknownTime={unknownTime}
       placeOfBirth={placeOfBirth}
+      profileImageUri={profileImageUri}
       onEditStep={setCurrentStep}
     />,
   ];

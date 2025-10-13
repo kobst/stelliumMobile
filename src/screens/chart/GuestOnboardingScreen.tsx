@@ -5,6 +5,7 @@ import Config from 'react-native-config';
 import { externalApi } from '../../api';
 import { usersApi } from '../../api';
 import { useStore } from '../../store';
+import { uploadProfilePhotoPresigned } from '../../utils/imageHelpers';
 
 import { WizardContainer } from '../../components/onboarding/WizardContainer';
 import { GuestNameGenderStep } from '../../components/onboarding/steps/GuestNameGenderStep';
@@ -23,6 +24,8 @@ const GuestOnboardingScreen: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [gender, setGender] = useState('');
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [profileImageMimeType, setProfileImageMimeType] = useState('');
   const [birthYear, setBirthYear] = useState(String(new Date().getFullYear() - 25));
   const [birthMonth, setBirthMonth] = useState('01');
   const [birthDay, setBirthDay] = useState('01');
@@ -111,6 +114,11 @@ const GuestOnboardingScreen: React.FC = () => {
     } catch {}
   };
 
+  const handleProfileImageChange = (uri: string | null, mimeType: string) => {
+    setProfileImageUri(uri);
+    setProfileImageMimeType(mimeType);
+  };
+
   const handleSubmit = async () => {
     console.log('\n=== GUEST FORM SUBMISSION STARTED ===');
     console.log('Current endpoint:', Config.SERVER_URL);
@@ -196,6 +204,36 @@ const GuestOnboardingScreen: React.FC = () => {
       }
       console.log('\nAPI Response:', JSON.stringify(response, null, 2));
 
+      // Get the subject ID from the response (_id is the MongoDB ID)
+      const subjectId = response._id || response.userId || response.id;
+      console.log('Subject ID for photo upload:', subjectId);
+      console.log('Subject ID type:', typeof subjectId);
+      console.log('Subject ID exists in response._id:', !!response._id);
+      console.log('Subject ID exists in response.userId:', !!response.userId);
+      console.log('Subject ID exists in response.id:', !!response.id);
+
+      // Upload profile photo if provided
+      if (profileImageUri && profileImageMimeType) {
+        console.log('\nUploading profile photo...');
+        console.log('Using subject ID:', subjectId);
+        try {
+          await uploadProfilePhotoPresigned(
+            subjectId,
+            profileImageUri,
+            profileImageMimeType
+          );
+          console.log('Profile photo uploaded successfully');
+        } catch (photoError) {
+          console.error('Profile photo upload failed:', photoError);
+          // Don't fail the entire onboarding if photo upload fails
+          Alert.alert(
+            'Photo Upload Failed',
+            'The guest profile was created successfully, but the profile photo failed to upload.',
+            [{ text: 'OK' }]
+          );
+        }
+      }
+
       console.log('Guest subject created successfully, navigating back...');
 
       // Call the callback to refresh the parent screen
@@ -243,9 +281,11 @@ const GuestOnboardingScreen: React.FC = () => {
       firstName={firstName}
       lastName={lastName}
       gender={gender}
+      profileImageUri={profileImageUri}
       onFirstNameChange={setFirstName}
       onLastNameChange={setLastName}
       onGenderChange={setGender}
+      onProfileImageChange={handleProfileImageChange}
     />,
     <GuestBirthLocationStep
       key="location"
@@ -285,6 +325,7 @@ const GuestOnboardingScreen: React.FC = () => {
       amPm={amPm}
       unknownTime={unknownTime}
       placeOfBirth={placeOfBirth}
+      profileImageUri={profileImageUri}
       onEditStep={setCurrentStep}
     />,
   ];
