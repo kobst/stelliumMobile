@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../theme';
 import { ClusterScoredItem, ClusterContribution, KeystoneAspect } from '../../api/relationships';
+import { AstroIcon } from '../../../utils/astrologyIcons';
 
 interface ConsolidatedItemsGridProps {
   scoredItems: ClusterScoredItem[];
@@ -28,7 +29,7 @@ const SPARK_TYPE_EMOJIS = {
   transformative: '⚡️',
   intellectual: '🧠',
   emotional: '💖',
-  power: '👑',
+  power: '⭐',
 };
 
 const ASPECT_SYMBOLS: { [key: string]: string } = {
@@ -84,21 +85,22 @@ function parseAspectDescription(description: string, item: any, userAName: strin
   }
 
   // For synastry items with aspect data, use the structured data
-  if (item.aspect && item.planet1 && item.planet2) {
-    const person1Match = description.match(/^(\w+)'s/);
-    const person1 = person1Match ? person1Match[1] : 'Person A';
-    // Try to find the second person's name
-    const person2Match = description.match(/(\w+)'s [^']+$/);
-    const person2 = person2Match ? person2Match[1] : (person1 === userAName ? userBName : userAName);
+  if (item.aspect && (item.planet1 || item.planet1Sign)) {
+    // Extract planet names from description if not in item
+    const descMatch = description.match(/(\w+)'s (\w+) \w+ (\w+)'s (\w+)/);
+    const person1 = descMatch ? descMatch[1] : 'Person A';
+    const planet1 = item.planet1 || (descMatch ? descMatch[2] : '');
+    const person2 = descMatch ? descMatch[3] : (person1 === userAName ? userBName : userAName);
+    const planet2 = item.planet2 || (descMatch ? descMatch[4] : '');
 
     return {
       type: 'aspect',
       person1,
-      planet1: item.planet1,
+      planet1,
       sign1: item.planet1Sign,
       aspect: item.aspect,
       person2,
-      planet2: item.planet2,
+      planet2,
       sign2: item.planet2Sign,
     };
   }
@@ -119,35 +121,127 @@ function parseAspectDescription(description: string, item: any, userAName: strin
   return { type: 'unknown', description };
 }
 
+// Helper function to format house number with ordinal suffix
+function formatHouseOrdinal(house: number | null | undefined): string | null {
+  if (!house || house === 0) {return null;}
+  const suffixes = ['th', 'st', 'nd', 'rd'];
+  const v = house % 100;
+  return house + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
+}
+
+// Helper function to format sign and house details
+function formatSignHouseDetails(item: any): string {
+  // For all aspects (synastry and composite)
+  if (item.type === 'aspect' && item.planet1Sign && item.planet2Sign) {
+    const sign1Text = item.planet1Sign;
+    const house1 = formatHouseOrdinal(item.planet1House);
+    const planet1Detail = house1 ? `${sign1Text} (${house1})` : sign1Text;
+
+    const sign2Text = item.planet2Sign;
+    const house2 = formatHouseOrdinal(item.planet2House);
+    const planet2Detail = house2 ? `${sign2Text} (${house2})` : sign2Text;
+
+    return `${planet1Detail} - ${planet2Detail}`;
+  }
+
+  // For house placements
+  if ((item.type === 'house' || item.type === 'synastry-house' || item.type === 'composite-house') && item.sign) {
+    const house = formatHouseOrdinal(item.house);
+    return house ? `${item.sign} (${house})` : item.sign;
+  }
+
+  return '';
+}
+
+// Component to render detailed description with SVG icons (3 lines)
+const DetailedDescriptionWithIcons: React.FC<{ item: any; parsedData: any; colors: any }> = ({ item, parsedData, colors }) => {
+  if (parsedData.type !== 'aspect' || !item.planet1Sign || !item.planet2Sign) {
+    return null;
+  }
+
+  const house1 = item.planet1House && item.planet1House > 0 ? ` in house ${item.planet1House}` : '';
+  const house2 = item.planet2House && item.planet2House > 0 ? ` in house ${item.planet2House}` : '';
+  const orb = item.orb ? ` (${item.orb.toFixed(1)}°)` : '';
+  const aspectName = item.aspect.charAt(0).toUpperCase() + item.aspect.slice(1);
+
+  return (
+    <View style={{ marginTop: 4 }}>
+      {/* Line 1: Person A's planet, sign, and house (left) with orb (right) */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', flex: 1 }}>
+          <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
+            {parsedData.person1}'s {parsedData.planet1}{' '}
+          </Text>
+          <AstroIcon type="planet" name={parsedData.planet1} size={11} color={colors.onSurfaceVariant} />
+          <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
+            {' '}in {item.planet1Sign}{' '}
+          </Text>
+          <AstroIcon type="zodiac" name={item.planet1Sign} size={11} color={colors.onSurfaceVariant} />
+          <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
+            {house1}
+          </Text>
+        </View>
+        {orb ? (
+          <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant, marginLeft: 8 }}>
+            {orb}
+          </Text>
+        ) : null}
+      </View>
+
+      {/* Line 2: Aspect name with symbol */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 2 }}>
+        <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
+          {ASPECT_SYMBOLS[item.aspect] || ''} {aspectName}
+        </Text>
+      </View>
+
+      {/* Line 3: Person B's planet, sign, and house */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
+        <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
+          {parsedData.person2}'s {parsedData.planet2}{' '}
+        </Text>
+        <AstroIcon type="planet" name={parsedData.planet2} size={11} color={colors.onSurfaceVariant} />
+        <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
+          {' '}in {item.planet2Sign}{' '}
+        </Text>
+        <AstroIcon type="zodiac" name={item.planet2Sign} size={11} color={colors.onSurfaceVariant} />
+        <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
+          {house2}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
 // Format card title based on parsed data
-function formatCardTitle(parsedData: any, source: string) {
+function formatCardTitle(parsedData: any, source: string, item: any) {
   if (parsedData.type === 'composite-aspect') {
-    const symbol = ASPECT_SYMBOLS[parsedData.aspect] || parsedData.aspect;
+    const aspectName = parsedData.aspect.charAt(0).toUpperCase() + parsedData.aspect.slice(1);
     return {
-      line1: `${parsedData.planet1} ${symbol} ${parsedData.planet2}`,
-      line2: '',
+      line1: `${parsedData.planet1} ${aspectName} ${parsedData.planet2}`,
+      line2: formatSignHouseDetails({ ...parsedData, ...item }),
     };
   }
 
   if (parsedData.type === 'composite-house') {
     return {
       line1: `${parsedData.planet} in House ${parsedData.house}`,
-      line2: '',
+      line2: formatSignHouseDetails({ ...parsedData, type: 'composite-house', sign: parsedData.sign, house: parsedData.house }),
     };
   }
 
   if (parsedData.type === 'aspect') {
-    const symbol = ASPECT_SYMBOLS[parsedData.aspect] || parsedData.aspect;
+    const aspectName = parsedData.aspect.charAt(0).toUpperCase() + parsedData.aspect.slice(1);
     return {
-      line1: `${parsedData.person1}'s ${parsedData.planet1} ${symbol} ${parsedData.person2}'s ${parsedData.planet2}`,
-      line2: '',
+      line1: `${parsedData.person1}'s ${parsedData.planet1} ${aspectName} ${parsedData.person2}'s ${parsedData.planet2}`,
+      line2: formatSignHouseDetails(item),
     };
   }
 
   if (parsedData.type === 'house') {
     return {
       line1: `${parsedData.person1}'s ${parsedData.planet} → House ${parsedData.house}`,
-      line2: '',
+      line2: formatSignHouseDetails(parsedData),
     };
   }
 
@@ -184,34 +278,37 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
     // Convert keystone aspects to cluster scored item format for display
     const keystoneAsClusterItems: ClusterScoredItem[] = keystoneAspects.map((aspect, index) => ({
       id: `keystone-${index}`,
-      source: 'synastry' as const,
-      type: 'aspect' as const,
+      source: (aspect as any).source || 'synastry' as const,
+      type: (aspect as any).type || 'aspect' as const,
       description: aspect.description,
-      // Add structured aspect data for parsing - extract from description
-      aspect: aspect.description.includes('trine') ? 'trine' :
-              aspect.description.includes('sextile') ? 'sextile' :
-              aspect.description.includes('square') ? 'square' :
-              aspect.description.includes('conjunction') ? 'conjunction' :
-              aspect.description.includes('opposition') ? 'opposition' :
-              aspect.description.includes('quincunx') ? 'quincunx' : undefined,
-      planet1: aspect.description.match(/(\w+)'s (\w+)/)?.[2],
-      planet2: aspect.description.match(/(\w+)'s (\w+).*?(\w+)'s (\w+)/)?.[4],
-      planet1Sign: undefined,
-      planet2Sign: undefined,
+      // Copy all the structured aspect data from the keystone
+      aspect: (aspect as any).aspect,
+      orb: (aspect as any).orb,
+      planet1: (aspect as any).planet1,
+      planet2: (aspect as any).planet2,
+      planet1Sign: (aspect as any).planet1Sign,
+      planet2Sign: (aspect as any).planet2Sign,
+      planet1House: (aspect as any).planet1House,
+      planet2House: (aspect as any).planet2House,
+      pairKey: (aspect as any).pairKey,
+      planet: (aspect as any).planet,
+      house: (aspect as any).house,
+      direction: (aspect as any).direction,
       clusterContributions: [{
-        cluster: (aspect.cluster as any) || 'Passion',
+        cluster: (aspect as any).primaryCluster || (aspect as any).cluster || 'Passion',
         score: Math.abs(aspect.score),
-        weight: 10, // Keystones have high weight
-        intensity: 1,
+        weight: (aspect as any).weight || 10,
+        intensity: (aspect as any).intensity || 1,
         valence: aspect.score > 0 ? 1 : -1,
-        centrality: 10, // Keystones have max centrality
-        spark: false,
+        centrality: (aspect as any).centrality || 10,
+        spark: (aspect as any).spark || false,
+        sparkType: (aspect as any).sparkType,
         isKeystone: true,
-        starRating: 5, // Keystones get max stars
+        starRating: (aspect as any).starRating || 5,
       }],
-      code: `keystone-${index}`,
-      overallCentrality: 10,
-      maxStarRating: 5,
+      code: (aspect as any).code || `keystone-${index}`,
+      overallCentrality: (aspect as any).centrality || 10,
+      maxStarRating: (aspect as any).starRating || 5,
     }));
 
     // Combine regular scored items with keystone aspects
@@ -229,33 +326,49 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
         );
         break;
       case 'topSupports':
-        let positiveItems = allItems.filter(item =>
-          item.clusterContributions.some(cc => cc.valence === 1)
-        );
+        // Filter items where the strongest contribution (by absolute value) is positive
+        let positiveItems = allItems.filter(item => {
+          const strongestContribution = item.clusterContributions.reduce((prev, current) =>
+            Math.abs(prev.score) > Math.abs(current.score) ? prev : current
+          );
+          return strongestContribution.valence === 1;
+        });
         // Prefer 4+ star items
         let highQualitySupports = positiveItems.filter(item => item.maxStarRating >= 4);
         if (highQualitySupports.length === 0) {
           highQualitySupports = positiveItems; // Fallback to all positive
         }
-        // Sort by highest scores and take top 3-6
+        // Sort by highest absolute scores and take top 3-6
         filtered = highQualitySupports
           .sort((a, b) => {
-            const aMaxScore = Math.max(...a.clusterContributions.map(cc => cc.score));
-            const bMaxScore = Math.max(...b.clusterContributions.map(cc => cc.score));
-            return bMaxScore - aMaxScore;
+            const aStrongest = a.clusterContributions.reduce((prev, current) =>
+              Math.abs(prev.score) > Math.abs(current.score) ? prev : current
+            );
+            const bStrongest = b.clusterContributions.reduce((prev, current) =>
+              Math.abs(prev.score) > Math.abs(current.score) ? prev : current
+            );
+            return Math.abs(bStrongest.score) - Math.abs(aStrongest.score);
           })
           .slice(0, 6);
         break;
       case 'topChallenges':
-        let negativeItems = allItems.filter(item =>
-          item.clusterContributions.some(cc => cc.valence === -1)
-        );
-        // Sort by most negative scores and take top 3-6
+        // Filter items where the strongest contribution (by absolute value) is negative
+        let negativeItems = allItems.filter(item => {
+          const strongestContribution = item.clusterContributions.reduce((prev, current) =>
+            Math.abs(prev.score) > Math.abs(current.score) ? prev : current
+          );
+          return strongestContribution.valence === -1;
+        });
+        // Sort by highest absolute scores (most impactful challenges) and take top 3-6
         filtered = negativeItems
           .sort((a, b) => {
-            const aMinScore = Math.min(...a.clusterContributions.map(cc => cc.score));
-            const bMinScore = Math.min(...b.clusterContributions.map(cc => cc.score));
-            return aMinScore - bMinScore; // Most negative first
+            const aStrongest = a.clusterContributions.reduce((prev, current) =>
+              Math.abs(prev.score) > Math.abs(current.score) ? prev : current
+            );
+            const bStrongest = b.clusterContributions.reduce((prev, current) =>
+              Math.abs(prev.score) > Math.abs(current.score) ? prev : current
+            );
+            return Math.abs(bStrongest.score) - Math.abs(aStrongest.score);
           })
           .slice(0, 6);
         break;
@@ -307,43 +420,37 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
 
   const renderItem = ({ item }: { item: ClusterScoredItem }) => {
     const isSelected = selectedItems.some(selected => selected.id === item.id);
+    // Use the most significant contribution by absolute value (strongest impact)
     const topContribution = item.clusterContributions.reduce((prev, current) =>
-      prev.score > current.score ? prev : current
+      Math.abs(prev.score) > Math.abs(current.score) ? prev : current
     );
     const sparks = item.clusterContributions.filter(cc => cc.spark);
 
     // Parse and format the title
     const parsedData = parseAspectDescription(item.description, item, userAName, userBName);
-    const titleData = formatCardTitle(parsedData, item.source);
+    const titleData = formatCardTitle(parsedData, item.source, item);
 
     return (
       <TouchableOpacity
         style={[
           styles.itemCard,
           {
-            backgroundColor: colors.background,
-            borderColor: isSelected ? colors.primary : colors.border,
-            borderWidth: isSelected ? 2 : 1,
+            backgroundColor: colors.surface,
+            borderColor: isSelected ? colors.primary : 'transparent',
+            borderWidth: 1,
           },
         ]}
         onPress={() => onItemPress?.(item)}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
       >
         {/* Title Section */}
         <View style={styles.titleSection}>
-          {item.clusterContributions.some(cc => cc.isKeystone) && (
-            <View style={styles.keystoneBadge}>
-              <Text style={styles.keystoneText}>👑</Text>
-            </View>
-          )}
           <View style={styles.titleContainer}>
-            <Text style={[styles.titleLine1, { color: colors.onSurface }]} numberOfLines={1}>
+            <Text style={[styles.titleLine1, { color: colors.onSurface }]} numberOfLines={2}>
               {titleData.line1}
             </Text>
-            {titleData.line2 ? (
-              <Text style={[styles.titleLine2, { color: colors.onSurfaceVariant }]} numberOfLines={1}>
-                {titleData.line2}
-              </Text>
+            {parsedData.type === 'aspect' && item.planet1Sign && item.planet2Sign ? (
+              <DetailedDescriptionWithIcons item={item} parsedData={parsedData} colors={colors} />
             ) : null}
           </View>
         </View>
@@ -352,9 +459,9 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
         <View style={styles.chipRow}>
           <View style={[
             styles.sourceChip,
-            { backgroundColor: (item.source === 'synastry' || item.source === 'synastryHousePlacement') ? '#2196F3' : '#9C27B0' },
+            { backgroundColor: (item.source === 'synastry' || item.source === 'synastryHousePlacement') ? 'rgba(33, 150, 243, 0.12)' : 'rgba(156, 39, 176, 0.12)' },
           ]}>
-            <Text style={[styles.sourceText, { color: 'white' }]}>
+            <Text style={[styles.sourceText, { color: (item.source === 'synastry' || item.source === 'synastryHousePlacement') ? '#1976D2' : '#7B1FA2' }]}>
               {(item.source === 'synastry' || item.source === 'synastryHousePlacement') ? 'Synastry' : 'Composite'}
             </Text>
           </View>
@@ -362,57 +469,30 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
           {/* Cluster Chip */}
           <View style={[
             styles.clusterChip,
-            { backgroundColor: CLUSTER_COLORS[topContribution.cluster] || '#757575' },
+            { backgroundColor: `${CLUSTER_COLORS[topContribution.cluster] || '#757575'}20` },
           ]}>
-            <Text style={[styles.clusterText, { color: 'white' }]}>
+            <Text style={[styles.clusterText, { color: CLUSTER_COLORS[topContribution.cluster] || '#757575' }]}>
               {topContribution.cluster}
             </Text>
           </View>
 
           <View style={[
             styles.valenceChip,
-            { backgroundColor: topContribution.valence === 1 ? '#E8F5E9' : '#FFEBEE' },
+            { backgroundColor: topContribution.valence === 1 ? 'rgba(76, 175, 80, 0.12)' : 'rgba(244, 67, 54, 0.12)' },
           ]}>
             <Text style={[
               styles.valenceText,
-              { color: topContribution.valence === 1 ? '#2E7D32' : '#C62828' },
+              { color: topContribution.valence === 1 ? '#388E3C' : '#D32F2F' },
             ]}>
               {topContribution.valence === 1 ? 'Support' : 'Challenge'}
             </Text>
           </View>
-
-          <Text style={[styles.starRating]}>
-            {getStarDisplay(item.maxStarRating)}
-          </Text>
-
-          {sparks.length > 0 && (
-            <View style={styles.sparkContainer}>
-              {sparks.slice(0, 1).map((spark, index) => (
-                <Text key={index} style={styles.sparkEmoji}>
-                  {SPARK_TYPE_EMOJIS[spark.sparkType as keyof typeof SPARK_TYPE_EMOJIS] || '✨'}
-                </Text>
-              ))}
-            </View>
-          )}
 
           <View style={[
             styles.valenceIndicator,
             { backgroundColor: getValenceColor(topContribution.valence) },
           ]} />
         </View>
-
-        {/* Chat About This Button */}
-        {onChatAboutItem && (
-          <TouchableOpacity
-            style={[styles.chatButton, { backgroundColor: colors.secondary }]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onChatAboutItem(item);
-            }}
-          >
-            <Text style={[styles.chatButtonText, { color: colors.onSecondary }]}>💬 Chat</Text>
-          </TouchableOpacity>
-        )}
       </TouchableOpacity>
     );
   };
@@ -421,51 +501,60 @@ const ConsolidatedItemsGrid: React.FC<ConsolidatedItemsGridProps> = ({
     // Convert keystone aspects to cluster scored item format for counting
     const keystoneAsClusterItems: ClusterScoredItem[] = keystoneAspects.map((aspect, index) => ({
       id: `keystone-${index}`,
-      source: 'synastry' as const,
-      type: 'aspect' as const,
+      source: (aspect as any).source || 'synastry' as const,
+      type: (aspect as any).type || 'aspect' as const,
       description: aspect.description,
-      // Add structured aspect data for parsing - extract from description
-      aspect: aspect.description.includes('trine') ? 'trine' :
-              aspect.description.includes('sextile') ? 'sextile' :
-              aspect.description.includes('square') ? 'square' :
-              aspect.description.includes('conjunction') ? 'conjunction' :
-              aspect.description.includes('opposition') ? 'opposition' :
-              aspect.description.includes('quincunx') ? 'quincunx' : undefined,
-      planet1: aspect.description.match(/(\\w+)'s (\\w+)/)?.[2],
-      planet2: aspect.description.match(/(\\w+)'s (\\w+).*?(\\w+)'s (\\w+)/)?.[4],
-      planet1Sign: undefined,
-      planet2Sign: undefined,
+      // Copy all the structured aspect data from the keystone
+      aspect: (aspect as any).aspect,
+      orb: (aspect as any).orb,
+      planet1: (aspect as any).planet1,
+      planet2: (aspect as any).planet2,
+      planet1Sign: (aspect as any).planet1Sign,
+      planet2Sign: (aspect as any).planet2Sign,
+      planet1House: (aspect as any).planet1House,
+      planet2House: (aspect as any).planet2House,
+      pairKey: (aspect as any).pairKey,
+      planet: (aspect as any).planet,
+      house: (aspect as any).house,
+      direction: (aspect as any).direction,
       clusterContributions: [{
-        cluster: (aspect.cluster as any) || 'Passion',
+        cluster: (aspect as any).primaryCluster || (aspect as any).cluster || 'Passion',
         score: Math.abs(aspect.score),
-        weight: 10, // Keystones have high weight
-        intensity: 1,
+        weight: (aspect as any).weight || 10,
+        intensity: (aspect as any).intensity || 1,
         valence: aspect.score > 0 ? 1 : -1,
-        centrality: 10, // Keystones have max centrality
-        spark: false,
+        centrality: (aspect as any).centrality || 10,
+        spark: (aspect as any).spark || false,
+        sparkType: (aspect as any).sparkType,
         isKeystone: true,
-        starRating: 5, // Keystones get max stars
+        starRating: (aspect as any).starRating || 5,
       }],
-      code: `keystone-${index}`,
-      overallCentrality: 10,
-      maxStarRating: 5,
+      code: (aspect as any).code || `keystone-${index}`,
+      overallCentrality: (aspect as any).centrality || 10,
+      maxStarRating: (aspect as any).starRating || 5,
     }));
 
-    // Calculate topSupports count - match the filtering logic
+    // Calculate topSupports count - match the filtering logic (strongest contribution)
     const allItems = [...scoredItems, ...keystoneAsClusterItems];
-    let positiveItems = allItems.filter(item =>
-      item.clusterContributions.some(cc => cc.valence === 1)
-    );
+    let positiveItems = allItems.filter(item => {
+      const strongestContribution = item.clusterContributions.reduce((prev, current) =>
+        Math.abs(prev.score) > Math.abs(current.score) ? prev : current
+      );
+      return strongestContribution.valence === 1;
+    });
     let highQualitySupports = positiveItems.filter(item => item.maxStarRating >= 4);
     if (highQualitySupports.length === 0) {
       highQualitySupports = positiveItems;
     }
     const topSupportsCount = Math.min(highQualitySupports.length, 6);
 
-    // Calculate topChallenges count - match the filtering logic
-    let negativeItems = allItems.filter(item =>
-      item.clusterContributions.some(cc => cc.valence === -1)
-    );
+    // Calculate topChallenges count - match the filtering logic (strongest contribution)
+    let negativeItems = allItems.filter(item => {
+      const strongestContribution = item.clusterContributions.reduce((prev, current) =>
+        Math.abs(prev.score) > Math.abs(current.score) ? prev : current
+      );
+      return strongestContribution.valence === -1;
+    });
     const topChallengesCount = Math.min(negativeItems.length, 6);
 
     return {
@@ -562,58 +651,66 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 16,
     borderRadius: 12,
+    marginBottom: 8,
   },
   titleSection: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   titleContainer: {
     flex: 1,
   },
   titleLine1: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
     marginBottom: 2,
+    lineHeight: 20,
   },
   titleLine2: {
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  titleLine3: {
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 4,
   },
   chipRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   sourceChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   sourceText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '500',
   },
   valenceChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   valenceText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '500',
   },
   clusterChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   clusterText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '500',
   },
   starRating: {
-    fontSize: 12,
+    fontSize: 11,
   },
   valenceIndicator: {
     width: 8,
