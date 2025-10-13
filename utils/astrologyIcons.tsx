@@ -28,13 +28,14 @@ import UranusSvg from '../assets/astrology/planets/uranus.svg';
 import NeptuneSvg from '../assets/astrology/planets/neptune.svg';
 import PlutoSvg from '../assets/astrology/planets/pluto.svg';
 import AscendantSvg from '../assets/astrology/planets/ascendant.svg';
+import MidheavenSvg from '../assets/astrology/planets/midheaven.svg';
 
 export type ZodiacSign =
   | 'aries' | 'taurus' | 'gemini' | 'cancer' | 'leo' | 'virgo'
   | 'libra' | 'scorpio' | 'sagittarius' | 'capricorn' | 'aquarius' | 'pisces';
 
 export type Planet =
-  | 'sun' | 'moon' | 'mercury' | 'venus' | 'mars' | 'jupiter' | 'saturn' | 'uranus' | 'neptune' | 'pluto' | 'ascendant';
+  | 'sun' | 'moon' | 'mercury' | 'venus' | 'mars' | 'jupiter' | 'saturn' | 'uranus' | 'neptune' | 'pluto' | 'ascendant' | 'midheaven';
 
 // Map zodiac signs to their SVG components
 export const zodiacIcons: Record<ZodiacSign, React.ComponentType<SvgProps>> = {
@@ -65,6 +66,7 @@ export const planetIcons: Record<Planet, React.ComponentType<SvgProps>> = {
   neptune: NeptuneSvg,
   pluto: PlutoSvg,
   ascendant: AscendantSvg,
+  midheaven: MidheavenSvg,
 };
 
 // Helper component to render zodiac sign icons

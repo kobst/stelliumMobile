@@ -11,6 +11,9 @@ export interface User {
   timezone: string;
   birthChart?: any;
   analysisStatus?: AnalysisStatus;
+  profilePhotoUrl?: string;
+  profilePhotoKey?: string;
+  profilePhotoUpdatedAt?: Date;
 }
 
 export interface Planet {
@@ -327,4 +330,9 @@ export interface SubjectDocument {
 
   // Analysis status (from backend API)
   analysisStatus?: AnalysisStatus;
+
+  // Profile photo fields
+  profilePhotoUrl?: string;
+  profilePhotoKey?: string;
+  profilePhotoUpdatedAt?: Date;
 }

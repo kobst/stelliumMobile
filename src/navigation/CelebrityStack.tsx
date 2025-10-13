@@ -25,7 +25,7 @@ const CelebrityStack: React.FC = () => {
       <Stack.Screen
         name="CelebrityMain"
         component={CelebrityScreen}
-        options={{ title: 'Celebrity Charts' }}
+        options={{ title: 'Celebrity Charts', headerShown: false }}
       />
       <Stack.Screen
         name="CelebrityDetail"
