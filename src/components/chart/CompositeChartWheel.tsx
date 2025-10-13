@@ -26,7 +26,14 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
   title,
 }) => {
   const { colors } = useTheme();
-  const { size, centerX, centerY, outerRadius, innerRadius, planetRadius, houseRadius } = CHART_DIMENSIONS;
+  const { size, centerX, centerY, outerRadius, innerRadius, planetRadius, houseRadius, houseOuterRadius } = CHART_DIMENSIONS;
+
+  // Calculate viewBox to accommodate planets extending beyond base size
+  const maxRadius = planetRadius + 20; // Add padding for planets
+  const overshoot = Math.max(0, maxRadius - Math.min(centerX, centerY));
+  const viewBox = overshoot > 0
+    ? `-${overshoot} -${overshoot} ${size + overshoot * 2} ${size + overshoot * 2}`
+    : `0 0 ${size} ${size}`;
 
   // Get ascendant degree from the first house for proper chart orientation
   const ascendantDegree = useMemo(() => {
@@ -57,6 +64,19 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
         cx={centerX}
         cy={centerY}
         r={outerRadius}
+        fill="none"
+        stroke={colors.onSurface}
+        strokeWidth="2"
+      />
+    );
+
+    // House outer circle (for house number ring)
+    elements.push(
+      <Circle
+        key="house-outer-circle"
+        cx={centerX}
+        cy={centerY}
+        r={houseOuterRadius}
         fill="none"
         stroke={colors.onSurface}
         strokeWidth="2"
@@ -108,7 +128,7 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
       if (ZodiacIconComponent) {
         elements.push(
           <G key={`zodiac-symbol-${i}`} x={signX - 9} y={signY - 9}>
-            <ZodiacIconComponent width={18} height={18} fill={ZODIAC_COLORS[signNames[i]] || colors.onSurface} />
+            <ZodiacIconComponent width={18} height={18} fill={colors.onSurface} />
           </G>
         );
       }
@@ -127,7 +147,7 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
       if (!house.degree || isNaN(house.degree)) {return;}
 
       const { x: x1, y: y1 } = getCirclePosition(house.degree, outerRadius, centerX, centerY, ascendantDegree);
-      const { x: x2, y: y2 } = getCirclePosition(house.degree, houseRadius, centerX, centerY, ascendantDegree);
+      const { x: x2, y: y2 } = getCirclePosition(house.degree, houseOuterRadius, centerX, centerY, ascendantDegree);
 
       const houseNumber = parseInt(house.house);
       const isAngular = houseNumber === 1 || houseNumber === 4 || houseNumber === 7 || houseNumber === 10;
@@ -144,8 +164,8 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
         />
       );
 
-      // House numbers
-      const houseNumberRadius = houseRadius + 15;
+      // House numbers - positioned in the ring between outerRadius and houseOuterRadius
+      const houseNumberRadius = (outerRadius + houseOuterRadius) / 2;
       const { x: numX, y: numY } = getCirclePosition(house.degree + 15, houseNumberRadius, centerX, centerY, ascendantDegree);
 
       elements.push(
@@ -154,7 +174,7 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
           x={numX}
           y={numY}
           fontSize="12"
-          fill={colors.onSurfaceVariant}
+          fill={colors.onSurface}
           textAnchor="middle"
           alignmentBaseline="middle"
         >
@@ -174,8 +194,6 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
     const filteredPlanets = filterPlanets(convertedPlanets);
 
     filteredPlanets.forEach((planet) => {
-      const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
-
       const { x: planetX, y: planetY } = getCirclePosition(
         planet.full_degree,
         planetRadius,
@@ -184,42 +202,29 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
         ascendantDegree
       );
 
-      // Planet background circle with composite-specific styling
-      elements.push(
-        <Circle
-          key={`composite-planet-bg-${planet.name}`}
-          cx={planetX}
-          cy={planetY}
-          r="14"
-          fill={colors.background + 'DD'}
-          stroke={planetColor}
-          strokeWidth="2.5"
-        />
-      );
-
-      // Planet symbol
+      // Planet symbol - always black for composite chart
       const PlanetIconComponent = planetIcons[planet.name.toLowerCase() as keyof typeof planetIcons];
       if (PlanetIconComponent) {
         elements.push(
-          <G key={`composite-planet-${planet.name}`} x={planetX - 8} y={planetY - 8}>
-            <PlanetIconComponent width={16} height={16} fill={planetColor} />
+          <G key={`composite-planet-${planet.name}`} x={planetX - 9} y={planetY - 9}>
+            <PlanetIconComponent width={18} height={18} fill={colors.onSurface} />
           </G>
         );
       }
 
-      // Planet degree marker on the wheel
+      // Planet degree marker extending from outer edge to planet
       const { x: markerX1, y: markerY1 } = getCirclePosition(planet.full_degree, outerRadius, centerX, centerY, ascendantDegree);
-      const { x: markerX2, y: markerY2 } = getCirclePosition(planet.full_degree, outerRadius + 12, centerX, centerY, ascendantDegree);
 
       elements.push(
         <Line
           key={`composite-planet-marker-${planet.name}`}
           x1={markerX1}
           y1={markerY1}
-          x2={markerX2}
-          y2={markerY2}
-          stroke={planetColor}
-          strokeWidth="2.5"
+          x2={planetX}
+          y2={planetY}
+          stroke={colors.onSurfaceVariant}
+          strokeWidth="1"
+          opacity="0.3"
         />
       );
     });
@@ -232,7 +237,7 @@ const CompositeChartWheel: React.FC<CompositeChartWheelProps> = ({
       {title && <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>}
 
       <View style={styles.chartContainer}>
-        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Svg width={size} height={size} viewBox={viewBox}>
           {/* Background circles and zodiac wheel */}
           {renderZodiacWheel()}
 

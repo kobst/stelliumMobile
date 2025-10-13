@@ -54,8 +54,6 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
 
   const renderAspectRow = (aspect: SynastryAspect, index: number) => {
     const aspectColor = getAspectColor(aspect.aspectType as AspectType);
-    const planet1Color = PLANET_COLORS[aspect.planet1 as PlanetName] || colors.onSurface;
-    const planet2Color = PLANET_COLORS[aspect.planet2 as PlanetName] || colors.onSurface;
 
     return (
       <View key={`${aspect.planet1}-${aspect.planet2}-${index}`}
@@ -63,7 +61,7 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
 
         {/* User A Planet Symbol */}
         <View style={styles.planetCell}>
-          <AstroIcon type="planet" name={aspect.planet1 as PlanetName} size={16} color={planet1Color} />
+          <AstroIcon type="planet" name={aspect.planet1 as PlanetName} size={16} color={colors.onSurface} />
         </View>
 
         {/* User A Planet Name */}
@@ -73,21 +71,21 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
 
         {/* Aspect Symbol */}
         <View style={styles.aspectSymbolCell}>
-          <Text style={[styles.aspectSymbol, { color: aspectColor }]}>
+          <Text style={[styles.aspectSymbol, { color: colors.onSurface }]}>
             {getAspectSymbol(aspect.aspectType)}
           </Text>
         </View>
 
         {/* Aspect Name */}
         <View style={styles.aspectNameCell}>
-          <Text style={[styles.aspectName, { color: aspectColor }]}>
+          <Text style={[styles.aspectName, { color: colors.onSurface }]}>
             {getAspectName(aspect.aspectType)}
           </Text>
         </View>
 
         {/* User B Planet Symbol */}
         <View style={styles.planetCell}>
-          <AstroIcon type="planet" name={aspect.planet2 as PlanetName} size={16} color={planet2Color} />
+          <AstroIcon type="planet" name={aspect.planet2 as PlanetName} size={16} color={colors.onSurface} />
         </View>
 
         {/* User B Planet Name */}
