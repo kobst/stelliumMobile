@@ -22,6 +22,9 @@ interface GuestUser {
   dateOfBirth: string;
   placeOfBirth?: string;
   gender?: string;
+  profilePhotoUrl?: string;
+  profilePhotoKey?: string;
+  profilePhotoUpdatedAt?: string;
 }
 
 interface GuestUsersTabProps {

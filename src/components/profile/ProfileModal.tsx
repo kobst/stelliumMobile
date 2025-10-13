@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,109 @@ import { useTheme } from '../../theme';
 import { useStore } from '../../store';
 import { forceSignOut } from '../../utils/authHelpers';
 import ProfileAvatar from './ProfileAvatar';
+import { LoadingOverlay } from '../LoadingOverlay';
+import {
+  showImagePickerActionSheet,
+  uploadProfilePhotoPresigned,
+  ImageResult,
+} from '../../utils/imageHelpers';
+import { usersApi } from '../../api/users';
 
 const ProfileModal: React.FC = () => {
   const { colors, theme, setTheme } = useTheme();
-  const { userData, profileModalVisible, setProfileModalVisible } = useStore();
+  const { userData, profileModalVisible, setProfileModalVisible, setUserData } = useStore();
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handleProfilePhotoPress = () => {
+    if (!userData?.id) {
+      Alert.alert('Error', 'User data not available');
+      return;
+    }
+
+    showImagePickerActionSheet(
+      (imageResult: ImageResult) => handleImageSelected(imageResult),
+      {
+        includeCamera: true,
+        includeRemove: !!userData.profilePhotoUrl,
+        onRemove: () => handleRemovePhoto(),
+      }
+    );
+  };
+
+  const handleImageSelected = async (imageResult: ImageResult) => {
+    if (!userData?.id) return;
+
+    setIsUploadingPhoto(true);
+
+    try {
+      console.log('ProfileModal - Starting upload for user:', userData.id);
+      const result = await uploadProfilePhotoPresigned(
+        userData.id,
+        imageResult.uri,
+        imageResult.type
+      );
+
+      console.log('ProfileModal - Upload result:', result);
+
+      // Update user data in store with new photo URL
+      const updatedUserData = {
+        ...userData,
+        profilePhotoUrl: result.profilePhotoUrl,
+        profilePhotoKey: result.profilePhotoKey,
+        profilePhotoUpdatedAt: new Date().toISOString(),
+      };
+
+      console.log('ProfileModal - Updating user data in store:', updatedUserData);
+      setUserData(updatedUserData);
+
+      Alert.alert('Success', 'Profile photo updated successfully');
+    } catch (error: any) {
+      console.error('Failed to upload profile photo:', error);
+      Alert.alert('Upload Failed', error.message || 'Failed to upload profile photo');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!userData?.id) return;
+
+    Alert.alert(
+      'Remove Photo',
+      'Are you sure you want to remove your profile photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setIsUploadingPhoto(true);
+
+            try {
+              await usersApi.deleteProfilePhoto(userData.id);
+
+              // Update user data in store to remove photo
+              const updatedUserData = {
+                ...userData,
+                profilePhotoUrl: undefined,
+                profilePhotoKey: undefined,
+                profilePhotoUpdatedAt: undefined,
+              };
+
+              setUserData(updatedUserData);
+
+              Alert.alert('Success', 'Profile photo removed successfully');
+            } catch (error: any) {
+              console.error('Failed to remove profile photo:', error);
+              Alert.alert('Remove Failed', error.message || 'Failed to remove profile photo');
+            } finally {
+              setIsUploadingPhoto(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -176,7 +275,11 @@ const ProfileModal: React.FC = () => {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Profile Header */}
           <View style={[styles.profileSection, { backgroundColor: colors.surface }]}>
-            <ProfileAvatar size={80} showOnlineIndicator={false} />
+            <ProfileAvatar
+              size={80}
+              showOnlineIndicator={false}
+              onPress={handleProfilePhotoPress}
+            />
             <View style={styles.profileInfo}>
               <Text style={[styles.profileName, { color: colors.onSurface }]}>
                 {userData?.name || 'User'}
@@ -281,6 +384,8 @@ const ProfileModal: React.FC = () => {
           {/* Bottom spacing */}
           <View style={styles.bottomSpacing} />
         </ScrollView>
+
+        <LoadingOverlay visible={isUploadingPhoto} message="Updating photo..." />
       </SafeAreaView>
     </Modal>
   );

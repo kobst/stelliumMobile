@@ -10,7 +10,7 @@ import {
   RefreshControl,
   SafeAreaView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../../store';
 import { usersApi, PaginatedUserSubjectsResponse } from '../../api';
 import { SubjectDocument } from '../../types';
@@ -21,6 +21,7 @@ import UpgradeBanner from '../../components/UpgradeBanner';
 import { HeaderWithProfile } from '../../components/navigation';
 import PlanetaryIcons from '../../components/chart/PlanetaryIcons';
 import AnalysisTypeIndicator from '../../components/chart/AnalysisTypeIndicator';
+import ProfileAvatar from '../../components/profile/ProfileAvatar';
 
 const ChartSelectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -36,6 +37,14 @@ const ChartSelectionScreen: React.FC = () => {
   useEffect(() => {
     loadGuestSubjects();
   }, []);
+
+  // Refresh list when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('ChartSelectionScreen - Screen focused, refreshing list');
+      handleRefresh();
+    }, [])
+  );
 
   const loadGuestSubjects = async (isRefresh = false) => {
     if (!userData?.id) {return;}
@@ -150,10 +159,8 @@ const ChartSelectionScreen: React.FC = () => {
           onPress={() => handleSelectChart(null)}
           activeOpacity={0.8}
         >
-          <View style={[styles.compactChartAvatar, { backgroundColor: colors.surfaceVariant }]}>
-            <Text style={[styles.avatarText, { color: colors.onSurfaceVariant }]}>
-              {userData.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-            </Text>
+          <View style={{ marginRight: 16 }}>
+            <ProfileAvatar subject={userData} size={64} showOnlineIndicator={false} />
           </View>
           <View style={styles.compactChartInfo}>
             <Text style={[styles.compactChartTitle, { color: colors.onSurface }]}>
@@ -203,10 +210,8 @@ const ChartSelectionScreen: React.FC = () => {
                   onPress={() => handleSelectChart(subject)}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.guestAvatar, { backgroundColor: colors.surfaceVariant }]}>
-                    <Text style={[styles.avatarText, { color: colors.onSurfaceVariant }]}>
-                      {subject.firstName[0]}{subject.lastName[0]}
-                    </Text>
+                  <View style={{ marginRight: 12 }}>
+                    <ProfileAvatar subject={subject} size={48} showOnlineIndicator={false} />
                   </View>
                   <View style={styles.guestInfo}>
                     <Text style={[styles.guestName, { color: colors.onSurface }]}>
