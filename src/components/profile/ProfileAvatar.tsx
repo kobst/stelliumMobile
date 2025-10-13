@@ -7,6 +7,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import Svg, { Path, Circle } from 'react-native-svg';
 import { useTheme } from '../../theme';
 import { useStore } from '../../store';
 import { User, SubjectDocument } from '../../types';
@@ -95,7 +96,10 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
   };
 
   const handlePress = () => {
-    if (onPress) {
+    // If onLongPress is provided (edit functionality), use it as the primary press handler
+    if (onLongPress) {
+      onLongPress();
+    } else if (onPress) {
       onPress();
     } else if (!subject) {
       // Only open profile modal for home user
@@ -107,48 +111,79 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
     <TouchableOpacity
       style={styles.container}
       onPress={handlePress}
-      onLongPress={onLongPress}
       activeOpacity={0.8}
       disabled={!onPress && !onLongPress && !!subject} // Disable if subject is provided and no custom handlers
     >
-      <View style={[
-        styles.avatar,
-        dynamicStyles.avatar,
-        { backgroundColor: shouldShowImage ? 'transparent' : colors.primary },
-      ]}>
-        {shouldShowImage ? (
-          <Image
-            source={{ uri: profilePhotoUrl }}
-            style={[styles.image, dynamicStyles.avatar]}
-            onLoad={() => console.log('✅ Image loaded:', profilePhotoUrl)}
-            onError={(e) => {
-              console.log('❌ Image error:', profilePhotoUrl);
-              console.log('Error details:', e.nativeEvent);
-              setImageError(true);
-            }}
-          />
-        ) : (
-          <Text style={[
-            styles.initials,
+      <View style={styles.avatarWrapper}>
+        <View style={[
+          styles.avatar,
+          dynamicStyles.avatar,
+          { backgroundColor: shouldShowImage ? 'transparent' : colors.primary },
+        ]}>
+          {shouldShowImage ? (
+            <Image
+              source={{ uri: profilePhotoUrl }}
+              style={[styles.image, dynamicStyles.avatar]}
+              onLoad={() => console.log('✅ Image loaded:', profilePhotoUrl)}
+              onError={(e) => {
+                console.log('❌ Image error:', profilePhotoUrl);
+                console.log('Error details:', e.nativeEvent);
+                setImageError(true);
+              }}
+            />
+          ) : (
+            <Text style={[
+              styles.initials,
+              {
+                color: colors.onPrimary,
+                fontSize: size * 0.4,
+              },
+            ]}>
+              {initials}
+            </Text>
+          )}
+        </View>
+
+        {showOnlineIndicator && !subject && (
+          <View style={[
+            styles.onlineIndicator,
+            dynamicStyles.onlineIndicator,
             {
-              color: colors.onPrimary,
-              fontSize: size * 0.4,
+              backgroundColor: '#00C851',
+              borderColor: colors.surface,
             },
-          ]}>
-            {initials}
-          </Text>
+          ]} />
         )}
       </View>
 
-      {showOnlineIndicator && !subject && (
+      {/* Camera Icon - positioned at bottom right */}
+      {onLongPress && (
         <View style={[
-          styles.onlineIndicator,
-          dynamicStyles.onlineIndicator,
+          styles.cameraIconContainer,
           {
-            backgroundColor: '#00C851',
-            borderColor: colors.surface,
-          },
-        ]} />
+            right: -size * 0.15,
+            bottom: -size * 0.2,
+          }
+        ]}>
+          <Svg width={size * 0.35} height={size * 0.35} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+              stroke={colors.onSurfaceVariant}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <Circle
+              cx="12"
+              cy="13"
+              r="4"
+              stroke={colors.onSurfaceVariant}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -156,6 +191,9 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
+  },
+  avatarWrapper: {
     position: 'relative',
   },
   avatar: {
@@ -195,6 +233,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
+  },
+  cameraIconContainer: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
