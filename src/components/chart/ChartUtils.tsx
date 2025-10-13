@@ -75,8 +75,9 @@ export const CHART_DIMENSIONS = {
   centerY: 150,
   outerRadius: 120,
   innerRadius: 80,
-  planetRadius: 135,
+  planetRadius: 160, // Extended farther beyond house outer ring
   houseRadius: 130,
+  houseOuterRadius: 135, // Outer boundary for house number ring (closer to outer edge)
 };
 
 // Helper functions
@@ -100,19 +101,17 @@ export const getZodiacPositionFromDegree = (degree: number): { sign: ZodiacSign;
 };
 
 export const getAspectColor = (aspectType: AspectType): string => {
+  // Hard aspects (challenging): red
+  // Soft aspects (harmonious): blue
   switch (aspectType) {
     case 'conjunction':
-      return '#FFD700'; // gold
     case 'opposition':
-      return '#FF4500'; // red-orange
-    case 'trine':
-      return '#32CD32'; // lime green
     case 'square':
-      return '#FF0000'; // red
-    case 'sextile':
-      return '#00CED1'; // dark turquoise
     case 'quincunx':
-      return '#9932CC'; // dark orchid
+      return '#FF0000'; // red for hard aspects
+    case 'trine':
+    case 'sextile':
+      return '#0066FF'; // blue for soft aspects
     default:
       return '#808080'; // gray for minor aspects
   }

@@ -33,10 +33,17 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
   title,
 }) => {
   const { colors } = useTheme();
-  const { size, centerX, centerY, outerRadius, innerRadius, planetRadius, houseRadius } = CHART_DIMENSIONS;
+  const { size, centerX, centerY, outerRadius, innerRadius, planetRadius, houseRadius, houseOuterRadius } = CHART_DIMENSIONS;
 
   // Smaller radius for transit planets (outer ring)
   const transitRadius = planetRadius + 30;
+
+  // Calculate viewBox to accommodate planets extending beyond base size
+  const maxRadius = transitRadius + 20; // Add padding for transit planets
+  const overshoot = Math.max(0, maxRadius - Math.min(centerX, centerY));
+  const viewBox = overshoot > 0
+    ? `-${overshoot} -${overshoot} ${size + overshoot * 2} ${size + overshoot * 2}`
+    : `0 0 ${size} ${size}`;
 
   // Get ascendant degree for proper chart orientation
   const ascendantDegree = useMemo(() => {
@@ -55,6 +62,19 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
         cx={centerX}
         cy={centerY}
         r={outerRadius}
+        fill="none"
+        stroke={colors.onSurface}
+        strokeWidth="2"
+      />
+    );
+
+    // House outer circle (for house number ring)
+    elements.push(
+      <Circle
+        key="house-outer-circle"
+        cx={centerX}
+        cy={centerY}
+        r={houseOuterRadius}
         fill="none"
         stroke={colors.onSurface}
         strokeWidth="2"
@@ -106,7 +126,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
       if (ZodiacIconComponent) {
         elements.push(
           <G key={`zodiac-symbol-${i}`} x={signX - 9} y={signY - 9}>
-            <ZodiacIconComponent width={18} height={18} fill={ZODIAC_COLORS[signNames[i]] || colors.onSurface} />
+            <ZodiacIconComponent width={18} height={18} fill={colors.onSurface} />
           </G>
         );
       }
@@ -125,7 +145,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
       if (!house.degree || isNaN(house.degree)) {return;}
 
       const { x: x1, y: y1 } = getCirclePosition(house.degree, outerRadius, centerX, centerY, ascendantDegree);
-      const { x: x2, y: y2 } = getCirclePosition(house.degree, houseRadius, centerX, centerY, ascendantDegree);
+      const { x: x2, y: y2 } = getCirclePosition(house.degree, houseOuterRadius, centerX, centerY, ascendantDegree);
 
       const isAngular = house.house === 1 || house.house === 10;
 
@@ -141,8 +161,8 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
         />
       );
 
-      // House numbers
-      const houseNumberRadius = houseRadius + 15;
+      // House numbers - positioned in the ring between outerRadius and houseOuterRadius
+      const houseNumberRadius = (outerRadius + houseOuterRadius) / 2;
       const { x: numX, y: numY } = getCirclePosition(house.degree + 15, houseNumberRadius, centerX, centerY, ascendantDegree);
 
       elements.push(
@@ -151,7 +171,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
           x={numX}
           y={numY}
           fontSize="12"
-          fill={colors.onSurfaceVariant}
+          fill={colors.onSurface}
           textAnchor="middle"
           alignmentBaseline="middle"
         >
@@ -171,8 +191,6 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
     const filteredPlanets = filterPlanets(basePlanets);
 
     filteredPlanets.forEach((planet) => {
-      const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
-
       const { x: planetX, y: planetY } = getCirclePosition(
         planet.full_degree,
         planetRadius,
@@ -181,42 +199,29 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
         ascendantDegree
       );
 
-      // Planet background circle
-      elements.push(
-        <Circle
-          key={`base-planet-bg-${planet.name}`}
-          cx={planetX}
-          cy={planetY}
-          r="12"
-          fill={colors.background + 'CC'}
-          stroke={planetColor}
-          strokeWidth="2"
-        />
-      );
-
-      // Planet symbol
+      // Planet symbol - always black for base chart
       const PlanetIconComponent = planetIcons[planet.name.toLowerCase() as keyof typeof planetIcons];
       if (PlanetIconComponent) {
         elements.push(
-          <G key={`base-planet-${planet.name}`} x={planetX - 7} y={planetY - 7}>
-            <PlanetIconComponent width={14} height={14} fill={planetColor} />
+          <G key={`base-planet-${planet.name}`} x={planetX - 9} y={planetY - 9}>
+            <PlanetIconComponent width={18} height={18} fill={colors.onSurface} />
           </G>
         );
       }
 
-      // Planet degree marker on the wheel
+      // Planet degree marker extending from outer edge to planet
       const { x: markerX1, y: markerY1 } = getCirclePosition(planet.full_degree, outerRadius, centerX, centerY, ascendantDegree);
-      const { x: markerX2, y: markerY2 } = getCirclePosition(planet.full_degree, outerRadius + 10, centerX, centerY, ascendantDegree);
 
       elements.push(
         <Line
           key={`base-planet-marker-${planet.name}`}
           x1={markerX1}
           y1={markerY1}
-          x2={markerX2}
-          y2={markerY2}
-          stroke={planetColor}
-          strokeWidth="2"
+          x2={planetX}
+          y2={planetY}
+          stroke={colors.onSurfaceVariant}
+          strokeWidth="1"
+          opacity="0.3"
         />
       );
     });
@@ -230,9 +235,10 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
 
     const elements: ReactElement[] = [];
     const filteredPlanets = filterPlanets(transitPlanets);
+    const transitColor = '#8B5CF6'; // Purple color for partner's planets
 
     filteredPlanets.forEach((planet) => {
-      const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
+      const planetColor = transitColor;
 
       const { x: planetX, y: planetY } = getCirclePosition(
         planet.full_degree,
@@ -242,44 +248,29 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
         ascendantDegree
       );
 
-      // Planet background circle (slightly different style for transits)
-      elements.push(
-        <Circle
-          key={`transit-planet-bg-${planet.name}`}
-          cx={planetX}
-          cy={planetY}
-          r="10"
-          fill={colors.primary + '33'}
-          stroke={planetColor}
-          strokeWidth="1.5"
-          strokeDasharray="2,2"
-        />
-      );
-
       // Planet symbol (smaller for transits)
       const TransitPlanetIconComponent = planetIcons[planet.name.toLowerCase() as keyof typeof planetIcons];
       if (TransitPlanetIconComponent) {
         elements.push(
-          <G key={`transit-planet-${planet.name}`} x={planetX - 6} y={planetY - 6}>
-            <TransitPlanetIconComponent width={12} height={12} fill={planetColor} />
+          <G key={`transit-planet-${planet.name}`} x={planetX - 8} y={planetY - 8}>
+            <TransitPlanetIconComponent width={16} height={16} fill={planetColor} />
           </G>
         );
       }
 
-      // Planet degree marker (shorter for transits)
-      const { x: markerX1, y: markerY1 } = getCirclePosition(planet.full_degree, outerRadius + 12, centerX, centerY, ascendantDegree);
-      const { x: markerX2, y: markerY2 } = getCirclePosition(planet.full_degree, outerRadius + 18, centerX, centerY, ascendantDegree);
+      // Planet degree marker extending from outer edge to planet
+      const { x: markerX1, y: markerY1 } = getCirclePosition(planet.full_degree, outerRadius, centerX, centerY, ascendantDegree);
 
       elements.push(
         <Line
           key={`transit-planet-marker-${planet.name}`}
           x1={markerX1}
           y1={markerY1}
-          x2={markerX2}
-          y2={markerY2}
-          stroke={planetColor}
-          strokeWidth="1.5"
-          strokeDasharray="2,2"
+          x2={planetX}
+          y2={planetY}
+          stroke={colors.onSurfaceVariant}
+          strokeWidth="1"
+          opacity="0.3"
         />
       );
     });
@@ -292,7 +283,7 @@ const SynastryChartWheel: React.FC<SynastryChartWheelProps> = ({
       {title && <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>}
 
       <View style={styles.chartContainer}>
-        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Svg width={size} height={size} viewBox={viewBox}>
           {/* Background circles and zodiac wheel */}
           {renderZodiacWheel()}
 

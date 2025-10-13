@@ -33,18 +33,15 @@ const ChartSelectionScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const hasLoadedInitially = React.useRef(false);
 
   useEffect(() => {
     loadGuestSubjects();
+    hasLoadedInitially.current = true;
   }, []);
 
-  // Refresh list when screen comes into focus
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('ChartSelectionScreen - Screen focused, refreshing list');
-      handleRefresh();
-    }, [])
-  );
+  // Don't auto-refresh on focus - it causes infinite loops
+  // User can manually pull-to-refresh or new guests are added via callback
 
   const loadGuestSubjects = async (isRefresh = false) => {
     if (!userData?.id) {return;}
@@ -74,7 +71,12 @@ const ChartSelectionScreen: React.FC = () => {
         if (isRefresh) {
           setGuestSubjects(guests);
         } else {
-          setGuestSubjects(prev => [...prev, ...guests]);
+          // Deduplicate by ID to prevent duplicate entries
+          setGuestSubjects(prev => {
+            const existingIds = new Set(prev.map(s => s._id));
+            const newGuests = guests.filter((g: SubjectDocument) => !existingIds.has(g._id));
+            return [...prev, ...newGuests];
+          });
         }
 
         setHasMore(result.pagination.hasNext);
@@ -98,6 +100,8 @@ const ChartSelectionScreen: React.FC = () => {
   };
 
   const handleRefresh = () => {
+    setCurrentPage(1);
+    setHasMore(true);
     loadGuestSubjects(true);
   };
 
