@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,115 @@ import {
   StyleSheet,
   Alert,
   SafeAreaView,
+  Linking,
 } from 'react-native';
 import { useTheme } from '../../theme';
 import { useStore } from '../../store';
-import ThemeToggle from '../ThemeToggle';
 import { forceSignOut } from '../../utils/authHelpers';
 import ProfileAvatar from './ProfileAvatar';
+import { LoadingOverlay } from '../LoadingOverlay';
+import {
+  showImagePickerActionSheet,
+  uploadProfilePhotoPresigned,
+  ImageResult,
+} from '../../utils/imageHelpers';
+import { usersApi } from '../../api/users';
 
 const ProfileModal: React.FC = () => {
-  const { colors } = useTheme();
-  const { userData, profileModalVisible, setProfileModalVisible } = useStore();
+  const { colors, theme, setTheme } = useTheme();
+  const { userData, profileModalVisible, setProfileModalVisible, setUserData } = useStore();
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handleProfilePhotoPress = () => {
+    if (!userData?.id) {
+      Alert.alert('Error', 'User data not available');
+      return;
+    }
+
+    showImagePickerActionSheet(
+      (imageResult: ImageResult) => handleImageSelected(imageResult),
+      {
+        includeCamera: true,
+        includeRemove: !!userData.profilePhotoUrl,
+        onRemove: () => handleRemovePhoto(),
+      }
+    );
+  };
+
+  const handleImageSelected = async (imageResult: ImageResult) => {
+    if (!userData?.id) return;
+
+    setIsUploadingPhoto(true);
+
+    try {
+      console.log('ProfileModal - Starting upload for user:', userData.id);
+      const result = await uploadProfilePhotoPresigned(
+        userData.id,
+        imageResult.uri,
+        imageResult.type
+      );
+
+      console.log('ProfileModal - Upload result:', result);
+
+      // Update user data in store with new photo URL
+      const updatedUserData = {
+        ...userData,
+        profilePhotoUrl: result.profilePhotoUrl,
+        profilePhotoKey: result.profilePhotoKey,
+        profilePhotoUpdatedAt: new Date().toISOString(),
+      };
+
+      console.log('ProfileModal - Updating user data in store:', updatedUserData);
+      setUserData(updatedUserData);
+
+      Alert.alert('Success', 'Profile photo updated successfully');
+    } catch (error: any) {
+      console.error('Failed to upload profile photo:', error);
+      Alert.alert('Upload Failed', error.message || 'Failed to upload profile photo');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!userData?.id) return;
+
+    Alert.alert(
+      'Remove Photo',
+      'Are you sure you want to remove your profile photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setIsUploadingPhoto(true);
+
+            try {
+              await usersApi.deleteProfilePhoto(userData.id);
+
+              // Update user data in store to remove photo
+              const updatedUserData = {
+                ...userData,
+                profilePhotoUrl: undefined,
+                profilePhotoKey: undefined,
+                profilePhotoUpdatedAt: undefined,
+              };
+
+              setUserData(updatedUserData);
+
+              Alert.alert('Success', 'Profile photo removed successfully');
+            } catch (error: any) {
+              console.error('Failed to remove profile photo:', error);
+              Alert.alert('Remove Failed', error.message || 'Failed to remove profile photo');
+            } finally {
+              setIsUploadingPhoto(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -49,21 +148,89 @@ const ProfileModal: React.FC = () => {
     setProfileModalVisible(false);
   };
 
+  const handleContactSupport = async () => {
+    const email = 'admin@stellium.ai';
+    const subject = 'Support Request';
+    const url = `mailto:${email}?subject=${encodeURIComponent(subject)}`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Unable to open email client. Please email admin@stellium.ai directly.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to open email client. Please email admin@stellium.ai directly.');
+    }
+  };
+
+  const handleHelpCenter = async () => {
+    const url = 'https://stellium.ai/help';
+
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Unable to open help center. Please visit stellium.ai/help in your browser.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to open help center. Please visit stellium.ai/help in your browser.');
+    }
+  };
+
+  const handleThemeChange = () => {
+    Alert.alert(
+      'Choose Theme',
+      'Select your preferred theme:',
+      [
+        {
+          text: 'System',
+          onPress: () => setTheme('system'),
+        },
+        {
+          text: 'Light',
+          onPress: () => setTheme('light'),
+        },
+        {
+          text: 'Dark',
+          onPress: () => setTheme('dark'),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const getThemeDisplayName = () => {
+    switch (theme) {
+      case 'system':
+        return 'System';
+      case 'light':
+        return 'Light';
+      case 'dark':
+        return 'Dark';
+      default:
+        return 'System';
+    }
+  };
+
   const MenuItem: React.FC<{
-    icon: string;
     title: string;
     subtitle?: string;
     onPress?: () => void;
     rightComponent?: React.ReactNode;
     showChevron?: boolean;
-  }> = ({ icon, title, subtitle, onPress, rightComponent, showChevron = true }) => (
+  }> = ({ title, subtitle, onPress, rightComponent, showChevron = true }) => (
     <TouchableOpacity
       style={[styles.menuItem, { borderBottomColor: colors.border }]}
       onPress={onPress}
       disabled={!onPress}
     >
       <View style={styles.menuItemLeft}>
-        <Text style={styles.menuIcon}>{icon}</Text>
         <View style={styles.menuItemText}>
           <Text style={[styles.menuItemTitle, { color: colors.onSurface }]}>{title}</Text>
           {subtitle && (
@@ -98,26 +265,27 @@ const ProfileModal: React.FC = () => {
       <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
-            <Text style={[styles.closeButtonText, { color: colors.primary }]}>Done</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.onSurface }]}>Profile</Text>
           <View style={styles.headerSpacer} />
+          <Text style={[styles.headerTitle, { color: colors.onSurface }]}>Profile</Text>
+          <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
+            <Text style={[styles.closeButtonText, { color: colors.onSurfaceVariant }]}>Close ✕</Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Profile Header */}
           <View style={[styles.profileSection, { backgroundColor: colors.surface }]}>
-            <ProfileAvatar size={80} showOnlineIndicator={false} />
+            <ProfileAvatar
+              size={80}
+              showOnlineIndicator={false}
+              onPress={handleProfilePhotoPress}
+            />
             <View style={styles.profileInfo}>
               <Text style={[styles.profileName, { color: colors.onSurface }]}>
                 {userData?.name || 'User'}
               </Text>
-              <Text style={[styles.profileEmail, { color: colors.onSurfaceVariant }]}>
-                {userData?.email || 'No email'}
-              </Text>
-              <View style={[styles.subscriptionBadge, { backgroundColor: colors.primaryContainer }]}>
-                <Text style={[styles.subscriptionText, { color: colors.onPrimaryContainer }]}>
+              <View style={[styles.subscriptionBadge, { backgroundColor: '#9CA3AF' }]}>
+                <Text style={[styles.subscriptionText, { color: '#FFFFFF' }]}>
                   Free Plan
                 </Text>
               </View>
@@ -129,7 +297,6 @@ const ProfileModal: React.FC = () => {
             <SectionHeader title="ACCOUNT" />
             <View style={[styles.menuGroup, { backgroundColor: colors.surface }]}>
               <MenuItem
-                icon="👤"
                 title="Account Settings"
                 subtitle="Manage your account details"
                 onPress={() => {
@@ -138,9 +305,8 @@ const ProfileModal: React.FC = () => {
                 }}
               />
               <MenuItem
-                icon="💎"
-                title="Subscription"
-                subtitle="Free Plan"
+                title="Subscription and Purchases"
+                subtitle="Manage plans and perks"
                 onPress={() => {
                   // TODO: Navigate to subscription management
                   Alert.alert('Coming Soon', 'Subscription management will be available in a future update.');
@@ -154,14 +320,11 @@ const ProfileModal: React.FC = () => {
             <SectionHeader title="SETTINGS & PREFERENCES" />
             <View style={[styles.menuGroup, { backgroundColor: colors.surface }]}>
               <MenuItem
-                icon="🎨"
                 title="Theme"
-                subtitle="System"
-                rightComponent={<ThemeToggle />}
-                showChevron={false}
+                subtitle={getThemeDisplayName()}
+                onPress={handleThemeChange}
               />
               <MenuItem
-                icon="🔔"
                 title="Notifications"
                 subtitle="Manage your notifications"
                 onPress={() => {
@@ -169,7 +332,6 @@ const ProfileModal: React.FC = () => {
                 }}
               />
               <MenuItem
-                icon="🔒"
                 title="Privacy"
                 subtitle="Control your privacy settings"
                 onPress={() => {
@@ -184,29 +346,22 @@ const ProfileModal: React.FC = () => {
             <SectionHeader title="HELP & SUPPORT" />
             <View style={[styles.menuGroup, { backgroundColor: colors.surface }]}>
               <MenuItem
-                icon="❓"
                 title="Help Center"
                 subtitle="Get answers to common questions"
-                onPress={() => {
-                  Alert.alert('Coming Soon', 'Help center will be available in a future update.');
-                }}
+                onPress={handleHelpCenter}
               />
               <MenuItem
-                icon="💬"
                 title="Contact Support"
                 subtitle="Get help from our team"
-                onPress={() => {
-                  Alert.alert('Coming Soon', 'Contact support will be available in a future update.');
-                }}
+                onPress={handleContactSupport}
               />
               <MenuItem
-                icon="ℹ️"
                 title="About Stellium"
-                subtitle="AI-powered astrology guidance"
+                subtitle="Version 1.0.0"
                 onPress={() => {
                   Alert.alert(
                     'About Stellium',
-                    'Stellium is an AI-powered astrology guidance app that provides personalized insights based on your birth chart and astrological data.',
+                    'Stellium is an AI-powered astrology guidance app that provides personalized insights based on your birth chart and astrological data.\n\nVersion 1.0.0',
                     [{ text: 'OK' }]
                   );
                 }}
@@ -229,6 +384,8 @@ const ProfileModal: React.FC = () => {
           {/* Bottom spacing */}
           <View style={styles.bottomSpacing} />
         </ScrollView>
+
+        <LoadingOverlay visible={isUploadingPhoto} message="Updating photo..." />
       </SafeAreaView>
     </Modal>
   );
@@ -245,6 +402,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   closeButton: {
     paddingVertical: 4,
@@ -278,10 +443,6 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 20,
     fontWeight: '600',
-    marginBottom: 4,
-  },
-  profileEmail: {
-    fontSize: 15,
     marginBottom: 8,
   },
   subscriptionBadge: {
@@ -321,12 +482,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  menuIcon: {
-    fontSize: 20,
-    marginRight: 12,
-    width: 24,
-    textAlign: 'center',
   },
   menuItemText: {
     flex: 1,

@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { WizardStep } from '../WizardStep';
 import { useTheme } from '../../../theme';
@@ -20,6 +21,7 @@ interface ReviewStepProps {
   amPm: 'AM' | 'PM';
   unknownTime: boolean;
   placeOfBirth: string;
+  profileImageUri?: string | null;
   onEditStep: (stepIndex: number) => void;
 }
 
@@ -35,6 +37,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   amPm,
   unknownTime,
   placeOfBirth,
+  profileImageUri,
   onEditStep,
 }) => {
   const { colors } = useTheme();
@@ -92,11 +95,32 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
       subtitle="Make sure everything looks correct before we create your personalized chart"
     >
       <View style={styles.reviewContainer}>
-        <ReviewSection
-          label="Name & Gender"
-          value={`${firstName} ${lastName}\n${formatGender(gender)}`}
-          onEdit={() => onEditStep(0)}
-        />
+        {/* Name & Gender with Profile Photo */}
+        <View style={styles.reviewSection}>
+          <View style={styles.reviewHeader}>
+            <View style={styles.labelContainer}>
+              <View style={styles.checkmarkContainer}>
+                <Text style={styles.checkmark}>✓</Text>
+              </View>
+              <Text style={styles.reviewLabel}>Name & Gender</Text>
+            </View>
+            <TouchableOpacity style={styles.editButton} onPress={() => onEditStep(0)}>
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.nameGenderContent}>
+            {profileImageUri && (
+              <Image
+                source={{ uri: profileImageUri }}
+                style={styles.profilePhoto}
+              />
+            )}
+            <View style={styles.nameGenderText}>
+              <Text style={styles.reviewValue}>{firstName} {lastName}</Text>
+              <Text style={styles.reviewValue}>{formatGender(gender)}</Text>
+            </View>
+          </View>
+        </View>
 
         <ReviewSection
           label="Birth Location"
@@ -171,5 +195,19 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.onSurface,
     lineHeight: 24,
     fontWeight: '600',
+  },
+  nameGenderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  profilePhoto: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.surface,
+  },
+  nameGenderText: {
+    flex: 1,
   },
 });

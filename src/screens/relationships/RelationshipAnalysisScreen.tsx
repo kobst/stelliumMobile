@@ -48,18 +48,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState('charts');
   const [chartSubTab, setChartSubTab] = useState('synastry-wheels');
-  const [synastryWheelsPage, setSynastryWheelsPage] = useState(0);
-
-  const handleSynastryWheelsScroll = (event: any) => {
-    const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const pageIndex = Math.round(contentOffsetX / screenWidth);
-    setSynastryWheelsPage(pageIndex);
-  };
-
-  // Reset wheels page when switching between chart sub-tabs
-  useEffect(() => {
-    setSynastryWheelsPage(0);
-  }, [chartSubTab]);
 
   const [userAData, setUserAData] = useState<SubjectDocument | null>(null);
   const [userBData, setUserBData] = useState<SubjectDocument | null>(null);
@@ -120,16 +108,23 @@ const RelationshipAnalysisScreen: React.FC = () => {
   };
 
   const loadAnalysisData = useCallback(async (forceReload = false) => {
+    console.log('loadAnalysisData called - relationship ID:', relationship?._id);
+    console.log('userA_id:', relationship?.userA_id, 'userB_id:', relationship?.userB_id);
+    console.log('hasLoadedData:', hasLoadedData, 'forceReload:', forceReload);
+
     // Always need a relationship ID
     if (!relationship?._id) {
+      console.log('No relationship ID, returning early');
       return;
     }
 
     // Prevent reloading if we've already loaded data for this relationship (unless forced)
     if (!forceReload && hasLoadedData) {
+      console.log('Already loaded data and not forcing reload, returning early');
       return;
     }
 
+    console.log('Starting to load analysis data...');
     try {
       setError(null);
 
@@ -172,23 +167,33 @@ const RelationshipAnalysisScreen: React.FC = () => {
       }
 
       if (userPromises.length > 0) {
+        console.log('Fetching user data, promises count:', userPromises.length);
         const userResults = await Promise.all(userPromises);
+        console.log('User results received:', userResults.length);
 
         if (relationship?.userA_id && userResults[0]) {
-          console.log('Setting userA data:', userResults[0]);
+          console.log('Setting userA data - has birthChart:', !!userResults[0]?.birthChart);
+          console.log('UserA birthChart planets:', userResults[0]?.birthChart?.planets?.length);
+          console.log('UserA birthChart houses:', userResults[0]?.birthChart?.houses?.length);
           setUserAData(userResults[0]);
         }
         if (relationship?.userB_id && userResults[userResults.length - 1]) {
-          console.log('Setting userB data:', userResults[userResults.length - 1]);
+          console.log('Setting userB data - has birthChart:', !!userResults[userResults.length - 1]?.birthChart);
+          console.log('UserB birthChart planets:', userResults[userResults.length - 1]?.birthChart?.planets?.length);
+          console.log('UserB birthChart houses:', userResults[userResults.length - 1]?.birthChart?.houses?.length);
           setUserBData(userResults[userResults.length - 1]);
         }
+      } else {
+        console.log('No user promises to fetch - userA_id:', !!relationship?.userA_id, 'userB_id:', !!relationship?.userB_id);
       }
 
       setHasLoadedData(true);
+      console.log('Analysis data load completed successfully');
     } catch (err) {
       console.error('Failed to load analysis data:', err);
       setError('Failed to load analysis data');
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   }, [relationship?._id, relationship?.userA_id, relationship?.userB_id, hasLoadedData]);
@@ -196,6 +201,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
   useEffect(() => {
     // Only reset and reload if the relationship ID actually changed
     if (relationship) {
+      console.log('Relationship changed, resetting and loading data');
       setHasLoadedData(false);
       setRelationshipData(relationship);
 
@@ -205,6 +211,21 @@ const RelationshipAnalysisScreen: React.FC = () => {
       loadAnalysisData();
     }
   }, [relationship?._id]); // Only reload when the relationship ID changes
+
+  // Debug logging for userAData and userBData changes
+  useEffect(() => {
+    console.log('userAData changed - exists:', !!userAData, 'has birthChart:', !!userAData?.birthChart);
+    if (userAData?.birthChart) {
+      console.log('userAData birthChart - planets:', userAData.birthChart.planets?.length, 'houses:', userAData.birthChart.houses?.length);
+    }
+  }, [userAData]);
+
+  useEffect(() => {
+    console.log('userBData changed - exists:', !!userBData, 'has birthChart:', !!userBData?.birthChart);
+    if (userBData?.birthChart) {
+      console.log('userBData birthChart - planets:', userBData.birthChart.planets?.length, 'houses:', userBData.birthChart.houses?.length);
+    }
+  }, [userBData]);
 
 
   // Handler for "Chat about this" functionality
@@ -231,9 +252,24 @@ const RelationshipAnalysisScreen: React.FC = () => {
     );
 
     const renderSynastryWheels = () => {
+      console.log('renderSynastryWheels - userAData:', !!userAData, 'birthChart:', !!userAData?.birthChart);
+      console.log('renderSynastryWheels - userBData:', !!userBData, 'birthChart:', !!userBData?.birthChart);
+      console.log('renderSynastryWheels - loading:', loading, 'error:', error);
+
       if (!userAData?.birthChart || !userBData?.birthChart) {
+        if (error) {
+          return (
+            <View style={styles.noDataContainer}>
+              <Text style={[styles.noDataText, { color: colors.error }]}>
+                Error loading chart data: {error}
+              </Text>
+            </View>
+          );
+        }
+
         return (
           <View style={styles.noDataContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.noDataText, { color: colors.onSurfaceMed }]}>
               Loading chart data...
             </Text>
@@ -241,69 +277,22 @@ const RelationshipAnalysisScreen: React.FC = () => {
         );
       }
 
-      const pages = [relationshipData?.userA_name, relationshipData?.userB_name];
-
       return (
-        <View style={styles.pageContainer}>
-          <ScrollView
-            key="synastry-wheels-scroll"
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={handleSynastryWheelsScroll}
-            style={styles.horizontalScroll}
-          >
-            <View style={styles.chartPage}>
-              <Text style={[styles.chartTitle, { color: colors.onSurface }]}>
-                {relationshipData?.userA_name}'s Chart
-              </Text>
-              <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
-                with {relationshipData?.userB_name}'s influences
-              </Text>
-              <View style={styles.wheelContainer}>
-                <SynastryChartWheel
-                  basePlanets={userAData.birthChart.planets}
-                  baseHouses={userAData.birthChart.houses}
-                  transitPlanets={userBData.birthChart.planets}
-                  baseName={relationshipData?.userA_name || ''}
-                  transitName={relationshipData?.userB_name || ''}
-                />
-              </View>
-            </View>
-
-            <View style={styles.chartPage}>
-              <Text style={[styles.chartTitle, { color: colors.onSurface }]}>
-                {relationshipData?.userB_name}'s Chart
-              </Text>
-              <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
-                with {relationshipData?.userA_name}'s influences
-              </Text>
-              <View style={styles.wheelContainer}>
-                <SynastryChartWheel
-                  basePlanets={userBData.birthChart.planets}
-                  baseHouses={userBData.birthChart.houses}
-                  transitPlanets={userAData.birthChart.planets}
-                  baseName={relationshipData?.userB_name || ''}
-                  transitName={relationshipData?.userA_name || ''}
-                />
-              </View>
-            </View>
-          </ScrollView>
-
-          {/* Page Control Dots */}
-          <View style={styles.pageControl}>
-            {pages.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor: colors.primary,
-                    opacity: synastryWheelsPage === index ? 1.0 : 0.3,
-                  },
-                ]}
-              />
-            ))}
+        <View style={styles.singleChartContainer}>
+          <Text style={[styles.chartTitle, { color: colors.onSurface }]}>
+            {relationshipData?.userA_name}'s Chart
+          </Text>
+          <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
+            with {relationshipData?.userB_name}'s influences
+          </Text>
+          <View style={styles.wheelContainer}>
+            <SynastryChartWheel
+              basePlanets={userAData.birthChart.planets}
+              baseHouses={userAData.birthChart.houses}
+              transitPlanets={userBData.birthChart.planets}
+              baseName={relationshipData?.userA_name || ''}
+              transitName={relationshipData?.userB_name || ''}
+            />
           </View>
         </View>
       );

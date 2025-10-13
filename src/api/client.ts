@@ -32,11 +32,32 @@ class ApiClient {
 
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      let errorCode = '';
+
+      try {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+
+        // Try to parse as JSON first
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorJson.message || errorMessage;
+          errorCode = errorJson.code || errorText;
+        } catch {
+          // Not JSON, use raw text
+          errorMessage = errorText || errorMessage;
+          errorCode = errorText;
+        }
+      } catch {
+        // Couldn't read response body
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+
       throw new ApiError({
-        message: `HTTP error! status: ${response.status}`,
+        message: errorMessage,
         status: response.status,
-        code: errorText,
+        code: errorCode,
       });
     }
 

@@ -7,27 +7,31 @@ interface HeaderWithProfileProps {
   title: string;
   subtitle?: string;
   showSafeArea?: boolean;
+  hideTitle?: boolean;
 }
 
 export const HeaderWithProfile: React.FC<HeaderWithProfileProps> = ({
   title,
   subtitle,
   showSafeArea = true,
+  hideTitle = false,
 }) => {
   const { colors } = useTheme();
 
   const HeaderContent = () => (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.content}>
-        <View style={styles.textContent}>
-          <Text style={[styles.title, { color: colors.onBackground }]}>{title}</Text>
-          {subtitle && (
-            <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>{subtitle}</Text>
-          )}
-        </View>
+      <View style={[styles.content, hideTitle && styles.contentWithoutTitle]}>
         <View style={styles.avatarContainer}>
           <ProfileAvatar size={40} />
         </View>
+        {!hideTitle && (
+          <View style={styles.textContent}>
+            <Text style={[styles.title, { color: colors.onBackground }]}>{title}</Text>
+            {subtitle && (
+              <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>{subtitle}</Text>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -54,9 +58,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
+  contentWithoutTitle: {
+    justifyContent: 'flex-start',
+  },
   textContent: {
     flex: 1,
-    marginRight: 16,
+    marginLeft: 16,
   },
   avatarContainer: {
     alignItems: 'center',
