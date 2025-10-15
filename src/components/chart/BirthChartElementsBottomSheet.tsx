@@ -10,8 +10,10 @@ import {
   Dimensions,
 } from 'react-native';
 import { useTheme } from '../../theme';
-import { BirthChartElement } from '../../api/charts';
+import { BirthChartElement, BirthChartAspect } from '../../api/charts';
 import { BirthChart } from '../../types';
+import BirthChartAspectCard from './BirthChartAspectCard';
+import { getPlanetGlyph, PlanetName } from './ChartUtils';
 
 interface BirthChartElementsBottomSheetProps {
   visible: boolean;
@@ -261,83 +263,57 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
             const isSelected = isElementSelected(element);
             const category = getElementCategory(element);
 
+            // Render aspect cards with new BirthChartAspectCard component
+            if (element.type === 'aspect') {
+              return (
+                <BirthChartAspectCard
+                  key={index}
+                  element={element}
+                  colors={colors}
+                  onPress={onSelectElement}
+                  isSelected={isSelected}
+                />
+              );
+            }
+
+            // Render position cards with planets tab styling
+            const houseText = element.house ? ` in House ${element.house}` : '';
+            const retroText = element.isRetrograde ? ' ℞' : '';
+
             return (
               <TouchableOpacity
                 key={index}
                 onPress={() => onSelectElement(element)}
                 style={[
-                  styles.elementCard,
+                  styles.positionCard,
                   {
                     backgroundColor: isSelected ? colors.primaryContainer : colors.surface,
                     borderColor: isSelected ? colors.primary : colors.border,
                   },
                 ]}
               >
-                <View style={styles.elementHeader}>
-                  <View style={[
-                    styles.elementTypeTag,
-                    {
-                      backgroundColor: element.type === 'position' ? colors.secondaryContainer : colors.tertiaryContainer,
-                    },
-                  ]}>
+                <View style={styles.positionCardContent}>
+                  <Text style={styles.planetGlyph}>{getPlanetGlyph(element.planet as PlanetName)}</Text>
+                  <View style={styles.planetInfo}>
                     <Text style={[
-                      styles.elementTypeText,
-                      {
-                        color: element.type === 'position' ? colors.onSecondaryContainer : colors.onTertiaryContainer,
-                      },
+                      styles.planetName,
+                      { color: isSelected ? colors.onPrimaryContainer : colors.onSurface },
                     ]}>
-                      {element.type === 'position' ? 'Position' : 'Aspect'}
+                      {element.planet}
                     </Text>
-                  </View>
-                  {isSelected && (
-                    <View style={[styles.selectedBadge, { backgroundColor: colors.primary }]}>
-                      <Text style={[styles.selectedBadgeText, { color: colors.onPrimary }]}>✓</Text>
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.elementContent}>
-                  <Text style={[
-                    styles.elementTitle,
-                    { color: isSelected ? colors.onPrimaryContainer : colors.onSurface },
-                  ]}>
-                    {getElementDisplayName(element)}
-                  </Text>
-
-                  {element.type === 'aspect' && (
-                    <View style={styles.aspectDetails}>
-                      <Text style={[
-                        styles.aspectDetail,
-                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
-                      ]}>
-                        {element.planet1} in {element.planet1Sign}
-                        {element.planet1House && ` (${getOrdinal(element.planet1House)} house)`}
-                      </Text>
-                      <Text style={[
-                        styles.aspectDetail,
-                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
-                      ]}>
-                        {element.planet2} in {element.planet2Sign}
-                        {element.planet2House && ` (${getOrdinal(element.planet2House)} house)`}
-                      </Text>
-                      <Text style={[
-                        styles.orbText,
-                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
-                      ]}>
-                        Orb: {element.orb.toFixed(1)}°
-                      </Text>
-                    </View>
-                  )}
-
-                  {element.type === 'position' && element.degree && (
                     <Text style={[
-                      styles.degreeText,
+                      styles.planetPosition,
                       { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
                     ]}>
-                      {element.degree.toFixed(1)}° {element.sign}
+                      {element.sign}{houseText}{retroText}
                     </Text>
-                  )}
+                  </View>
                 </View>
+                {isSelected && (
+                  <View style={[styles.selectedBadge, { backgroundColor: colors.primary }]}>
+                    <Text style={[styles.selectedBadgeText, { color: colors.onPrimary }]}>✓</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -431,27 +407,34 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  elementCard: {
+  positionCard: {
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-  },
-  elementHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
   },
-  elementTypeTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+  positionCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  elementTypeText: {
-    fontSize: 11,
+  planetGlyph: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  planetInfo: {
+    flex: 1,
+  },
+  planetName: {
+    fontSize: 17,
     fontWeight: '600',
-    textTransform: 'uppercase',
+  },
+  planetPosition: {
+    fontSize: 13,
+    marginTop: 2,
   },
   selectedBadge: {
     width: 20,
@@ -463,28 +446,6 @@ const styles = StyleSheet.create({
   selectedBadgeText: {
     fontSize: 12,
     fontWeight: 'bold',
-  },
-  elementContent: {
-    gap: 4,
-  },
-  elementTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  aspectDetails: {
-    gap: 2,
-  },
-  aspectDetail: {
-    fontSize: 13,
-  },
-  orbText: {
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-  degreeText: {
-    fontSize: 13,
-    fontStyle: 'italic',
   },
   emptyContainer: {
     alignItems: 'center',
