@@ -144,7 +144,11 @@ function formatSignHouseDetails(item: any): string {
 
 // Component to render detailed description with SVG icons (3 lines)
 const DetailedDescriptionWithIcons: React.FC<{ item: any; parsedData: any; colors: any }> = ({ item, parsedData, colors }) => {
-  if (parsedData.type !== 'aspect' || !item.planet1Sign || !item.planet2Sign) {
+  // Handle both synastry aspects and composite aspects
+  const isComposite = parsedData.type === 'composite-aspect';
+  const isSynastry = parsedData.type === 'aspect';
+
+  if ((!isComposite && !isSynastry) || !item.planet1Sign || !item.planet2Sign) {
     return null;
   }
 
@@ -154,10 +158,10 @@ const DetailedDescriptionWithIcons: React.FC<{ item: any; parsedData: any; color
 
   return (
     <View style={{ marginTop: 4 }}>
-      {/* Line 1: Person A's planet, sign, and house */}
+      {/* Line 1: Planet 1 with optional person name */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
         <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
-          {parsedData.person1}'s {parsedData.planet1}{' '}
+          {isSynastry && parsedData.person1 ? `${parsedData.person1}'s ` : ''}{parsedData.planet1}{' '}
         </Text>
         <AstroIcon type="planet" name={parsedData.planet1} size={11} color={colors.onSurfaceVariant} />
         <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
@@ -176,10 +180,10 @@ const DetailedDescriptionWithIcons: React.FC<{ item: any; parsedData: any; color
         </Text>
       </View>
 
-      {/* Line 3: Person B's planet, sign, and house */}
+      {/* Line 3: Planet 2 with optional person name */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
         <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
-          {parsedData.person2}'s {parsedData.planet2}{' '}
+          {isSynastry && parsedData.person2 ? `${parsedData.person2}'s ` : ''}{parsedData.planet2}{' '}
         </Text>
         <AstroIcon type="planet" name={parsedData.planet2} size={11} color={colors.onSurfaceVariant} />
         <Text style={{ fontSize: 11, lineHeight: 16, color: colors.onSurfaceVariant }}>
@@ -287,7 +291,7 @@ const AspectCard: React.FC<AspectCardProps> = ({
               </Text>
             )}
           </View>
-          {parsedData.type === 'aspect' && item.planet1Sign && item.planet2Sign ? (
+          {(parsedData.type === 'aspect' || parsedData.type === 'composite-aspect') && item.planet1Sign && item.planet2Sign ? (
             <DetailedDescriptionWithIcons item={item} parsedData={parsedData} colors={colors} />
           ) : null}
         </View>

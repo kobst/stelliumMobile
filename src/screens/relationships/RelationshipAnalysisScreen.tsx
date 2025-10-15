@@ -33,6 +33,7 @@ import { AnalysisHeader } from '../../components/navigation/AnalysisHeader';
 import { TopTabBar } from '../../components/navigation/TopTabBar';
 import { StickySegment } from '../../components/navigation/StickySegment';
 import { SectionSubtitle } from '../../components/navigation/SectionSubtitle';
+import { relationshipTransformers } from '../../transformers/relationship';
 
 type RelationshipAnalysisScreenRouteProp = RouteProp<{
   RelationshipAnalysis: {
@@ -357,7 +358,10 @@ const RelationshipAnalysisScreen: React.FC = () => {
     console.log('ClusterScoring:', relationshipData?.clusterScoring);
     console.log('Keystones available:', relationshipData?.clusterScoring?.overall?.keystoneAspects?.length || 0);
 
-    const consolidatedItems = relationshipData.clusterScoring?.scoredItems || [];
+    const consolidatedItems = relationshipTransformers.enrichCompositeAspects(
+      relationshipData.clusterScoring?.scoredItems || [],
+      relationshipData?.compositeChart
+    );
 
     if (!relationshipData?.clusterScoring) {
       return (
@@ -475,7 +479,10 @@ const RelationshipAnalysisScreen: React.FC = () => {
         );
       case 'chat':
         const clusterScoring = relationshipData?.clusterScoring;
-        const consolidatedItems = clusterScoring?.scoredItems || [];
+        const consolidatedItems = relationshipTransformers.enrichCompositeAspects(
+          clusterScoring?.scoredItems || [],
+          relationshipData?.compositeChart
+        );
         const hasRelationshipAnalysis = !!(analysisData?.completeAnalysis && Object.keys(analysisData.completeAnalysis).length > 0);
 
         if (!hasRelationshipAnalysis) {

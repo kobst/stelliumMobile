@@ -5,9 +5,26 @@ import ChartScreen from '../screens/chart/ChartScreen';
 import GuestOnboardingScreen from '../screens/chart/GuestOnboardingScreen';
 import CelebrityDetailScreen from '../screens/celebrity/CelebrityDetailScreen';
 import RelationshipAnalysisScreen from '../screens/relationships/RelationshipAnalysisScreen';
+import ChartCategoryDetailScreen from '../screens/chart/ChartCategoryDetailScreen';
 import { useTheme } from '../theme';
+import { BirthChart } from '../types';
 
-const Stack = createStackNavigator();
+export type ChartStackParamList = {
+  ChartSelection: undefined;
+  ChartMain: { subject: any };
+  GuestOnboarding: { onGuestCreated?: () => void };
+  CelebrityDetail: { celebrityId: string };
+  CelebrityRelationshipAnalysis: { relationship: any };
+  ChartCategoryDetail: {
+    categoryKey: string;
+    categoryName: string;
+    categoryData: any;
+    birthChart: BirthChart;
+    icon: string;
+  };
+};
+
+const Stack = createStackNavigator<ChartStackParamList>();
 
 const ChartStack: React.FC = () => {
   const { colors } = useTheme();
@@ -54,6 +71,14 @@ const ChartStack: React.FC = () => {
           title: 'Celebrity Relationship Analysis',
           headerShown: true,
         }}
+      />
+      <Stack.Screen
+        name="ChartCategoryDetail"
+        component={ChartCategoryDetailScreen}
+        options={({ route }) => ({
+          title: route.params.categoryName,
+          headerBackTitle: '360 Analysis',
+        })}
       />
     </Stack.Navigator>
   );

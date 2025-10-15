@@ -446,7 +446,7 @@ const ChartScreen: React.FC = () => {
       case 'planets':
         return <PlanetsTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       case 'analysis':
-        return <AnalysisTab userId={getSubjectId(subject)} />;
+        return <AnalysisTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       case 'chat':
         // Show consistent loading state for chat tab during analysis
         if (chartLoading || isAnalysisInProgress) {
