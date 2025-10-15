@@ -522,6 +522,8 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
         selectedElements={selectedElements}
         onSelectElement={handleSelectElement}
         onClearSelection={handleClearSelection}
+        userAName={userAName}
+        userBName={userBName}
       />
     </View>
   );
