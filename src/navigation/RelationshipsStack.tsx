@@ -58,7 +58,7 @@ const RelationshipsStack: React.FC = () => {
         component={CategoryDetailScreen}
         options={({ route }) => ({
           title: route.params.categoryName,
-          headerBackTitle: '360 Analysis',
+          headerBackTitle: 'Back',
         })}
       />
       <Stack.Screen
