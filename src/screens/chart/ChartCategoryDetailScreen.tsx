@@ -11,7 +11,7 @@ type ChartCategoryDetailRouteProp = RouteProp<ChartStackParamList, 'ChartCategor
 const ChartCategoryDetailScreen: React.FC = () => {
   const route = useRoute<ChartCategoryDetailRouteProp>();
   const { colors } = useTheme();
-  const { categoryKey, categoryName, categoryData, birthChart, icon } = route.params;
+  const { categoryKey, categoryName, categoryData, birthChart, icon, color } = route.params;
 
   // Debug: Log the full category data structure
   console.log('ChartCategoryDetailScreen - Full categoryData:', JSON.stringify(categoryData, null, 2));
@@ -77,15 +77,6 @@ const ChartCategoryDetailScreen: React.FC = () => {
     return { content, keyCodes };
   };
 
-  const renderHeader = () => (
-    <View style={[styles.headerInfo, { backgroundColor: colors.surface }]}>
-      <Text style={styles.categoryIcon}>{icon}</Text>
-      <Text style={[styles.categoryTitle, { color: colors.onSurface }]}>
-        {categoryName}
-      </Text>
-    </View>
-  );
-
   const renderContent = () => {
     const { content, keyCodes } = getSubtopicContent();
 
@@ -113,8 +104,8 @@ const ChartCategoryDetailScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header Info */}
-      {renderHeader()}
+      {/* Category Color Bar */}
+      {color && <View style={[styles.colorBar, { backgroundColor: color }]} />}
 
       {/* Segmented Control for Subtopics */}
       {subtopicTabs.length > 1 && (
@@ -141,20 +132,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  categoryIcon: {
-    fontSize: 32,
-    marginRight: 12,
-  },
-  categoryTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    flex: 1,
+  colorBar: {
+    height: 4,
+    width: '100%',
   },
   scrollView: {
     flex: 1,

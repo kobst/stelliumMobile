@@ -183,7 +183,6 @@ const RelationshipAnalysisTab: React.FC<RelationshipAnalysisTabProps> = ({
             >
               <View style={styles.categoryCardContent}>
                 <View style={[styles.clusterColorBar, { backgroundColor: info.color }]} />
-                <Text style={styles.clusterIcon}>{info.icon}</Text>
                 <View style={styles.categoryTextContainer}>
                   <Text style={[styles.categoryTitle, { color: colors.onSurface }]}>{info.name}</Text>
                   <Text style={[styles.categorySubtitle, { color: colors.onSurfaceVariant }]}>
@@ -294,10 +293,6 @@ const styles = StyleSheet.create({
     width: 4,
     height: 40,
     borderRadius: 2,
-    marginRight: 12,
-  },
-  clusterIcon: {
-    fontSize: 20,
     marginRight: 12,
   },
   categoryTextContainer: {

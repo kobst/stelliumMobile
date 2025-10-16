@@ -48,7 +48,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const { relationship } = route.params;
 
   const [activeTab, setActiveTab] = useState('charts');
-  const [chartSubTab, setChartSubTab] = useState('synastry-wheels');
+  const [chartSubTab, setChartSubTab] = useState('synastry');
 
   const [userAData, setUserAData] = useState<SubjectDocument | null>(null);
   const [userBData, setUserBData] = useState<SubjectDocument | null>(null);
@@ -69,10 +69,8 @@ const RelationshipAnalysisScreen: React.FC = () => {
   ];
 
   const chartSubTabs = [
-    { label: 'Synastry Wheels', value: 'synastry-wheels' },
-    { label: 'Synastry Tables', value: 'synastry-tables' },
-    { label: 'Composite Wheels', value: 'composite-wheels' },
-    { label: 'Composite Tables', value: 'composite-tables' },
+    { label: 'Synastry', value: 'synastry' },
+    { label: 'Composite', value: 'composite' },
   ];
 
   console.log('RelationshipAnalysisScreen loaded with relationship:', relationship);
@@ -246,16 +244,10 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
 
   const ChartsTab = () => {
-    const hasChartData = relationship && (
-      relationshipData?.synastryAspects ||
-      relationshipData?.compositeChart ||
-      relationshipData?.synastryHousePlacements
-    );
-
-    const renderSynastryWheels = () => {
-      console.log('renderSynastryWheels - userAData:', !!userAData, 'birthChart:', !!userAData?.birthChart);
-      console.log('renderSynastryWheels - userBData:', !!userBData, 'birthChart:', !!userBData?.birthChart);
-      console.log('renderSynastryWheels - loading:', loading, 'error:', error);
+    const renderSynastry = () => {
+      console.log('renderSynastry - userAData:', !!userAData, 'birthChart:', !!userAData?.birthChart);
+      console.log('renderSynastry - userBData:', !!userBData, 'birthChart:', !!userBData?.birthChart);
+      console.log('renderSynastry - loading:', loading, 'error:', error);
 
       if (!userAData?.birthChart || !userBData?.birthChart) {
         if (error) {
@@ -279,31 +271,32 @@ const RelationshipAnalysisScreen: React.FC = () => {
       }
 
       return (
-        <View style={styles.singleChartContainer}>
-          <Text style={[styles.chartTitle, { color: colors.onSurface }]}>
-            {relationshipData?.userA_name}'s Chart
-          </Text>
-          <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
-            with {relationshipData?.userB_name}'s influences
-          </Text>
-          <View style={styles.wheelContainer}>
-            <SynastryChartWheel
-              basePlanets={userAData.birthChart.planets}
-              baseHouses={userAData.birthChart.houses}
-              transitPlanets={userBData.birthChart.planets}
-              baseName={relationshipData?.userA_name || ''}
-              transitName={relationshipData?.userB_name || ''}
-            />
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+          <View style={[styles.wheelSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.chartTitle, { color: colors.onSurface }]}>
+              {relationshipData?.userA_name}'s Chart
+            </Text>
+            <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
+              with {relationshipData?.userB_name}'s influences
+            </Text>
+            <View style={styles.wheelContainer}>
+              <SynastryChartWheel
+                basePlanets={userAData.birthChart.planets}
+                baseHouses={userAData.birthChart.houses}
+                transitPlanets={userBData.birthChart.planets}
+                baseName={relationshipData?.userA_name || ''}
+                transitName={relationshipData?.userB_name || ''}
+              />
+            </View>
           </View>
-        </View>
+          <View style={{ height: 500 }}>
+            <SynastryTables relationship={relationshipData} />
+          </View>
+        </ScrollView>
       );
     };
 
-    const renderSynastryTables = () => {
-      return <SynastryTables relationship={relationshipData} />;
-    };
-
-    const renderCompositeWheels = () => {
+    const renderComposite = () => {
       if (!relationshipData?.compositeChart) {
         return (
           <View style={styles.noDataContainer}>
@@ -315,40 +308,27 @@ const RelationshipAnalysisScreen: React.FC = () => {
       }
 
       return (
-        <View style={styles.singleChartContainer}>
-          <Text style={[styles.chartTitle, { color: colors.onSurface }]}>Composite Chart</Text>
-          <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
-            Midpoint chart representing your combined energies
-          </Text>
-          <View style={styles.wheelContainer}>
-            <CompositeChartWheel compositeChart={relationshipData?.compositeChart} />
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+          <View style={[styles.wheelSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.chartTitle, { color: colors.onSurface }]}>Composite Chart</Text>
+            <Text style={[styles.chartSubtitle, { color: colors.onSurfaceMed }]}>
+              Midpoint chart representing your combined energies
+            </Text>
+            <View style={styles.wheelContainer}>
+              <CompositeChartWheel compositeChart={relationshipData?.compositeChart} />
+            </View>
           </View>
-        </View>
+          <View style={{ height: 500 }}>
+            <CompositeTables compositeChart={relationshipData?.compositeChart} />
+          </View>
+        </ScrollView>
       );
-    };
-
-    const renderCompositeTables = () => {
-      return <CompositeTables compositeChart={relationshipData?.compositeChart} />;
     };
 
     return (
       <View style={styles.chartsContainer}>
-        <View style={styles.contentArea}>
-          {!hasChartData ? (
-            <View style={styles.noDataContainer}>
-              <Text style={[styles.noDataText, { color: colors.onSurfaceMed }]}>
-                Chart data not available
-              </Text>
-            </View>
-          ) : (
-            <>
-              {chartSubTab === 'synastry-wheels' && renderSynastryWheels()}
-              {chartSubTab === 'synastry-tables' && renderSynastryTables()}
-              {chartSubTab === 'composite-wheels' && renderCompositeWheels()}
-              {chartSubTab === 'composite-tables' && renderCompositeTables()}
-            </>
-          )}
-        </View>
+        {chartSubTab === 'synastry' && renderSynastry()}
+        {chartSubTab === 'composite' && renderComposite()}
       </View>
     );
   };
@@ -652,6 +632,13 @@ const styles = StyleSheet.create({
   tableSubtitle: {
     fontSize: 14,
     marginBottom: 16,
+  },
+  wheelSection: {
+    alignItems: 'center',
+    padding: 8,
+    margin: 16,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   wheelContainer: {
     alignItems: 'center',

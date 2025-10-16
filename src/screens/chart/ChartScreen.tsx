@@ -19,6 +19,7 @@ import { TopTabBar } from '../../components/navigation/TopTabBar';
 import { StickySegment } from '../../components/navigation/StickySegment';
 import { SectionSubtitle } from '../../components/navigation/SectionSubtitle';
 import ChartContainer from '../../components/chart/ChartContainer';
+import ChartWheel from '../../components/chart/ChartWheel';
 import ChartTables from '../../components/chart/ChartTables';
 import PatternsTab from '../../components/chart/PatternsTab';
 import PlanetsTab from '../../components/chart/PlanetsTab';
@@ -273,6 +274,7 @@ const ChartScreen: React.FC = () => {
 
   const topTabs = [
     { label: 'Chart', routeName: 'chart' },
+    { label: 'Overview', routeName: 'overview' },
     { label: 'Patterns & Dominance', routeName: 'patterns' },
     { label: 'Planets', routeName: 'planets' },
     { label: '360 Analysis', routeName: 'analysis' },
@@ -424,23 +426,59 @@ const ChartScreen: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'chart':
-        if (activeSubTab === 'wheel') {
+        if (chartLoading) {
           return (
-            <ChartContainer
-              birthChart={subject?.birthChart}
-              loading={chartLoading}
-              error={chartError}
-              userName={getSubjectName(subject)}
-              userId={getSubjectId(subject)}
-              overview={overview}
-            />
-          );
-        } else {
-          // Tables view - import and use the actual ChartTables component
-          return (
-            <ChartTables birthChart={subject?.birthChart} />
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading birth chart...</Text>
+            </View>
           );
         }
+
+        if (chartError) {
+          return (
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+              <Text style={[styles.errorText, { color: colors.error }]}>Failed to load chart data</Text>
+              <Text style={[styles.noOverviewText, { color: colors.onSurfaceVariant }]}>{chartError}</Text>
+            </View>
+          );
+        }
+
+        return (
+          <View style={{ flex: 1 }}>
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              <View style={[styles.wheelSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <ChartWheel
+                  birthChart={subject?.birthChart}
+                  showAspects={true}
+                  showHouses={true}
+                />
+              </View>
+              <View style={{ height: 500 }}>
+                <ChartTables birthChart={subject?.birthChart} />
+              </View>
+            </ScrollView>
+          </View>
+        );
+      case 'overview':
+        return (
+          <ScrollView
+            style={[styles.overviewContainer, { backgroundColor: colors.background }]}
+            showsVerticalScrollIndicator={false}
+          >
+            {overview ? (
+              <View style={[styles.overviewSection, { backgroundColor: colors.surface }]}>
+                <Text style={[styles.overviewText, { color: colors.onSurfaceVariant }]}>{overview}</Text>
+              </View>
+            ) : (
+              <View style={[styles.noOverviewContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[styles.noOverviewText, { color: colors.onSurfaceVariant }]}>
+                  Chart overview not available
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        );
       case 'patterns':
         return <PatternsTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       case 'planets':
@@ -522,15 +560,6 @@ const ChartScreen: React.FC = () => {
           icon={getSectionSubtitle()!.icon}
           title={getSectionSubtitle()!.title}
           desc={getSectionSubtitle()!.desc}
-        />
-      )}
-
-      {/* Sub Navigation (only for Chart tab) */}
-      {activeTab === 'chart' && (
-        <StickySegment
-          items={chartSubTabs}
-          selectedValue={activeSubTab}
-          onChange={setActiveSubTab}
         />
       )}
 
@@ -639,6 +668,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  overviewContainer: {
+    flex: 1,
+  },
+  overviewHeader: {
+    padding: 20,
+    borderRadius: 12,
+    margin: 16,
+    alignItems: 'center',
+  },
+  overviewTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  overviewSection: {
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+  },
+  overviewText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  noOverviewContainer: {
+    margin: 16,
+    padding: 32,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  noOverviewText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  wheelSection: {
+    alignItems: 'center',
+    padding: 8,
+    margin: 16,
+    marginBottom: 0,
+    borderRadius: 12,
+    borderWidth: 1,
   },
 });
 

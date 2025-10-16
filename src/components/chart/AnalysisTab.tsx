@@ -331,6 +331,7 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId, birthChart }) => {
       categoryData,
       birthChart: birthChart,
       icon: categoryConfig.icon,
+      color: categoryConfig.color,
     });
   };
 
@@ -387,7 +388,6 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId, birthChart }) => {
               >
                 <View style={styles.categoryCardContent}>
                   <View style={[styles.clusterColorBar, { backgroundColor: categoryConfig.color }]} />
-                  <Text style={styles.clusterIcon}>{categoryConfig.icon}</Text>
                   <View style={styles.categoryTextContainer}>
                     <Text style={[styles.categoryTitle, { color: colors.onSurface }]}>
                       {categoryData.categoryName || categoryConfig.label}
@@ -727,10 +727,6 @@ const styles = StyleSheet.create({
     width: 4,
     height: 40,
     borderRadius: 2,
-    marginRight: 12,
-  },
-  clusterIcon: {
-    fontSize: 20,
     marginRight: 12,
   },
   categoryTextContainer: {

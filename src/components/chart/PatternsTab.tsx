@@ -115,11 +115,10 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
   };
 
   // Expandable Pattern Section Component
-  const ExpandablePatternSection = ({ title, data, type, icon }: {
+  const ExpandablePatternSection = ({ title, data, type }: {
     title: string;
     data: any;
     type: string;
-    icon: string;
   }) => {
     const isExpanded = expandedSections.has(type);
 
@@ -131,7 +130,6 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
           activeOpacity={0.7}
         >
           <View style={styles.sectionHeaderContent}>
-            <Text style={styles.sectionIcon}>{icon}</Text>
             <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>{title}</Text>
           </View>
           <Text style={[styles.expandIcon, { color: colors.primary }]}>
@@ -186,7 +184,6 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
         {/* Elements Section */}
         <ExpandablePatternSection
           title="Elements"
-          icon="🔥"
           data={{
             elements: chartData.elements,
             interpretation: dominanceInterpretations.elements,
@@ -197,7 +194,6 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
         {/* Modalities Section */}
         <ExpandablePatternSection
           title="Modalities"
-          icon="♻️"
           data={{
             modalities: chartData.modalities,
             interpretation: dominanceInterpretations.modalities,
@@ -208,7 +204,6 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
         {/* Quadrants Section */}
         <ExpandablePatternSection
           title="Quadrants"
-          icon="🧭"
           data={{
             quadrants: chartData.quadrants,
             interpretation: dominanceInterpretations.quadrants,
@@ -219,7 +214,6 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
         {/* Patterns and Structures Section */}
         <ExpandablePatternSection
           title="Patterns and Structures"
-          icon="✨"
           data={{
             patterns: chartData.patterns,
             interpretation: dominanceInterpretations.patterns,
@@ -230,7 +224,6 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ userId, birthChart }) => {
         {/* Planetary Dominance Section */}
         <ExpandablePatternSection
           title="Planetary Dominance"
-          icon="🪐"
           data={{
             planets: chartData.planetaryDominance,
             interpretation: dominanceInterpretations.planetary,
@@ -340,10 +333,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  sectionIcon: {
-    fontSize: 20,
-    marginRight: 12,
   },
   sectionTitle: {
     fontSize: 17,

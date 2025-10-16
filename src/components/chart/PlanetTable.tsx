@@ -21,14 +21,13 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
   const filteredPlanets = filterPlanets(planets);
 
   const renderPlanetRow = (planet: BackendPlanet, index: number) => {
-    const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
     const { sign, position } = getZodiacPositionFromDegree(planet.full_degree);
 
     return (
       <View key={planet.name} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow, { borderBottomColor: colors.border }]}>
         {/* Planet Symbol */}
         <View style={styles.symbolCell}>
-          <AstroIcon type="planet" name={planet.name as PlanetName} size={18} color={planetColor} />
+          <AstroIcon type="planet" name={planet.name as PlanetName} size={18} color={colors.onSurfaceVariant} />
         </View>
 
         {/* Planet Name */}

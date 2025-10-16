@@ -21,15 +21,6 @@ const CategoryDetailScreen: React.FC = () => {
     { label: 'Synthesis', value: 'synthesis' },
   ];
 
-  const renderHeader = () => (
-    <View style={[styles.headerInfo, { backgroundColor: colors.surface }]}>
-      <Text style={styles.categoryIcon}>{icon}</Text>
-      <Text style={[styles.scoreText, { color: colors.primary }]}>
-        {Math.round(categoryData.score)}%
-      </Text>
-    </View>
-  );
-
   const renderContent = () => {
     if (selectedTab === 'synastry' && analysisData.synastry) {
       return (
@@ -118,9 +109,6 @@ const CategoryDetailScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header Info */}
-      {renderHeader()}
-
       {/* Category Color Bar */}
       <View style={[styles.colorBar, { backgroundColor: color }]} />
 
@@ -146,20 +134,6 @@ const CategoryDetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  headerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  categoryIcon: {
-    fontSize: 32,
-  },
-  scoreText: {
-    fontSize: 20,
-    fontWeight: '700',
   },
   colorBar: {
     height: 4,
