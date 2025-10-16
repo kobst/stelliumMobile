@@ -530,6 +530,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
       <AnalysisHeader
         title={`${relationshipData?.userA_name || 'User A'} & ${relationshipData?.userB_name || 'User B'}`}
         subtitle={relationshipData?.isCelebrityRelationship ? 'Celebrity Relationship Analysis' : 'Relationship Analysis'}
+        hideAvatar={true}
       />
 
       {/* Top Tab Bar */}
