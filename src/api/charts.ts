@@ -120,8 +120,19 @@ export interface VectorizationStatus {
   };
 }
 
+export interface WorkflowStatus {
+  status: string; // e.g., "user_created_with_overview", "running", "completed"
+  isRunning: boolean;
+  completedAt?: Date;
+  summary: {
+    totalTasks: number;        // Total tasks in full analysis (86)
+    completedTasks: number;    // Current progress (0-86)
+  };
+}
+
 export interface ChartAnalysisResponse {
   birthChartAnalysisId: string;
+  workflowStatus?: WorkflowStatus; // Analysis completion status
   interpretation: {
     basicAnalysis: BasicAnalysis;
     // New preferred structure
@@ -202,6 +213,24 @@ export const chartsApi = {
   // Poll analysis status
   pollAnalysisStatus: async (userId: string, workflowId: string): Promise<AnalysisWorkflowResponse> => {
     return apiClient.post<AnalysisWorkflowResponse>('/analysis/full-status', { userId, workflowId });
+  },
+
+  // Get analysis status (without workflowId)
+  getAnalysisStatus: async (userId: string): Promise<{
+    success: boolean;
+    status: string;
+    progress: {
+      completedTasks: number;
+      totalTasks: number;
+      percentage: number;
+    };
+    workflowStatus: {
+      status: string;
+      isRunning: boolean;
+      completedAt?: string;
+    };
+  }> => {
+    return apiClient.post('/analysis/full-status', { userId });
   },
 
   // Get completed analysis data

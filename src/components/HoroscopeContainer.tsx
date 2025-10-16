@@ -25,7 +25,6 @@ import {
 } from '../utils/dateHelpers';
 import { useTheme } from '../theme';
 import { AstroIcon } from '../../utils/astrologyIcons';
-import HoroscopeChatTab from './HoroscopeChatTab';
 
 interface HoroscopeContainerProps {
   transitWindows?: TransitEvent[];
@@ -56,12 +55,6 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
   const [horoscopeError, setHoroscopeError] = useState<string | null>(null);
   const [loadedTabs, setLoadedTabs] = useState<Set<HoroscopeFilter>>(new Set());
-
-  // Chat tab specific state
-  const [customTransitWindows, setCustomTransitWindows] = useState<TransitEvent[]>([]);
-  const [transitWindowsLoading, setTransitWindowsLoading] = useState(false);
-  const [transitWindowsError, setTransitWindowsError] = useState<string | null>(null);
-  const [customDateRange, setCustomDateRange] = useState<{ start: Date; end: Date } | null>(null);
 
   const { userData } = useStore();
 
@@ -305,72 +298,9 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     fetchHoroscopeForTab(activeTab, true);
   };
 
-  // Fetch transit windows for custom horoscope
-  const fetchTransitWindows = async () => {
-    const targetUserId = userId || userData?.id;
-    if (!targetUserId) {return;}
-
-    setTransitWindowsLoading(true);
-    setTransitWindowsError(null);
-
-    try {
-      // Query range: 3 days ago to 6 weeks forward (45 days total)
-      const now = new Date();
-      const fromDate = new Date(now);
-      fromDate.setDate(now.getDate() - 3); // Start 3 days ago
-      const toDate = new Date(now);
-      toDate.setDate(now.getDate() + 42); // 6 weeks forward (42 days)
-
-      const response = await withTimeout(horoscopesApi.getTransitWindows(
-        targetUserId,
-        fromDate.toISOString().split('T')[0],
-        toDate.toISOString().split('T')[0]
-      ));
-
-      // Combine both transit-to-natal and transit-to-transit events
-      const allTransitEvents = [
-        ...(response.transitEvents || []),
-        ...(response.transitToTransitEvents || [])
-      ];
-
-      if (allTransitEvents.length > 0) {
-        // Filter out transits that ended before today
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Start of today
-        const activeTransits = allTransitEvents.filter(transit => {
-          const transitEnd = new Date(transit.end);
-          return transitEnd >= today; // Keep transits ending today or later
-        });
-
-        setCustomTransitWindows(activeTransits);
-        // Set default custom date range to 6 weeks from today (for display purposes)
-        if (!customDateRange) {
-          const displayStart = new Date(); // Always start display range from today
-          const sixWeeksOut = new Date(displayStart);
-          sixWeeksOut.setDate(displayStart.getDate() + 42);
-          setCustomDateRange({ start: displayStart, end: sixWeeksOut });
-        }
-      } else {
-        throw new Error('No transit data received');
-      }
-    } catch (error) {
-      console.error('Error fetching transit windows:', error);
-      setTransitWindowsError(`Failed to load transit data: ${(error as Error).message}`);
-    } finally {
-      setTransitWindowsLoading(false);
-    }
-  };
-
   // Load horoscope when active tab changes
   useEffect(() => {
-    if (activeTab === 'chat') {
-      // For chat tab, fetch transit windows instead of horoscope
-      if (customTransitWindows.length === 0) {
-        fetchTransitWindows();
-      }
-    } else {
-      fetchHoroscopeForTab(activeTab);
-    }
+    fetchHoroscopeForTab(activeTab);
   }, [activeTab, userId, userData?.id]);
 
 
@@ -399,7 +329,6 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     { key: 'today', label: 'Today' },
     { key: 'thisWeek', label: 'This Week' },
     { key: 'thisMonth', label: 'This Month' },
-    { key: 'chat', label: 'Chat' },
   ] as const;
 
   return (
@@ -435,20 +364,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       </View>
 
       {/* Scrollable Content */}
-      {activeTab === 'chat' ? (
-        // Avoid nested vertical ScrollViews so the chat can control its own scrolling
-        // Give the chat a full-height container with padding
-        <View style={[styles.scrollContent, { padding: 16 }] }>
-          <HoroscopeChatTab
-            userId={userId || userData?.id || ''}
-            transitWindows={customTransitWindows}
-            transitWindowsLoading={transitWindowsLoading}
-            transitWindowsError={transitWindowsError}
-            onRetryTransitWindows={fetchTransitWindows}
-          />
-        </View>
-      ) : (
-        <ScrollView style={styles.scrollContent}>
+      <ScrollView style={styles.scrollContent}>
 
         {/* Partial Error Indicator */}
         {horoscopeError && hasAnyData && (
@@ -537,8 +453,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
             </View>
           )}
         </View>
-        </ScrollView>
-      )}
+      </ScrollView>
     </View>
   );
 };
