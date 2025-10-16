@@ -24,8 +24,6 @@ import ChartTables from '../../components/chart/ChartTables';
 import PatternsTab from '../../components/chart/PatternsTab';
 import PlanetsTab from '../../components/chart/PlanetsTab';
 import AnalysisTab from '../../components/chart/AnalysisTab';
-import BirthChartChatTab from '../../components/chart/BirthChartChatTab';
-import CompleteFullAnalysisButton from '../../components/chart/CompleteFullAnalysisButton';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { BirthChartElement } from '../../api/charts';
 import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
@@ -270,7 +268,6 @@ const ChartScreen: React.FC = () => {
   // Navigation state
   const [activeTab, setActiveTab] = useState('chart');
   const [activeSubTab, setActiveSubTab] = useState('wheel');
-  const [preSelectedChatElements, setPreSelectedChatElements] = useState<BirthChartElement[]>([]);
 
   const topTabs = [
     { label: 'Chart', routeName: 'chart' },
@@ -278,7 +275,6 @@ const ChartScreen: React.FC = () => {
     { label: 'Patterns & Dominance', routeName: 'patterns' },
     { label: 'Planets', routeName: 'planets' },
     { label: '360 Analysis', routeName: 'analysis' },
-    { label: 'Chat', routeName: 'chat' },
   ];
 
   const chartSubTabs = [
@@ -384,20 +380,6 @@ const ChartScreen: React.FC = () => {
     }
   }, [subject?.birthChart, loadFullAnalysis]);
 
-  // Handler for "Chat about this" functionality
-  const handleChatAboutElement = (element: BirthChartElement) => {
-    setPreSelectedChatElements([element]);
-    setActiveTab('chat');
-  };
-
-  // Clear preselected elements when switching tabs
-  const handleTabPress = (tab: string) => {
-    if (tab !== 'chat') {
-      setPreSelectedChatElements([]);
-    }
-    setActiveTab(tab);
-  };
-
   const getSectionSubtitle = () => {
     switch (activeTab) {
       case 'chart':
@@ -407,8 +389,6 @@ const ChartScreen: React.FC = () => {
       case 'planets':
         return null;
       case 'analysis':
-        return null;
-      case 'chat':
         return null;
       default:
         return null;
@@ -485,49 +465,6 @@ const ChartScreen: React.FC = () => {
         return <PlanetsTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       case 'analysis':
         return <AnalysisTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
-      case 'chat':
-        // Show consistent loading state for chat tab during analysis
-        if (chartLoading || isAnalysisInProgress) {
-          const progressText = workflowState?.progress
-            ? `Analyzing... ${workflowState.progress.percentage}% complete (${workflowState.progress.completedTasks}/${workflowState.progress.totalTasks} tasks)`
-            : 'Loading analysis...';
-
-          return (
-            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>{progressText}</Text>
-              {workflowState?.progress && (
-                <Text style={[styles.progressText, { color: colors.onSurfaceVariant }]}>
-                  Current phase: {workflowState.progress.currentPhase}
-                </Text>
-              )}
-            </View>
-          );
-        }
-
-        if (!hasAnalysisData) {
-          return (
-            <ScrollView style={[styles.lockedTabContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
-              <View style={styles.lockedTabContent}>
-                <View style={[styles.lockedTabHeader, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.lockedTabSubtitle, { color: colors.onSurfaceVariant }]}>
-                    Chat with AI about your birth chart insights
-                  </Text>
-                </View>
-                <View style={styles.missingAnalysisContainer}>
-                  <CompleteFullAnalysisButton userId={getSubjectId(subject)} onAnalysisComplete={loadFullAnalysis} />
-                </View>
-              </View>
-            </ScrollView>
-          );
-        }
-        return (
-          <BirthChartChatTab
-            userId={getSubjectId(subject)}
-            birthChart={subject?.birthChart}
-            preSelectedElements={preSelectedChatElements}
-          />
-        );
       default:
         return null;
     }
@@ -551,7 +488,7 @@ const ChartScreen: React.FC = () => {
       <TopTabBar
         items={topTabs}
         activeRoute={activeTab}
-        onTabPress={handleTabPress}
+        onTabPress={setActiveTab}
       />
 
       {/* Section Subtitle */}

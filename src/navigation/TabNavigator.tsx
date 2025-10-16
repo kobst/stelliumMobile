@@ -9,12 +9,14 @@ import HoroscopeStack from './HoroscopeStack';
 import ChartStack from './ChartStack';
 import RelationshipsStack from './RelationshipsStack';
 import CelebrityStack from './CelebrityStack';
+import ChatStack from './ChatStack';
 
 // Import SVG icons
 import HoroscopeIcon from '../../assets/navigation/horoscopes.svg';
 import ChartIcon from '../../assets/navigation/charts.svg';
 import RelationshipsIcon from '../../assets/navigation/relationships.svg';
 import CelebritiesIcon from '../../assets/navigation/celebrities.svg';
+import ChatIcon from '../../assets/navigation/chat.svg';
 
 const Tab = createBottomTabNavigator();
 
@@ -26,6 +28,7 @@ const TabIcon: React.FC<{ name: string; focused: boolean; color: string }> = ({ 
       case 'Chart': return ChartIcon;
       case 'Relationships': return RelationshipsIcon;
       case 'Celebrity': return CelebritiesIcon;
+      case 'Ask': return ChatIcon;
       default: return null;
     }
   };
@@ -58,9 +61,11 @@ const TabNavigator: React.FC = () => {
           borderTopWidth: 1,
           paddingBottom: 8,
           paddingTop: 8,
+          paddingHorizontal: 8,
           height: 80,
         },
         tabBarLabelStyle: styles.tabBarLabel,
+        tabBarItemStyle: styles.tabBarItem,
         headerShown: false,
       })}
       screenListeners={{
@@ -83,12 +88,17 @@ const TabNavigator: React.FC = () => {
       <Tab.Screen
         name="Relationships"
         component={RelationshipsStack}
-        options={{ title: 'Relationships' }}
+        options={{ title: 'Relations' }}
       />
       <Tab.Screen
         name="Celebrity"
         component={CelebrityStack}
         options={{ title: 'Celebrity' }}
+      />
+      <Tab.Screen
+        name="Ask"
+        component={ChatStack}
+        options={{ title: 'Ask' }}
       />
     </Tab.Navigator>
   );
@@ -96,9 +106,12 @@ const TabNavigator: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabBarLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     marginTop: 4,
+  },
+  tabBarItem: {
+    paddingHorizontal: 4,
   },
   iconContainer: {
     alignItems: 'center',

@@ -24,9 +24,7 @@ import SynastryHousePlacementsTable from '../../components/chart/SynastryHousePl
 import SynastryTables from '../../components/chart/SynastryTables';
 import CompositeTables from '../../components/chart/CompositeTables';
 import AspectColorLegend from '../../components/chart/AspectColorLegend';
-import { CompleteRelationshipAnalysisButton } from '../../components/relationship';
 import RelationshipAnalysisTab from '../../components/relationship/RelationshipAnalysisTab';
-import RelationshipChatTab from '../../components/relationship/RelationshipChatTab';
 import V3ClusterRadar from '../../components/relationship/V3ClusterRadar';
 import ConsolidatedItemsGrid from '../../components/relationship/ConsolidatedItemsGrid';
 import { AnalysisHeader } from '../../components/navigation/AnalysisHeader';
@@ -57,7 +55,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [analysisData, setAnalysisData] = useState<RelationshipAnalysisResponse | null>(null);
   const [relationshipData, setRelationshipData] = useState<UserCompositeChart | null>(relationship || null);
-  const [preSelectedChatItems, setPreSelectedChatItems] = useState<ClusterScoredItem[]>([]);
 
   // Navigation configuration
   const topTabs = [
@@ -65,7 +62,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
     { label: 'Scores', routeName: 'scores' },
     { label: 'Overview', routeName: 'overview' },
     { label: '360 Analysis', routeName: 'guidance' },
-    { label: 'Chat', routeName: 'chat' },
   ];
 
   const chartSubTabs = [
@@ -98,8 +94,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
       case 'overview':
         return null;
       case 'guidance':
-        return null;
-      case 'chat':
         return null;
       default:
         return null;
@@ -227,19 +221,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
   }, [userBData]);
 
 
-  // Handler for "Chat about this" functionality
-  const handleChatAboutItem = (item: ClusterScoredItem) => {
-    setPreSelectedChatItems([item]);
-    setActiveTab('chat');
-  };
-
-  // Clear preselected items when switching tabs
-  const handleTabPress = (tab: string) => {
-    if (tab !== 'chat') {
-      setPreSelectedChatItems([]);
-    }
-    setActiveTab(tab);
-  };
 
 
 
@@ -373,7 +354,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
           }}
           userAName={relationship.userA_name}
           userBName={relationship.userB_name}
-          onChatAboutItem={handleChatAboutItem}
         />
       </ScrollView>
     );
@@ -454,49 +434,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
               loadAnalysisData(true);
             }}
             loading={loading}
-            onChatAboutItem={handleChatAboutItem}
-          />
-        );
-      case 'chat':
-        const clusterScoring = relationshipData?.clusterScoring;
-        const consolidatedItems = relationshipTransformers.enrichCompositeAspects(
-          clusterScoring?.scoredItems || [],
-          relationshipData?.compositeChart
-        );
-        const hasRelationshipAnalysis = !!(analysisData?.completeAnalysis && Object.keys(analysisData.completeAnalysis).length > 0);
-
-        if (!hasRelationshipAnalysis) {
-          return (
-            <ScrollView style={[styles.lockedTabContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
-              <View style={styles.lockedTabContent}>
-                <View style={[styles.lockedTabHeader, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.lockedTabSubtitle, { color: colors.onSurfaceVariant }]}>
-                    Chat with AI about your relationship insights
-                  </Text>
-                </View>
-                <View style={styles.missingAnalysisContainer}>
-                  <CompleteRelationshipAnalysisButton
-                    compositeChartId={relationship._id}
-                    onAnalysisComplete={(_completedAnalysisData) => {
-                      console.log('Analysis completed, refreshing data...');
-                      // Force reload the analysis data to get the completed analysis
-                      loadAnalysisData(true);
-                    }}
-                    hasAnalysisData={hasRelationshipAnalysis}
-                  />
-                </View>
-              </View>
-            </ScrollView>
-          );
-        }
-
-        return (
-          <RelationshipChatTab
-            compositeChartId={relationship._id}
-            consolidatedItems={consolidatedItems}
-            preSelectedItems={preSelectedChatItems}
-            userAName={relationship.userA_name}
-            userBName={relationship.userB_name}
           />
         );
       default:
@@ -517,7 +454,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
       <TopTabBar
         items={topTabs}
         activeRoute={activeTab}
-        onTabPress={handleTabPress}
+        onTabPress={setActiveTab}
       />
 
       {/* Section Subtitle */}
