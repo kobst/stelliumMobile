@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
 import CompleteFullAnalysisButton from './CompleteFullAnalysisButton';
@@ -7,23 +9,27 @@ import { AnalysisLoadingView } from '../ui/AnalysisLoadingView';
 import { useTheme } from '../../theme';
 import { decodeAstroCode } from '../../utils/astroCode';
 import { getAspectColor, getPlanetGlyph, getZodiacGlyph, PLANET_COLORS } from './ChartUtils';
+import { ChartStackParamList } from '../../navigation/ChartStack';
+
+type NavigationProp = StackNavigationProp<ChartStackParamList, 'ChartMain'>;
 
 interface AnalysisTabProps {
   userId?: string;
+  birthChart?: any;
 }
 
 // New category labels/icons from Broad Category API
-const CATEGORIES: Record<string, { label: string; icon: string; isCore?: boolean }> = {
-  IDENTITY: { label: 'Self-Expression and Identity', icon: '🌟', isCore: true },
-  EMOTIONAL_FOUNDATIONS: { label: 'Emotional Foundations and Home Life', icon: '🏠', isCore: true },
-  PARTNERSHIPS: { label: 'Relationships and Social Connections', icon: '💕', isCore: true },
-  CAREER: { label: 'Career & Public Image', icon: '🎯', isCore: true },
-  COMMUNICATION: { label: 'Communication, Learning, and Beliefs', icon: '💭' },
-  HEALTH_SERVICE: { label: 'Health & Service', icon: '🩺' },
-  FINANCES: { label: 'Finances & Resources', icon: '💰' },
-  TRANSFORMATION: { label: 'Transformation & Power', icon: '🔥' },
-  COMMUNITY: { label: 'Community & Networks', icon: '👥' },
-  SPIRITUAL: { label: 'Spirituality & Growth', icon: '🔮' },
+const CATEGORIES: Record<string, { label: string; icon: string; color: string; isCore?: boolean }> = {
+  IDENTITY: { label: 'Self-Expression and Identity', icon: '🌟', color: '#FFD700', isCore: true },
+  EMOTIONAL_FOUNDATIONS: { label: 'Emotional Foundations and Home Life', icon: '🏠', color: '#4A90E2', isCore: true },
+  PARTNERSHIPS: { label: 'Relationships and Social Connections', icon: '💕', color: '#E91E63', isCore: true },
+  CAREER: { label: 'Career & Public Image', icon: '🎯', color: '#9C27B0', isCore: true },
+  COMMUNICATION: { label: 'Communication, Learning, and Beliefs', icon: '💭', color: '#00BCD4' },
+  HEALTH_SERVICE: { label: 'Health & Service', icon: '🩺', color: '#4CAF50' },
+  FINANCES: { label: 'Finances & Resources', icon: '💰', color: '#FF9800' },
+  TRANSFORMATION: { label: 'Transformation & Power', icon: '🔥', color: '#F44336' },
+  COMMUNITY: { label: 'Community & Networks', icon: '👥', color: '#3F51B5' },
+  SPIRITUAL: { label: 'Spirituality & Growth', icon: '🔮', color: '#673AB7' },
 };
 
 const CORE_CATEGORY_ORDER = ['IDENTITY', 'EMOTIONAL_FOUNDATIONS', 'PARTNERSHIPS', 'CAREER'];
@@ -289,10 +295,11 @@ const TopicSection: React.FC<TopicSectionProps> = ({
   );
 };
 
-const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
+const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId, birthChart }) => {
   const { fullAnalysis, loading, loadFullAnalysis, hasAnalysisData, isAnalysisInProgress, workflowState } = useChart(userId);
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const { colors } = useTheme();
+  const navigation = useNavigation<NavigationProp>();
 
   // Don't automatically load analysis - let users trigger it with the button
 
@@ -304,6 +311,28 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
       newExpanded.add(topicKey);
     }
     setExpandedTopics(newExpanded);
+  };
+
+  const handleCategoryPress = (categoryKey: string) => {
+    const broad = fullAnalysis?.interpretation?.broadCategoryAnalyses;
+    if (!broad) return;
+
+    const categoryData = broad[categoryKey];
+    const categoryConfig = CATEGORIES[categoryKey];
+
+    if (!categoryData || !categoryConfig) {
+      console.warn('Missing data for category:', categoryKey);
+      return;
+    }
+
+    navigation.navigate('ChartCategoryDetail', {
+      categoryKey,
+      categoryName: categoryData.categoryName || categoryConfig.label,
+      categoryData,
+      birthChart: birthChart,
+      icon: categoryConfig.icon,
+      color: categoryConfig.color,
+    });
   };
 
   // Simple button container for missing analysis
@@ -342,17 +371,33 @@ const AnalysisTab: React.FC<AnalysisTabProps> = ({ userId }) => {
     return (
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          {orderedKeys.map(categoryKey => (
-            <View key={categoryKey}>
-              <TopicSection
-                topicKey={categoryKey}
-                topicData={broad[categoryKey]}
-                expanded={expandedTopics.has(categoryKey)}
-                onToggle={() => toggleTopic(categoryKey)}
-                colors={colors}
-              />
-            </View>
-          ))}
+          {orderedKeys.map(categoryKey => {
+            const categoryData = broad[categoryKey];
+            const categoryConfig = CATEGORIES[categoryKey];
+
+            if (!categoryData || !categoryConfig) {
+              return null;
+            }
+
+            return (
+              <TouchableOpacity
+                key={categoryKey}
+                style={[styles.categoryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => handleCategoryPress(categoryKey)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.categoryCardContent}>
+                  <View style={[styles.clusterColorBar, { backgroundColor: categoryConfig.color }]} />
+                  <View style={styles.categoryTextContainer}>
+                    <Text style={[styles.categoryTitle, { color: colors.onSurface }]}>
+                      {categoryData.categoryName || categoryConfig.label}
+                    </Text>
+                  </View>
+                  <Text style={[styles.chevronIcon, { color: colors.onSurfaceVariant }]}>›</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
     );
@@ -665,6 +710,36 @@ const styles = StyleSheet.create({
   completeAnalysisButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Category card styles (matching RelationshipAnalysisTab pattern)
+  categoryCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  categoryCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  clusterColorBar: {
+    width: 4,
+    height: 40,
+    borderRadius: 2,
+    marginRight: 12,
+  },
+  categoryTextContainer: {
+    flex: 1,
+  },
+  categoryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  chevronIcon: {
+    fontSize: 24,
+    fontWeight: '300',
+    marginLeft: 8,
   },
 });
 

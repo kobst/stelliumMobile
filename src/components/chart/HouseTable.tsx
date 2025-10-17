@@ -22,28 +22,27 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
     if (isNaN(house.degree)) {return null;}
 
     const { position } = getZodiacPositionFromDegree(house.degree);
-    const signColor = ZODIAC_COLORS[house.sign as ZodiacSign] || '#8b5cf6';
 
     return (
       <View key={house.house} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow, { borderBottomColor: colors.border }]}>
         {/* House Number */}
         <View style={styles.houseCell}>
-          <Text style={[styles.houseNumber, { color: colors.text }]}>{house.house}</Text>
+          <Text style={[styles.houseNumber, { color: colors.onSurface }]}>{house.house}</Text>
         </View>
 
         {/* Sign (Symbol + Name combined) */}
         <View style={styles.houseSignCell}>
           {house.sign ? (
-            <AstroIcon type="zodiac" name={house.sign as ZodiacSign} size={20} color={signColor} />
+            <AstroIcon type="zodiac" name={house.sign as ZodiacSign} size={20} color={colors.primary} />
           ) : (
-            <Text style={[styles.signSymbol, { color: signColor }]}>-</Text>
+            <Text style={[styles.signSymbol, { color: colors.primary }]}>-</Text>
           )}
-          <Text style={[styles.signName, { color: colors.text, marginLeft: 8 }]}>{house.sign || 'Unknown'}</Text>
+          <Text style={[styles.signName, { color: colors.onSurfaceVariant, marginLeft: 8 }]}>{house.sign || 'Unknown'}</Text>
         </View>
 
         {/* Degree */}
         <View style={styles.degreeCell}>
-          <Text style={[styles.degree, { color: colors.textSecondary }]}>{position.toFixed(1)}°</Text>
+          <Text style={[styles.degree, { color: colors.onSurfaceVariant }]}>{position.toFixed(1)}°</Text>
         </View>
       </View>
     );
@@ -52,9 +51,9 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
   if (!hasValidHouses) {
     return (
       <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>House Positions</Text>
+        <Text style={[styles.title, { color: colors.onSurface }]}>House Positions</Text>
         <View style={[styles.noDataContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+          <Text style={[styles.noDataText, { color: colors.onSurfaceVariant }]}>
             House data not available{'\n'}
             (Unknown birth time)
           </Text>
@@ -65,18 +64,18 @@ const HouseTable: React.FC<HouseTableProps> = ({ houses }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={[styles.title, { color: colors.text }]}>House Positions</Text>
+      <Text style={[styles.title, { color: colors.onSurface }]}>House Positions</Text>
 
       {/* Header */}
-      <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceSecondary }]}>
+      <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
         <View style={styles.houseCell}>
-          <Text style={[styles.headerText, { color: colors.textSecondary }]}>House</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>House</Text>
         </View>
-        <View style={styles.signHeaderCell}>
-          <Text style={[styles.headerText, { color: colors.textSecondary }]}>Sign</Text>
+        <View style={styles.houseSignHeaderCell}>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Sign</Text>
         </View>
         <View style={styles.degreeCell}>
-          <Text style={[styles.headerText, { color: colors.textSecondary }]}>Degree</Text>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Degree</Text>
         </View>
       </View>
 
@@ -122,33 +121,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   oddRow: {
-    backgroundColor: 'rgba(128, 128, 128, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
   houseCell: {
     width: 60,
     alignItems: 'center',
   },
-  symbolCell: {
-    width: 50,
-    alignItems: 'center',
-  },
-  signCell: {
-    flex: 2,
-    paddingLeft: 8,
-  },
   houseSignCell: {
     flexDirection: 'row',
-    flex: 2,
+    flex: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  signHeaderCell: {
-    width: 50 + 8, // symbolCell width + signCell padding
-    flex: 2,
+  houseSignHeaderCell: {
+    flex: 1.5,
     alignItems: 'center',
   },
   degreeCell: {
-    flex: 1,
+    width: 60,
     alignItems: 'center',
   },
   headerText: {
@@ -165,7 +155,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   signName: {
-    fontSize: 14,
+    fontSize: 12,
   },
   degree: {
     fontSize: 12,

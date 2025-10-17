@@ -2,10 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { PlanetName, ZodiacSign } from '../../types';
 import { useTheme } from '../../theme';
+import { AstroIcon } from '../../../utils/astrologyIcons';
 import {
   PLANET_COLORS,
   getPlanetGlyph,
   getZodiacGlyph,
+  ZODIAC_COLORS,
 } from './ChartUtils';
 
 interface SynastryHousePlacementsTableProps {
@@ -37,20 +39,17 @@ const SynastryHousePlacementsTable: React.FC<SynastryHousePlacementsTableProps> 
   const { colors } = useTheme();
 
   const renderPlacementRow = (placement: any, index: number, isAinB: boolean) => {
-    const planetColor = PLANET_COLORS[placement.planet as PlanetName] || colors.onSurface;
     const position = placement.planetDegree % 30; // Position within sign
     const sourceUser = isAinB ? userAName : userBName;
     const targetUser = isAinB ? userBName : userAName;
 
     return (
       <View key={`${placement.planet}-${placement.house}-${index}`}
-            style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
+            style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow, { borderBottomColor: colors.border }]}>
 
         {/* Planet Symbol */}
-        <View style={styles.planetCell}>
-          <Text style={[styles.planetSymbol, { color: planetColor }]}>
-            {getPlanetGlyph(placement.planet as PlanetName)}
-          </Text>
+        <View style={styles.symbolCell}>
+          <AstroIcon type="planet" name={placement.planet as PlanetName} size={18} color={colors.onSurfaceVariant} />
         </View>
 
         {/* Planet Name */}
@@ -60,19 +59,17 @@ const SynastryHousePlacementsTable: React.FC<SynastryHousePlacementsTableProps> 
 
         {/* Degree */}
         <View style={styles.degreeCell}>
-          <Text style={[styles.degree, { color: colors.onSurface }]}>{position.toFixed(1)}°</Text>
+          <Text style={[styles.degree, { color: colors.onSurfaceVariant }]}>{position.toFixed(1)}°</Text>
         </View>
 
         {/* Sign Symbol */}
         <View style={styles.symbolCell}>
-          <Text style={[styles.signSymbol, { color: colors.primary }]}>
-            {getZodiacGlyph(placement.planetSign as ZodiacSign)}
-          </Text>
+          <AstroIcon type="zodiac" name={placement.planetSign as ZodiacSign} size={16} color={colors.primary} />
         </View>
 
         {/* Sign Name */}
         <View style={styles.signCell}>
-          <Text style={[styles.signName, { color: colors.onSurface }]}>{placement.planetSign}</Text>
+          <Text style={[styles.signName, { color: colors.onSurfaceVariant }]}>{placement.planetSign}</Text>
         </View>
 
         {/* House */}
@@ -99,26 +96,20 @@ const SynastryHousePlacementsTable: React.FC<SynastryHousePlacementsTableProps> 
 
         {/* Header */}
         <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
-          <View style={styles.planetCell}>
-            <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☽</Text>
-          </View>
-          <View style={styles.nameCell}>
+          <View style={styles.planetHeaderCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Planet</Text>
           </View>
           <View style={styles.degreeCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Degree</Text>
           </View>
-          <View style={styles.symbolCell}>
-            <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>♈</Text>
-          </View>
-          <View style={styles.signCell}>
+          <View style={styles.signHeaderCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Sign</Text>
           </View>
           <View style={styles.houseCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>House</Text>
           </View>
           <View style={styles.descriptionCell}>
-            <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Placement</Text>
+            <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]} numberOfLines={1}>Placement</Text>
           </View>
         </View>
 
@@ -167,10 +158,9 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#334155',
   },
   headerRow: {
     borderRadius: 6,
@@ -183,62 +173,60 @@ const styles = StyleSheet.create({
   oddRow: {
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
-  planetCell: {
-    width: 30,
+  symbolCell: {
+    width: 40,
     alignItems: 'center',
   },
   nameCell: {
-    width: 60,
-    paddingLeft: 4,
+    flex: 2,
+    paddingLeft: 8,
+  },
+  planetHeaderCell: {
+    width: 40 + 8, // symbolCell width + nameCell padding
+    flex: 2,
+    paddingLeft: 8,
   },
   degreeCell: {
-    width: 45,
-    alignItems: 'center',
-  },
-  symbolCell: {
-    width: 30,
+    width: 50,
     alignItems: 'center',
   },
   signCell: {
-    width: 60,
-    paddingLeft: 4,
+    flex: 1.5,
+    paddingLeft: 8,
+  },
+  signHeaderCell: {
+    width: 40 + 8, // symbolCell width + signCell padding
+    flex: 1.5,
+    paddingLeft: 8,
   },
   houseCell: {
     width: 40,
     alignItems: 'center',
   },
   descriptionCell: {
-    flex: 1,
+    flex: 2,
     paddingLeft: 8,
   },
   headerText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
   },
-  planetSymbol: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
   planetName: {
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: '500',
   },
   degree: {
-    fontSize: 10,
-  },
-  signSymbol: {
-    fontSize: 14,
+    fontSize: 12,
   },
   signName: {
-    fontSize: 10,
+    fontSize: 12,
   },
   house: {
-    fontSize: 11,
-    fontWeight: 'bold',
+    fontSize: 12,
   },
   description: {
-    fontSize: 10,
+    fontSize: 11,
     fontStyle: 'italic',
   },
 });

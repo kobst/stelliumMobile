@@ -216,7 +216,7 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
                       type="planet"
                       name={position.planet}
                       size={14}
-                      color={getPlanetColor(position.planet)}
+                      color={colors.onSurface}
                     />
                   </View>
                   <Text style={[styles.positionText, { color: colors.onSurface }]}>
@@ -227,7 +227,7 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
                       type="zodiac"
                       name={position.sign}
                       size={14}
-                      color={colors.primary}
+                      color={colors.onSurface}
                     />
                   </View>
                   <Text style={[styles.houseText, { color: colors.onSurfaceVariant }]}>
@@ -252,16 +252,16 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
                       type="planet"
                       name={aspect.planet1}
                       size={12}
-                      color={getPlanetColor(aspect.planet1)}
+                      color={colors.onSurface}
                     />
-                    <Text style={[styles.aspectSymbol, { color: getAspectColor(aspect.aspectType as any) }]}>
+                    <Text style={[styles.aspectSymbol, { color: colors.onSurface }]}>
                       {getAspectSymbol(aspect.aspectType)}
                     </Text>
                     <AstroIcon
                       type="planet"
                       name={aspect.planet1 === planet ? aspect.planet2 : aspect.planet1}
                       size={12}
-                      color={getPlanetColor(aspect.planet1 === planet ? aspect.planet2 : aspect.planet1)}
+                      color={colors.onSurface}
                     />
                   </View>
                   <Text style={[styles.aspectDescription, { color: colors.onSurface }]}>
@@ -293,7 +293,7 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
                     type="zodiac"
                     name={ruler.sign}
                     size={14}
-                    color={colors.primary}
+                    color={colors.onSurface}
                   />
                 </View>
               ))}

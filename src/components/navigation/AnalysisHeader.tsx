@@ -10,6 +10,7 @@ interface AnalysisHeaderProps {
   meta?: string;
   subject?: User | SubjectDocument | null; // Optional subject to display avatar for
   onAvatarLongPress?: () => void; // Optional handler for long-press on avatar (for guest photo editing)
+  hideAvatar?: boolean; // Optional flag to hide the avatar entirely
 }
 
 export const AnalysisHeader: React.FC<AnalysisHeaderProps> = ({
@@ -18,6 +19,7 @@ export const AnalysisHeader: React.FC<AnalysisHeaderProps> = ({
   meta,
   subject,
   onAvatarLongPress,
+  hideAvatar = false,
 }) => {
   const { colors } = useTheme();
 
@@ -37,14 +39,16 @@ export const AnalysisHeader: React.FC<AnalysisHeaderProps> = ({
             <Text style={[styles.meta, { color: colors.onSurfaceMed }]}>{meta}</Text>
           )}
         </View>
-        <View style={styles.avatarContainer}>
-          <ProfileAvatar
-            size={40}
-            subject={subject}
-            showOnlineIndicator={!subject}
-            onLongPress={subject ? onAvatarLongPress : undefined}
-          />
-        </View>
+        {!hideAvatar && (
+          <View style={styles.avatarContainer}>
+            <ProfileAvatar
+              size={40}
+              subject={subject}
+              showOnlineIndicator={!subject}
+              onLongPress={subject ? onAvatarLongPress : undefined}
+            />
+          </View>
+        )}
       </View>
     </View>
   );

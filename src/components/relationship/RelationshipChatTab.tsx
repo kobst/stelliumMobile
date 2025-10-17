@@ -338,9 +338,8 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
 
         {chatMessages.length === 0 && !isHistoryLoading ? (
           <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyIcon]}>💬</Text>
             <Text style={[styles.emptyTitle, { color: colors.onSurface }]}>
-              Start a Conversation
+              Ask Stellium
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.onSurfaceVariant }]}>
               Select relationship elements and/or ask questions to get personalized astrological insights about your compatibility.
@@ -522,6 +521,8 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
         selectedElements={selectedElements}
         onSelectElement={handleSelectElement}
         onClearSelection={handleClearSelection}
+        userAName={userAName}
+        userBName={userBName}
       />
     </View>
   );
@@ -554,10 +555,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 40,
     paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 20,

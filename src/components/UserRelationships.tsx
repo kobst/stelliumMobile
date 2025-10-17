@@ -6,6 +6,7 @@ import { relationshipsApi, UserCompositeChart } from '../api/relationships';
 import { parseDateStringAsLocalDate } from '../utils/dateHelpers';
 import { useTheme } from '../theme';
 import { AstroIcon } from '../../utils/astrologyIcons';
+import RelationshipAnalysisTypeIndicator from './relationship/RelationshipAnalysisTypeIndicator';
 
 interface UserRelationshipsProps {
   onRelationshipPress?: (relationship: UserCompositeChart) => void;
@@ -210,6 +211,7 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
           <View style={styles.analysisInfo}>
             <Text style={[styles.tierText, { color: colors.primary }]}>{tier} Relationship</Text>
             <Text style={[styles.profileText, { color: colors.onSurfaceVariant }]}>{profile}</Text>
+            <RelationshipAnalysisTypeIndicator compositeChartId={item._id} />
           </View>
         )}
 
