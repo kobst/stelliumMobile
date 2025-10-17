@@ -19,12 +19,11 @@ import { TopTabBar } from '../../components/navigation/TopTabBar';
 import { StickySegment } from '../../components/navigation/StickySegment';
 import { SectionSubtitle } from '../../components/navigation/SectionSubtitle';
 import ChartContainer from '../../components/chart/ChartContainer';
+import ChartWheel from '../../components/chart/ChartWheel';
 import ChartTables from '../../components/chart/ChartTables';
 import PatternsTab from '../../components/chart/PatternsTab';
 import PlanetsTab from '../../components/chart/PlanetsTab';
 import AnalysisTab from '../../components/chart/AnalysisTab';
-import BirthChartChatTab from '../../components/chart/BirthChartChatTab';
-import CompleteFullAnalysisButton from '../../components/chart/CompleteFullAnalysisButton';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { BirthChartElement } from '../../api/charts';
 import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
@@ -269,14 +268,13 @@ const ChartScreen: React.FC = () => {
   // Navigation state
   const [activeTab, setActiveTab] = useState('chart');
   const [activeSubTab, setActiveSubTab] = useState('wheel');
-  const [preSelectedChatElements, setPreSelectedChatElements] = useState<BirthChartElement[]>([]);
 
   const topTabs = [
     { label: 'Chart', routeName: 'chart' },
+    { label: 'Overview', routeName: 'overview' },
     { label: 'Patterns & Dominance', routeName: 'patterns' },
     { label: 'Planets', routeName: 'planets' },
     { label: '360 Analysis', routeName: 'analysis' },
-    { label: 'Chat', routeName: 'chat' },
   ];
 
   const chartSubTabs = [
@@ -382,20 +380,6 @@ const ChartScreen: React.FC = () => {
     }
   }, [subject?.birthChart, loadFullAnalysis]);
 
-  // Handler for "Chat about this" functionality
-  const handleChatAboutElement = (element: BirthChartElement) => {
-    setPreSelectedChatElements([element]);
-    setActiveTab('chat');
-  };
-
-  // Clear preselected elements when switching tabs
-  const handleTabPress = (tab: string) => {
-    if (tab !== 'chat') {
-      setPreSelectedChatElements([]);
-    }
-    setActiveTab(tab);
-  };
-
   const getSectionSubtitle = () => {
     switch (activeTab) {
       case 'chart':
@@ -405,8 +389,6 @@ const ChartScreen: React.FC = () => {
       case 'planets':
         return null;
       case 'analysis':
-        return null;
-      case 'chat':
         return null;
       default:
         return null;
@@ -424,72 +406,65 @@ const ChartScreen: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'chart':
-        if (activeSubTab === 'wheel') {
+        if (chartLoading) {
           return (
-            <ChartContainer
-              birthChart={subject?.birthChart}
-              loading={chartLoading}
-              error={chartError}
-              userName={getSubjectName(subject)}
-              userId={getSubjectId(subject)}
-              overview={overview}
-            />
-          );
-        } else {
-          // Tables view - import and use the actual ChartTables component
-          return (
-            <ChartTables birthChart={subject?.birthChart} />
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>Loading birth chart...</Text>
+            </View>
           );
         }
+
+        if (chartError) {
+          return (
+            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+              <Text style={[styles.errorText, { color: colors.error }]}>Failed to load chart data</Text>
+              <Text style={[styles.noOverviewText, { color: colors.onSurfaceVariant }]}>{chartError}</Text>
+            </View>
+          );
+        }
+
+        return (
+          <View style={{ flex: 1 }}>
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              <View style={[styles.wheelSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <ChartWheel
+                  birthChart={subject?.birthChart}
+                  showAspects={true}
+                  showHouses={true}
+                />
+              </View>
+              <View style={{ height: 500 }}>
+                <ChartTables birthChart={subject?.birthChart} />
+              </View>
+            </ScrollView>
+          </View>
+        );
+      case 'overview':
+        return (
+          <ScrollView
+            style={[styles.overviewContainer, { backgroundColor: colors.background }]}
+            showsVerticalScrollIndicator={false}
+          >
+            {overview ? (
+              <View style={[styles.overviewSection, { backgroundColor: colors.surface }]}>
+                <Text style={[styles.overviewText, { color: colors.onSurfaceVariant }]}>{overview}</Text>
+              </View>
+            ) : (
+              <View style={[styles.noOverviewContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[styles.noOverviewText, { color: colors.onSurfaceVariant }]}>
+                  Chart overview not available
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        );
       case 'patterns':
         return <PatternsTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       case 'planets':
         return <PlanetsTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       case 'analysis':
-        return <AnalysisTab userId={getSubjectId(subject)} />;
-      case 'chat':
-        // Show consistent loading state for chat tab during analysis
-        if (chartLoading || isAnalysisInProgress) {
-          const progressText = workflowState?.progress
-            ? `Analyzing... ${workflowState.progress.percentage}% complete (${workflowState.progress.completedTasks}/${workflowState.progress.totalTasks} tasks)`
-            : 'Loading analysis...';
-
-          return (
-            <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>{progressText}</Text>
-              {workflowState?.progress && (
-                <Text style={[styles.progressText, { color: colors.onSurfaceVariant }]}>
-                  Current phase: {workflowState.progress.currentPhase}
-                </Text>
-              )}
-            </View>
-          );
-        }
-
-        if (!hasAnalysisData) {
-          return (
-            <ScrollView style={[styles.lockedTabContainer, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
-              <View style={styles.lockedTabContent}>
-                <View style={[styles.lockedTabHeader, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.lockedTabSubtitle, { color: colors.onSurfaceVariant }]}>
-                    Chat with AI about your birth chart insights
-                  </Text>
-                </View>
-                <View style={styles.missingAnalysisContainer}>
-                  <CompleteFullAnalysisButton userId={getSubjectId(subject)} onAnalysisComplete={loadFullAnalysis} />
-                </View>
-              </View>
-            </ScrollView>
-          );
-        }
-        return (
-          <BirthChartChatTab
-            userId={getSubjectId(subject)}
-            birthChart={subject?.birthChart}
-            preSelectedElements={preSelectedChatElements}
-          />
-        );
+        return <AnalysisTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       default:
         return null;
     }
@@ -513,7 +488,7 @@ const ChartScreen: React.FC = () => {
       <TopTabBar
         items={topTabs}
         activeRoute={activeTab}
-        onTabPress={handleTabPress}
+        onTabPress={setActiveTab}
       />
 
       {/* Section Subtitle */}
@@ -522,15 +497,6 @@ const ChartScreen: React.FC = () => {
           icon={getSectionSubtitle()!.icon}
           title={getSectionSubtitle()!.title}
           desc={getSectionSubtitle()!.desc}
-        />
-      )}
-
-      {/* Sub Navigation (only for Chart tab) */}
-      {activeTab === 'chart' && (
-        <StickySegment
-          items={chartSubTabs}
-          selectedValue={activeSubTab}
-          onChange={setActiveSubTab}
         />
       )}
 
@@ -639,6 +605,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  overviewContainer: {
+    flex: 1,
+  },
+  overviewHeader: {
+    padding: 20,
+    borderRadius: 12,
+    margin: 16,
+    alignItems: 'center',
+  },
+  overviewTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  overviewSection: {
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+  },
+  overviewText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  noOverviewContainer: {
+    margin: 16,
+    padding: 32,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  noOverviewText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  wheelSection: {
+    alignItems: 'center',
+    padding: 8,
+    margin: 16,
+    marginBottom: 0,
+    borderRadius: 12,
+    borderWidth: 1,
   },
 });
 

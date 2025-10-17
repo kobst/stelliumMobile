@@ -249,31 +249,6 @@ const HoroscopeTransitsBottomSheet: React.FC<HoroscopeTransitsBottomSheetProps> 
                   onPress={() => handleTransitPress(transit)}
                   activeOpacity={0.7}
                 >
-                  {/* Selection Indicator */}
-                  <View style={styles.transitHeader}>
-                    <View style={[
-                      styles.selectionIndicator,
-                      isSelected ? styles.selectedIndicator : styles.unselectedIndicator,
-                      {
-                        backgroundColor: isSelected ? colors.primary : colors.surface,
-                        borderColor: isSelected ? colors.primary : colors.onSurfaceVariant,
-                      }
-                    ]}>
-                      {isSelected ? (
-                        <Text style={[styles.checkmark, { color: colors.onPrimary }]}>✓</Text>
-                      ) : null}
-                    </View>
-
-                    {/* Priority Indicator */}
-                    {transit.priority && transit.priority > 5 && (
-                      <View style={[styles.priorityBadge, { backgroundColor: colors.secondary }]}>
-                        <Text style={[styles.priorityText, { color: colors.onSecondary }]}>
-                          High
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
                   {/* Transit Description */}
                   <View style={styles.transitContent}>
                     <TransitDescriptionWithSymbols
@@ -312,6 +287,13 @@ const HoroscopeTransitsBottomSheet: React.FC<HoroscopeTransitsBottomSheetProps> 
                       </Text>
                     )}
                   </View>
+
+                  {/* Selection Badge (bottom-right corner) */}
+                  {isSelected && (
+                    <View style={styles.selectedBadge}>
+                      <Text style={styles.selectedCheckmark}>✓</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })
@@ -424,41 +406,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    position: 'relative',
   },
-  transitHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  selectionIndicator: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
+  selectedBadge: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#8b5cf6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
-  selectedIndicator: {
-    transform: [{ scale: 1 }],
-  },
-  unselectedIndicator: {
-    transform: [{ scale: 1 }],
-  },
-  checkmark: {
+  selectedCheckmark: {
     fontSize: 12,
     fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 'auto',
-  },
-  priorityText: {
-    fontSize: 10,
-    fontWeight: '600',
+    color: '#ffffff',
   },
   transitContent: {
     flex: 1,

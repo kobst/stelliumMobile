@@ -8,7 +8,6 @@ import {
   Alert,
   ActivityIndicator,
   TouchableOpacity,
-  Modal,
 } from 'react-native';
 import { usersApi } from '../api/users';
 import { useStore } from '../store';
@@ -40,7 +39,6 @@ const GuestUsersTab: React.FC<GuestUsersTabProps> = ({ selectedPerson, onPersonS
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState('all');
-  const [showGenderPicker, setShowGenderPicker] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
@@ -148,19 +146,41 @@ const GuestUsersTab: React.FC<GuestUsersTabProps> = ({ selectedPerson, onPersonS
           />
         </View>
 
-        <View style={styles.filterContainer}>
+        {/* Gender Filter - Radio Buttons */}
+        <View style={styles.genderFilterContainer}>
           <Text style={[styles.filterLabel, { color: colors.onSurfaceVariant }]}>Gender:</Text>
-          <TouchableOpacity
-            style={[styles.pickerButton, { backgroundColor: colors.surfaceVariant, borderColor: colors.outline }]}
-            onPress={() => setShowGenderPicker(true)}
-          >
-            <Text style={[styles.pickerButtonText, { color: colors.onSurface }]}>
-              {genderFilter === 'all' ? 'All' :
-               genderFilter === 'male' ? 'Male' :
-               genderFilter === 'female' ? 'Female' : 'Non-binary'}
-            </Text>
-            <Text style={[styles.pickerArrow, { color: colors.primary }]}>▼</Text>
-          </TouchableOpacity>
+          <View style={styles.radioButtonsContainer}>
+            {[
+              { label: 'All', value: 'all' },
+              { label: 'Female', value: 'female' },
+              { label: 'Male', value: 'male' },
+              { label: 'Other', value: 'nonbinary' },
+            ].map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={styles.radioButton}
+                onPress={() => setGenderFilter(option.value)}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.radioCircle,
+                  { borderColor: colors.outline },
+                  genderFilter === option.value && [styles.radioCircleSelected, { borderColor: colors.primary }],
+                ]}>
+                  {genderFilter === option.value && (
+                    <View style={[styles.radioCircleInner, { backgroundColor: colors.primary }]} />
+                  )}
+                </View>
+                <Text style={[
+                  styles.radioLabel,
+                  { color: colors.onSurface },
+                  genderFilter === option.value && { color: colors.primary, fontWeight: '600' },
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </View>
 
@@ -180,54 +200,6 @@ const GuestUsersTab: React.FC<GuestUsersTabProps> = ({ selectedPerson, onPersonS
         showsVerticalScrollIndicator={false}
         contentContainerStyle={filteredGuests.length === 0 ? styles.emptyContainer : undefined}
       />
-
-      {/* Gender Filter Modal */}
-      <Modal
-        visible={showGenderPicker}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowGenderPicker(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.onSurface }]}>Select Gender Filter</Text>
-            {[
-              { label: 'All', value: 'all' },
-              { label: 'Male', value: 'male' },
-              { label: 'Female', value: 'female' },
-              { label: 'Non-binary', value: 'nonbinary' },
-            ].map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.modalOption,
-                  genderFilter === option.value && [styles.modalOptionSelected, { backgroundColor: colors.primary }],
-                ]}
-                onPress={() => {
-                  setGenderFilter(option.value);
-                  setShowGenderPicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalOptionText,
-                    { color: genderFilter === option.value ? colors.onPrimary : colors.onSurface },
-                    genderFilter === option.value && styles.modalOptionTextSelected,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[styles.modalCancelButton, { backgroundColor: colors.surfaceVariant }]}
-              onPress={() => setShowGenderPicker(false)}
-            >
-              <Text style={[styles.modalCancelText, { color: colors.onSurfaceVariant }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -259,30 +231,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
   },
-  filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  genderFilterContainer: {
+    marginTop: 4,
   },
   filterLabel: {
     fontSize: 14,
     fontWeight: '500',
-    marginRight: 12,
+    marginBottom: 8,
   },
-  pickerButton: {
-    flex: 1,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+  radioButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  radioButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 16,
   },
-  pickerButtonText: {
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+  },
+  radioCircleSelected: {
+    // borderColor handled inline
+  },
+  radioCircleInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  radioLabel: {
     fontSize: 14,
-  },
-  pickerArrow: {
-    fontSize: 12,
   },
   resultsContainer: {
     paddingHorizontal: 16,
@@ -325,51 +310,6 @@ const styles = StyleSheet.create({
   helpButtonText: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    borderRadius: 12,
-    padding: 20,
-    margin: 20,
-    minWidth: 250,
-    borderWidth: 1,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  modalOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  modalOptionSelected: {
-    // backgroundColor handled inline with theme colors
-  },
-  modalOptionText: {
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  modalOptionTextSelected: {
-    fontWeight: 'bold',
-  },
-  modalCancelButton: {
-    marginTop: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  modalCancelText: {
-    fontSize: 16,
-    textAlign: 'center',
   },
 });
 

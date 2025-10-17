@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../theme';
 import { ClusterScoredItem } from '../../api/relationships';
+import AspectCard from './AspectCard';
 
 interface ConsolidatedItemsBottomSheetProps {
   visible: boolean;
@@ -19,18 +20,12 @@ interface ConsolidatedItemsBottomSheetProps {
   selectedElements: ClusterScoredItem[];
   onSelectElement: (element: ClusterScoredItem) => void;
   onClearSelection: () => void;
+  userAName?: string;
+  userBName?: string;
 }
 
 type FilterType = 'all' | 'sparks' | 'supports' | 'challenges' | 'keystones';
 type SourceType = 'synastry' | 'composite';
-
-const SPARK_TYPE_EMOJIS = {
-  sexual: '🔥',
-  transformative: '⚡️',
-  intellectual: '🧠',
-  emotional: '💖',
-  power: '👑',
-};
 
 const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> = ({
   visible,
@@ -39,6 +34,8 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
   selectedElements,
   onSelectElement,
   onClearSelection,
+  userAName = 'Person A',
+  userBName = 'Person B',
 }) => {
   const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
@@ -123,31 +120,6 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
   // Check if element is selected
   const isSelected = (element: ClusterScoredItem): boolean => {
     return selectedElements.some(selected => selected.id === element.id);
-  };
-
-  // Get element display details
-  const getElementDetails = (element: ClusterScoredItem) => {
-    const topContribution = element.clusterContributions.reduce((prev, current) =>
-      prev.score > current.score ? prev : current
-    );
-    const sparks = element.clusterContributions.filter(cc => cc.spark);
-    const maxScore = Math.max(...element.clusterContributions.map(cc => cc.score));
-
-    return { topContribution, sparks, maxScore };
-  };
-
-  // Format element title for display
-  const getElementTitle = (element: ClusterScoredItem): string => {
-    if (element.source === 'synastry' && element.type === 'aspect') {
-      return `${element.planet1} ${element.aspect} ${element.planet2}`;
-    }
-    if (element.source === 'composite' && element.type === 'aspect') {
-      return `${element.planet1} ${element.aspect} ${element.planet2}`;
-    }
-    if (element.type === 'housePlacement') {
-      return `${element.planet1} → House ${element.planet2}`;
-    }
-    return element.description?.substring(0, 40) || 'Unknown Element';
   };
 
   // Handle source filter toggle
@@ -248,9 +220,9 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
           {selectedElements.length > 0 && (
             <TouchableOpacity
               onPress={onClearSelection}
-              style={[styles.clearButton, { backgroundColor: colors.errorContainer }]}
+              style={[styles.clearButton, { backgroundColor: colors.error }]}
             >
-              <Text style={[styles.clearButtonText, { color: colors.onErrorContainer }]}>
+              <Text style={[styles.clearButtonText, { color: 'white' }]}>
                 Clear All
               </Text>
             </TouchableOpacity>
@@ -297,121 +269,18 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
               </Text>
             </View>
           ) : (
-            filteredItems.map((item) => {
-              const { topContribution, sparks, maxScore } = getElementDetails(item);
-              const selected = isSelected(item);
-
-              return (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[
-                    styles.itemCard,
-                    {
-                      backgroundColor: selected ? colors.primaryContainer : colors.surface,
-                      borderColor: selected ? colors.primary : colors.border,
-                      borderWidth: selected ? 2 : 1,
-                    },
-                  ]}
-                  onPress={() => onSelectElement(item)}
-                  activeOpacity={0.7}
-                >
-                  {/* Header with badges */}
-                  <View style={styles.itemHeader}>
-                    <View style={styles.itemBadges}>
-                      {/* Source badge */}
-                      <View style={[
-                        styles.sourceBadge,
-                        { backgroundColor: item.source === 'synastry' ? '#2196F3' : '#9C27B0' },
-                      ]}>
-                        <Text style={[styles.sourceBadgeText, { color: 'white' }]}>
-                          {item.source === 'synastry' ? 'Syn' : 'Comp'}
-                        </Text>
-                      </View>
-
-                      {/* Keystone badge */}
-                      {item.isOverallKeystone && (
-                        <View style={[styles.keystoneBadge, { backgroundColor: '#FFD700' }]}>
-                          <Text style={[styles.keystoneBadgeText, { color: '#8B4513' }]}>👑</Text>
-                        </View>
-                      )}
-
-                      {/* Spark badges */}
-                      {sparks.map((spark, index) => (
-                        <View key={index} style={styles.sparkBadge}>
-                          <Text style={styles.sparkEmoji}>
-                            {SPARK_TYPE_EMOJIS[spark.sparkType as keyof typeof SPARK_TYPE_EMOJIS] || '✨'}
-                          </Text>
-                        </View>
-                      ))}
-
-                      {/* Star rating */}
-                      {item.maxStarRating > 0 && (
-                        <Text style={styles.starRating}>
-                          {'⭐️'.repeat(Math.min(item.maxStarRating, 5))}
-                        </Text>
-                      )}
-
-                      {/* Selection checkmark */}
-                      {selected && (
-                        <View style={[styles.selectedBadge, { backgroundColor: colors.primary }]}>
-                          <Text style={[styles.selectedBadgeText, { color: colors.onPrimary }]}>✓</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Main content */}
-                  <View style={styles.itemContent}>
-                    <Text style={[
-                      styles.itemTitle,
-                      { color: selected ? colors.onPrimaryContainer : colors.onSurface },
-                    ]}>
-                      {getElementTitle(item)}
-                    </Text>
-
-                    <Text style={[
-                      styles.itemDescription,
-                      { color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
-                    ]}
-                    numberOfLines={2}>
-                      {item.description}
-                    </Text>
-
-                    {/* Bottom row with score and valence */}
-                    <View style={styles.itemBottomRow}>
-                      {/* Score badge */}
-                      <View style={[
-                        styles.scoreBadge,
-                        {
-                          backgroundColor: maxScore >= 0 ? '#10b98120' : '#ef444420',
-                        },
-                      ]}>
-                        <Text style={[
-                          styles.scoreBadgeText,
-                          { color: maxScore >= 0 ? '#10b981' : '#ef4444' },
-                        ]}>
-                          {maxScore > 0 ? '+' : ''}{maxScore.toFixed(0)}
-                        </Text>
-                      </View>
-
-                      {/* Valence indicator */}
-                      <View style={styles.valenceContainer}>
-                        <View style={[
-                          styles.valenceIndicator,
-                          { backgroundColor: topContribution.valence === 1 ? '#4CAF50' : '#F44336' },
-                        ]} />
-                        <Text style={[
-                          styles.valenceText,
-                          { color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
-                        ]}>
-                          {topContribution.valence === 1 ? 'Support' : 'Challenge'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })
+            filteredItems.map((item) => (
+              <AspectCard
+                key={item.id}
+                item={item}
+                colors={colors}
+                onPress={onSelectElement}
+                isSelected={isSelected(item)}
+                showSelection={true}
+                userAName={userAName}
+                userBName={userBName}
+              />
+            ))
           )}
         </ScrollView>
       </SafeAreaView>
@@ -524,106 +393,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     textAlign: 'center',
-  },
-  itemCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  itemBadges: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  sourceBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  sourceBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  keystoneBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  keystoneBadgeText: {
-    fontSize: 10,
-  },
-  sparkBadge: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sparkEmoji: {
-    fontSize: 12,
-  },
-  starRating: {
-    fontSize: 10,
-  },
-  selectedBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  itemContent: {
-    flex: 1,
-  },
-  itemTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  itemDescription: {
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 8,
-  },
-  itemBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  scoreBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  scoreBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  valenceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  valenceIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  valenceText: {
-    fontSize: 10,
-    fontWeight: '500',
   },
 });
 
