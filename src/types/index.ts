@@ -14,6 +14,11 @@ export interface User {
   profilePhotoUrl?: string;
   profilePhotoKey?: string;
   profilePhotoUpdatedAt?: Date;
+
+  // Subscription & Usage
+  subscription?: UserSubscription;
+  usage?: UsageMetrics;
+  entitlements?: SubscriptionEntitlements;
 }
 
 export interface Planet {
@@ -124,10 +129,70 @@ export interface RelationshipWorkflowState {
   completedWorkflowStatus?: any; // RelationshipWorkflowStatusResponse when completed
 }
 
+// Subscription & Usage Types
+export type SubscriptionTier = 'free' | 'premium' | 'pro';
+
 export interface UserSubscription {
-  plan: 'free' | 'premium' | 'pro';
-  features: string[];
-  expiresAt?: string;
+  tier: SubscriptionTier;
+  status: 'active' | 'expired' | 'cancelled' | 'trial';
+  expiresAt?: string; // ISO date string
+  renewsAt?: string; // ISO date string
+  cancelledAt?: string; // ISO date string
+  subscriptionAnniversary: string; // ISO date string - when usage resets monthly
+
+  // RevenueCat integration
+  revenueCatCustomerId?: string;
+  revenueCatEntitlementId?: string;
+
+  // Stripe integration
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+}
+
+export interface UsageMetrics {
+  // Current usage counts
+  quickChartsUsed: number;
+  quickMatchesUsed: number;
+  reportsUsed: number;
+  chatQuestionsUsed: number;
+
+  // Reset tracking
+  lastResetDate: string; // ISO date string
+  nextResetDate: string; // ISO date string - subscription anniversary
+
+  // Metadata
+  updatedAt: string; // ISO date string
+}
+
+export interface SubscriptionEntitlements {
+  // Horoscope access
+  canAccessWeeklyHoroscope: boolean;
+  canAccessDailyHoroscope: boolean;
+  canAccessMonthlyHoroscope: boolean;
+
+  // Report access
+  canGenerateNatalReport: boolean;
+  canGenerateCompatibilityReport: boolean;
+
+  // Chart access
+  canCreateQuickCharts: boolean;
+  canCreateQuickMatches: boolean;
+
+  // Chat access
+  canUseTransitChat: boolean;
+  canUseChartChat: boolean;
+  canUseRelationshipChat: boolean;
+
+  // Unlimited flags
+  hasUnlimitedCharts: boolean;
+  hasUnlimitedMatches: boolean;
+  hasUnlimitedChat: boolean;
+
+  // Limits
+  quickChartsLimit: number | 'unlimited';
+  quickMatchesLimit: number | 'unlimited';
+  reportsLimit: number;
+  chatQuestionsLimit: number | 'unlimited';
 }
 
 export type HoroscopeFilter = 'today' | 'thisWeek' | 'thisMonth' | 'chat';

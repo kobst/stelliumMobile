@@ -14,10 +14,12 @@ import LoadingScreen from './src/components/LoadingScreen';
 import SplashScreen from './src/screens/SplashScreen';
 import OnboardingCarousel from './src/screens/OnboardingCarousel';
 import {useStore} from './src/store';
-import {usersApi} from './src/api';
+import {usersApi, subscriptionsApi} from './src/api';
 import {userTransformers} from './src/transformers/user';
 import {SubjectDocument} from './src/types';
 import { ThemeProvider } from './src/theme';
+import { revenueCatService } from './src/services/RevenueCatService';
+import { superwallService } from './src/services/SuperwallService';
 
 const ONBOARDING_COMPLETE_KEY = '@stellium_onboarding_complete';
 
@@ -27,7 +29,7 @@ const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
-  const { setUserData, initializeFromStorage } = useStore();
+  const { setUserData, initializeFromStorage, updateSubscriptionData } = useStore();
 
   // Check if user has completed onboarding
   useEffect(() => {
@@ -57,6 +59,42 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error saving onboarding status:', error);
       setShowOnboarding(false);
+    }
+  };
+
+  // Initialize payment SDKs when user is authenticated
+  const initializePaymentSDKs = async (userId: string) => {
+    try {
+      console.log('App.tsx: Initializing payment SDKs for user:', userId);
+
+      // Initialize RevenueCat
+      await revenueCatService.configure(userId);
+
+      // Initialize Superwall
+      await superwallService.configure(userId);
+
+      // Fetch subscription status from backend (optional until backend implements it)
+      try {
+        const subscriptionStatus = await subscriptionsApi.getSubscriptionStatus(userId);
+
+        // Update store with subscription data
+        updateSubscriptionData({
+          subscription: subscriptionStatus.subscription,
+          usage: subscriptionStatus.usage,
+          entitlements: subscriptionStatus.entitlements,
+        });
+
+        // Update Superwall with user attributes
+        await superwallService.updateUserAttributesFromStore();
+      } catch (backendError) {
+        console.log('App.tsx: Backend subscription API not available yet, using SDK-only mode');
+        // App will work with just RevenueCat/Superwall until backend is ready
+      }
+
+      console.log('App.tsx: Payment SDKs initialized successfully');
+    } catch (error) {
+      console.error('App.tsx: Failed to initialize payment SDKs:', error);
+      // Don't block app if payment SDK init fails
     }
   };
 
@@ -91,6 +129,9 @@ const App: React.FC = () => {
             const userData = userTransformers.subjectDocumentToUser(userDocument as SubjectDocument);
             console.log('Found existing user data:', userData);
             setUserData(userData);
+
+            // Initialize payment SDKs after user data is loaded
+            await initializePaymentSDKs(currentUser.uid);
           } else {
             // User doesn't exist in backend, create placeholder data for onboarding
             console.log('User not found in backend - will show onboarding');
@@ -141,6 +182,10 @@ const App: React.FC = () => {
         console.log('App.tsx: User signed out, clearing store data');
         setUserData(null);
         setIsLoadingUserData(false);
+
+        // Reset payment SDKs on sign out
+        revenueCatService.reset();
+        superwallService.reset();
       }
     });
 

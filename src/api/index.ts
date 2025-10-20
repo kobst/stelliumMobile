@@ -10,6 +10,7 @@ export { relationshipsApi } from './relationships';
 export { celebritiesApi } from './celebrities';
 export { chatApi } from './chat';
 export { externalApi } from './external';
+export { subscriptionsApi } from './subscriptions';
 
 // Export types for convenience
 export type {
@@ -60,3 +61,16 @@ export type {
 } from './chat';
 
 export type { TimeZoneResponse } from './external';
+
+export type {
+  GetSubscriptionStatusResponse,
+  GetUsageMetricsResponse,
+  UpdateUsageRequest,
+  UpdateUsageResponse,
+  SyncRevenueCatPurchaseRequest,
+  SyncRevenueCatPurchaseResponse,
+  ValidateEntitlementRequest,
+  ValidateEntitlementResponse,
+  InitializeSubscriptionRequest,
+  InitializeSubscriptionResponse,
+} from './subscriptions';
