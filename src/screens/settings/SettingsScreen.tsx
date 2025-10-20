@@ -12,6 +12,7 @@ import { useTheme } from '../../theme';
 import ThemeToggle from '../../components/ThemeToggle';
 import { useStore } from '../../store';
 import { debugAuthState, forceSignOut, checkForCachedAuthData } from '../../utils/authHelpers';
+import { superwallService } from '../../services/SuperwallService';
 
 const SettingsScreen: React.FC = () => {
   const { colors } = useTheme();
@@ -48,6 +49,16 @@ const SettingsScreen: React.FC = () => {
 
   const handleCheckCachedData = async () => {
     await checkForCachedAuthData();
+  };
+
+  const handleTestPaywall = async () => {
+    try {
+      console.log('[Settings] Testing paywall...');
+      await superwallService.showUpgradePaywall('settings_test');
+    } catch (error) {
+      console.error('[Settings] Failed to show paywall:', error);
+      Alert.alert('Error', 'Failed to show paywall. Check console for details.');
+    }
   };
 
   return (
@@ -109,7 +120,15 @@ const SettingsScreen: React.FC = () => {
               Debug Tools
             </Text>
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.primary }]}
+              style={[styles.actionButton, { backgroundColor: '#8b5cf6' }]}
+              onPress={handleTestPaywall}
+            >
+              <Text style={[styles.actionButtonText, { color: '#ffffff' }]}>
+                🎯 Test Paywall / Purchase
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: colors.primary, marginTop: 8 }]}
               onPress={handleDebugAuth}
             >
               <Text style={[styles.actionButtonText, { color: colors.onPrimary }]}>

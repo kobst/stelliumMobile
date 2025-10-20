@@ -21,6 +21,7 @@ import {
   ImageResult,
 } from '../../utils/imageHelpers';
 import { usersApi } from '../../api/users';
+import { superwallService } from '../../services/SuperwallService';
 
 const ProfileModal: React.FC = () => {
   const { colors, theme, setTheme } = useTheme();
@@ -307,9 +308,13 @@ const ProfileModal: React.FC = () => {
               <MenuItem
                 title="Subscription and Purchases"
                 subtitle="Manage plans and perks"
-                onPress={() => {
-                  // TODO: Navigate to subscription management
-                  Alert.alert('Coming Soon', 'Subscription management will be available in a future update.');
+                onPress={async () => {
+                  try {
+                    console.log('[ProfileModal] Showing paywall...');
+                    await superwallService.showSettingsUpgradePaywall();
+                  } catch (error) {
+                    console.error('[ProfileModal] Failed to show paywall:', error);
+                  }
                 }}
               />
             </View>

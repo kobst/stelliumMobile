@@ -7,6 +7,8 @@ import {
   AnalysisWorkflowState,
   RelationshipWorkflowState,
   UserSubscription,
+  UsageMetrics,
+  SubscriptionEntitlements,
   HoroscopeFilter,
   TabName,
   Planet,
@@ -23,6 +25,8 @@ interface StoreState {
   userId: string;
   isAuthenticated: boolean;
   userSubscription: UserSubscription | null;
+  usageMetrics: UsageMetrics | null;
+  entitlements: SubscriptionEntitlements | null;
 
   // Birth Chart Data
   userPlanets: Planet[];
@@ -93,6 +97,16 @@ interface StoreState {
   addGuestSubject: (subject: User) => void;
   setSelectedSubject: (subject: User | null) => void;
 
+  // Subscription Actions
+  setSubscription: (subscription: UserSubscription | null) => void;
+  setUsageMetrics: (usage: UsageMetrics | null) => void;
+  setEntitlements: (entitlements: SubscriptionEntitlements | null) => void;
+  updateSubscriptionData: (data: {
+    subscription?: UserSubscription;
+    usage?: UsageMetrics;
+    entitlements?: SubscriptionEntitlements;
+  }) => void;
+
   // Persistence Actions
   initializeFromStorage: () => Promise<void>;
   persistUserData: () => Promise<void>;
@@ -106,6 +120,8 @@ export const useStore = create<StoreState>((set, get) => ({
   userId: '',
   isAuthenticated: false,
   userSubscription: null,
+  usageMetrics: null,
+  entitlements: null,
 
   userPlanets: [],
   userHouses: [],
@@ -262,6 +278,19 @@ export const useStore = create<StoreState>((set, get) => ({
 
   setSelectedSubject: (subject) => set({ selectedSubject: subject }),
 
+  // Subscription Actions
+  setSubscription: (subscription) => set({ userSubscription: subscription }),
+
+  setUsageMetrics: (usage) => set({ usageMetrics: usage }),
+
+  setEntitlements: (entitlements) => set({ entitlements }),
+
+  updateSubscriptionData: (data) => set((state) => ({
+    userSubscription: data.subscription !== undefined ? data.subscription : state.userSubscription,
+    usageMetrics: data.usage !== undefined ? data.usage : state.usageMetrics,
+    entitlements: data.entitlements !== undefined ? data.entitlements : state.entitlements,
+  })),
+
   // Persistence Actions
   initializeFromStorage: async () => {
     try {
@@ -309,6 +338,8 @@ export const useStore = create<StoreState>((set, get) => ({
         userId: '',
         isAuthenticated: false,
         userSubscription: null,
+        usageMetrics: null,
+        entitlements: null,
         userPlanets: [],
         userHouses: [],
         userAspects: [],
