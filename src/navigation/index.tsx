@@ -3,8 +3,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import TabNavigator from './TabNavigator';
 import UserOnboardingWizard from '../screens/UserOnboardingWizard';
+import SubscriptionScreen from '../screens/subscription/SubscriptionScreen';
 import { useStore } from '../store';
 import { ProfileModal } from '../components/profile';
+import { navigationRef } from './navigationService';
 
 const Stack = createStackNavigator();
 
@@ -28,14 +30,17 @@ const RootNavigator: React.FC = () => {
   console.log('====================\n');
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
         }}
       >
         {profileComplete ? (
-          <Stack.Screen name="Main" component={TabNavigator} />
+          <>
+            <Stack.Screen name="Main" component={TabNavigator} />
+            <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+          </>
         ) : (
           <Stack.Screen name="Onboarding" component={UserOnboardingWizard} />
         )}

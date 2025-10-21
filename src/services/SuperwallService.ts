@@ -8,11 +8,11 @@
  * - Purchase handling (delegates to RevenueCat)
  */
 
-import Superwall from '@superwall/react-native-superwall';
+import Superwall, { LogLevel, PaywallPresentationHandler, SubscriptionStatus } from '@superwall/react-native-superwall';
 import Config from 'react-native-config';
-import { revenueCatService } from './RevenueCatService';
 import { PAYWALL_EVENTS, PaywallEvent } from '../config/subscriptionConfig';
 import { useStore } from '../store';
+import { revenueCatPurchaseController } from './RevenueCatPurchaseController';
 
 class SuperwallService {
   private isConfigured = false;
@@ -30,22 +30,41 @@ class SuperwallService {
     try {
       const apiKey = Config.SUPERWALL_API_KEY;
 
+      console.log('[Superwall] Starting configuration with API key:', apiKey?.substring(0, 10) + '...');
+
       if (!apiKey || apiKey === 'your_superwall_dev_api_key_here' || apiKey === 'your_superwall_prod_api_key_here') {
         console.warn('[Superwall] API key not configured, skipping initialization');
         return;
       }
 
-      // Configure Superwall with RevenueCat as purchase controller
+      // Configure Superwall with RevenueCat purchase controller
+      console.log('[Superwall] Calling Superwall.configure with RevenueCat purchase controller...');
       await Superwall.configure({
         apiKey,
-        purchaseController: 'revenueCat',
+        purchaseController: revenueCatPurchaseController,
       });
+      console.log('[Superwall] Superwall.configure completed with purchase controller');
+
+      // Enable debug logging to help troubleshoot paywall display issues
+      console.log('[Superwall] Setting log level to Debug...');
+      await Superwall.shared.setLogLevel(LogLevel.Debug);
+      console.log('[Superwall] Debug logging enabled');
 
       // Set up event handlers first
+      console.log('[Superwall] Setting up event handlers...');
       await this.setupEventHandlers();
+      console.log('[Superwall] Event handlers set up');
 
       // Identify user
+      console.log('[Superwall] Identifying user...');
       await this.identifyUser(userId);
+
+      // Set initial subscription status to INACTIVE
+      // This will be updated by RevenueCat when customer info is available
+      // Call Superwall directly here since isConfigured is not yet true
+      console.log('[Superwall] Setting initial subscription status to INACTIVE...');
+      await Superwall.shared.setSubscriptionStatus(SubscriptionStatus.Inactive());
+      console.log('[Superwall] Initial subscription status set to INACTIVE');
 
       this.isConfigured = true;
       console.log('[Superwall] Successfully configured');
@@ -79,6 +98,25 @@ class SuperwallService {
   }
 
   /**
+   * Update subscription status
+   * Call this whenever the user's subscription status changes
+   */
+  async updateSubscriptionStatus(status: SubscriptionStatus): Promise<void> {
+    try {
+      if (!this.isConfigured) {
+        console.warn('[Superwall] SDK not configured, cannot update subscription status');
+        return;
+      }
+
+      console.log('[Superwall] Updating subscription status to:', status);
+      await Superwall.shared.setSubscriptionStatus(status);
+      console.log('[Superwall] Subscription status updated successfully');
+    } catch (error) {
+      console.error('[Superwall] Failed to update subscription status:', error);
+    }
+  }
+
+  /**
    * Set up event handlers for paywall lifecycle
    */
   private async setupEventHandlers(): Promise<void> {
@@ -101,10 +139,38 @@ class SuperwallService {
         },
 
         // Called when subscription status changes
-        subscriptionStatusDidChange: (status) => {
-          console.log('[Superwall] Subscription status changed:', status);
-          // Sync with backend
-          revenueCatService.syncCustomerInfo();
+        subscriptionStatusDidChange: (from, to) => {
+          console.log('[Superwall] Subscription status changed from:', from, 'to:', to);
+          // RevenueCat will automatically sync via its customer info listener
+        },
+
+        // Called for all Superwall events (including purchase attempts)
+        handleSuperwallEvent: (eventInfo) => {
+          console.log('[Superwall] Event:', eventInfo.event, 'Params:', eventInfo.params);
+        },
+
+        // Called when user taps custom actions in paywall
+        handleCustomPaywallAction: (name) => {
+          console.log('[Superwall] Custom paywall action:', name);
+        },
+
+        // Called when paywall will open URL
+        paywallWillOpenURL: (url) => {
+          console.log('[Superwall] Will open URL:', url);
+        },
+
+        // Called when paywall will open deep link
+        paywallWillOpenDeepLink: (url) => {
+          console.log('[Superwall] Will open deep link:', url);
+        },
+
+        // Called for log messages
+        handleLog: (level, scope, message, info, error) => {
+          if (error) {
+            console.error(`[Superwall Log] ${level} [${scope}]:`, message, error);
+          } else {
+            console.log(`[Superwall Log] ${level} [${scope}]:`, message);
+          }
         },
       });
     } catch (error) {
@@ -117,23 +183,50 @@ class SuperwallService {
    */
   async presentPaywall(event: PaywallEvent, params?: Record<string, any>): Promise<void> {
     try {
+      console.log('[Superwall] presentPaywall called with event:', event, 'params:', params);
+      console.log('[Superwall] isConfigured:', this.isConfigured);
+
       if (!this.isConfigured) {
         console.warn('[Superwall] SDK not configured, cannot present paywall');
         return;
       }
 
       console.log('[Superwall] Presenting paywall for placement:', event, params);
+      console.log('[Superwall] Calling Superwall.shared.register...');
+
+      // Create a presentation handler to get detailed status
+      const handler = new PaywallPresentationHandler();
+
+      handler.onPresent((paywallInfo) => {
+        console.log('[Superwall] Handler - onPresent called:', JSON.stringify(paywallInfo));
+      });
+
+      handler.onDismiss((paywallInfo, result) => {
+        console.log('[Superwall] Handler - onDismiss called:', JSON.stringify({ paywallInfo, result }));
+      });
+
+      handler.onError((error) => {
+        console.error('[Superwall] Handler - onError called:', error);
+      });
+
+      handler.onSkip((reason) => {
+        console.warn('[Superwall] Handler - onSkip called with reason:', JSON.stringify(reason));
+      });
 
       // Register the placement with Superwall
       await Superwall.shared.register({
         placement: event,
         params: params || {},
+        handler: handler,
       });
+
+      console.log('[Superwall] Register completed successfully');
 
       // Superwall will automatically show the appropriate paywall
       // based on your dashboard configuration
     } catch (error) {
       console.error('[Superwall] Failed to present paywall:', error);
+      console.error('[Superwall] Error details:', JSON.stringify(error));
       throw error;
     }
   }
