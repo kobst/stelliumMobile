@@ -16,10 +16,12 @@ import Purchases, {
   PurchasesStoreProduct,
   LOG_LEVEL,
 } from 'react-native-purchases';
+import { SubscriptionStatus } from '@superwall/react-native-superwall';
 import Config from 'react-native-config';
 import { subscriptionsApi } from '../api/subscriptions';
 import { useStore } from '../store';
 import { SubscriptionTier } from '../types';
+import { superwallService } from './SuperwallService';
 
 class RevenueCatService {
   private isConfigured = false;
@@ -42,25 +44,57 @@ class RevenueCatService {
         return;
       }
 
+      console.log('[RevenueCat] Starting configuration with API key:', apiKey?.substring(0, 15) + '...');
+
       // Enable debug logs in development
       if (__DEV__) {
+        console.log('[RevenueCat] Setting log level to DEBUG...');
         Purchases.setLogLevel(LOG_LEVEL.DEBUG);
       }
 
       // Configure SDK with API key
-      await Purchases.configure({
-        apiKey,
-        appUserID: userId, // Use our backend user ID
-      });
+      console.log('[RevenueCat] Calling Purchases.configure with userId:', userId);
+
+      // In development, use StoreKit Configuration file for testing
+      if (__DEV__) {
+        console.log('[RevenueCat] Development mode - enabling StoreKit2 for local testing');
+        await Purchases.configure({
+          apiKey,
+          appUserID: userId,
+          useStoreKit2IfAvailable: true,
+        });
+      } else {
+        await Purchases.configure({
+          apiKey,
+          appUserID: userId,
+        });
+      }
 
       this.isConfigured = true;
       console.log('[RevenueCat] Successfully configured for user:', userId);
 
       // Set up listener for customer info updates
+      console.log('[RevenueCat] Setting up customer info listener...');
       this.setupCustomerInfoListener();
 
       // Fetch initial customer info
+      console.log('[RevenueCat] Fetching initial customer info...');
       await this.syncCustomerInfo();
+
+      // Verify products are available
+      console.log('[RevenueCat] Verifying product offerings...');
+      const offerings = await this.getOfferings();
+      if (offerings?.current) {
+        console.log('[RevenueCat] Current offering:', offerings.current.identifier);
+        console.log('[RevenueCat] Available packages:', offerings.current.availablePackages.length);
+        offerings.current.availablePackages.forEach((pkg) => {
+          console.log(`[RevenueCat]   - ${pkg.identifier}: ${pkg.product.identifier} ($${pkg.product.price})`);
+        });
+      } else {
+        console.warn('[RevenueCat] No offerings available! This may cause purchase issues.');
+      }
+
+      console.log('[RevenueCat] Configuration complete');
     } catch (error) {
       console.error('[RevenueCat] Configuration failed:', error);
       throw error;
@@ -93,6 +127,14 @@ class RevenueCatService {
     try {
       const entitlements = customerInfo.entitlements.active;
       const hasActiveEntitlement = Object.keys(entitlements).length > 0;
+
+      // Update Superwall subscription status using factory functions
+      const superwallStatus = hasActiveEntitlement
+        ? SubscriptionStatus.Active([]) // Superwall doesn't need RevenueCat entitlements
+        : SubscriptionStatus.Inactive();
+
+      console.log('[RevenueCat] Updating Superwall subscription status to:', superwallStatus);
+      await superwallService.updateSubscriptionStatus(superwallStatus);
 
       if (hasActiveEntitlement) {
         // User has an active subscription, sync with backend
@@ -157,20 +199,24 @@ class RevenueCatService {
     error?: string;
   }> {
     try {
+      console.log('[RevenueCat] purchasePackage called with package:', packageToPurchase.identifier);
+
       if (!this.isConfigured) {
+        console.error('[RevenueCat] SDK not configured, cannot purchase');
         return {
           success: false,
           error: 'RevenueCat SDK not configured',
         };
       }
 
-      console.log('[RevenueCat] Initiating purchase:', packageToPurchase.identifier);
+      console.log('[RevenueCat] Initiating purchase for package:', packageToPurchase.identifier);
+      console.log('[RevenueCat] Product identifier:', packageToPurchase.product.identifier);
 
       const { customerInfo, productIdentifier } = await Purchases.purchasePackage(
         packageToPurchase
       );
 
-      console.log('[RevenueCat] Purchase successful:', productIdentifier);
+      console.log('[RevenueCat] Purchase successful! Product:', productIdentifier);
 
       // Sync purchase with backend
       const entitlementId = Object.keys(customerInfo.entitlements.active)[0];
@@ -312,6 +358,14 @@ class RevenueCatService {
 
       const entitlements = customerInfo.entitlements.active;
       const hasActiveEntitlement = Object.keys(entitlements).length > 0;
+
+      // Update Superwall subscription status using factory functions
+      const superwallStatus = hasActiveEntitlement
+        ? SubscriptionStatus.Active([]) // Superwall doesn't need RevenueCat entitlements
+        : SubscriptionStatus.Inactive();
+
+      console.log('[RevenueCat] Syncing - Updating Superwall subscription status to:', superwallStatus);
+      await superwallService.updateSubscriptionStatus(superwallStatus);
 
       if (hasActiveEntitlement) {
         const entitlementId = Object.keys(entitlements)[0];

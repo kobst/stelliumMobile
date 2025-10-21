@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,141 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useTheme } from '../../theme';
 import ThemeToggle from '../../components/ThemeToggle';
 import { useStore } from '../../store';
 import { debugAuthState, forceSignOut, checkForCachedAuthData } from '../../utils/authHelpers';
 import { superwallService } from '../../services/SuperwallService';
+import { revenueCatService } from '../../services/RevenueCatService';
+import { SubscriptionTier } from '../../types';
+import { CustomerInfo } from 'react-native-purchases';
 
 const SettingsScreen: React.FC = () => {
   const { colors } = useTheme();
   const { userData } = useStore();
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('free');
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+
+  // Load subscription info on mount
+  useEffect(() => {
+    loadSubscriptionInfo();
+  }, []);
+
+  const loadSubscriptionInfo = async () => {
+    try {
+      setLoadingSubscription(true);
+      const tier = await revenueCatService.getActiveTier();
+      const info = await revenueCatService.getCustomerInfo();
+      setSubscriptionTier(tier);
+      setCustomerInfo(info);
+    } catch (error) {
+      console.error('[Settings] Failed to load subscription info:', error);
+    } finally {
+      setLoadingSubscription(false);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    try {
+      console.log('[Settings] Opening upgrade paywall...');
+      await superwallService.showUpgradePaywall('settings_upgrade');
+      // Refresh subscription info after paywall closes
+      await loadSubscriptionInfo();
+    } catch (error) {
+      console.error('[Settings] Failed to show upgrade paywall:', error);
+      Alert.alert('Error', 'Failed to open upgrade options. Please try again.');
+    }
+  };
+
+  const handleRestorePurchases = async () => {
+    try {
+      console.log('[Settings] Restoring purchases...');
+      Alert.alert(
+        'Restore Purchases',
+        'Restoring your previous purchases...',
+        [],
+        { cancelable: false }
+      );
+
+      const result = await revenueCatService.restorePurchases();
+
+      if (result.success) {
+        await loadSubscriptionInfo();
+
+        const hasActiveSubscription = result.customerInfo?.entitlements.active
+          && Object.keys(result.customerInfo.entitlements.active).length > 0;
+
+        if (hasActiveSubscription) {
+          Alert.alert('Success', 'Your purchases have been restored!');
+        } else {
+          Alert.alert('No Purchases Found', 'No active subscriptions were found to restore.');
+        }
+      } else {
+        Alert.alert('Error', result.error || 'Failed to restore purchases. Please try again.');
+      }
+    } catch (error) {
+      console.error('[Settings] Failed to restore purchases:', error);
+      Alert.alert('Error', 'Failed to restore purchases. Please try again.');
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      // Open iOS subscription management in App Store
+      const url = 'https://apps.apple.com/account/subscriptions';
+      const canOpen = await Linking.canOpenURL(url);
+
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Unable to open subscription management.');
+      }
+    } catch (error) {
+      console.error('[Settings] Failed to open subscription management:', error);
+      Alert.alert('Error', 'Failed to open subscription management.');
+    }
+  };
+
+  const getSubscriptionDisplayInfo = () => {
+    if (subscriptionTier === 'free') {
+      return {
+        title: 'Free Plan',
+        subtitle: 'Limited access to features',
+        color: colors.onSurfaceVariant,
+      };
+    }
+
+    const entitlements = customerInfo?.entitlements.active;
+    if (!entitlements || Object.keys(entitlements).length === 0) {
+      return {
+        title: 'Free Plan',
+        subtitle: 'Limited access to features',
+        color: colors.onSurfaceVariant,
+      };
+    }
+
+    const entitlementId = Object.keys(entitlements)[0];
+    const entitlement = entitlements[entitlementId];
+    const expirationDate = entitlement.expirationDate;
+
+    const tierName = subscriptionTier === 'premium' ? 'Premium' : 'Pro';
+    let subtitle = 'Active subscription';
+
+    if (expirationDate) {
+      const expDate = new Date(expirationDate);
+      subtitle = `Renews ${expDate.toLocaleDateString()}`;
+    }
+
+    return {
+      title: `${tierName} Plan`,
+      subtitle,
+      color: '#8b5cf6', // Purple color for premium/pro
+    };
+  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -87,6 +212,59 @@ const SettingsScreen: React.FC = () => {
             </View>
           </View>
         )}
+
+        {/* Subscription Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.onBackground }]}>
+            Subscription
+          </Text>
+
+          {loadingSubscription ? (
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : (
+            <>
+              <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[styles.cardTitle, { color: getSubscriptionDisplayInfo().color }]}>
+                  {getSubscriptionDisplayInfo().title}
+                </Text>
+                <Text style={[styles.cardSubtitle, { color: colors.onSurfaceVariant }]}>
+                  {getSubscriptionDisplayInfo().subtitle}
+                </Text>
+              </View>
+
+              {subscriptionTier === 'free' ? (
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: '#8b5cf6', marginTop: 8 }]}
+                  onPress={handleUpgrade}
+                >
+                  <Text style={[styles.actionButtonText, { color: '#ffffff' }]}>
+                    Upgrade to Premium
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: colors.primary, marginTop: 8 }]}
+                  onPress={handleManageSubscription}
+                >
+                  <Text style={[styles.actionButtonText, { color: colors.onPrimary }]}>
+                    Manage Subscription
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: colors.secondary, marginTop: 8 }]}
+                onPress={handleRestorePurchases}
+              >
+                <Text style={[styles.actionButtonText, { color: colors.onSecondary }]}>
+                  Restore Purchases
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
 
         {/* Appearance Section */}
         <View style={styles.section}>

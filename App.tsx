@@ -67,11 +67,11 @@ const App: React.FC = () => {
     try {
       console.log('App.tsx: Initializing payment SDKs for user:', userId);
 
-      // Initialize RevenueCat
-      await revenueCatService.configure(userId);
-
-      // Initialize Superwall
+      // Initialize Superwall FIRST so it's ready to receive status updates from RevenueCat
       await superwallService.configure(userId);
+
+      // Initialize RevenueCat - this will sync customer info and update Superwall status
+      await revenueCatService.configure(userId);
 
       // Fetch subscription status from backend (optional until backend implements it)
       try {
@@ -175,6 +175,9 @@ const App: React.FC = () => {
             timezone: '',
           };
           setUserData(userData);
+
+          // Initialize payment SDKs even for new users
+          await initializePaymentSDKs(currentUser.uid);
         } finally {
           setIsLoadingUserData(false);
         }

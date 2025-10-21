@@ -21,12 +21,28 @@ import {
   ImageResult,
 } from '../../utils/imageHelpers';
 import { usersApi } from '../../api/users';
-import { superwallService } from '../../services/SuperwallService';
+import { navigate } from '../../navigation/navigationService';
 
 const ProfileModal: React.FC = () => {
   const { colors, theme, setTheme } = useTheme();
-  const { userData, profileModalVisible, setProfileModalVisible, setUserData } = useStore();
+  const { userData, profileModalVisible, setProfileModalVisible, setUserData, userSubscription } = useStore();
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const getSubscriptionBadge = () => {
+    const tier = userSubscription?.tier || 'free';
+    switch (tier) {
+      case 'free':
+        return { label: 'Free Plan', color: '#9CA3AF' };
+      case 'premium':
+        return { label: 'Premium Plan', color: '#8b5cf6' };
+      case 'pro':
+        return { label: 'Pro Plan', color: '#6366f1' };
+      default:
+        return { label: 'Free Plan', color: '#9CA3AF' };
+    }
+  };
+
+  const subscriptionBadge = getSubscriptionBadge();
 
   const handleProfilePhotoPress = () => {
     if (!userData?.id) {
@@ -285,9 +301,9 @@ const ProfileModal: React.FC = () => {
               <Text style={[styles.profileName, { color: colors.onSurface }]}>
                 {userData?.name || 'User'}
               </Text>
-              <View style={[styles.subscriptionBadge, { backgroundColor: '#9CA3AF' }]}>
+              <View style={[styles.subscriptionBadge, { backgroundColor: subscriptionBadge.color }]}>
                 <Text style={[styles.subscriptionText, { color: '#FFFFFF' }]}>
-                  Free Plan
+                  {subscriptionBadge.label}
                 </Text>
               </View>
             </View>
@@ -308,13 +324,9 @@ const ProfileModal: React.FC = () => {
               <MenuItem
                 title="Subscription and Purchases"
                 subtitle="Manage plans and perks"
-                onPress={async () => {
-                  try {
-                    console.log('[ProfileModal] Showing paywall...');
-                    await superwallService.showSettingsUpgradePaywall();
-                  } catch (error) {
-                    console.error('[ProfileModal] Failed to show paywall:', error);
-                  }
+                onPress={() => {
+                  setProfileModalVisible(false);
+                  navigate('Subscription');
                 }}
               />
             </View>

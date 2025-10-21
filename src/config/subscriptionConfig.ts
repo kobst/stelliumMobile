@@ -122,7 +122,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
       relationshipChat: true,
       unlimitedActions: false,
     },
-    revenueCatProductId: 'premium_monthly',
+    revenueCatProductId: 'com.stelliumapp.dev.premium.monthly',
     superwallPaywallId: 'premium_paywall',
     description: [
       'Your Natal Report included',
@@ -159,7 +159,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
       relationshipChat: true,
       unlimitedActions: true,
     },
-    revenueCatProductId: 'pro_monthly',
+    revenueCatProductId: 'com.stelliumapp.dev.pro.monthly',
     superwallPaywallId: 'pro_paywall',
     description: [
       'Everything in Premium',
