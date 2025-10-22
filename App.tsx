@@ -73,7 +73,7 @@ const App: React.FC = () => {
       // Initialize RevenueCat - this will sync customer info and update Superwall status
       await revenueCatService.configure(userId);
 
-      // Fetch subscription status from backend (optional until backend implements it)
+      // Fetch subscription status from backend
       try {
         const subscriptionStatus = await subscriptionsApi.getSubscriptionStatus(userId);
 
@@ -86,8 +86,31 @@ const App: React.FC = () => {
 
         // Update Superwall with user attributes
         await superwallService.updateUserAttributesFromStore();
-      } catch (backendError) {
-        console.log('App.tsx: Backend subscription API not available yet, using SDK-only mode');
+        console.log('App.tsx: Successfully loaded subscription from backend');
+      } catch (backendError: any) {
+        console.log('App.tsx: Failed to load subscription from backend:', backendError?.message);
+
+        // If user doesn't have a subscription record yet, initialize it
+        if (backendError?.status === 404 || backendError?.message?.includes('not found')) {
+          try {
+            console.log('App.tsx: No subscription found - initializing for existing user');
+            await subscriptionsApi.initializeSubscription(userId, { tier: 'free' });
+            console.log('App.tsx: Subscription initialized - retrying fetch');
+
+            // Retry fetching subscription after initialization
+            const subscriptionStatus = await subscriptionsApi.getSubscriptionStatus(userId);
+            updateSubscriptionData({
+              subscription: subscriptionStatus.subscription,
+              usage: subscriptionStatus.usage,
+              entitlements: subscriptionStatus.entitlements,
+            });
+            await superwallService.updateUserAttributesFromStore();
+          } catch (retryError) {
+            console.error('App.tsx: Failed to initialize/fetch subscription:', retryError);
+          }
+        } else {
+          console.log('App.tsx: Backend subscription API error, using SDK-only mode');
+        }
         // App will work with just RevenueCat/Superwall until backend is ready
       }
 
@@ -149,6 +172,16 @@ const App: React.FC = () => {
               timezone: '',
             };
             setUserData(userData);
+
+            // Initialize subscription record in backend for new users
+            try {
+              console.log('App.tsx: Initializing subscription for new user');
+              await subscriptionsApi.initializeSubscription(currentUser.uid, { tier: 'free' });
+              console.log('App.tsx: Subscription initialized successfully');
+            } catch (initError) {
+              console.error('App.tsx: Failed to initialize subscription:', initError);
+              // Continue anyway - subscription can be initialized later
+            }
           }
         } catch (error: any) {
           console.error('Error fetching user data from backend:', error);
@@ -175,6 +208,16 @@ const App: React.FC = () => {
             timezone: '',
           };
           setUserData(userData);
+
+          // Initialize subscription record in backend for new users
+          try {
+            console.log('App.tsx: Initializing subscription for new user');
+            await subscriptionsApi.initializeSubscription(currentUser.uid, { tier: 'free' });
+            console.log('App.tsx: Subscription initialized successfully');
+          } catch (initError) {
+            console.error('App.tsx: Failed to initialize subscription:', initError);
+            // Continue anyway - subscription can be initialized later
+          }
 
           // Initialize payment SDKs even for new users
           await initializePaymentSDKs(currentUser.uid);

@@ -34,12 +34,17 @@ const SettingsScreen: React.FC = () => {
   const loadSubscriptionInfo = async () => {
     try {
       setLoadingSubscription(true);
+      // Try to get from RevenueCat (works without backend)
       const tier = await revenueCatService.getActiveTier();
       const info = await revenueCatService.getCustomerInfo();
       setSubscriptionTier(tier);
       setCustomerInfo(info);
+      console.log('[Settings] Loaded subscription from RevenueCat:', { tier, hasInfo: !!info });
     } catch (error) {
       console.error('[Settings] Failed to load subscription info:', error);
+      // Fallback to free tier if RevenueCat fails
+      setSubscriptionTier('free');
+      setCustomerInfo(null);
     } finally {
       setLoadingSubscription(false);
     }
