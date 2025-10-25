@@ -16,9 +16,9 @@ import { subscriptionsApi } from '../../api/subscriptions';
 import { revenueCatService } from '../../services/RevenueCatService';
 import { superwallService } from '../../services/SuperwallService';
 import SubscriptionStatusCard from '../../components/subscription/SubscriptionStatusCard';
-import UsageProgressBar from '../../components/subscription/UsageProgressBar';
 import CancellationModal from '../../components/subscription/CancellationModal';
 import { getPlanConfig } from '../../config/subscriptionConfig';
+import { CreditBalanceDisplay } from '../../components/CreditBalanceDisplay';
 
 interface SubscriptionScreenProps {
   navigation: any;
@@ -29,8 +29,6 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
   const {
     userData,
     userSubscription,
-    usageMetrics,
-    entitlements,
     updateSubscriptionData,
   } = useStore();
 
@@ -39,13 +37,25 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
   const [showCancellationModal, setShowCancellationModal] = useState(false);
 
   const fetchSubscriptionData = useCallback(async (showLoader: boolean = true) => {
-    if (!userData?.id) return;
+    console.log('[SubscriptionScreen] ===== fetchSubscriptionData called =====');
+    console.log('[SubscriptionScreen] userData exists:', !!userData);
+    console.log('[SubscriptionScreen] userData?.id:', userData?.id);
+    console.log('[SubscriptionScreen] typeof userData?.id:', typeof userData?.id);
+
+    if (!userData?.id) {
+      console.log('[SubscriptionScreen] ❌ Aborting - userData.id is missing');
+      return;
+    }
+
+    console.log('[SubscriptionScreen] ✅ Calling API with userId:', userData.id);
 
     if (showLoader) setIsLoading(true);
     else setIsRefreshing(true);
 
     try {
       const data = await subscriptionsApi.getSubscriptionStatus(userData.id);
+      console.log('[SubscriptionScreen] ✅ Subscription data received:', data);
+
       updateSubscriptionData(data);
     } catch (error) {
       console.error('Failed to fetch subscription data:', error);
@@ -86,11 +96,15 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
 
   const handleExplorePlans = async () => {
     try {
-      await superwallService.showUpgradePaywall('subscription_screen');
+      console.log('[SubscriptionScreen] ===== UPGRADE BUTTON CLICKED =====');
+      console.log('[SubscriptionScreen] Calling superwallService.showSettingsUpgradePaywall...');
+      await superwallService.showSettingsUpgradePaywall();
+      console.log('[SubscriptionScreen] showSettingsUpgradePaywall completed');
       // Refresh data after potential purchase
       await fetchSubscriptionData(false);
     } catch (error) {
-      console.error('Failed to show paywall:', error);
+      console.error('[SubscriptionScreen] ===== PAYWALL ERROR =====');
+      console.error('[SubscriptionScreen] Failed to show paywall:', error);
     }
   };
 
@@ -114,8 +128,6 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
       // Update store with cancelled subscription
       updateSubscriptionData({
         subscription: result.subscription,
-        usage: usageMetrics!,
-        entitlements: entitlements!,
       });
 
       setShowCancellationModal(false);
@@ -150,7 +162,7 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
     return plan?.price ?? 0;
   };
 
-  if (isLoading || !userSubscription || !usageMetrics || !entitlements) {
+  if (isLoading || !userSubscription) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
@@ -219,43 +231,18 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
           priceMonthly={getPlanPrice(userSubscription.tier)}
         />
 
-        {/* Usage Metrics Section */}
+        {/* Credit Balance Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
-            Usage This Period
+            Credit Balance
           </Text>
 
-          <UsageProgressBar
-            label="Quick Charts"
-            used={usageMetrics.quickChartsUsed}
-            limit={entitlements.quickChartsLimit}
-            icon="📊"
-          />
+          <CreditBalanceDisplay variant="card" />
 
-          <UsageProgressBar
-            label="Quick Matches"
-            used={usageMetrics.quickMatchesUsed}
-            limit={entitlements.quickMatchesLimit}
-            icon="💝"
-          />
-
-          <UsageProgressBar
-            label="Reports"
-            used={usageMetrics.reportsUsed}
-            limit={entitlements.reportsLimit}
-            icon="📄"
-          />
-
-          <UsageProgressBar
-            label="Chat Questions"
-            used={usageMetrics.chatQuestionsUsed}
-            limit={entitlements.chatQuestionsLimit}
-            icon="💬"
-          />
-
-          <View style={[styles.resetInfo, { backgroundColor: colors.surfaceVariant }]}>
-            <Text style={[styles.resetText, { color: colors.onSurfaceVariant }]}>
-              Usage resets on {formatResetDate(usageMetrics.nextResetDate)}
+          <View style={[styles.creditInfo, { backgroundColor: colors.surfaceVariant }]}>
+            <Text style={[styles.creditInfoText, { color: colors.onSurfaceVariant }]}>
+              Your {userSubscription.tier} plan includes {userSubscription.monthlyCredits || 0} credits per month.
+              {'\n'}Credits reset on {formatResetDate(userSubscription.renewsAt)}
             </Text>
           </View>
         </View>
@@ -367,15 +354,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 16,
   },
-  resetInfo: {
+  creditInfo: {
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 4,
+    marginTop: 12,
   },
-  resetText: {
+  creditInfoText: {
     fontSize: 14,
     fontWeight: '500',
+    lineHeight: 20,
   },
   primaryButton: {
     padding: 16,

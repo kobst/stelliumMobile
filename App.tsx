@@ -63,19 +63,20 @@ const App: React.FC = () => {
   };
 
   // Initialize payment SDKs when user is authenticated
-  const initializePaymentSDKs = async (userId: string) => {
+  const initializePaymentSDKs = async (firebaseUid: string, mongoUserId: string) => {
     try {
-      console.log('App.tsx: Initializing payment SDKs for user:', userId);
+      console.log('App.tsx: Initializing payment SDKs for user:', { firebaseUid, mongoUserId });
 
       // Initialize Superwall FIRST so it's ready to receive status updates from RevenueCat
-      await superwallService.configure(userId);
+      // RevenueCat and Superwall use Firebase UID as the user identifier
+      await superwallService.configure(firebaseUid);
 
       // Initialize RevenueCat - this will sync customer info and update Superwall status
-      await revenueCatService.configure(userId);
+      await revenueCatService.configure(firebaseUid);
 
-      // Fetch subscription status from backend
+      // Fetch subscription status from backend using MongoDB ObjectId
       try {
-        const subscriptionStatus = await subscriptionsApi.getSubscriptionStatus(userId);
+        const subscriptionStatus = await subscriptionsApi.getSubscriptionStatus(mongoUserId);
 
         // Update store with subscription data
         updateSubscriptionData({
@@ -94,11 +95,11 @@ const App: React.FC = () => {
         if (backendError?.status === 404 || backendError?.message?.includes('not found')) {
           try {
             console.log('App.tsx: No subscription found - initializing for existing user');
-            await subscriptionsApi.initializeSubscription(userId, { tier: 'free' });
+            await subscriptionsApi.initializeSubscription(mongoUserId, { tier: 'free' });
             console.log('App.tsx: Subscription initialized - retrying fetch');
 
             // Retry fetching subscription after initialization
-            const subscriptionStatus = await subscriptionsApi.getSubscriptionStatus(userId);
+            const subscriptionStatus = await subscriptionsApi.getSubscriptionStatus(mongoUserId);
             updateSubscriptionData({
               subscription: subscriptionStatus.subscription,
               usage: subscriptionStatus.usage,
@@ -147,14 +148,25 @@ const App: React.FC = () => {
 
           if (response && response.success !== false) {
             // User exists in backend, transform and use existing data
-            // The getUserByFirebaseUid API returns { success: true, user: {...} }
+            console.log('[App.tsx] ===== getUserByFirebaseUid Response =====');
+            console.log('[App.tsx] Full response:', JSON.stringify(response, null, 2));
+            console.log('[App.tsx] response.user exists:', !!response.user);
+            console.log('[App.tsx] response._id:', response._id);
+            console.log('[App.tsx] ======================');
+
+            // The getUserByFirebaseUid API returns SubjectDocument directly or wrapped in { user: {...} }
             const userDocument = response.user || response;
+            console.log('[App.tsx] userDocument._id:', userDocument._id);
+            console.log('[App.tsx] userDocument keys:', Object.keys(userDocument));
+
             const userData = userTransformers.subjectDocumentToUser(userDocument as SubjectDocument);
-            console.log('Found existing user data:', userData);
+            console.log('[App.tsx] Transformed userData.id:', userData.id);
+            console.log('[App.tsx] Transformed userData:', userData);
             setUserData(userData);
 
             // Initialize payment SDKs after user data is loaded
-            await initializePaymentSDKs(currentUser.uid);
+            // Use Firebase UID for RevenueCat/Superwall, MongoDB ObjectId for subscription API
+            await initializePaymentSDKs(currentUser.uid, userData.id);
           } else {
             // User doesn't exist in backend, create placeholder data for onboarding
             console.log('User not found in backend - will show onboarding');
@@ -174,6 +186,7 @@ const App: React.FC = () => {
             setUserData(userData);
 
             // Initialize subscription record in backend for new users
+            // For new users, use Firebase UID since MongoDB ObjectId doesn't exist yet
             try {
               console.log('App.tsx: Initializing subscription for new user');
               await subscriptionsApi.initializeSubscription(currentUser.uid, { tier: 'free' });
@@ -182,6 +195,10 @@ const App: React.FC = () => {
               console.error('App.tsx: Failed to initialize subscription:', initError);
               // Continue anyway - subscription can be initialized later
             }
+
+            // Initialize payment SDKs for new users
+            // Use Firebase UID for both since MongoDB ObjectId doesn't exist yet
+            await initializePaymentSDKs(currentUser.uid, currentUser.uid);
           }
         } catch (error: any) {
           console.error('Error fetching user data from backend:', error);
@@ -210,6 +227,7 @@ const App: React.FC = () => {
           setUserData(userData);
 
           // Initialize subscription record in backend for new users
+          // For new users during error handling, we use Firebase UID as placeholder since MongoDB ID isn't created yet
           try {
             console.log('App.tsx: Initializing subscription for new user');
             await subscriptionsApi.initializeSubscription(currentUser.uid, { tier: 'free' });
@@ -220,7 +238,8 @@ const App: React.FC = () => {
           }
 
           // Initialize payment SDKs even for new users
-          await initializePaymentSDKs(currentUser.uid);
+          // For new users in error handler, use Firebase UID for both since MongoDB ID may not exist yet
+          await initializePaymentSDKs(currentUser.uid, currentUser.uid);
         } finally {
           setIsLoadingUserData(false);
         }

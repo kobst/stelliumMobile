@@ -14,7 +14,51 @@
 
   ],
   "products" : [
-
+    {
+      "displayPrice" : "7.99",
+      "familyShareable" : false,
+      "internalID" : "97763505",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.stelliumapp.dev.credits.small",
+      "referenceName" : "credits_small",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "24.99",
+      "familyShareable" : false,
+      "internalID" : "9554A819",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.stelliumapp.dev.credits.medium",
+      "referenceName" : "credits_medium",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "49.99",
+      "familyShareable" : false,
+      "internalID" : "C5EAB3BC",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.stelliumapp.dev.credits.large",
+      "referenceName" : "credits_large",
+      "type" : "Consumable"
+    }
   ],
   "settings" : {
     "_failTransactionsEnabled" : false,

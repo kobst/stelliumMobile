@@ -1,10 +1,68 @@
 /**
  * Subscription Configuration
  *
- * Defines all subscription plans, limits, features, and pricing for the Stellium app.
+ * Defines all subscription plans, credit costs, features, and pricing for the Stellium app.
+ * Updated to use credit-based system instead of individual feature limits.
  */
 
 export type SubscriptionTier = 'free' | 'premium' | 'pro';
+
+/**
+ * Credit costs for each action type
+ */
+export const CREDIT_COSTS = {
+  quickChartOverview: 5,
+  fullNatalReport: 15,
+  relationshipOverview: 5,
+  fullRelationshipReport: 15,
+  askStelliumQuestion: 1,
+} as const;
+
+export type CreditAction = keyof typeof CREDIT_COSTS;
+
+/**
+ * Monthly credit allotments per tier
+ */
+export const TIER_CREDITS: Record<SubscriptionTier, number> = {
+  free: 10,
+  premium: 200,
+  pro: 1000,
+};
+
+/**
+ * A-la-carte credit pack configurations
+ */
+export interface CreditPack {
+  id: string;
+  credits: number;
+  price: number;
+  priceDisplay: string;
+  revenueCatProductId: string;
+}
+
+export const CREDIT_PACKS: CreditPack[] = [
+  {
+    id: 'small',
+    credits: 20,
+    price: 7.99,
+    priceDisplay: '$7.99',
+    revenueCatProductId: 'com.stelliumapp.dev.credits.small',
+  },
+  {
+    id: 'medium',
+    credits: 100,
+    price: 24.99,
+    priceDisplay: '$24.99',
+    revenueCatProductId: 'com.stelliumapp.dev.credits.medium',
+  },
+  {
+    id: 'large',
+    credits: 300,
+    price: 49.99,
+    priceDisplay: '$49.99',
+    revenueCatProductId: 'com.stelliumapp.dev.credits.large',
+  },
+];
 
 export interface SubscriptionPlanConfig {
   id: SubscriptionTier;
@@ -14,13 +72,8 @@ export interface SubscriptionPlanConfig {
   priceDisplay: string;
   billingPeriod: 'month' | 'year';
 
-  // Usage limits
-  limits: {
-    quickCharts: number | 'unlimited';
-    quickMatches: number | 'unlimited';
-    reports: number;
-    chatQuestions: number | 'unlimited';
-  };
+  // Monthly credit allotment
+  monthlyCredits: number;
 
   // Feature entitlements
   features: {
@@ -67,12 +120,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
     price: 0,
     priceDisplay: 'Free',
     billingPeriod: 'month',
-    limits: {
-      quickCharts: 5,
-      quickMatches: 5,
-      reports: 0,
-      chatQuestions: 0,
-    },
+    monthlyCredits: 10,
     features: {
       weeklyHoroscope: true,
       dailyHoroscope: false,
@@ -89,10 +137,11 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
     revenueCatProductId: 'free_plan',
     superwallPaywallId: 'free_upgrade',
     description: [
-      'Your Quick Chart (at signup)',
+      '10 Credits per Month',
       'Weekly horoscope (personalized)',
-      'Any mix of 5 Quick Charts (guests) or Quick Matches (relationships/celebs) per month',
-      'No chat. Upgrade for daily/monthly, Reports, and chat.',
+      'Quick Chart Overview: 5 credits',
+      'Full Reports: 15 credits',
+      'Ask Stellium: 1 credit/question',
     ],
   },
 
@@ -100,15 +149,10 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
     id: 'premium',
     name: 'PREMIUM',
     displayName: 'Premium Plan',
-    price: 20,
-    priceDisplay: '$20/month',
+    price: 19.99,
+    priceDisplay: '$19.99/month',
     billingPeriod: 'month',
-    limits: {
-      quickCharts: 10,
-      quickMatches: 10,
-      reports: 2,
-      chatQuestions: 100,
-    },
+    monthlyCredits: 200,
     features: {
       weeklyHoroscope: true,
       dailyHoroscope: true,
@@ -125,11 +169,13 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
     revenueCatProductId: 'com.stelliumapp.dev.premium.monthly',
     superwallPaywallId: 'premium_paywall',
     description: [
-      'Your Natal Report included',
+      '200 Credits per Month',
       'Daily + Weekly + Monthly horoscopes',
-      '2 Reports/mo — Natal or Compatibility (roll for 3 months)',
-      '10 Quick Charts or Quick Matches per month',
-      '100 AI chat questions per month: Transit Chat + Chart Chat (for anyone with a Natal Report) + Relationship Chat (for any pair with a Compatibility Report)',
+      'Quick Chart Overview: 5 credits',
+      'Full Natal Report: 15 credits',
+      'Relationship Overview: 5 credits',
+      'Full Relationship Report: 15 credits',
+      'Ask Stellium: 1 credit/question',
     ],
   },
 
@@ -137,15 +183,10 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
     id: 'pro',
     name: 'PRO',
     displayName: 'Pro Plan',
-    price: 49,
-    priceDisplay: '$49/month',
+    price: 49.99,
+    priceDisplay: '$49.99/month',
     billingPeriod: 'month',
-    limits: {
-      quickCharts: 'unlimited',
-      quickMatches: 'unlimited',
-      reports: 10,
-      chatQuestions: 'unlimited',
-    },
+    monthlyCredits: 1000,
     features: {
       weeklyHoroscope: true,
       dailyHoroscope: true,
@@ -162,13 +203,20 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
     revenueCatProductId: 'com.stelliumapp.dev.pro.monthly',
     superwallPaywallId: 'pro_paywall',
     description: [
-      'Everything in Premium',
-      '10 Reports/mo (roll for 3 months)',
-      'Unlimited Quick actions (Quick Charts & Quick Matches)',
-      'Unlimited chat cap',
+      '1000 Credits per Month',
+      'Effectively Unlimited Use',
+      'All Premium Features',
+      'Perfect for astrologers & professionals',
     ],
   },
 };
+
+/**
+ * Helper function to get credit cost for an action
+ */
+export function getCreditCost(action: CreditAction): number {
+  return CREDIT_COSTS[action];
+}
 
 /**
  * Default plan for new users
