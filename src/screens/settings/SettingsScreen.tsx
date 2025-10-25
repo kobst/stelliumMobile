@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import Purchases, { PurchasesStoreProduct } from 'react-native-purchases';
 import { useTheme } from '../../theme';
 import ThemeToggle from '../../components/ThemeToggle';
 import { useStore } from '../../store';
@@ -18,6 +19,7 @@ import { superwallService } from '../../services/SuperwallService';
 import { revenueCatService } from '../../services/RevenueCatService';
 import { SubscriptionTier } from '../../types';
 import { CustomerInfo } from 'react-native-purchases';
+import { CREDIT_PACKS } from '../../config/subscriptionConfig';
 
 const SettingsScreen: React.FC = () => {
   const { colors } = useTheme();
@@ -25,6 +27,8 @@ const SettingsScreen: React.FC = () => {
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('free');
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
+  const [creditPackProducts, setCreditPackProducts] = useState<PurchasesStoreProduct[]>([]);
+  const [loadingCreditPacks, setLoadingCreditPacks] = useState(false);
 
   // Load subscription info on mount
   useEffect(() => {
@@ -191,6 +195,84 @@ const SettingsScreen: React.FC = () => {
     }
   };
 
+  const loadCreditPackProducts = async () => {
+    try {
+      setLoadingCreditPacks(true);
+      console.log('[Settings] Loading credit pack products...');
+
+      // Get all available products
+      const products = await Purchases.getProducts(
+        CREDIT_PACKS.map(pack => pack.revenueCatProductId)
+      );
+
+      console.log('[Settings] Found credit pack products:', products.length);
+      products.forEach(product => {
+        console.log(`  - ${product.identifier}: ${product.priceString}`);
+      });
+
+      setCreditPackProducts(products);
+
+      if (products.length === 0) {
+        Alert.alert(
+          'No Products Found',
+          'Could not load credit pack products. Make sure StoreKit Configuration is active.'
+        );
+      }
+    } catch (error) {
+      console.error('[Settings] Failed to load credit packs:', error);
+      Alert.alert('Error', 'Failed to load credit pack products. Check console.');
+    } finally {
+      setLoadingCreditPacks(false);
+    }
+  };
+
+  const handlePurchaseCreditPack = async (product: PurchasesStoreProduct) => {
+    try {
+      console.log('[Settings] Purchasing credit pack:', product.identifier);
+
+      Alert.alert(
+        'Test Purchase',
+        `Attempting to purchase ${product.title} for ${product.priceString}. This is a test - no real money will be charged.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Continue',
+            onPress: async () => {
+              try {
+                const { customerInfo } = await Purchases.purchaseStoreProduct(product);
+
+                console.log('[Settings] Purchase successful!');
+                console.log('[Settings] Customer info:', customerInfo);
+
+                Alert.alert(
+                  'Purchase Successful! 🎉',
+                  `Test purchase of ${product.title} completed.\n\n` +
+                  `In production, this would:\n` +
+                  `1. Trigger RevenueCat webhook\n` +
+                  `2. Backend would add credits\n` +
+                  `3. User would see updated balance`
+                );
+              } catch (purchaseError: any) {
+                console.error('[Settings] Purchase failed:', purchaseError);
+
+                if (purchaseError.userCancelled) {
+                  Alert.alert('Cancelled', 'Purchase was cancelled.');
+                } else {
+                  Alert.alert(
+                    'Purchase Failed',
+                    purchaseError.message || 'Unknown error occurred'
+                  );
+                }
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('[Settings] Purchase error:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -329,6 +411,74 @@ const SettingsScreen: React.FC = () => {
           </View>
         )}
 
+        {/* Credit Pack Testing (Development only) */}
+        {__DEV__ && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.onBackground }]}>
+              🧪 Credit Pack Testing
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#10b981', marginBottom: 12 }]}
+              onPress={loadCreditPackProducts}
+              disabled={loadingCreditPacks}
+            >
+              {loadingCreditPacks ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={[styles.actionButtonText, { color: '#ffffff' }]}>
+                  Load Credit Pack Products
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {creditPackProducts.length > 0 && (
+              <View>
+                <Text style={[styles.subsectionTitle, { color: colors.onSurfaceVariant }]}>
+                  Available Products ({creditPackProducts.length}):
+                </Text>
+                {creditPackProducts.map((product) => {
+                  const packInfo = CREDIT_PACKS.find(p => p.revenueCatProductId === product.identifier);
+                  return (
+                    <View
+                      key={product.identifier}
+                      style={[styles.productCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    >
+                      <View style={styles.productInfo}>
+                        <Text style={[styles.productTitle, { color: colors.onSurface }]}>
+                          {product.title}
+                        </Text>
+                        <Text style={[styles.productDescription, { color: colors.onSurfaceVariant }]}>
+                          {packInfo?.credits || '?'} credits • {product.priceString}
+                        </Text>
+                        <Text style={[styles.productId, { color: colors.onSurfaceVariant }]}>
+                          ID: {product.identifier}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.buyButton, { backgroundColor: colors.primary }]}
+                        onPress={() => handlePurchaseCreditPack(product)}
+                      >
+                        <Text style={[styles.buyButtonText, { color: colors.onPrimary }]}>
+                          Test Buy
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {!loadingCreditPacks && creditPackProducts.length === 0 && (
+              <View style={[styles.infoCard, { backgroundColor: colors.surfaceVariant }]}>
+                <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
+                  Tap "Load Credit Pack Products" to verify StoreKit configuration.
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* About Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.onBackground }]}>
@@ -400,6 +550,55 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  subsectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  productCard: {
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  productInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  productTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  productDescription: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  productId: {
+    fontSize: 11,
+    fontFamily: 'Courier',
+  },
+  buyButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  buyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  infoCard: {
+    padding: 12,
+    borderRadius: 8,
+  },
+  infoText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
 

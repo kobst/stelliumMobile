@@ -8,11 +8,12 @@
  * - Purchase handling (delegates to RevenueCat)
  */
 
-import Superwall, { LogLevel, PaywallPresentationHandler, SubscriptionStatus } from '@superwall/react-native-superwall';
+import Superwall, { LogLevel, PaywallPresentationHandler, SubscriptionStatus, InterfaceStyle } from '@superwall/react-native-superwall';
 import Config from 'react-native-config';
 import { PAYWALL_EVENTS, PaywallEvent } from '../config/subscriptionConfig';
 import { useStore } from '../store';
 import { revenueCatPurchaseController } from './RevenueCatPurchaseController';
+import { ColorSchemeName } from 'react-native';
 
 class SuperwallService {
   private isConfigured = false;
@@ -412,6 +413,26 @@ class SuperwallService {
    */
   isReady(): boolean {
     return this.isConfigured;
+  }
+
+  /**
+   * Set interface style (light/dark) for paywall appearance
+   * Call this when app theme changes
+   */
+  async setInterfaceStyle(colorScheme: ColorSchemeName): Promise<void> {
+    try {
+      if (!this.isConfigured) {
+        console.warn('[Superwall] SDK not configured, cannot set interface style');
+        return;
+      }
+
+      const style = colorScheme === 'dark' ? InterfaceStyle.Dark : InterfaceStyle.Light;
+      console.log('[Superwall] Setting interface style to:', colorScheme, '→', style);
+      await Superwall.shared.setInterfaceStyle(style);
+      console.log('[Superwall] Interface style updated successfully');
+    } catch (error) {
+      console.error('[Superwall] Failed to set interface style:', error);
+    }
   }
 }
 
