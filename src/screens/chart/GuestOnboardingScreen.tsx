@@ -6,6 +6,7 @@ import { externalApi } from '../../api';
 import { usersApi } from '../../api';
 import { useStore } from '../../store';
 import { uploadProfilePhotoPresigned } from '../../utils/imageHelpers';
+import { useCreditsGate } from '../../hooks/useCreditsGate';
 
 import { WizardContainer } from '../../components/onboarding/WizardContainer';
 import { GuestNameGenderStep } from '../../components/onboarding/steps/GuestNameGenderStep';
@@ -19,6 +20,9 @@ const GuestOnboardingScreen: React.FC = () => {
   const route = useRoute<any>();
   const { userData } = useStore();
   const { onGuestCreated } = route.params || {};
+
+  // Credits gate hook
+  const { checkAndProceed, isChecking } = useCreditsGate();
 
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -131,9 +135,14 @@ const GuestOnboardingScreen: React.FC = () => {
       return;
     }
 
-    setIsSubmitting(true);
+    // Check credits and proceed with birth chart creation
+    const allowed = await checkAndProceed({
+      action: 'quickChartOverview',
+      source: 'guest_onboarding',
+      onProceed: async () => {
+        setIsSubmitting(true);
 
-    try {
+        try {
       // Convert date fields to frontend format
       const date = `${birthYear}-${birthMonth.padStart(2, '0')}-${birthDay.padStart(2, '0')}`;
       console.log('Formatted date:', date);
@@ -241,16 +250,23 @@ const GuestOnboardingScreen: React.FC = () => {
         onGuestCreated();
       }
 
-      navigation.goBack();
+          navigation.goBack();
 
-    } catch (error: any) {
-      console.error('\n=== GUEST FORM SUBMISSION ERROR ===');
-      console.error('Error details:', error);
-      console.error('Error stack:', error.stack);
-      console.error('===========================\n');
-      Alert.alert('Error', error.message || 'An error occurred while creating the guest profile. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+        } catch (error: any) {
+          console.error('\n=== GUEST FORM SUBMISSION ERROR ===');
+          console.error('Error details:', error);
+          console.error('Error stack:', error.stack);
+          console.error('===========================\n');
+          Alert.alert('Error', error.message || 'An error occurred while creating the guest profile. Please try again.');
+          throw error; // Re-throw to let credit gate handle it
+        } finally {
+          setIsSubmitting(false);
+        }
+      },
+    });
+
+    if (!allowed) {
+      console.log('Guest Onboarding - User did not have enough credits or cancelled paywall');
     }
   };
 
@@ -335,15 +351,15 @@ const GuestOnboardingScreen: React.FC = () => {
       <WizardContainer
         totalSteps={4}
         onComplete={handleSubmit}
-        canGoNext={getStepValidation(currentStep) && !isSubmitting}
-        canGoBack={!isSubmitting}
+        canGoNext={getStepValidation(currentStep) && !isSubmitting && !isChecking}
+        canGoBack={!isSubmitting && !isChecking}
         currentStep={currentStep}
         onStepChange={handleStepChange}
-        completeButtonText="Create Chart"
+        completeButtonText={isChecking ? "Checking credits..." : "Create Chart (5 credits)"}
       >
         {steps}
       </WizardContainer>
-      <LoadingOverlay visible={isSubmitting} />
+      <LoadingOverlay visible={isSubmitting || isChecking} />
     </>
   );
 };

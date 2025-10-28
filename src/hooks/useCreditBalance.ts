@@ -1,8 +1,10 @@
 /**
- * useCreditBalance Hook
+ * useCreditBalance Hook - Dual-Credit System
  *
  * React hook for managing credit balance in components.
  * Automatically fetches balance, subscribes to updates, and provides helper functions.
+ *
+ * Returns breakdown of monthly and pack credits.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -70,7 +72,7 @@ export function useCreditBalance() {
   // Check if user has enough credits for an action
   const hasEnoughCredits = useCallback((action: CreditAction): boolean => {
     return creditService.hasEnoughCredits(action);
-  }, [balance?.credits]); // Re-check when balance changes
+  }, [balance?.total]); // Re-check when total changes
 
   // Get cost for an action
   const getCost = useCallback((action: CreditAction): number => {
@@ -88,20 +90,31 @@ export function useCreditBalance() {
   }, []);
 
   return {
+    // Full balance object
     balance,
     loading,
     error,
     refreshBalance,
+
+    // Actions
     hasEnoughCredits,
     getCost,
     deductCredits,
     addCredits,
-    // Helper values
-    credits: balance?.credits ?? 0,
-    monthlyCredits: balance?.monthlyCredits ?? 0,
+
+    // Dual-Credit Breakdown (NEW)
+    total: balance?.total ?? 0,                        // Total available
+    monthly: balance?.monthlyRemaining ?? 0,           // Monthly remaining
+    pack: balance?.packBalance ?? 0,                   // Pack balance
+    monthlyLimit: balance?.monthlyAllotment ?? 0,      // Monthly allotment
     tier: balance?.tier ?? 'free',
+
+    // Helper values
     isBalanceLow: creditService.isBalanceLow(),
+    isMonthlyDepleted: creditService.isMonthlyDepleted(),
+    monthlyProgress: creditService.getMonthlyProgress(),
     formattedBalance: creditService.getFormattedBalance(),
+    totalString: creditService.getTotalString(),
     statusColor: creditService.getBalanceStatusColor(),
   };
 }

@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import TabNavigator from './TabNavigator';
 import UserOnboardingWizard from '../screens/UserOnboardingWizard';
 import SubscriptionScreen from '../screens/subscription/SubscriptionScreen';
+import CreditPurchaseScreen from '../screens/CreditPurchaseScreen';
 import { useStore } from '../store';
 import { ProfileModal } from '../components/profile';
 import { navigationRef } from './navigationService';
@@ -40,6 +41,7 @@ const RootNavigator: React.FC = () => {
           <>
             <Stack.Screen name="Main" component={TabNavigator} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            <Stack.Screen name="CreditPurchase" component={CreditPurchaseScreen} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={UserOnboardingWizard} />
