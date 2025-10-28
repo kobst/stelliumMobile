@@ -245,6 +245,77 @@ class RevenueCatService {
   }
 
   /**
+   * Purchase a product by product ID (for consumables like credit packs)
+   */
+  async purchaseProduct(
+    productId: string
+  ): Promise<{
+    success: boolean;
+    customerInfo?: CustomerInfo;
+    error?: string;
+  }> {
+    try {
+      console.log('[RevenueCat] purchaseProduct called with productId:', productId);
+
+      if (!this.isConfigured) {
+        console.error('[RevenueCat] SDK not configured, cannot purchase');
+        return {
+          success: false,
+          error: 'RevenueCat SDK not configured',
+        };
+      }
+
+      // Get all available products
+      console.log('[RevenueCat] Fetching product for:', productId);
+      const products = await Purchases.getProducts([productId]);
+
+      if (!products || products.length === 0) {
+        console.error('[RevenueCat] Product not found:', productId);
+        return {
+          success: false,
+          error: 'Product not found',
+        };
+      }
+
+      const product = products[0];
+      console.log('[RevenueCat] Product found:', product.identifier, 'Price:', product.priceString);
+
+      // Purchase the product
+      console.log('[RevenueCat] Initiating purchase for product:', product.identifier);
+      const { customerInfo } = await Purchases.purchaseStoreProduct(product);
+
+      console.log('[RevenueCat] Purchase successful! Product:', product.identifier);
+      console.log('[RevenueCat] Customer info:', customerInfo);
+
+      // For consumables, we don't sync via entitlements (they don't create entitlements)
+      // Instead, the backend webhook will handle adding credits
+      // Just refresh the customer info
+      await this.syncCustomerInfo();
+
+      return {
+        success: true,
+        customerInfo,
+      };
+    } catch (error: any) {
+      console.error('[RevenueCat] Purchase failed:', error);
+
+      // Check if user cancelled
+      if (error.userCancelled) {
+        console.log('[RevenueCat] User cancelled purchase');
+        return {
+          success: false,
+          error: 'Purchase cancelled',
+        };
+      }
+
+      return {
+        success: false,
+        error: error.message || 'Purchase failed',
+      };
+    }
+  }
+
+  /**
    * Restore purchases
    */
   async restorePurchases(): Promise<{

@@ -16,6 +16,7 @@ import GuestUsersTab from '../../components/GuestUsersTab';
 import CelebritiesTab from '../../components/CelebritiesTab';
 import { useTheme } from '../../theme';
 import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
+import { useCreditsGate } from '../../hooks/useCreditsGate';
 
 interface GuestUser {
   _id: string;
@@ -38,6 +39,10 @@ const CreateRelationshipScreen: React.FC = () => {
   const navigation = useNavigation();
   const { userData } = useStore();
   const { colors } = useTheme();
+
+  // Credits gate hook
+  const { checkAndProceed, isChecking } = useCreditsGate();
+
   const [activeTab, setActiveTab] = useState('guests');
   const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -63,14 +68,19 @@ const CreateRelationshipScreen: React.FC = () => {
       return;
     }
 
-    setIsCreating(true);
+    // Check credits and proceed with relationship creation
+    const allowed = await checkAndProceed({
+      action: 'relationshipOverview',
+      source: 'create_relationship',
+      onProceed: async () => {
+        setIsCreating(true);
 
-    try {
-      const result = await relationshipsApi.enhancedRelationshipAnalysis(
-        currentUserId,
-        selectedPerson._id,
-        currentUserId // ownerUserId
-      );
+        try {
+          const result = await relationshipsApi.enhancedRelationshipAnalysis(
+            currentUserId,
+            selectedPerson._id,
+            currentUserId // ownerUserId
+          );
 
       if (result.success && result.compositeChartId) {
         console.log('Enhanced relationship analysis result:', result);
@@ -135,17 +145,24 @@ const CreateRelationshipScreen: React.FC = () => {
             },
           ]
         );
-      } else {
-        throw new Error('Failed to create relationship - invalid response');
-      }
-    } catch (error: any) {
-      console.error('Error creating V3 relationship:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to create relationship. Please try again.'
-      );
-    } finally {
-      setIsCreating(false);
+          } else {
+            throw new Error('Failed to create relationship - invalid response');
+          }
+        } catch (error: any) {
+          console.error('Error creating V3 relationship:', error);
+          Alert.alert(
+            'Error',
+            error.message || 'Failed to create relationship. Please try again.'
+          );
+          throw error; // Re-throw to let credit gate handle it
+        } finally {
+          setIsCreating(false);
+        }
+      },
+    });
+
+    if (!allowed) {
+      console.log('Create Relationship - User did not have enough credits or cancelled paywall');
     }
   };
 
@@ -239,17 +256,26 @@ const CreateRelationshipScreen: React.FC = () => {
           </View>
 
           <TouchableOpacity
-            style={[styles.createButton, { backgroundColor: colors.primary }, isCreating && [styles.createButtonDisabled, { backgroundColor: colors.onSurfaceVariant }]]}
+            style={[
+              styles.createButton,
+              { backgroundColor: colors.primary },
+              (isCreating || isChecking) && [styles.createButtonDisabled, { backgroundColor: colors.onSurfaceVariant }]
+            ]}
             onPress={handleCreateRelationship}
-            disabled={isCreating}
+            disabled={isCreating || isChecking}
           >
-            {isCreating ? (
+            {isChecking ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={colors.onPrimary} />
+                <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>Checking credits...</Text>
+              </View>
+            ) : isCreating ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={colors.onPrimary} />
                 <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>Creating...</Text>
               </View>
             ) : (
-              <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>✨ Create Relationship</Text>
+              <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>✨ Create Relationship (5 credits)</Text>
             )}
           </TouchableOpacity>
         </View>

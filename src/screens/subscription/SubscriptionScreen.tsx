@@ -19,6 +19,7 @@ import SubscriptionStatusCard from '../../components/subscription/SubscriptionSt
 import CancellationModal from '../../components/subscription/CancellationModal';
 import { getPlanConfig } from '../../config/subscriptionConfig';
 import { CreditBalanceDisplay } from '../../components/CreditBalanceDisplay';
+import { useCreditBalance } from '../../hooks/useCreditBalance';
 
 interface SubscriptionScreenProps {
   navigation: any;
@@ -31,6 +32,15 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
     userSubscription,
     updateSubscriptionData,
   } = useStore();
+
+  const {
+    total,
+    monthly,
+    pack,
+    monthlyLimit,
+    monthlyProgress,
+    isMonthlyDepleted,
+  } = useCreditBalance();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -237,12 +247,71 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
             Credit Balance
           </Text>
 
-          <CreditBalanceDisplay variant="card" />
+          {/* Total Credits Card */}
+          <View style={[styles.totalCreditsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.totalCreditsLabel, { color: colors.onSurfaceVariant }]}>
+              Total Available
+            </Text>
+            <Text style={[styles.totalCreditsValue, { color: colors.onSurface }]}>
+              {total} Credits
+            </Text>
+          </View>
 
+          {/* Monthly Credits Section */}
+          <View style={[styles.creditDetailCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.creditDetailHeader}>
+              <Text style={[styles.creditDetailLabel, { color: colors.onSurface }]}>
+                Monthly Credits
+              </Text>
+              <Text style={[styles.creditDetailValue, { color: colors.onSurface }]}>
+                {monthly}/{monthlyLimit}
+              </Text>
+            </View>
+
+            {/* Progress Bar */}
+            <View style={[styles.progressBarBackground, { backgroundColor: colors.surfaceVariant }]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    backgroundColor: isMonthlyDepleted ? colors.error : colors.primary,
+                    width: `${monthlyProgress}%`,
+                  },
+                ]}
+              />
+            </View>
+
+            <Text style={[styles.creditDetailSubtext, { color: colors.onSurfaceVariant }]}>
+              {isMonthlyDepleted
+                ? 'Monthly credits used up for this period'
+                : `${monthly} credits remaining this month`}
+            </Text>
+            <Text style={[styles.creditDetailSubtext, { color: colors.onSurfaceVariant }]}>
+              Resets on {formatResetDate(userSubscription.renewsAt)}
+            </Text>
+          </View>
+
+          {/* Pack Credits Section */}
+          <View style={[styles.creditDetailCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.creditDetailHeader}>
+              <Text style={[styles.creditDetailLabel, { color: colors.onSurface }]}>
+                Pack Credits
+              </Text>
+              <Text style={[styles.creditDetailValue, { color: colors.onSurface }]}>
+                {pack}
+              </Text>
+            </View>
+            <Text style={[styles.creditDetailSubtext, { color: colors.onSurfaceVariant }]}>
+              {pack > 0
+                ? 'Never expire • Used after monthly credits'
+                : 'Purchase credit packs for extra credits'}
+            </Text>
+          </View>
+
+          {/* Info Box */}
           <View style={[styles.creditInfo, { backgroundColor: colors.surfaceVariant }]}>
             <Text style={[styles.creditInfoText, { color: colors.onSurfaceVariant }]}>
-              Your {userSubscription.tier} plan includes {userSubscription.monthlyCredits || 0} credits per month.
-              {'\n'}Credits reset on {formatResetDate(userSubscription.renewsAt)}
+              Your {userSubscription.tier} plan includes {monthlyLimit} credits per month. Monthly credits are used first, then pack credits.
             </Text>
           </View>
         </View>
@@ -255,6 +324,15 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
           >
             <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
               {userSubscription.tier === 'free' ? 'Upgrade Plan' : 'Explore Other Plans'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.secondaryButton, { borderColor: colors.primary }]}
+            onPress={() => navigation.navigate('CreditPurchase', { source: 'subscription_screen' })}
+          >
+            <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>
+              Buy Credit Packs
             </Text>
           </TouchableOpacity>
 
@@ -354,10 +432,63 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 16,
   },
+  totalCreditsCard: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  totalCreditsLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  totalCreditsValue: {
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  creditDetailCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  creditDetailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  creditDetailLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  creditDetailValue: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  creditDetailSubtext: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  progressBarBackground: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
   creditInfo: {
     padding: 12,
     borderRadius: 8,
-    marginTop: 12,
+    marginTop: 4,
   },
   creditInfoText: {
     fontSize: 14,

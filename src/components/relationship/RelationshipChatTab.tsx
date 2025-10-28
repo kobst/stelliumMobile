@@ -4,6 +4,7 @@ import { useTheme } from '../../theme';
 import { ClusterScoredItem } from '../../api/relationships';
 import { relationshipsApi } from '../../api/relationships';
 import ConsolidatedItemsBottomSheet from './ConsolidatedItemsBottomSheet';
+import { useCreditsGate } from '../../hooks/useCreditsGate';
 
 interface ChatMessage {
   id: string;
@@ -33,6 +34,9 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
 }) => {
   const { colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Credits gate hook
+  const { checkAndProceed, isChecking, canAfford } = useCreditsGate();
 
   // State management
   const [selectedElements, setSelectedElements] = useState<ClusterScoredItem[]>(preSelectedItems);
@@ -212,75 +216,87 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
+    // Check credits and proceed with chat message
+    const allowed = await checkAndProceed({
+      action: 'askStelliumQuestion',
+      source: 'relationship_chat',
+      onProceed: async () => {
+        setIsLoading(true);
+        setError(null);
 
-    // Create request body based on mode
-    const requestBody: { query?: string; scoredItems?: ClusterScoredItem[] } = {};
-    if (query.trim()) {
-      requestBody.query = query.trim();
-    }
-    if (selectedElements.length > 0) {
-      requestBody.scoredItems = selectedElements;
-    }
+        // Create request body based on mode
+        const requestBody: { query?: string; scoredItems?: ClusterScoredItem[] } = {};
+        if (query.trim()) {
+          requestBody.query = query.trim();
+        }
+        if (selectedElements.length > 0) {
+          requestBody.scoredItems = selectedElements;
+        }
 
-    // Add user message to chat if there's a query
-    if (query.trim()) {
-      const userMessage: ChatMessage = {
-        id: `user-${Date.now()}`,
-        type: 'user',
-        content: query.trim(),
-        timestamp: new Date(),
-        selectedElements: selectedElements.length > 0 ? [...selectedElements] : undefined,
-      };
-      setChatMessages(prev => [...prev, userMessage]);
-    }
+        // Add user message to chat if there's a query
+        if (query.trim()) {
+          const userMessage: ChatMessage = {
+            id: `user-${Date.now()}`,
+            type: 'user',
+            content: query.trim(),
+            timestamp: new Date(),
+            selectedElements: selectedElements.length > 0 ? [...selectedElements] : undefined,
+          };
+          setChatMessages(prev => [...prev, userMessage]);
+        }
 
-    // Add loading message
-    const loadingId = `loading-${Date.now()}`;
-    setChatMessages(prev => [...prev, {
-      id: loadingId,
-      type: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      loading: true,
-    }]);
-
-    try {
-      const response = await relationshipsApi.enhancedChatForRelationship(compositeChartId, requestBody);
-
-      if (response.success) {
-        // Remove loading message and add actual response
-        setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
-
-        const assistantMessage: ChatMessage = {
-          id: `assistant-${Date.now()}`,
+        // Add loading message
+        const loadingId = `loading-${Date.now()}`;
+        setChatMessages(prev => [...prev, {
+          id: loadingId,
           type: 'assistant',
-          content: response.analysis || response.answer, // Handle both field names for compatibility
+          content: '',
           timestamp: new Date(),
-          mode: response.mode,
-        };
-        setChatMessages(prev => [...prev, assistantMessage]);
+          loading: true,
+        }]);
 
-        // Clear form after successful submission
-        setQuery('');
-        setSelectedElements([]);
-      } else {
-        throw new Error(response.error || 'Failed to get response');
-      }
-    } catch (err) {
-      // Remove loading message and add error
-      setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
+        try {
+          const response = await relationshipsApi.enhancedChatForRelationship(compositeChartId, requestBody);
 
-      const errorMessage: ChatMessage = {
-        id: `error-${Date.now()}`,
-        type: 'error',
-        content: err instanceof Error ? err.message : 'An error occurred while processing your request',
-        timestamp: new Date(),
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+          if (response.success) {
+            // Remove loading message and add actual response
+            setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
+
+            const assistantMessage: ChatMessage = {
+              id: `assistant-${Date.now()}`,
+              type: 'assistant',
+              content: response.analysis || response.answer, // Handle both field names for compatibility
+              timestamp: new Date(),
+              mode: response.mode,
+            };
+            setChatMessages(prev => [...prev, assistantMessage]);
+
+            // Clear form after successful submission
+            setQuery('');
+            setSelectedElements([]);
+          } else {
+            throw new Error(response.error || 'Failed to get response');
+          }
+        } catch (err) {
+          // Remove loading message and add error
+          setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
+
+          const errorMessage: ChatMessage = {
+            id: `error-${Date.now()}`,
+            type: 'error',
+            content: err instanceof Error ? err.message : 'An error occurred while processing your request',
+            timestamp: new Date(),
+          };
+          setChatMessages(prev => [...prev, errorMessage]);
+          throw err; // Re-throw to let credit gate handle it
+        } finally {
+          setIsLoading(false);
+        }
+      },
+    });
+
+    if (!allowed) {
+      console.log('Relationship Chat - User did not have enough credits or cancelled paywall');
     }
   };
 
@@ -486,20 +502,20 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
 
             <TouchableOpacity
               onPress={handleSubmit}
-              disabled={!currentMode || isLoading}
+              disabled={!currentMode || isLoading || isChecking}
               style={[
                 styles.sendButton,
                 {
-                  backgroundColor: currentMode && !isLoading ? colors.primary : colors.surfaceVariant,
-                  opacity: currentMode && !isLoading ? 1 : 0.5,
+                  backgroundColor: currentMode && !isLoading && !isChecking ? colors.primary : colors.surfaceVariant,
+                  opacity: currentMode && !isLoading && !isChecking ? 1 : 0.5,
                 },
               ]}
             >
               <Text style={[
                 styles.sendButtonText,
-                { color: currentMode && !isLoading ? colors.onPrimary : colors.onSurfaceVariant },
+                { color: currentMode && !isLoading && !isChecking ? colors.onPrimary : colors.onSurfaceVariant },
               ]}>
-                Send
+                {isChecking ? 'Checking...' : isLoading ? 'Sending...' : 'Send (1 credit)'}
               </Text>
             </TouchableOpacity>
           </View>

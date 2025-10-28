@@ -4,6 +4,7 @@ import { useTheme } from '../../theme';
 import { BirthChartElement, BirthChartChatMessage, chartsApi } from '../../api/charts';
 import { BirthChart } from '../../types';
 import BirthChartElementsBottomSheet from './BirthChartElementsBottomSheet';
+import { useCreditsGate } from '../../hooks/useCreditsGate';
 
 interface BirthChartChatTabProps {
   userId: string;
@@ -18,6 +19,9 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
 }) => {
   const { colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Credits gate hook
+  const { checkAndProceed, isChecking, canAfford } = useCreditsGate();
 
   // State management
   const [selectedElements, setSelectedElements] = useState<BirthChartElement[]>(preSelectedElements);
@@ -210,81 +214,93 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
+    // Check credits and proceed with chat message
+    const allowed = await checkAndProceed({
+      action: 'askStelliumQuestion',
+      source: 'birth_chart_chat',
+      onProceed: async () => {
+        setIsLoading(true);
+        setError(null);
 
-    // Create request body - birth chart API expects selectedAspects, not selectedElements
-    const requestBody: { query?: string; selectedAspects?: BirthChartElement[] } = {};
-    if (query.trim()) {
-      requestBody.query = query.trim();
-    }
-    if (selectedElements.length > 0) {
-      requestBody.selectedAspects = selectedElements; // Backend expects selectedAspects
-    }
+        // Create request body - birth chart API expects selectedAspects, not selectedElements
+        const requestBody: { query?: string; selectedAspects?: BirthChartElement[] } = {};
+        if (query.trim()) {
+          requestBody.query = query.trim();
+        }
+        if (selectedElements.length > 0) {
+          requestBody.selectedAspects = selectedElements; // Backend expects selectedAspects
+        }
 
-    // Add user message to chat if there's a query
-    if (query.trim()) {
-      const userMessage: BirthChartChatMessage = {
-        id: `user-${Date.now()}`,
-        type: 'user',
-        content: query.trim(),
-        timestamp: new Date(),
-        selectedElements: selectedElements.length > 0 ? [...selectedElements] : undefined,
-      };
+        // Add user message to chat if there's a query
+        if (query.trim()) {
+          const userMessage: BirthChartChatMessage = {
+            id: `user-${Date.now()}`,
+            type: 'user',
+            content: query.trim(),
+            timestamp: new Date(),
+            selectedElements: selectedElements.length > 0 ? [...selectedElements] : undefined,
+          };
 
-      console.log('Creating user message with selectedElements:', {
-        hasSelectedElements: !!userMessage.selectedElements,
-        selectedElementsCount: userMessage.selectedElements?.length,
-        selectedElements: userMessage.selectedElements,
-      });
+          console.log('Creating user message with selectedElements:', {
+            hasSelectedElements: !!userMessage.selectedElements,
+            selectedElementsCount: userMessage.selectedElements?.length,
+            selectedElements: userMessage.selectedElements,
+          });
 
-      setChatMessages(prev => [...prev, userMessage]);
-    }
+          setChatMessages(prev => [...prev, userMessage]);
+        }
 
-    // Add loading message
-    const loadingId = `loading-${Date.now()}`;
-    setChatMessages(prev => [...prev, {
-      id: loadingId,
-      type: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      loading: true,
-    }]);
-
-    try {
-      const response = await chartsApi.enhancedChatForBirthChart(userId, requestBody);
-
-      if (response.success) {
-        // Remove loading message and add actual response
-        setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
-
-        const assistantMessage: BirthChartChatMessage = {
-          id: `assistant-${Date.now()}`,
+        // Add loading message
+        const loadingId = `loading-${Date.now()}`;
+        setChatMessages(prev => [...prev, {
+          id: loadingId,
           type: 'assistant',
-          content: response.answer,
+          content: '',
           timestamp: new Date(),
-        };
-        setChatMessages(prev => [...prev, assistantMessage]);
+          loading: true,
+        }]);
 
-        // Clear form after successful submission
-        setQuery('');
-        setSelectedElements([]);
-      } else {
-        throw new Error('Failed to get response');
-      }
-    } catch (err) {
-      // Remove loading message and add error
-      setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
+        try {
+          const response = await chartsApi.enhancedChatForBirthChart(userId, requestBody);
 
-      const errorMessage: BirthChartChatMessage = {
-        id: `error-${Date.now()}`,
-        type: 'error',
-        content: err instanceof Error ? err.message : 'An error occurred while processing your request',
-        timestamp: new Date(),
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+          if (response.success) {
+            // Remove loading message and add actual response
+            setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
+
+            const assistantMessage: BirthChartChatMessage = {
+              id: `assistant-${Date.now()}`,
+              type: 'assistant',
+              content: response.answer,
+              timestamp: new Date(),
+            };
+            setChatMessages(prev => [...prev, assistantMessage]);
+
+            // Clear form after successful submission
+            setQuery('');
+            setSelectedElements([]);
+          } else {
+            throw new Error('Failed to get response');
+          }
+        } catch (err) {
+          // Remove loading message and add error
+          setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
+
+          const errorMessage: BirthChartChatMessage = {
+            id: `error-${Date.now()}`,
+            type: 'error',
+            content: err instanceof Error ? err.message : 'An error occurred while processing your request',
+            timestamp: new Date(),
+          };
+          setChatMessages(prev => [...prev, errorMessage]);
+          throw err; // Re-throw to let credit gate handle it
+        } finally {
+          setIsLoading(false);
+        }
+      },
+    });
+
+    if (!allowed) {
+      console.log('Birth Chart Chat - User did not have enough credits or cancelled paywall');
     }
   };
 
@@ -484,20 +500,20 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
 
             <TouchableOpacity
               onPress={handleSubmit}
-              disabled={!canSubmit() || isLoading}
+              disabled={!canSubmit() || isLoading || isChecking}
               style={[
                 styles.sendButton,
                 {
-                  backgroundColor: canSubmit() && !isLoading ? colors.primary : colors.surfaceVariant,
-                  opacity: canSubmit() && !isLoading ? 1 : 0.5,
+                  backgroundColor: canSubmit() && !isLoading && !isChecking ? colors.primary : colors.surfaceVariant,
+                  opacity: canSubmit() && !isLoading && !isChecking ? 1 : 0.5,
                 },
               ]}
             >
               <Text style={[
                 styles.sendButtonText,
-                { color: canSubmit() && !isLoading ? colors.onPrimary : colors.onSurfaceVariant },
+                { color: canSubmit() && !isLoading && !isChecking ? colors.onPrimary : colors.onSurfaceVariant },
               ]}>
-                Send
+                {isChecking ? 'Checking...' : isLoading ? 'Sending...' : 'Send (1 credit)'}
               </Text>
             </TouchableOpacity>
           </View>

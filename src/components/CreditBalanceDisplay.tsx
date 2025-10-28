@@ -1,8 +1,12 @@
 /**
- * Credit Balance Display
+ * Credit Balance Display - Dual-Credit System
  *
- * Shows user's current credit balance with visual status indicator.
+ * Shows user's current credit balance with breakdown of monthly vs pack credits.
  * Can be placed in navigation header, profile screen, or anywhere credits are relevant.
+ *
+ * Variants:
+ * - compact: Total only (simple badge)
+ * - card: Total with breakdown (expanded view)
  */
 
 import React from 'react';
@@ -25,7 +29,16 @@ export const CreditBalanceDisplay: React.FC<CreditBalanceDisplayProps> = ({
   showLoading = true,
 }) => {
   const { colors } = useTheme();
-  const { credits, loading, isBalanceLow, statusColor } = useCreditBalance();
+  const {
+    total,
+    monthly,
+    pack,
+    monthlyLimit,
+    loading,
+    isBalanceLow,
+    isMonthlyDepleted,
+    statusColor,
+  } = useCreditBalance();
 
   if (loading && showLoading && variant === 'compact') {
     return (
@@ -51,13 +64,13 @@ export const CreditBalanceDisplay: React.FC<CreditBalanceDisplayProps> = ({
       >
         <Text style={[styles.creditIcon, { color: statusColor }]}>⚡</Text>
         <Text style={[styles.compactBalance, { color: colors.onSurface }]}>
-          {credits}
+          {total}
         </Text>
       </TouchableOpacity>
     );
   }
 
-  // Card variant - expanded view
+  // Card variant - expanded view with breakdown
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -78,11 +91,29 @@ export const CreditBalanceDisplay: React.FC<CreditBalanceDisplayProps> = ({
           </Text>
           <View>
             <Text style={[styles.cardBalance, { color: colors.onSurface }]}>
-              {credits} Credits
+              {total} Credits
             </Text>
+
+            {/* Breakdown: Show monthly/pack split */}
+            {pack > 0 ? (
+              <Text style={[styles.breakdown, { color: colors.onSurfaceVariant }]}>
+                {monthly} monthly + {pack} pack
+              </Text>
+            ) : (
+              <Text style={[styles.breakdown, { color: colors.onSurfaceVariant }]}>
+                {monthly}/{monthlyLimit} monthly
+              </Text>
+            )}
+
+            {/* Warnings */}
             {isBalanceLow && (
               <Text style={[styles.lowBalanceWarning, { color: '#D97706' }]}>
                 Low balance
+              </Text>
+            )}
+            {isMonthlyDepleted && pack > 0 && (
+              <Text style={[styles.monthlyDepletedWarning, { color: '#F59E0B' }]}>
+                Using pack credits
               </Text>
             )}
           </View>
@@ -148,7 +179,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 2,
   },
+  breakdown: {
+    fontSize: 13,
+    marginBottom: 2,
+  },
   lowBalanceWarning: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  monthlyDepletedWarning: {
     fontSize: 12,
     fontWeight: '500',
   },

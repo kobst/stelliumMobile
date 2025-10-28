@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
 import { useTheme } from '../../theme';
+import { useCreditsGate } from '../../hooks/useCreditsGate';
 
 interface CompleteFullAnalysisButtonProps {
   userId?: string;
@@ -29,6 +30,8 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
     error,
     loadFullAnalysis,
   } = useChart(userId);
+
+  const { checkAndProceed, isChecking, canAfford } = useCreditsGate();
 
   const [workflowStarted, setWorkflowStarted] = useState(false);
   const [progressState, setProgressState] = useState<ProgressState>({});
@@ -75,14 +78,26 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
 
     if (!targetUserId || workflowStarted || chartLoading) {return;}
 
-    try {
-      setWorkflowStarted(true);
-      console.log('CompleteFullAnalysisButton - calling startAnalysisWorkflow');
-      await startAnalysisWorkflow();
-      console.log('CompleteFullAnalysisButton - startAnalysisWorkflow completed');
-    } catch (err) {
-      setWorkflowStarted(false);
-      console.error('CompleteFullAnalysisButton - Failed to start analysis workflow:', err);
+    // Check credits and proceed with analysis
+    const allowed = await checkAndProceed({
+      action: 'fullNatalReport',
+      source: 'chart_patterns_tab',
+      onProceed: async () => {
+        try {
+          setWorkflowStarted(true);
+          console.log('CompleteFullAnalysisButton - calling startAnalysisWorkflow');
+          await startAnalysisWorkflow();
+          console.log('CompleteFullAnalysisButton - startAnalysisWorkflow completed');
+        } catch (err) {
+          setWorkflowStarted(false);
+          console.error('CompleteFullAnalysisButton - Failed to start analysis workflow:', err);
+          throw err; // Re-throw to let credit gate handle it
+        }
+      },
+    });
+
+    if (!allowed) {
+      console.log('CompleteFullAnalysisButton - User did not have enough credits or cancelled paywall');
     }
   };
 
@@ -93,15 +108,18 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
                            (activeWorkflowState && activeWorkflowState.workflowId && !activeWorkflowState.completed);
 
   const getButtonText = (): string => {
+    if (isChecking) {
+      return 'Checking credits...';
+    }
     if (hasActiveWorkflow) {
       return 'Analysis in Progress...';
     }
-    return 'Complete Full Analysis';
+    return 'Complete Full Analysis (15 credits)';
   };
 
   const isButtonDisabled = (): boolean => {
     const targetUserId = userId || activeUserContext?.id || userData?.id;
-    return !targetUserId || hasActiveWorkflow;
+    return !targetUserId || hasActiveWorkflow || isChecking;
   };
 
 
