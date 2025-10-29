@@ -57,6 +57,14 @@ interface StoreState {
   activeTab: TabName;
   profileModalVisible: boolean;
 
+  // Insufficient Credits Modal State
+  insufficientCreditsModal: {
+    visible: boolean;
+    currentCredits: number;
+    requiredCredits: number;
+    onAddCreditsCallback: (() => void) | null;
+  };
+
   // Theme State
   themeMode: ThemeMode;
 
@@ -79,6 +87,10 @@ interface StoreState {
   setLoading: (loading: boolean) => void;
   setActiveTab: (tab: TabName) => void;
   setProfileModalVisible: (visible: boolean) => void;
+
+  // Insufficient Credits Modal Actions
+  showCreditModal: (currentCredits: number, requiredCredits: number, onAddCredits: () => void) => void;
+  hideCreditModal: () => void;
 
   // Theme Actions
   setThemeMode: (theme: ThemeMode) => void;
@@ -170,6 +182,14 @@ export const useStore = create<StoreState>((set, get) => ({
   activeTab: 'horoscope',
   profileModalVisible: false,
 
+  // Insufficient Credits Modal State
+  insufficientCreditsModal: {
+    visible: false,
+    currentCredits: 0,
+    requiredCredits: 0,
+    onAddCreditsCallback: null,
+  },
+
   // Theme State
   themeMode: 'system',
 
@@ -236,6 +256,25 @@ export const useStore = create<StoreState>((set, get) => ({
   setLoading: (loading) => set({ loading }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setProfileModalVisible: (visible) => set({ profileModalVisible: visible }),
+
+  // Insufficient Credits Modal Actions
+  showCreditModal: (currentCredits, requiredCredits, onAddCredits) => set({
+    insufficientCreditsModal: {
+      visible: true,
+      currentCredits,
+      requiredCredits,
+      onAddCreditsCallback: onAddCredits,
+    },
+  }),
+
+  hideCreditModal: () => set({
+    insufficientCreditsModal: {
+      visible: false,
+      currentCredits: 0,
+      requiredCredits: 0,
+      onAddCreditsCallback: null,
+    },
+  }),
 
   // Theme Actions
   setThemeMode: (theme) => {
@@ -381,6 +420,12 @@ export const useStore = create<StoreState>((set, get) => ({
         transitData: [],
         selectedTransits: new Set(),
         customHoroscope: null,
+        insufficientCreditsModal: {
+          visible: false,
+          currentCredits: 0,
+          requiredCredits: 0,
+          onAddCreditsCallback: null,
+        },
       });
 
       console.log('All user data cleared from store and storage');

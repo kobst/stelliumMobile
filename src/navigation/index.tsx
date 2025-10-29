@@ -8,11 +8,12 @@ import CreditPurchaseScreen from '../screens/CreditPurchaseScreen';
 import { useStore } from '../store';
 import { ProfileModal } from '../components/profile';
 import { navigationRef } from './navigationService';
+import InsufficientCreditsModal from '../components/InsufficientCreditsModal';
 
 const Stack = createStackNavigator();
 
 const RootNavigator: React.FC = () => {
-  const { userData } = useStore();
+  const { userData, insufficientCreditsModal, hideCreditModal } = useStore();
 
   console.log('\n=== NAVIGATION CHECK ===');
   console.log('userData exists:', !!userData);
@@ -29,6 +30,21 @@ const RootNavigator: React.FC = () => {
   console.log('profileComplete:', profileComplete);
   console.log('Will show:', profileComplete ? 'Main' : 'Onboarding');
   console.log('====================\n');
+
+  // Handle "Add Credits" button in modal
+  const handleAddCredits = () => {
+    // Close modal first
+    hideCreditModal();
+
+    // Execute the routing callback
+    if (insufficientCreditsModal.onAddCreditsCallback) {
+      insufficientCreditsModal.onAddCreditsCallback();
+    }
+  };
+
+  const handleCancelModal = () => {
+    hideCreditModal();
+  };
 
   return (
     <NavigationContainer ref={navigationRef}>
@@ -48,6 +64,13 @@ const RootNavigator: React.FC = () => {
         )}
       </Stack.Navigator>
       <ProfileModal />
+      <InsufficientCreditsModal
+        visible={insufficientCreditsModal.visible}
+        currentCredits={insufficientCreditsModal.currentCredits}
+        requiredCredits={insufficientCreditsModal.requiredCredits}
+        onAddCredits={handleAddCredits}
+        onCancel={handleCancelModal}
+      />
     </NavigationContainer>
   );
 };
