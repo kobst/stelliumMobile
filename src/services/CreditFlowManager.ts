@@ -2,7 +2,7 @@
  * Credit Flow Manager
  *
  * Orchestrates the user journey when they run out of credits.
- * Decides whether to show Superwall subscription paywall or custom credit purchase screen.
+ * Shows contextual modal first, then routes users appropriately.
  */
 
 import { Alert } from 'react-native';
@@ -10,6 +10,7 @@ import { superwallService } from './SuperwallService';
 import { navigate } from '../navigation/navigationService';
 import { SubscriptionTier } from '../types';
 import { CREDIT_PACKS } from '../config/subscriptionConfig';
+import { useStore } from '../store';
 
 export interface CreditFlowOptions {
   currentTier: SubscriptionTier;
@@ -21,6 +22,7 @@ export interface CreditFlowOptions {
 class CreditFlowManager {
   /**
    * Main decision point for handling insufficient credits
+   * Shows contextual modal first, then routes appropriately when user clicks "Add Credits"
    */
   async handleInsufficientCredits(options: CreditFlowOptions): Promise<void> {
     const { currentTier, currentCredits, requiredCredits, source } = options;
@@ -34,23 +36,29 @@ class CreditFlowManager {
       source,
     });
 
-    // STRATEGY 1: Free users → Always show subscription upgrade paywall
+    // Determine routing strategy based on tier
+    let routingCallback: () => void;
+
+    // STRATEGY 1: Free users → Show subscription upgrade paywall
     if (currentTier === 'free') {
-      await this.showSubscriptionUpgradeForFreeUser(source);
-      return;
+      routingCallback = () => this.showSubscriptionUpgradeForFreeUser(source);
     }
-
     // STRATEGY 2: Premium users → Smart routing based on usage pattern
-    if (currentTier === 'premium') {
-      await this.handlePremiumUserShortfall(shortfall, source);
-      return;
+    else if (currentTier === 'premium') {
+      routingCallback = () => this.handlePremiumUserShortfall(shortfall, source);
+    }
+    // STRATEGY 3: Pro users → Direct to credit packs
+    else if (currentTier === 'pro') {
+      routingCallback = () => this.handleProUserShortfall(shortfall, source);
+    }
+    else {
+      // Fallback for unknown tier
+      routingCallback = () => navigate('CreditPurchase', { source });
     }
 
-    // STRATEGY 3: Pro users → Direct to credit packs (unlikely to need more)
-    if (currentTier === 'pro') {
-      await this.handleProUserShortfall(shortfall, source);
-      return;
-    }
+    // Show contextual modal with routing callback
+    const { showCreditModal } = useStore.getState();
+    showCreditModal(currentCredits, requiredCredits, routingCallback);
   }
 
   /**

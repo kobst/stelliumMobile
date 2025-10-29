@@ -1,8 +1,8 @@
 /**
- * Credit Purchase Screen
+ * Credit Purchase Screen - Enhanced Edition
  *
- * Custom screen for purchasing a-la-carte credit packs.
- * Shows current balance, available packs, and handles RevenueCat purchases.
+ * Premium UX for purchasing credits and discovering subscription plans.
+ * Includes subscription upsell, a-la-carte packs, and comprehensive info.
  */
 
 import React, { useState } from 'react';
@@ -18,8 +18,10 @@ import {
 } from 'react-native';
 import { useTheme } from '../theme';
 import { useCreditBalance } from '../hooks/useCreditBalance';
+import { useStore } from '../store';
 import { revenueCatService } from '../services/RevenueCatService';
-import { CREDIT_PACKS, CreditPack } from '../config/subscriptionConfig';
+import { superwallService } from '../services/SuperwallService';
+import { CREDIT_PACKS, CreditPack, SUBSCRIPTION_PLANS } from '../config/subscriptionConfig';
 
 interface CreditPurchaseScreenProps {
   navigation: any;
@@ -36,37 +38,36 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
   route,
 }) => {
   const { colors } = useTheme();
-  const { total, monthly, pack, addCredits, refreshBalance } = useCreditBalance();
+  const { total, monthly, pack, monthlyLimit, addCredits, refreshBalance } = useCreditBalance();
+  const { userSubscription } = useStore();
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   const recommendedPack = route.params?.recommendedPack || 'medium';
   const source = route.params?.source || 'manual';
+  const currentTier = userSubscription?.tier || 'free';
 
-  const handlePurchase = async (creditPack: CreditPack) => {
-    console.log('[CreditPurchase] Starting purchase:', {
+  const handlePurchasePack = async (creditPack: CreditPack) => {
+    console.log('[CreditPurchase] Starting pack purchase:', {
       packId: creditPack.id,
       credits: creditPack.credits,
       price: creditPack.price,
-      productId: creditPack.revenueCatProductId,
       source,
     });
 
     setPurchasing(creditPack.id);
 
     try {
-      // Purchase via RevenueCat
       const result = await revenueCatService.purchaseProduct(
         creditPack.revenueCatProductId
       );
 
       if (!result.success) {
-        // Check if user cancelled
         if (result.error?.includes('cancelled')) {
           console.log('[CreditPurchase] User cancelled purchase');
           return;
         }
 
-        // Show error message
         Alert.alert(
           'Purchase Failed',
           result.error || 'Unable to complete purchase. Please try again.',
@@ -75,15 +76,12 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
         return;
       }
 
-      console.log('[CreditPurchase] Purchase successful:', {
-        packId: creditPack.id,
-        credits: creditPack.credits,
-      });
+      console.log('[CreditPurchase] Purchase successful');
 
-      // Optimistically add credits to local state
+      // Optimistically add credits
       addCredits(creditPack.credits);
 
-      // Refresh balance from backend to confirm
+      // Refresh balance from backend
       await refreshBalance();
 
       // Show success message
@@ -100,7 +98,6 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
     } catch (error: any) {
       console.error('[CreditPurchase] Unexpected error:', error);
 
-      // Show error message
       Alert.alert(
         'Purchase Failed',
         'An unexpected error occurred. Please try again.',
@@ -111,10 +108,26 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
     }
   };
 
+  const handleUpgradeSubscription = async () => {
+    try {
+      console.log('[CreditPurchase] Showing upgrade paywall');
+      await superwallService.showSettingsUpgradePaywall();
+      console.log('[CreditPurchase] Paywall presented');
+
+      // Refresh balance after potential purchase
+      await refreshBalance();
+    } catch (error) {
+      console.error('[CreditPurchase] Failed to show paywall:', error);
+    }
+  };
+
+  const premiumPlan = SUBSCRIPTION_PLANS.premium;
+  const proPlan = SUBSCRIPTION_PLANS.pro;
+
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: '#F8F6FF' }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: '#F8F6FF' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={[styles.backButtonText, { color: colors.primary }]}>
             ‹ Back
@@ -131,74 +144,149 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Current Balance */}
+        {/* Current Balance Card */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
-            Current Balance
-          </Text>
-
           <View
             style={[
               styles.balanceCard,
-              { backgroundColor: colors.surface, borderColor: colors.border },
+              {
+                backgroundColor: colors.surface,
+                shadowColor: colors.primary,
+                shadowOpacity: 0.12,
+                shadowRadius: 16,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 4,
+              },
             ]}
           >
-            <View style={styles.balanceRow}>
-              <Text style={[styles.balanceLabel, { color: colors.onSurfaceVariant }]}>
-                Total Credits
+            <Text style={[styles.balanceLabel, { color: colors.onSurfaceVariant }]}>
+              ⚡ Current Balance
+            </Text>
+            <Text style={[styles.balanceValue, { color: colors.onSurface }]}>
+              {total} credits
+            </Text>
+            {monthlyLimit > 0 && (
+              <Text style={[styles.balanceSubtext, { color: colors.onSurfaceVariant }]}>
+                {monthly} / {monthlyLimit} monthly
+                {pack > 0 && ` • ${pack} pack credits`}
               </Text>
-              <Text style={[styles.balanceValue, { color: colors.onSurface }]}>
-                {total}
-              </Text>
-            </View>
-
-            {(monthly > 0 || pack > 0) && (
-              <View style={styles.balanceBreakdown}>
-                {monthly > 0 && (
-                  <Text style={[styles.breakdownText, { color: colors.onSurfaceVariant }]}>
-                    {monthly} monthly
-                  </Text>
-                )}
-                {monthly > 0 && pack > 0 && (
-                  <Text style={[styles.breakdownText, { color: colors.onSurfaceVariant }]}>
-                    {' + '}
-                  </Text>
-                )}
-                {pack > 0 && (
-                  <Text style={[styles.breakdownText, { color: colors.onSurfaceVariant }]}>
-                    {pack} pack
-                  </Text>
-                )}
-              </View>
             )}
           </View>
         </View>
 
-        {/* Credit Packs */}
+        {/* Subscription Upsell - Only show if not already Pro */}
+        {currentTier !== 'pro' && (
+          <View style={styles.section}>
+            <View style={styles.upsellDivider}>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+              <Text style={[styles.dividerText, { color: colors.onSurfaceVariant }]}>
+                {currentTier === 'free' ? '✨ Want premium access?' : '💫 Need more power?'}
+              </Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            </View>
+
+            <Text style={[styles.upsellSubtext, { color: colors.onSurfaceVariant }]}>
+              {currentTier === 'free'
+                ? 'Skip per-credit purchases and unlock everything with a Stellium plan'
+                : 'Upgrade to Stellium Pro for higher limits and unlimited access'}
+            </Text>
+
+            {/* Single Card - Premium for free users, Pro for premium users */}
+            <TouchableOpacity
+              style={[
+                styles.subscriptionCard,
+                {
+                  backgroundColor: currentTier === 'free' ? '#F7F3FF' : '#ECE7FF',
+                  borderColor: currentTier === 'free' ? colors.primary : '#7A5BFF',
+                  shadowColor: currentTier === 'free' ? colors.primary : '#7A5BFF',
+                  shadowOpacity: 0.1,
+                  shadowRadius: 12,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 3,
+                },
+              ]}
+              onPress={handleUpgradeSubscription}
+              activeOpacity={0.8}
+            >
+              <View style={styles.subscriptionHeader}>
+                <Text
+                  style={[
+                    styles.subscriptionBadge,
+                    { color: currentTier === 'free' ? colors.primary : '#7A5BFF' },
+                  ]}
+                >
+                  {currentTier === 'free' ? '✨ PREMIUM' : '💫 PRO'}
+                </Text>
+                <Text style={[styles.subscriptionPrice, { color: colors.onSurface }]}>
+                  {currentTier === 'free' ? premiumPlan.priceDisplay : proPlan.priceDisplay}
+                </Text>
+              </View>
+
+              {currentTier === 'free' && (
+                <Text style={[styles.subscriptionIncludes, { color: colors.onSurfaceVariant }]}>
+                  Includes:
+                </Text>
+              )}
+
+              {currentTier === 'free' ? (
+                <>
+                  <Text style={[styles.subscriptionFeature, { color: colors.onSurface }]}>
+                    • Daily, weekly, and monthly horoscopes
+                  </Text>
+                  <Text style={[styles.subscriptionFeature, { color: colors.onSurface }]}>
+                    • Use up to {premiumPlan.monthlyCredits} credits a month
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.subscriptionFeature, { color: colors.onSurface }]}>
+                    • Everything in Premium
+                  </Text>
+                  <Text style={[styles.subscriptionFeature, { color: colors.onSurface }]}>
+                    • Use up to {proPlan.monthlyCredits} credits a month
+                  </Text>
+                </>
+              )}
+
+              <View
+                style={[
+                  styles.upgradeButton,
+                  { backgroundColor: currentTier === 'free' ? colors.primary : '#7A5BFF' },
+                ]}
+              >
+                <Text style={[styles.upgradeButtonText, { color: '#FFFFFF' }]}>
+                  {currentTier === 'free' ? 'Upgrade to Premium →' : 'Upgrade to Pro →'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Credit Packs Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
-            Credit Packs
+            💎 Add More Credits
           </Text>
           <Text style={[styles.sectionSubtitle, { color: colors.onSurfaceVariant }]}>
-            Purchase credits that never expire
+            Credits never expire • Add more anytime
           </Text>
 
-          {CREDIT_PACKS.map((creditPack) => {
-            const isRecommended = creditPack.id === recommendedPack;
+          {CREDIT_PACKS.map((creditPack, index) => {
+            const isBestValue = index === CREDIT_PACKS.length - 1;
             const isPurchasing = purchasing === creditPack.id;
             const pricePerCredit = (creditPack.price / creditPack.credits).toFixed(2);
 
             return (
               <View key={creditPack.id} style={styles.packContainer}>
-                {isRecommended && (
+                {isBestValue && (
                   <View
                     style={[
-                      styles.recommendedBadge,
-                      { backgroundColor: colors.primary },
+                      styles.packBadge,
+                      { backgroundColor: '#10B981' },
                     ]}
                   >
-                    <Text style={[styles.recommendedText, { color: colors.onPrimary }]}>
-                      RECOMMENDED
+                    <Text style={styles.packBadgeText}>
+                      BEST VALUE
                     </Text>
                   </View>
                 )}
@@ -208,54 +296,37 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
                     styles.packCard,
                     {
                       backgroundColor: colors.surface,
-                      borderColor: isRecommended ? colors.primary : colors.border,
-                      borderWidth: isRecommended ? 2 : 1,
+                      borderColor: isBestValue ? colors.primary : colors.border,
+                      borderWidth: isBestValue ? 2 : 1,
                     },
                   ]}
-                  onPress={() => handlePurchase(creditPack)}
+                  onPress={() => handlePurchasePack(creditPack)}
                   disabled={isPurchasing}
                   activeOpacity={0.7}
                 >
                   <View style={styles.packContent}>
-                    {/* Left side - Credits */}
                     <View style={styles.packLeft}>
                       <Text style={[styles.packCredits, { color: colors.onSurface }]}>
                         {creditPack.credits} Credits
                       </Text>
-                      <Text
-                        style={[styles.packPricePerCredit, { color: colors.onSurfaceVariant }]}
-                      >
+                      <Text style={[styles.packPricePerCredit, { color: colors.onSurfaceVariant }]}>
                         ${pricePerCredit} per credit
                       </Text>
                     </View>
 
-                    {/* Right side - Price & Button */}
                     <View style={styles.packRight}>
                       <Text style={[styles.packPrice, { color: colors.onSurface }]}>
                         {creditPack.priceDisplay}
                       </Text>
 
                       {isPurchasing ? (
-                        <View
-                          style={[
-                            styles.purchaseButton,
-                            styles.purchaseButtonLoading,
-                            { backgroundColor: colors.surfaceVariant },
-                          ]}
-                        >
+                        <View style={[styles.buyButton, { backgroundColor: colors.surfaceVariant }]}>
                           <ActivityIndicator size="small" color={colors.primary} />
                         </View>
                       ) : (
-                        <View
-                          style={[
-                            styles.purchaseButton,
-                            { backgroundColor: colors.primary },
-                          ]}
-                        >
-                          <Text
-                            style={[styles.purchaseButtonText, { color: colors.onPrimary }]}
-                          >
-                            Buy
+                        <View style={[styles.buyButton, { backgroundColor: colors.primary }]}>
+                          <Text style={[styles.buyButtonText, { color: colors.onPrimary }]}>
+                            Add to Balance
                           </Text>
                         </View>
                       )}
@@ -267,62 +338,63 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
           })}
         </View>
 
-        {/* Info Section */}
-        <View style={[styles.infoBox, { backgroundColor: colors.surfaceVariant }]}>
-          <Text style={[styles.infoTitle, { color: colors.onSurface }]}>
-            💡 How Credits Work
-          </Text>
-          <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
-            • Pack credits never expire
-          </Text>
-          <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
-            • Monthly credits are used first, then pack credits
-          </Text>
-          <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
-            • Credits are shared across all features
-          </Text>
-          <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
-            • Need more? Upgrade to Premium or Pro for monthly credits
-          </Text>
+        {/* How Credits Work - Collapsible */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={[styles.infoToggle, { backgroundColor: colors.surfaceVariant }]}
+            onPress={() => setShowHowItWorks(!showHowItWorks)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.infoToggleText, { color: colors.onSurface }]}>
+              💡 How Credits Work
+            </Text>
+            <Text style={[styles.infoToggleIcon, { color: colors.onSurfaceVariant }]}>
+              {showHowItWorks ? '▼' : '▶'}
+            </Text>
+          </TouchableOpacity>
+
+          {showHowItWorks && (
+            <View style={[styles.infoContent, { backgroundColor: colors.surfaceVariant }]}>
+              <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
+                • Credits are used for readings, charts, and personalized chats
+              </Text>
+              <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
+                • Pack credits never expire and roll over forever
+              </Text>
+              <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
+                • Monthly credits are used first, then pack credits
+              </Text>
+              <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
+                • Credits are shared across all Stellium features
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Credit Costs Reference */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>
+        {/* Usage Guide */}
+        <View style={[styles.usageCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.usageTitle, { color: colors.onSurface }]}>
             What Can You Do?
           </Text>
-
-          <View style={[styles.costCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.costRow}>
-              <Text style={[styles.costLabel, { color: colors.onSurface }]}>
-                Quick Chart Overview
-              </Text>
-              <Text style={[styles.costValue, { color: colors.primary }]}>5 credits</Text>
-            </View>
-            <View style={styles.costRow}>
-              <Text style={[styles.costLabel, { color: colors.onSurface }]}>
-                Full Natal Report
-              </Text>
-              <Text style={[styles.costValue, { color: colors.primary }]}>15 credits</Text>
-            </View>
-            <View style={styles.costRow}>
-              <Text style={[styles.costLabel, { color: colors.onSurface }]}>
-                Relationship Overview
-              </Text>
-              <Text style={[styles.costValue, { color: colors.primary }]}>5 credits</Text>
-            </View>
-            <View style={styles.costRow}>
-              <Text style={[styles.costLabel, { color: colors.onSurface }]}>
-                Full Relationship Report
-              </Text>
-              <Text style={[styles.costValue, { color: colors.primary }]}>15 credits</Text>
-            </View>
-            <View style={styles.costRow}>
-              <Text style={[styles.costLabel, { color: colors.onSurface }]}>
-                Ask Stellium Question
-              </Text>
-              <Text style={[styles.costValue, { color: colors.primary }]}>1 credit</Text>
-            </View>
+          <View style={styles.usageRow}>
+            <Text style={[styles.usageLabel, { color: colors.onSurface }]}>Quick Chart Overview</Text>
+            <Text style={[styles.usageCost, { color: colors.primary }]}>5 credits</Text>
+          </View>
+          <View style={styles.usageRow}>
+            <Text style={[styles.usageLabel, { color: colors.onSurface }]}>Full Natal Report</Text>
+            <Text style={[styles.usageCost, { color: colors.primary }]}>15 credits</Text>
+          </View>
+          <View style={styles.usageRow}>
+            <Text style={[styles.usageLabel, { color: colors.onSurface }]}>Relationship Overview</Text>
+            <Text style={[styles.usageCost, { color: colors.primary }]}>5 credits</Text>
+          </View>
+          <View style={styles.usageRow}>
+            <Text style={[styles.usageLabel, { color: colors.onSurface }]}>Full Relationship Report</Text>
+            <Text style={[styles.usageCost, { color: colors.primary }]}>15 credits</Text>
+          </View>
+          <View style={styles.usageRow}>
+            <Text style={[styles.usageLabel, { color: colors.onSurface }]}>Ask Stellium Question</Text>
+            <Text style={[styles.usageCost, { color: colors.primary }]}>1 credit</Text>
           </View>
         </View>
 
@@ -342,7 +414,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backButton: {
     paddingVertical: 4,
@@ -353,8 +424,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
   },
   headerSpacer: {
     width: 50,
@@ -369,65 +440,125 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   sectionSubtitle: {
     fontSize: 14,
-    marginBottom: 16,
+    marginBottom: 20,
+    lineHeight: 20,
   },
 
   // Balance Card
   balanceCard: {
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    padding: 24,
+    borderRadius: 20,
     alignItems: 'center',
   },
   balanceLabel: {
     fontSize: 14,
     fontWeight: '600',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  balanceValue: {
+    fontSize: 40,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  balanceSubtext: {
+    fontSize: 14,
+  },
+
+  // Subscription Upsell
+  upsellDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    paddingHorizontal: 12,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  upsellSubtext: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  subscriptionCard: {
+    borderRadius: 16,
+    borderWidth: 2,
+    padding: 16,
+    marginBottom: 16,
+  },
+  subscriptionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  subscriptionBadge: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  subscriptionPrice: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  subscriptionIncludes: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  balanceValue: {
-    fontSize: 32,
-    fontWeight: '700',
+  subscriptionFeature: {
+    fontSize: 14,
+    marginBottom: 4,
+    lineHeight: 20,
   },
-  balanceBreakdown: {
-    flexDirection: 'row',
-    marginTop: 8,
+  upgradeButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
   },
-  breakdownText: {
-    fontSize: 13,
+  upgradeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 
-  // Pack Cards
+  // Credit Packs
   packContainer: {
     marginBottom: 16,
     position: 'relative',
   },
-  recommendedBadge: {
+  packBadge: {
     position: 'absolute',
     top: -8,
     left: 16,
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 12,
     zIndex: 1,
   },
-  recommendedText: {
+  packBadgeText: {
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   packCard: {
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
     marginTop: 8,
   },
@@ -451,59 +582,70 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   packPrice: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
   },
-  purchaseButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    borderRadius: 20,
-    minWidth: 80,
+  buyButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
+    minWidth: 140,
     alignItems: 'center',
   },
-  purchaseButtonLoading: {
-    paddingVertical: 6,
-  },
-  purchaseButtonText: {
+  buyButtonText: {
     fontSize: 15,
     fontWeight: '600',
   },
 
-  // Info Box
-  infoBox: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 32,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  infoText: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-
-  // Cost Reference
-  costCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-  },
-  costRow: {
+  // Info Section
+  infoToggle: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    padding: 16,
+    borderRadius: 12,
   },
-  costLabel: {
+  infoToggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  infoToggleIcon: {
+    fontSize: 14,
+  },
+  infoContent: {
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 6,
+  },
+
+  // Usage Guide
+  usageCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+  },
+  usageTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  usageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  usageLabel: {
     fontSize: 15,
     flex: 1,
   },
-  costValue: {
+  usageCost: {
     fontSize: 15,
     fontWeight: '600',
   },
