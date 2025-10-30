@@ -144,11 +144,23 @@ const ChatConversationScreen: React.FC = () => {
         // For birth charts, we need to determine if it's the user's chart or a guest chart
         const chartUserId = thread.userId;
         const guestSubject = thread.guestSubject;
+        // Extract birthChart from guestSubject or use user's birthChart
+        const birthChart = guestSubject?.birthChart || userData?.birthChart;
+
+        if (!birthChart) {
+          return (
+            <View style={styles.errorContainer}>
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                Birth chart data not available
+              </Text>
+            </View>
+          );
+        }
 
         return (
           <BirthChartChatTab
             userId={chartUserId}
-            guestSubject={guestSubject}
+            birthChart={birthChart}
             preSelectedElements={preSelectedElements}
           />
         );
