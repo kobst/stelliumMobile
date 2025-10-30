@@ -7,15 +7,17 @@ import BirthChartElementsBottomSheet from './BirthChartElementsBottomSheet';
 import { useCreditsGate } from '../../hooks/useCreditsGate';
 
 interface BirthChartChatTabProps {
-  userId: string;
+  subjectId: string; // Subject ID - user's own ID for their chart, or guest subject _id for guest charts
   birthChart: BirthChart;
   preSelectedElements?: BirthChartElement[];
+  guestFirstName?: string; // First name of guest if this is a guest chart
 }
 
 const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
-  userId,
+  subjectId,
   birthChart,
   preSelectedElements = [],
+  guestFirstName,
 }) => {
   const { colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -39,16 +41,17 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
     }
   }, [chatMessages, isLoading]);
 
-  // Load chat history when component mounts
+  // Load chat history when component mounts or when subjectId changes
   useEffect(() => {
     const loadChatHistory = async () => {
-      if (!userId || chatMessages.length > 0) {return;}
+      if (!subjectId) {return;}
 
-      console.log('Loading birth chart chat history for user:', userId);
+      console.log('Loading birth chart chat history for subject:', subjectId);
       setIsHistoryLoading(true);
+      setChatMessages([]); // Clear existing messages when loading new chat history
 
       try {
-        const response = await chartsApi.fetchBirthChartEnhancedChatHistory(userId, 50);
+        const response = await chartsApi.fetchBirthChartEnhancedChatHistory(subjectId, 50);
         console.log('Birth chart chat history response:', response);
         console.log('Raw chat history array:', JSON.stringify(response.chatHistory, null, 2));
 
@@ -123,7 +126,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
         console.error('Failed to load birth chart chat history:', err);
         console.error('Error details:', {
           message: err instanceof Error ? err.message : 'Unknown error',
-          userId,
+          subjectId,
           stack: err instanceof Error ? err.stack : undefined,
         });
 
@@ -136,7 +139,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
     };
 
     loadChatHistory();
-  }, [userId]);
+  }, [subjectId]);
 
   // Check if user can submit
   const canSubmit = (): boolean => {
@@ -149,11 +152,12 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
   const getHint = (): string => {
     const hasQuery = query.trim().length > 0;
     const hasElements = selectedElements.length > 0;
+    const chartOwner = guestFirstName ? `${guestFirstName}'s natal chart` : 'your birth chart';
 
     if (!hasQuery && !hasElements) {return 'Select chart elements or ask a question to get started';}
     if (hasQuery && hasElements) {return "I'll answer your question about the selected chart elements";}
-    if (hasQuery) {return "I'll answer your question about your birth chart";}
-    return "I'll analyze your selected chart elements";
+    if (hasQuery) {return `I'll answer your question about ${chartOwner}`;}
+    return `I'll analyze the selected chart elements`;
   };
 
   // Handle element selection
@@ -261,7 +265,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
         }]);
 
         try {
-          const response = await chartsApi.enhancedChatForBirthChart(userId, requestBody);
+          const response = await chartsApi.enhancedChatForBirthChart(subjectId, requestBody);
 
           if (response.success) {
             // Remove loading message and add actual response
@@ -353,7 +357,10 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               Ask Stellium
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.onSurfaceVariant }]}>
-              Select chart elements and/or ask questions to get personalized astrological insights about your birth chart.
+              {guestFirstName
+                ? `Select chart elements and/or ask questions to get personalized astrological insights about ${guestFirstName}'s natal chart.`
+                : "Select chart elements and/or ask questions to get personalized astrological insights about your birth chart."
+              }
             </Text>
 
           </View>
@@ -477,7 +484,10 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Ask a question about your birth chart..."
+            placeholder={guestFirstName
+              ? `Ask a question about ${guestFirstName}'s natal chart...`
+              : "Ask a question about your birth chart..."
+            }
             placeholderTextColor={colors.onSurfaceVariant}
             style={[styles.textInput, {
               backgroundColor: colors.background,

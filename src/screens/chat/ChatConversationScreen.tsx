@@ -142,10 +142,12 @@ const ChatConversationScreen: React.FC = () => {
 
       case 'birth_chart':
         // For birth charts, we need to determine if it's the user's chart or a guest chart
-        const chartUserId = thread.userId;
         const guestSubject = thread.guestSubject;
         // Extract birthChart from guestSubject or use user's birthChart
         const birthChart = guestSubject?.birthChart || userData?.birthChart;
+        const guestFirstName = guestSubject?.firstName;
+        // Determine the subject ID: use guest's _id for guest charts, user's id for their own chart
+        const subjectId = guestSubject?._id || userData?.id || '';
 
         if (!birthChart) {
           return (
@@ -157,11 +159,15 @@ const ChatConversationScreen: React.FC = () => {
           );
         }
 
+        // The subjectId is used for both API endpoint routing and distinguishing chat histories
+        // For user's own chart: subjectId = user's own ID
+        // For guest charts: subjectId = guest subject's _id
         return (
           <BirthChartChatTab
-            userId={chartUserId}
+            subjectId={subjectId}
             birthChart={birthChart}
             preSelectedElements={preSelectedElements}
+            guestFirstName={guestFirstName}
           />
         );
 
