@@ -5,6 +5,7 @@ import { BirthChartElement, BirthChartChatMessage, chartsApi } from '../../api/c
 import { BirthChart } from '../../types';
 import BirthChartElementsBottomSheet from './BirthChartElementsBottomSheet';
 import { useCreditsGate } from '../../hooks/useCreditsGate';
+import { parseReferencedCodes, convertToBirthChartElements } from '../../utils/parseReferencedCodes';
 
 interface BirthChartChatTabProps {
   subjectId: string; // Subject ID - user's own ID for their chart, or guest subject _id for guest charts
@@ -71,12 +72,41 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               selectedAspectsLength: msg.metadata?.selectedAspects?.length,
             });
 
+            // Parse referenced codes if present in messages (can be in user or assistant messages)
+            // Check both metadata.referencedCodes (expected) and msg.referencedCodes (backend bug fallback)
+            const referencedCodes = msg.metadata?.referencedCodes || (msg as any).referencedCodes;
+
+            // Log what we found
+            if (referencedCodes && referencedCodes.length > 0) {
+              console.log(`[BirthChartChat] Found referencedCodes in ${msg.role} message:`, referencedCodes);
+            }
+
+            const referencedElements = referencedCodes && referencedCodes.length > 0
+              ? convertToBirthChartElements(parseReferencedCodes(referencedCodes))
+              : undefined;
+
+            // Filter out backend-generated default text for custom mode
+            let messageContent = msg.content;
+            if (msg.role === 'user' && msg.metadata?.mode === 'custom') {
+              // Check if content matches common default patterns
+              const defaultPatterns = [
+                /^What can you tell me about these (aspects?|elements?|chart elements?)\??$/i,
+                /^Generated? (natal|birth)?\s*chart (analysis|reading) for/i,
+                /^Custom (analysis|reading) for/i,
+              ];
+              const isDefaultText = defaultPatterns.some(pattern => pattern.test(msg.content.trim()));
+              if (isDefaultText) {
+                messageContent = ''; // Clear default text for custom mode
+              }
+            }
+
             const transformedMessage: BirthChartChatMessage = {
               id: `history-${index}-${Date.now()}`,
               type: msg.role === 'user' ? 'user' : 'assistant',
-              content: msg.content,
+              content: messageContent,
               timestamp: new Date(msg.timestamp),
               selectedElements: msg.metadata?.selectedAspects || undefined, // Birth chart API uses selectedAspects
+              referencedElements,
             };
 
             // For assistant messages with metadata, also assign to the previous user message if it doesn't have metadata
@@ -99,7 +129,24 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               }
             }
 
+            // If this is a user message with referencedElements, transfer them to the next assistant message
+            if (msg.role === 'user' && referencedElements && referencedElements.length > 0) {
+              // Store them temporarily, will be assigned to next assistant message below
+              transformedMessage.referencedElements = referencedElements;
+            }
+
             transformedMessages.push(transformedMessage);
+
+            // If the previous message was a user message with referencedElements, transfer them to this assistant message
+            if (msg.role === 'assistant' && transformedMessages.length >= 2) {
+              const prevMessage = transformedMessages[transformedMessages.length - 2];
+              if (prevMessage.type === 'user' && prevMessage.referencedElements) {
+                console.log('[BirthChartChat] Transferring referencedElements from user message to assistant message');
+                transformedMessage.referencedElements = prevMessage.referencedElements;
+                // Clear from user message since we don't display them there
+                delete prevMessage.referencedElements;
+              }
+            }
           }
 
           // Debug: Log final transformed messages
@@ -235,20 +282,22 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
           requestBody.selectedAspects = selectedElements; // Backend expects selectedAspects
         }
 
-        // Add user message to chat if there's a query
-        if (query.trim()) {
+        // Add user message to chat if there's a query OR selected elements (for custom mode)
+        if (query.trim() || selectedElements.length > 0) {
           const userMessage: BirthChartChatMessage = {
             id: `user-${Date.now()}`,
             type: 'user',
             content: query.trim(),
             timestamp: new Date(),
             selectedElements: selectedElements.length > 0 ? [...selectedElements] : undefined,
+            mode: query.trim() ? (selectedElements.length > 0 ? 'hybrid' : 'chat') : 'custom',
           };
 
           console.log('Creating user message with selectedElements:', {
             hasSelectedElements: !!userMessage.selectedElements,
             selectedElementsCount: userMessage.selectedElements?.length,
             selectedElements: userMessage.selectedElements,
+            mode: userMessage.mode,
           });
 
           setChatMessages(prev => [...prev, userMessage]);
@@ -267,15 +316,37 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
         try {
           const response = await chartsApi.enhancedChatForBirthChart(subjectId, requestBody);
 
+          console.log('[BirthChartChat] 📥 RAW API Response:', JSON.stringify(response, null, 2));
+          console.log('[BirthChartChat] 📥 New response received:', {
+            hasReferencedCodes: !!response.referencedCodes,
+            referencedCodes: response.referencedCodes,
+            referencedCodesLength: response.referencedCodes?.length,
+            success: response.success,
+            hasAnswer: !!response.answer,
+            mode: response.mode,
+          });
+
           if (response.success) {
             // Remove loading message and add actual response
             setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
+
+            // Parse referenced codes from API response
+            const referencedElements = response.referencedCodes
+              ? convertToBirthChartElements(parseReferencedCodes(response.referencedCodes))
+              : undefined;
+
+            if (referencedElements && referencedElements.length > 0) {
+              console.log('[BirthChartChat] ✨ Parsed new message referenced elements:', referencedElements);
+            } else {
+              console.log('[BirthChartChat] ⚠️ No referencedCodes in new message response');
+            }
 
             const assistantMessage: BirthChartChatMessage = {
               id: `assistant-${Date.now()}`,
               type: 'assistant',
               content: response.answer,
               timestamp: new Date(),
+              referencedElements,
             };
             setChatMessages(prev => [...prev, assistantMessage]);
 
@@ -421,6 +492,29 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
                               borderWidth: 2,
                             }]}>
                               <Text style={[styles.inlineElementChipText, { color: colors.primary, fontWeight: 'bold' }]}>
+                                {displayName}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+
+                    {/* Referenced elements for assistant messages */}
+                    {message.type === 'assistant' && message.referencedElements && message.referencedElements.length > 0 && (
+                      <View style={[styles.inlineElementChips, { backgroundColor: colors.surfaceVariant, padding: 8, borderRadius: 8, marginTop: 8 }]}>
+                        <Text style={[styles.selectedElementsLabel, { color: colors.onSurfaceVariant, fontWeight: 'bold' }]}>
+                          Referenced elements:
+                        </Text>
+                        {message.referencedElements.map((element, idx) => {
+                          const displayName = getElementDisplayName(element);
+                          return (
+                            <View key={`ref-${element.type}-${idx}-${element.code || element.planet || idx}`} style={[styles.inlineElementChip, {
+                              backgroundColor: colors.primaryContainer,
+                              borderColor: colors.primary,
+                              borderWidth: 1,
+                            }]}>
+                              <Text style={[styles.inlineElementChipText, { color: colors.onPrimaryContainer, fontWeight: '600' }]}>
                                 {displayName}
                               </Text>
                             </View>

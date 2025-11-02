@@ -207,9 +207,17 @@ const ChatConversationScreen: React.FC = () => {
           );
         }
 
-        // Get user names from relationship
-        const userAName = relationship?.userAName || 'User A';
-        const userBName = relationship?.userBName || 'User B';
+        // Get user names from relationship (note: fields are userA_name and userB_name with underscores)
+        const userAName = relationship?.userA_name || 'User A';
+        const userBName = relationship?.userB_name || 'User B';
+
+        console.log('[ChatConversationScreen] Relationship names:', {
+          hasRelationship: !!relationship,
+          userA_name: relationship?.userA_name,
+          userB_name: relationship?.userB_name,
+          userAName,
+          userBName,
+        });
 
         return (
           <RelationshipChatTab

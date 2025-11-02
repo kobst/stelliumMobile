@@ -75,6 +75,7 @@ export interface TransitEvent {
 
 export interface WorkflowState {
   workflowId: string | null;
+  userId: string | null;
   status: string | null;
   isCompleted: boolean;
   progress: number | null;
@@ -205,7 +206,9 @@ export interface HoroscopeChatMessage {
   type: 'user' | 'assistant' | 'error';
   content: string;
   timestamp: Date;
+  mode?: 'chat' | 'custom' | 'hybrid';
   selectedTransits?: TransitEvent[];
+  referencedElements?: any[]; // Parsed from referencedCodes (natal chart elements)
   loading?: boolean;
 }
 
