@@ -189,7 +189,9 @@ export interface BirthChartChatMessage {
   type: 'user' | 'assistant' | 'error';
   content: string;
   timestamp: Date;
+  mode?: 'chat' | 'custom' | 'hybrid';
   selectedElements?: BirthChartElement[];
+  referencedElements?: BirthChartElement[]; // Parsed from referencedCodes
   loading?: boolean;
 }
 
@@ -370,12 +372,14 @@ export const chartsApi = {
   ): Promise<{
     success: boolean;
     answer: string;
+    referencedCodes?: string[];
     chatHistoryResult: any;
     mode: 'chat' | 'custom' | 'hybrid';
   }> => {
     return apiClient.post<{
       success: boolean;
       answer: string;
+      referencedCodes?: string[];
       chatHistoryResult: any;
       mode: 'chat' | 'custom' | 'hybrid';
     }>(`/users/${userId}/birthchart/enhanced-chat`, requestBody);
@@ -394,6 +398,7 @@ export const chartsApi = {
       metadata?: {
         mode?: 'chat' | 'custom' | 'hybrid';
         selectedElements?: BirthChartElement[];
+        referencedCodes?: string[];
         elementCount?: number;
       };
     }>;
@@ -414,6 +419,7 @@ export const chartsApi = {
         metadata?: {
           mode?: 'chat' | 'custom' | 'hybrid';
           selectedElements?: BirthChartElement[];
+          referencedCodes?: string[];
           elementCount?: number;
         };
       }>;

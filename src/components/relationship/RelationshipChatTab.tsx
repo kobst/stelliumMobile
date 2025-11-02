@@ -5,6 +5,7 @@ import { ClusterScoredItem } from '../../api/relationships';
 import { relationshipsApi } from '../../api/relationships';
 import ConsolidatedItemsBottomSheet from './ConsolidatedItemsBottomSheet';
 import { useCreditsGate } from '../../hooks/useCreditsGate';
+import { parseReferencedCodes, DecodedElement } from '../../utils/parseReferencedCodes';
 
 interface ChatMessage {
   id: string;
@@ -13,6 +14,7 @@ interface ChatMessage {
   timestamp: Date;
   mode?: 'chat' | 'custom' | 'hybrid';
   selectedElements?: ClusterScoredItem[];
+  referencedElements?: DecodedElement[]; // Parsed from referencedCodes
   elementCount?: number;
   loading?: boolean;
 }
@@ -32,6 +34,12 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
   userAName,
   userBName,
 }) => {
+  console.log('[RelationshipChat] === COMPONENT MOUNTED ===');
+  console.log('[RelationshipChat] Composite Chart ID:', compositeChartId);
+  console.log('[RelationshipChat] User A Name:', userAName);
+  console.log('[RelationshipChat] User B Name:', userBName);
+  console.log('[RelationshipChat] Consolidated Items Count:', consolidatedItems.length);
+
   const { colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -59,36 +67,86 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
     const loadChatHistory = async () => {
       if (!compositeChartId || chatMessages.length > 0) {return;}
 
-      console.log('Loading chat history for relationship:', compositeChartId);
+      console.log('[RelationshipChat] 📝 Loading chat history for relationship:', compositeChartId);
       setIsHistoryLoading(true);
 
       try {
         const response = await relationshipsApi.fetchRelationshipEnhancedChatHistory(compositeChartId, 50);
-        console.log('Chat history response:', response);
+        console.log('[RelationshipChat] ✅ Chat history response received:', response);
 
         if (response && response.success && response.chatHistory && Array.isArray(response.chatHistory)) {
-          console.log('Processing', response.chatHistory.length, 'chat messages');
+          console.log('[RelationshipChat] 📊 Processing', response.chatHistory.length, 'chat messages');
           // Process messages and link assistant responses to user queries
           const transformedMessages: ChatMessage[] = [];
 
           for (let index = 0; index < response.chatHistory.length; index++) {
             const msg = response.chatHistory[index];
-            console.log(`Message ${index}:`, {
+            console.log(`[RelationshipChat] Message ${index}:`, {
               role: msg.role,
               hasMetadata: !!msg.metadata,
               mode: msg.metadata?.mode,
               elementCount: msg.metadata?.elementCount,
               hasSelectedElements: !!msg.metadata?.selectedElements,
               selectedElementsLength: msg.metadata?.selectedElements?.length,
+              selectedElements: msg.metadata?.selectedElements,
+              contentPreview: msg.content?.substring(0, 100) + '...',
             });
+
+            // Log full metadata for debugging
+            if (msg.metadata) {
+              console.log(`[RelationshipChat] Message ${index} full metadata:`, JSON.stringify(msg.metadata, null, 2));
+            }
+
+            // Parse referenced codes if present in assistant messages with person names
+            // Check both metadata.referencedCodes (expected) and msg.referencedCodes (backend bug fallback)
+            const referencedCodes = msg.metadata?.referencedCodes || (msg as any).referencedCodes;
+            console.log('[RelationshipChat] Message metadata:', {
+              hasMetadata: !!msg.metadata,
+              metadataKeys: msg.metadata ? Object.keys(msg.metadata) : [],
+              fullMetadata: msg.metadata,
+              referencedCodesInMetadata: msg.metadata?.referencedCodes,
+              referencedCodesAtTopLevel: (msg as any).referencedCodes,
+              finalReferencedCodes: referencedCodes,
+              referencedCodesLength: referencedCodes?.length,
+            });
+
+            // Parse referenced codes (can be in user or assistant messages)
+            const referencedElements = referencedCodes && referencedCodes.length > 0
+              ? parseReferencedCodes(referencedCodes, {
+                  person1Name: userAName,
+                  person2Name: userBName,
+                })
+              : undefined;
+
+            if (referencedElements && referencedElements.length > 0) {
+              console.log(`[RelationshipChat] ✨ Parsed referenced elements in ${msg.role} message:`, referencedElements);
+            }
+
+            // Filter out backend-generated default text for custom mode
+            let messageContent = msg.content;
+            if (msg.role === 'user' && msg.metadata?.mode === 'custom') {
+              // Check if content matches common default patterns
+              const defaultPatterns = [
+                /^What can you tell me about these (relationship )?elements?\??$/i,
+                /^What can you tell me about these (aspects?|items?)\??$/i,
+                /^Generated? relationship (analysis|reading) for/i,
+                /^Custom (analysis|reading) for/i,
+              ];
+              const isDefaultText = defaultPatterns.some(pattern => pattern.test(msg.content.trim()));
+              if (isDefaultText) {
+                messageContent = ''; // Clear default text for custom mode
+              }
+            }
 
             const transformedMessage: ChatMessage = {
               id: `history-${index}-${Date.now()}`,
               type: msg.role === 'user' ? 'user' : 'assistant',
-              content: msg.content,
+              content: messageContent,
               timestamp: new Date(msg.timestamp),
               mode: msg.metadata?.mode || undefined,
-              selectedElements: msg.metadata?.selectedElements || undefined,
+              // Backend returns 'scoredItems', not 'selectedElements'
+              selectedElements: msg.metadata?.selectedElements || msg.metadata?.scoredItems || undefined,
+              referencedElements,
               elementCount: msg.metadata?.elementCount || undefined,
             };
 
@@ -100,9 +158,19 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                 const prevTransformedMsg = transformedMessages[transformedMessages.length - 1];
                 if (prevTransformedMsg && prevTransformedMsg.type === 'user') {
                   prevTransformedMsg.mode = msg.metadata.mode;
-                  prevTransformedMsg.selectedElements = msg.metadata.selectedElements;
+                  prevTransformedMsg.selectedElements = msg.metadata.selectedElements || msg.metadata.scoredItems;
                   prevTransformedMsg.elementCount = msg.metadata.elementCount;
                 }
+              }
+            }
+
+            // Transfer selectedElements from assistant to previous user message (even if user has metadata)
+            // This handles hybrid mode where user asked a question with selected elements
+            if (msg.role === 'assistant' && transformedMessage.selectedElements && transformedMessage.selectedElements.length > 0 && index > 0) {
+              const prevTransformedMsg = transformedMessages[transformedMessages.length - 1];
+              if (prevTransformedMsg && prevTransformedMsg.type === 'user' && !prevTransformedMsg.selectedElements) {
+                console.log('[RelationshipChat] 📋 Transferring selectedElements from assistant to user message');
+                prevTransformedMsg.selectedElements = transformedMessage.selectedElements;
               }
             }
 
@@ -116,7 +184,24 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
               }
             }
 
+            // If this is a user message with referencedElements, transfer them to the next assistant message
+            if (msg.role === 'user' && referencedElements && referencedElements.length > 0) {
+              // Store them temporarily, will be assigned to next assistant message below
+              transformedMessage.referencedElements = referencedElements;
+            }
+
             transformedMessages.push(transformedMessage);
+
+            // If the previous message was a user message with referencedElements, transfer them to this assistant message
+            if (msg.role === 'assistant' && transformedMessages.length >= 2) {
+              const prevMessage = transformedMessages[transformedMessages.length - 2];
+              if (prevMessage.type === 'user' && prevMessage.referencedElements) {
+                console.log('[RelationshipChat] Transferring referencedElements from user message to assistant message');
+                transformedMessage.referencedElements = prevMessage.referencedElements;
+                // Clear from user message since we don't display them there
+                delete prevMessage.referencedElements;
+              }
+            }
           }
 
           // Debug: Log final transformed messages
@@ -142,16 +227,11 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
           });
         }
       } catch (err) {
-        console.error('Failed to load relationship chat history:', err);
-        console.error('Error details:', {
-          message: err instanceof Error ? err.message : 'Unknown error',
-          compositeChartId,
-          stack: err instanceof Error ? err.stack : undefined,
-        });
-
-        // Show a user-friendly message that chat history couldn't be loaded
-        // but don't block the user from starting new conversations
-        console.log('Chat history unavailable, but new conversations will work');
+        console.log('Failed to load relationship chat history');
+        if (err instanceof Error) {
+          console.log('Error:', err.message);
+        }
+        // Don't block the user from starting new conversations
       } finally {
         setIsHistoryLoading(false);
       }
@@ -233,14 +313,15 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
           requestBody.scoredItems = selectedElements;
         }
 
-        // Add user message to chat if there's a query
-        if (query.trim()) {
+        // Add user message to chat if there's a query OR selected elements (for custom mode)
+        if (query.trim() || selectedElements.length > 0) {
           const userMessage: ChatMessage = {
             id: `user-${Date.now()}`,
             type: 'user',
             content: query.trim(),
             timestamp: new Date(),
             selectedElements: selectedElements.length > 0 ? [...selectedElements] : undefined,
+            mode: query.trim() ? (selectedElements.length > 0 ? 'hybrid' : 'chat') : 'custom',
           };
           setChatMessages(prev => [...prev, userMessage]);
         }
@@ -256,11 +337,52 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
         }]);
 
         try {
+          console.log('[RelationshipChat] 📤 Sending request to API:', {
+            compositeChartId,
+            hasQuery: !!requestBody.query,
+            hasSelectedElements: !!requestBody.scoredItems,
+            selectedElementsCount: requestBody.scoredItems?.length || 0,
+          });
+
           const response = await relationshipsApi.enhancedChatForRelationship(compositeChartId, requestBody);
+
+          console.log('[RelationshipChat] 📥 RAW API Response received:', {
+            success: response.success,
+            hasAnalysis: !!response.analysis,
+            hasAnswer: !!response.answer,
+            hasReferencedCodes: !!response.referencedCodes,
+            referencedCodesCount: response.referencedCodes?.length || 0,
+            mode: response.mode,
+            fullResponse: JSON.stringify(response, null, 2),
+          });
 
           if (response.success) {
             // Remove loading message and add actual response
             setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
+
+            console.log('[RelationshipChat] 📨 Processing response:', {
+              hasReferencedCodes: !!response.referencedCodes,
+              referencedCodes: response.referencedCodes,
+              contentPreview: (response.analysis || response.answer)?.substring(0, 100) + '...',
+            });
+
+            // Parse referenced codes from API response with person names
+            console.log('[RelationshipChat] 🔍 About to parse referencedCodes:', response.referencedCodes);
+            const referencedElements = response.referencedCodes
+              ? parseReferencedCodes(response.referencedCodes, {
+                  person1Name: userAName,
+                  person2Name: userBName,
+                })
+              : undefined;
+
+            if (referencedElements && referencedElements.length > 0) {
+              console.log('[RelationshipChat] ✨ Parsed NEW message referenced elements:', referencedElements.map(el => ({
+                type: el.type,
+                pretty: el.pretty,
+              })));
+            } else {
+              console.log('[RelationshipChat] ⚠️ No referencedCodes in new message response or parsing failed');
+            }
 
             const assistantMessage: ChatMessage = {
               id: `assistant-${Date.now()}`,
@@ -268,6 +390,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
               content: response.analysis || response.answer, // Handle both field names for compatibility
               timestamp: new Date(),
               mode: response.mode,
+              referencedElements,
             };
             setChatMessages(prev => [...prev, assistantMessage]);
 
@@ -417,6 +540,26 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
                           }]}>
                             <Text style={[styles.inlineElementChipText, { color: colors.onPrimary }]}>
                               {getElementDisplayName(element)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Referenced elements for assistant messages */}
+                    {message.type === 'assistant' && message.referencedElements && message.referencedElements.length > 0 && (
+                      <View style={[styles.inlineElementChips, { backgroundColor: colors.surfaceVariant, padding: 8, borderRadius: 8, marginTop: 8 }]}>
+                        <Text style={[styles.selectedElementsLabel, { color: colors.onSurfaceVariant }]}>
+                          Referenced aspects:
+                        </Text>
+                        {message.referencedElements.map((element, idx) => (
+                          <View key={`ref-${idx}`} style={[styles.inlineElementChip, {
+                            backgroundColor: colors.primaryContainer,
+                            borderColor: colors.primary,
+                            borderWidth: 1,
+                          }]}>
+                            <Text style={[styles.inlineElementChipText, { color: colors.onPrimaryContainer }]}>
+                              {element.pretty}
                             </Text>
                           </View>
                         ))}

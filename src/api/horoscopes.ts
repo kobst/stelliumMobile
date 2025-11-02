@@ -59,6 +59,7 @@ export interface CustomHoroscopeResponse {
     endDate: string;
     customTransitEvents: TransitEvent[];
     interpretation: string;
+    referencedCodes?: string[]; // Referenced natal chart elements
     userPrompt?: string;
     generatedAt: string;
     requestHash: string;
@@ -79,6 +80,7 @@ export interface CustomHoroscope {
   endDate: string;
   customTransitEvents: TransitEvent[];
   interpretation: string;
+  referencedCodes?: string[]; // Referenced natal chart elements
   userPrompt?: string;
   generatedAt: string;
   requestHash: string;

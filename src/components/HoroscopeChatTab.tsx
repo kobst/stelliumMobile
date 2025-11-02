@@ -6,6 +6,7 @@ import { horoscopesApi, CustomHoroscope } from '../api/horoscopes';
 import HoroscopeTransitsBottomSheet from './HoroscopeTransitsBottomSheet';
 import { AstroIcon } from '../../utils/astrologyIcons';
 import { formatDateRange } from '../utils/dateHelpers';
+import { parseReferencedCodes, DecodedElement } from '../utils/parseReferencedCodes';
 
 interface HoroscopeChatTabProps {
   userId: string;
@@ -146,26 +147,24 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
                   .replace(/\n+/g, ' ')
                   .trim();
 
-                // If what's left is too short or looks like system text, use fallback
+                // If what's left is too short or looks like system text, it's custom mode without a query
                 if (extractedQuery.length < 10 ||
                     extractedQuery.includes('weave these insights') ||
                     extractedQuery.includes('framework') ||
                     extractedQuery.includes('Time Period')) {
-                  const transitCount = horoscope.customTransitEvents?.length || 0;
-                  extractedQuery = `Custom horoscope for ${transitCount} selected transit${transitCount !== 1 ? 's' : ''}`;
+                  extractedQuery = ''; // No user query for custom mode
                 }
               }
 
               userContent = extractedQuery;
               selectedTransits = horoscope.customTransitEvents?.length > 0 ? horoscope.customTransitEvents : undefined;
             } else if (horoscope.customTransitEvents?.length > 0) {
-              // Generate descriptive text for custom-only mode
-              const transitCount = horoscope.customTransitEvents.length;
-              userContent = `Generated custom horoscope for ${transitCount} selected transit${transitCount > 1 ? 's' : ''}`;
+              // Custom-only mode: no user query, just selected transits
+              userContent = '';
               selectedTransits = horoscope.customTransitEvents;
             } else {
               // Fallback for edge cases
-              userContent = `Generated custom horoscope (${horoscope.metadata?.mode || 'custom'} mode)`;
+              userContent = '';
             }
 
             const userMessage: HoroscopeChatMessage = {
@@ -173,9 +172,15 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
               type: 'user',
               content: userContent,
               timestamp: new Date(horoscope.generatedAt),
+              mode: horoscope.metadata?.mode || (selectedTransits && selectedTransits.length > 0 ? (userContent ? 'hybrid' : 'custom') : 'chat'),
               selectedTransits,
             };
             transformedMessages.push(userMessage);
+
+            // Parse referenced codes if present (for natal chart context)
+            const referencedElements = horoscope.referencedCodes
+              ? parseReferencedCodes(horoscope.referencedCodes)
+              : undefined;
 
             // Create assistant message with the horoscope interpretation
             const assistantMessage: HoroscopeChatMessage = {
@@ -183,7 +188,9 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
               type: 'assistant',
               content: horoscope.interpretation,
               timestamp: new Date(horoscope.generatedAt),
+              mode: horoscope.metadata?.mode || userMessage.mode,
               selectedTransits: horoscope.customTransitEvents || [],
+              referencedElements,
             };
             transformedMessages.push(assistantMessage);
           });
@@ -294,14 +301,15 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
       request.selectedTransits = selectedTransits;
     }
 
-    // Add user message to chat if there's a query
-    if (query.trim()) {
+    // Add user message to chat if there's a query OR selected transits (for custom mode)
+    if (query.trim() || selectedTransits.length > 0) {
       const userMessage: HoroscopeChatMessage = {
         id: `user-${Date.now()}`,
         type: 'user',
         content: query.trim(),
         timestamp: new Date(),
         selectedTransits: selectedTransits.length > 0 ? [...selectedTransits] : undefined,
+        mode: query.trim() ? (selectedTransits.length > 0 ? 'hybrid' : 'chat') : 'custom',
       };
 
       setChatMessages(prev => [...prev, userMessage]);
@@ -324,12 +332,18 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
         // Remove loading message and add actual response
         setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
 
+        // Parse referenced codes from API response (for natal chart context)
+        const referencedElements = response.horoscope.referencedCodes
+          ? parseReferencedCodes(response.horoscope.referencedCodes)
+          : undefined;
+
         const assistantMessage: HoroscopeChatMessage = {
           id: `assistant-${Date.now()}`,
           type: 'assistant',
           content: response.horoscope.interpretation,
           timestamp: new Date(),
           selectedTransits: response.horoscope.customTransitEvents || [],
+          referencedElements,
         };
         setChatMessages(prev => [...prev, assistantMessage]);
 
@@ -548,8 +562,8 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
                       {message.content}
                     </Text>
 
-                    {/* Selected transits for user messages */}
-                    {message.type === 'user' && message.selectedTransits && message.selectedTransits.length > 0 && (
+                    {/* Selected transits for user messages - only show if mode is custom or hybrid */}
+                    {message.type === 'user' && message.selectedTransits && message.selectedTransits.length > 0 && (message.mode === 'custom' || message.mode === 'hybrid') && (
                       <View style={[styles.inlineTransitChips, { backgroundColor: 'rgba(0,0,0,0.1)', padding: 8, borderRadius: 8, marginTop: 8 }]}>
                         <Text style={[styles.selectedTransitsLabel, { color: colors.onPrimary, fontWeight: 'bold' }]}>
                           Selected transits:
@@ -571,11 +585,12 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
                       </View>
                     )}
 
-                    {/* Analyzed transits for assistant messages */}
+                    {/* Analyzed transits for assistant messages - always show if present */}
                     {message.type === 'assistant' && message.selectedTransits && message.selectedTransits.length > 0 && (
                       <View style={[styles.inlineTransitChips, { backgroundColor: colors.surfaceVariant, padding: 8, borderRadius: 8, marginTop: 8 }]}>
                         <Text style={[styles.selectedTransitsLabel, { color: colors.onSurfaceVariant, fontWeight: 'bold' }]}>
-                          Analyzed transits:
+                          {/* Show "Selected transits" for custom/hybrid mode, "Analyzed transits" for chat mode */}
+                          {message.mode === 'custom' || message.mode === 'hybrid' ? 'Selected transits:' : 'Analyzed transits:'}
                         </Text>
                         {message.selectedTransits.map((transit, idx) => (
                           <View key={idx} style={[styles.inlineTransitChip, {
@@ -589,6 +604,26 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
                               iconSize={12}
                               iconColor={colors.onSurface}
                             />
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Referenced elements for assistant messages (natal chart context) */}
+                    {message.type === 'assistant' && message.referencedElements && message.referencedElements.length > 0 && (
+                      <View style={[styles.inlineTransitChips, { backgroundColor: colors.primaryContainer, padding: 8, borderRadius: 8, marginTop: 8 }]}>
+                        <Text style={[styles.selectedTransitsLabel, { color: colors.onPrimaryContainer, fontWeight: 'bold' }]}>
+                          Referenced elements:
+                        </Text>
+                        {message.referencedElements.map((element, idx) => (
+                          <View key={`ref-${idx}`} style={[styles.inlineTransitChip, {
+                            backgroundColor: colors.surface,
+                            borderColor: colors.primary,
+                            borderWidth: 1,
+                          }]}>
+                            <Text style={[styles.inlineTransitChipText, { color: colors.onSurface }]}>
+                              {element.pretty}
+                            </Text>
                           </View>
                         ))}
                       </View>
