@@ -326,6 +326,10 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
           setChatMessages(prev => [...prev, userMessage]);
         }
 
+        // Clear form immediately after adding user message
+        setQuery('');
+        setSelectedElements([]);
+
         // Add loading message
         const loadingId = `loading-${Date.now()}`;
         setChatMessages(prev => [...prev, {
@@ -393,10 +397,6 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
               referencedElements,
             };
             setChatMessages(prev => [...prev, assistantMessage]);
-
-            // Clear form after successful submission
-            setQuery('');
-            setSelectedElements([]);
           } else {
             throw new Error(response.error || 'Failed to get response');
           }

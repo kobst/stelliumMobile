@@ -303,6 +303,10 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
           setChatMessages(prev => [...prev, userMessage]);
         }
 
+        // Clear form immediately after adding user message
+        setQuery('');
+        setSelectedElements([]);
+
         // Add loading message
         const loadingId = `loading-${Date.now()}`;
         setChatMessages(prev => [...prev, {
@@ -349,10 +353,6 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               referencedElements,
             };
             setChatMessages(prev => [...prev, assistantMessage]);
-
-            // Clear form after successful submission
-            setQuery('');
-            setSelectedElements([]);
           } else {
             throw new Error('Failed to get response');
           }
