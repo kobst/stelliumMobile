@@ -315,6 +315,10 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
       setChatMessages(prev => [...prev, userMessage]);
     }
 
+    // Clear form immediately after adding user message
+    setQuery('');
+    setSelectedTransits([]);
+
     // Add loading message
     const loadingId = `loading-${Date.now()}`;
     setChatMessages(prev => [...prev, {
@@ -346,10 +350,6 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
           referencedElements,
         };
         setChatMessages(prev => [...prev, assistantMessage]);
-
-        // Clear form after successful submission
-        setQuery('');
-        setSelectedTransits([]);
       } else {
         throw new Error('Failed to get response');
       }
