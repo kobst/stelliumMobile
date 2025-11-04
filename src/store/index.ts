@@ -152,6 +152,7 @@ export const useStore = create<StoreState>((set, get) => ({
 
   creationWorkflowState: {
     workflowId: null,
+    userId: null,
     status: null,
     isCompleted: false,
     progress: null,
@@ -393,6 +394,7 @@ export const useStore = create<StoreState>((set, get) => ({
         selectedSubject: null,
         creationWorkflowState: {
           workflowId: null,
+          userId: null,
           status: null,
           isCompleted: false,
           progress: null,

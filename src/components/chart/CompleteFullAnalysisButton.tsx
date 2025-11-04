@@ -102,10 +102,16 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
   };
 
   // Check for any active workflow state (local or global)
+  // Only show loading if the workflow belongs to the current user
+  const targetUserId = userId || activeUserContext?.id || userData?.id;
   const activeWorkflowState = workflowState || creationWorkflowState;
+  const isWorkflowForCurrentUser = activeWorkflowState?.userId === targetUserId;
   const hasActiveWorkflow = workflowStarted ||
                            chartLoading ||
-                           (activeWorkflowState && activeWorkflowState.workflowId && !activeWorkflowState.completed);
+                           (activeWorkflowState &&
+                            activeWorkflowState.workflowId &&
+                            !activeWorkflowState.completed &&
+                            isWorkflowForCurrentUser);
 
   const getButtonText = (): string => {
     if (isChecking) {

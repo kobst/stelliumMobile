@@ -24,6 +24,8 @@ import { superwallService } from './src/services/SuperwallService';
 const ONBOARDING_COMPLETE_KEY = '@stellium_onboarding_complete';
 
 const App: React.FC = () => {
+  console.log('🚀 APP STARTED - Console logging is working!');
+
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [isLoadingUserData, setIsLoadingUserData] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
