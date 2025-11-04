@@ -598,7 +598,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               style={[styles.addButton, { backgroundColor: colors.secondary }]}
             >
               <Text style={[styles.addButtonText, { color: colors.onSecondary }]}>
-                +Add Aspects and Positions ({selectedElements.length}/3)
+                +Add Chart Details ({selectedElements.length}/3)
               </Text>
             </TouchableOpacity>
 

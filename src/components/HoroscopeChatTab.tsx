@@ -702,7 +702,7 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
               style={[styles.addButton, { backgroundColor: colors.secondary }]}
             >
               <Text style={[styles.addButtonText, { color: colors.onSecondary }]}>
-                +Add Transits ({selectedTransits.length}/3)
+                +Add Transit Details ({selectedTransits.length}/3)
               </Text>
             </TouchableOpacity>
 

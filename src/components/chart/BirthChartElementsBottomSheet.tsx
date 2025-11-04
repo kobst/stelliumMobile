@@ -8,6 +8,8 @@ import {
   StyleSheet,
   TextInput,
   Dimensions,
+  Alert,
+  SafeAreaView,
 } from 'react-native';
 import { useTheme } from '../../theme';
 import { BirthChartElement, BirthChartAspect } from '../../api/charts';
@@ -170,11 +172,27 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
     return 'position';
   };
 
+  // Handle element selection with limit check
+  const handleElementPress = (element: BirthChartElement) => {
+    const isCurrentlySelected = isElementSelected(element);
+
+    if (!isCurrentlySelected && selectedElements.length >= 3) {
+      Alert.alert(
+        'Selection Limit',
+        'Maximum 3 items can be selected. Deselect one to add another.',
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
+
+    onSelectElement(element);
+  };
+
   // Filter buttons
   const filterButtons = [
-    { key: 'all', label: 'All', count: chartElements.length },
-    { key: 'positions', label: 'Positions', count: chartElements.filter(el => el.type === 'position').length },
-    { key: 'aspects', label: 'Aspects', count: chartElements.filter(el => el.type === 'aspect').length },
+    { key: 'all', label: 'All' },
+    { key: 'positions', label: 'Positions' },
+    { key: 'aspects', label: 'Aspects' },
   ] as const;
 
   return (
@@ -184,28 +202,23 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <View style={styles.headerContent}>
-            <Text style={[styles.title, { color: colors.onSurface }]}>
-              Select Chart Elements
-            </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={[styles.closeText, { color: colors.primary }]}>Done</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={[styles.headerTitle, { color: colors.onSurface }]}>
+            Select Chart Elements
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
+            Choose up to 3 chart elements ({selectedElements.length}/3)
+          </Text>
 
-          <View style={styles.selectionInfo}>
-            <Text style={[styles.selectionCount, { color: colors.onSurfaceVariant }]}>
-              {selectedElements.length} of 4 selected
-            </Text>
-            {selectedElements.length > 0 && (
-              <TouchableOpacity onPress={onClearSelection} style={styles.clearButton}>
-                <Text style={[styles.clearText, { color: colors.error }]}>Clear All</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          {/* Close Button */}
+          <TouchableOpacity
+            style={[styles.closeButton, { backgroundColor: colors.surfaceVariant }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.closeButtonText, { color: colors.onSurfaceVariant }]}>×</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Search */}
@@ -237,16 +250,16 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
                 style={[
                   styles.filterButton,
                   {
-                    backgroundColor: activeFilter === button.key ? colors.primary : colors.background,
+                    backgroundColor: activeFilter === button.key ? colors.primary : colors.surfaceVariant,
                     borderColor: colors.border,
                   },
                 ]}
               >
                 <Text style={[
                   styles.filterButtonText,
-                  { color: activeFilter === button.key ? colors.onPrimary : colors.onSurface },
+                  { color: activeFilter === button.key ? colors.onPrimary : colors.onSurfaceVariant },
                 ]}>
-                  {button.label} ({button.count})
+                  {button.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -270,7 +283,7 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
                   key={index}
                   element={element}
                   colors={colors}
-                  onPress={onSelectElement}
+                  onPress={handleElementPress}
                   isSelected={isSelected}
                 />
               );
@@ -283,7 +296,7 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
             return (
               <TouchableOpacity
                 key={index}
-                onPress={() => onSelectElement(element)}
+                onPress={() => handleElementPress(element)}
                 style={[
                   styles.positionCard,
                   {
@@ -326,7 +339,35 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
             </View>
           )}
         </ScrollView>
-      </View>
+
+        {/* Footer */}
+        <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+          <TouchableOpacity
+            style={[styles.clearButtonFooter, { backgroundColor: colors.errorContainer }]}
+            onPress={onClearSelection}
+            disabled={selectedElements.length === 0}
+          >
+            <Text style={[
+              styles.clearButtonText,
+              {
+                color: selectedElements.length === 0 ? colors.onSurfaceVariant : colors.onErrorContainer,
+                opacity: selectedElements.length === 0 ? 0.5 : 1,
+              }
+            ]}>
+              Clear All ({selectedElements.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.doneButton, { backgroundColor: colors.primary }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.doneButtonText, { color: colors.onPrimary }]}>
+              Done
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -336,42 +377,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 20,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    padding: 16,
     borderBottomWidth: 1,
+    position: 'relative',
   },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  title: {
+  headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
   },
   closeButton: {
-    padding: 4,
-  },
-  closeText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  selectionInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  selectionCount: {
-    fontSize: 14,
-  },
-  clearButton: {
-    padding: 4,
-  },
-  clearText: {
-    fontSize: 14,
-    fontWeight: '500',
+  closeButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   searchContainer: {
     padding: 16,
@@ -455,6 +485,32 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  footer: {
+    flexDirection: 'row',
+    padding: 16,
+    borderTopWidth: 1,
+    gap: 12,
+  },
+  clearButtonFooter: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  doneButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

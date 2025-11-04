@@ -265,12 +265,12 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
 
     if (selectedElements.some(el => el.id === element.id)) {
       setSelectedElements(selectedElements.filter(el => el.id !== element.id));
-    } else if (selectedElements.length < 4) {
+    } else if (selectedElements.length < 3) {
       setSelectedElements([...selectedElements, element]);
     } else {
       Alert.alert(
         'Selection Limit',
-        'Maximum 4 items — deselect one to add another.',
+        'Maximum 3 items can be selected. Deselect one to add another.',
         [{ text: 'OK', style: 'default' }]
       );
     }
@@ -639,7 +639,7 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
               style={[styles.addButton, { backgroundColor: colors.secondary }]}
             >
               <Text style={[styles.addButtonText, { color: colors.onSecondary }]}>
-                +Add Elements ({selectedElements.length}/4)
+                +Add Chart Details ({selectedElements.length}/3)
               </Text>
             </TouchableOpacity>
 
