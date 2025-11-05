@@ -25,12 +25,14 @@ import {
 } from '../utils/dateHelpers';
 import { useTheme } from '../theme';
 import { AstroIcon } from '../../utils/astrologyIcons';
+import HoroscopeChatTab from './HoroscopeChatTab';
 
 interface HoroscopeContainerProps {
   transitWindows?: TransitEvent[];
   loading?: boolean;
   error?: string | null;
   userId?: string;
+  onRetryTransitWindows?: () => void;
 }
 
 interface HoroscopeCache {
@@ -44,6 +46,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   loading = false,
   error = null,
   userId,
+  onRetryTransitWindows,
 }) => {
   const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<HoroscopeFilter>('today');
@@ -298,9 +301,11 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     fetchHoroscopeForTab(activeTab, true);
   };
 
-  // Load horoscope when active tab changes
+  // Load horoscope when active tab changes (but not for chat tab)
   useEffect(() => {
-    fetchHoroscopeForTab(activeTab);
+    if (activeTab !== 'chat') {
+      fetchHoroscopeForTab(activeTab);
+    }
   }, [activeTab, userId, userData?.id]);
 
 
@@ -329,6 +334,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     { key: 'today', label: 'Today' },
     { key: 'thisWeek', label: 'This Week' },
     { key: 'thisMonth', label: 'This Month' },
+    { key: 'chat', label: 'Ask Stellium' },
   ] as const;
 
   return (
@@ -363,21 +369,30 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
         </ScrollView>
       </View>
 
-      {/* Scrollable Content */}
-      <ScrollView style={styles.scrollContent}>
+      {/* Scrollable Content or Chat */}
+      {activeTab === 'chat' ? (
+        <HoroscopeChatTab
+          userId={userId!}
+          transitWindows={transitWindows}
+          transitWindowsLoading={loading}
+          transitWindowsError={error}
+          onRetryTransitWindows={onRetryTransitWindows || (() => {})}
+        />
+      ) : (
+        <ScrollView style={styles.scrollContent}>
 
-        {/* Partial Error Indicator */}
-        {horoscopeError && hasAnyData && (
-          <View style={styles.partialErrorNotice}>
-            <Text style={styles.partialErrorText}>
-              ⚠️ Some horoscopes couldn't be loaded. Switch to other tabs to see available content.
-            </Text>
-          </View>
-        )}
+          {/* Partial Error Indicator */}
+          {horoscopeError && hasAnyData && (
+            <View style={styles.partialErrorNotice}>
+              <Text style={styles.partialErrorText}>
+                ⚠️ Some horoscopes couldn't be loaded. Switch to other tabs to see available content.
+              </Text>
+            </View>
+          )}
 
-        {/* Horoscope Content */}
-        <View style={styles.section}>
-          {horoscopeCache[activeTab] ? (
+          {/* Horoscope Content */}
+          <View style={styles.section}>
+            {horoscopeCache[activeTab] ? (
             <View style={styles.horoscopeCard}>
               <Text style={styles.horoscopeTitle}>
                 Your {activeTab === 'today' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
@@ -453,7 +468,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
             </View>
           )}
         </View>
-      </ScrollView>
+        </ScrollView>
+      )}
     </View>
   );
 };

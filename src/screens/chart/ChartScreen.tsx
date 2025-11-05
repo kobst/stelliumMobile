@@ -24,6 +24,7 @@ import ChartTables from '../../components/chart/ChartTables';
 import PatternsTab from '../../components/chart/PatternsTab';
 import PlanetsTab from '../../components/chart/PlanetsTab';
 import AnalysisTab from '../../components/chart/AnalysisTab';
+import BirthChartChatTab from '../../components/chart/BirthChartChatTab';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { BirthChartElement } from '../../api/charts';
 import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
@@ -275,6 +276,7 @@ const ChartScreen: React.FC = () => {
     { label: 'Patterns & Dominance', routeName: 'patterns' },
     { label: 'Planets', routeName: 'planets' },
     { label: '360 Analysis', routeName: 'analysis' },
+    { label: 'Ask Stellium', routeName: 'chat' },
   ];
 
   const chartSubTabs = [
@@ -465,6 +467,8 @@ const ChartScreen: React.FC = () => {
         return <PlanetsTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       case 'analysis':
         return <AnalysisTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
+      case 'chat':
+        return <BirthChartChatTab subjectId={getSubjectId(subject)!} birthChart={subject?.birthChart} />;
       default:
         return null;
     }
