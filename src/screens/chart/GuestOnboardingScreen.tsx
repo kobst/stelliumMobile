@@ -355,7 +355,7 @@ const GuestOnboardingScreen: React.FC = () => {
         canGoBack={!isSubmitting && !isChecking}
         currentStep={currentStep}
         onStepChange={handleStepChange}
-        completeButtonText={isChecking ? "Checking credits..." : "Create Chart (5 credits)"}
+        completeButtonText={isChecking ? "Checking credits..." : "Create Chart (10 credits)"}
       >
         {steps}
       </WizardContainer>

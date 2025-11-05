@@ -34,10 +34,10 @@ export interface CreditCost {
 }
 
 export const CREDIT_COSTS: CreditCost = {
-  quickChartOverview: 5,
-  fullNatalReport: 15,
-  relationshipOverview: 5,
-  fullRelationshipReport: 15,
+  quickChartOverview: 10,
+  fullNatalReport: 75,
+  relationshipOverview: 10,
+  fullRelationshipReport: 60,
   askStelliumQuestion: 1,
 };
 

@@ -120,7 +120,7 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
     if (hasActiveWorkflow) {
       return 'Analysis in Progress...';
     }
-    return 'Complete Full Analysis (15 credits)';
+    return 'Complete Full Analysis (75 credits)';
   };
 
   const isButtonDisabled = (): boolean => {

@@ -50,7 +50,7 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
     if (isAnalysisInProgress) {
       return 'Analysis in Progress...';
     }
-    return 'Complete Full Analysis (15 credits)';
+    return 'Complete Full Analysis (60 credits)';
   };
 
   const isButtonDisabled = (): boolean => {
