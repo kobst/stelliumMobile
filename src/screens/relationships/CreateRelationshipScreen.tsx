@@ -275,7 +275,7 @@ const CreateRelationshipScreen: React.FC = () => {
                 <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>Creating...</Text>
               </View>
             ) : (
-              <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>✨ Create Relationship (5 credits)</Text>
+              <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>✨ Create Relationship (10 credits)</Text>
             )}
           </TouchableOpacity>
         </View>

@@ -11,10 +11,10 @@ export type SubscriptionTier = 'free' | 'premium' | 'pro';
  * Credit costs for each action type
  */
 export const CREDIT_COSTS = {
-  quickChartOverview: 5,
-  fullNatalReport: 15,
-  relationshipOverview: 5,
-  fullRelationshipReport: 15,
+  quickChartOverview: 10,
+  fullNatalReport: 75,
+  relationshipOverview: 10,
+  fullRelationshipReport: 60,
   askStelliumQuestion: 1,
 } as const;
 
@@ -43,21 +43,21 @@ export interface CreditPack {
 export const CREDIT_PACKS: CreditPack[] = [
   {
     id: 'small',
-    credits: 20,
-    price: 7.99,
-    priceDisplay: '$7.99',
+    credits: 75,
+    price: 9.99,
+    priceDisplay: '$9.99',
     revenueCatProductId: 'com.stelliumapp.dev.credits.small',
   },
   {
     id: 'medium',
-    credits: 100,
+    credits: 200,
     price: 24.99,
     priceDisplay: '$24.99',
     revenueCatProductId: 'com.stelliumapp.dev.credits.medium',
   },
   {
     id: 'large',
-    credits: 300,
+    credits: 500,
     price: 49.99,
     priceDisplay: '$49.99',
     revenueCatProductId: 'com.stelliumapp.dev.credits.large',
@@ -139,8 +139,10 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
     description: [
       '10 Credits per Month',
       'Weekly horoscope (personalized)',
-      'Quick Chart Overview: 5 credits',
-      'Full Reports: 15 credits',
+      'Quick Chart Overview: 10 credits',
+      'Full Natal Report: 75 credits',
+      'Relationship Overview: 10 credits',
+      'Full Relationship Report: 60 credits',
       'Ask Stellium: 1 credit/question',
     ],
   },
@@ -171,10 +173,10 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
     description: [
       '200 Credits per Month',
       'Daily + Weekly + Monthly horoscopes',
-      'Quick Chart Overview: 5 credits',
-      'Full Natal Report: 15 credits',
-      'Relationship Overview: 5 credits',
-      'Full Relationship Report: 15 credits',
+      'Quick Chart Overview: 10 credits',
+      'Full Natal Report: 75 credits',
+      'Relationship Overview: 10 credits',
+      'Full Relationship Report: 60 credits',
       'Ask Stellium: 1 credit/question',
     ],
   },
