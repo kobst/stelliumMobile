@@ -9,14 +9,12 @@ import HoroscopeStack from './HoroscopeStack';
 import ChartStack from './ChartStack';
 import RelationshipsStack from './RelationshipsStack';
 import CelebrityStack from './CelebrityStack';
-import ChatStack from './ChatStack';
 
 // Import SVG icons
 import HoroscopeIcon from '../../assets/navigation/horoscopes.svg';
 import ChartIcon from '../../assets/navigation/charts.svg';
 import RelationshipsIcon from '../../assets/navigation/relationships.svg';
 import CelebritiesIcon from '../../assets/navigation/celebrities.svg';
-import ChatIcon from '../../assets/navigation/chat.svg';
 
 const Tab = createBottomTabNavigator();
 
@@ -28,7 +26,6 @@ const TabIcon: React.FC<{ name: string; focused: boolean; color: string }> = ({ 
       case 'Chart': return ChartIcon;
       case 'Relationships': return RelationshipsIcon;
       case 'Celebrity': return CelebritiesIcon;
-      case 'Ask': return ChatIcon;
       default: return null;
     }
   };
@@ -94,11 +91,6 @@ const TabNavigator: React.FC = () => {
         name="Celebrity"
         component={CelebrityStack}
         options={{ title: 'Celebrity' }}
-      />
-      <Tab.Screen
-        name="Ask"
-        component={ChatStack}
-        options={{ title: 'Ask' }}
       />
     </Tab.Navigator>
   );
