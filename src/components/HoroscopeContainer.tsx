@@ -26,6 +26,7 @@ import {
 import { useTheme } from '../theme';
 import { AstroIcon } from '../../utils/astrologyIcons';
 import HoroscopeChatTab from './HoroscopeChatTab';
+import LockedHoroscopeTab from './LockedHoroscopeTab';
 
 interface HoroscopeContainerProps {
   transitWindows?: TransitEvent[];
@@ -59,7 +60,19 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   const [horoscopeError, setHoroscopeError] = useState<string | null>(null);
   const [loadedTabs, setLoadedTabs] = useState<Set<HoroscopeFilter>>(new Set());
 
-  const { userData } = useStore();
+  const { userData, userSubscription } = useStore();
+
+  // Get subscription tier (default to 'free' if not set)
+  const subscriptionTier = userSubscription?.tier || 'free';
+
+  // Check if a tab is locked for the current subscription tier
+  const isTabLocked = (tab: HoroscopeFilter): boolean => {
+    if (subscriptionTier === 'free') {
+      // Free users can only access 'thisWeek' and 'chat'
+      return tab === 'today' || tab === 'thisMonth';
+    }
+    return false;
+  };
 
   // Helper function to add timeout to promises
   const withTimeout = (promise: Promise<any>, timeoutMs: number = 30000): Promise<any> => {
@@ -347,25 +360,33 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           style={styles.tabContainer}
           contentContainerStyle={styles.tabContentContainer}
         >
-          {tabOptions.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[
-                styles.tabButton,
-                activeTab === tab.key && styles.activeTabButton,
-              ]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Text
+          {tabOptions.map((tab) => {
+            const locked = isTabLocked(tab.key);
+            return (
+              <TouchableOpacity
+                key={tab.key}
                 style={[
-                  styles.tabButtonText,
-                  activeTab === tab.key && styles.activeTabButtonText,
+                  styles.tabButton,
+                  activeTab === tab.key && styles.activeTabButton,
+                  locked && styles.lockedTabButton,
                 ]}
+                onPress={() => setActiveTab(tab.key)}
               >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <View style={styles.tabButtonContent}>
+                  <Text
+                    style={[
+                      styles.tabButtonText,
+                      activeTab === tab.key && styles.activeTabButtonText,
+                      locked && styles.lockedTabButtonText,
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                  {locked && <Text style={styles.lockIcon}>🔒</Text>}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -378,6 +399,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           transitWindowsError={error}
           onRetryTransitWindows={onRetryTransitWindows || (() => {})}
         />
+      ) : isTabLocked(activeTab) ? (
+        <LockedHoroscopeTab horoscopeType={activeTab === 'today' ? 'daily' : 'monthly'} />
       ) : (
         <ScrollView style={styles.scrollContent}>
 
@@ -535,6 +558,20 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   activeTabButtonText: {
     color: colors.onPrimary,
+  },
+  tabButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  lockedTabButton: {
+    opacity: 0.7,
+  },
+  lockedTabButtonText: {
+    opacity: 0.8,
+  },
+  lockIcon: {
+    fontSize: 12,
   },
   section: {
     margin: 16,
