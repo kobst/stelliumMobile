@@ -77,31 +77,29 @@ const TransitSelectionScreen: React.FC = () => {
         key={transit.id}
         style={[styles.transitCard, isSelected && styles.selectedTransitCard]}
         onPress={() => toggleTransitSelection(transit.id)}
+        activeOpacity={0.7}
       >
         <View style={styles.transitHeader}>
           <View style={styles.transitInfo}>
-            <Text style={styles.transitTitle}>{transit.description}</Text>
-            <Text style={styles.transitSubtitle}>
+            <Text style={[styles.transitTitle, isSelected && styles.selectedText]}>{transit.description}</Text>
+            <Text style={[styles.transitSubtitle, isSelected && styles.selectedSubtext]}>
               {transit.transitingPlanet} {transit.aspect} {transit.natalPlanet}
             </Text>
-          </View>
-          <View style={[styles.intensityBadge, styles[`intensity${intensity}`]]}>
-            <Text style={styles.intensityText}>{intensity}</Text>
           </View>
         </View>
 
         <View style={styles.transitDates}>
-          <Text style={styles.dateText}>
+          <Text style={[styles.dateText, isSelected && styles.selectedDateText]}>
             Exact: {horoscopeTransformers.formatDate(transit.exactDate)}
           </Text>
-          <Text style={styles.dateText}>
+          <Text style={[styles.dateText, isSelected && styles.selectedDateText]}>
             {horoscopeTransformers.formatDate(transit.startDate)} - {horoscopeTransformers.formatDate(transit.endDate)}
           </Text>
         </View>
 
         {isSelected && (
-          <View style={styles.selectedIndicator}>
-            <Text style={styles.selectedText}>✓ Selected</Text>
+          <View style={styles.selectedBadge}>
+            <Text style={styles.checkmark}>✓</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -211,12 +209,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#334155',
+    position: 'relative',
   },
   selectedTransitCard: {
     borderColor: '#8b5cf6',
-    backgroundColor: '#1e293b',
+    backgroundColor: '#2d1f4d',
   },
   transitHeader: {
     flexDirection: 'row',
@@ -239,26 +238,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#94a3b8',
   },
-  intensityBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  intensitylow: {
-    backgroundColor: '#374151',
-  },
-  intensitymedium: {
-    backgroundColor: '#7c3aed',
-  },
-  intensityhigh: {
-    backgroundColor: '#dc2626',
-  },
-  intensityText: {
-    fontSize: 12,
-    color: '#ffffff',
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
   transitDates: {
     marginBottom: 8,
   },
@@ -267,16 +246,30 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginBottom: 2,
   },
-  selectedIndicator: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#334155',
-  },
   selectedText: {
-    color: '#8b5cf6',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#e9d5ff',
+  },
+  selectedSubtext: {
+    color: '#c4b5fd',
+  },
+  selectedDateText: {
+    color: '#a78bfa',
+  },
+  selectedBadge: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#8b5cf6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkmark: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   footer: {
     backgroundColor: '#1e293b',

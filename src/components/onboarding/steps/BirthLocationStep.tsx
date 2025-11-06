@@ -31,7 +31,7 @@ export const BirthLocationStep: React.FC<BirthLocationStepProps> = ({
   return (
     <WizardStep
       title="Where were you born?"
-      subtitle="Your birth location is essential for accurate chart calculations"
+      subtitle="Birthplace helps calculate accurate planetary positions"
     >
       <View style={styles.formGroup}>
         {(isFocused || placeQuery) && (

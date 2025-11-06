@@ -53,8 +53,6 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
 
   const renderAspectRow = (aspect: BackendAspect, index: number) => {
     const aspectColor = getAspectColor(aspect.aspectType);
-    const planet1Color = PLANET_COLORS[aspect.aspectedPlanet as PlanetName] || '#ffffff';
-    const planet2Color = PLANET_COLORS[aspect.aspectingPlanet as PlanetName] || '#ffffff';
 
     return (
       <View key={`${aspect.aspectedPlanet}-${aspect.aspectingPlanet}-${index}`}
@@ -62,7 +60,7 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
 
         {/* First Planet Symbol */}
         <View style={styles.planetCell}>
-          <Text style={[styles.planetSymbol, { color: planet1Color }]}>
+          <Text style={[styles.planetSymbol, { color: colors.onSurface }]}>
             {getPlanetGlyph(aspect.aspectedPlanet as PlanetName)}
           </Text>
         </View>
@@ -74,21 +72,21 @@ const AspectTable: React.FC<AspectTableProps> = ({ aspects }) => {
 
         {/* Aspect Symbol */}
         <View style={styles.aspectSymbolCell}>
-          <Text style={[styles.aspectSymbol, { color: aspectColor }]}>
+          <Text style={[styles.aspectSymbol, { color: colors.onSurface }]}>
             {getAspectSymbol(aspect.aspectType)}
           </Text>
         </View>
 
         {/* Aspect Name */}
         <View style={styles.aspectNameCell}>
-          <Text style={[styles.aspectName, { color: aspectColor }]}>
+          <Text style={[styles.aspectName, { color: colors.onSurface }]}>
             {getAspectName(aspect.aspectType)}
           </Text>
         </View>
 
         {/* Second Planet Symbol */}
         <View style={styles.planetCell}>
-          <Text style={[styles.planetSymbol, { color: planet2Color }]}>
+          <Text style={[styles.planetSymbol, { color: colors.onSurface }]}>
             {getPlanetGlyph(aspect.aspectingPlanet as PlanetName)}
           </Text>
         </View>

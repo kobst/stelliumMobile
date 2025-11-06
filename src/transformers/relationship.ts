@@ -1,4 +1,5 @@
 import { RelationshipScore } from '../api';
+import { ClusterScoredItem, CompositeChart } from '../api/relationships';
 
 export interface RawRelationshipData {
   scores: Record<string, { score: number; analysis: string }>;
@@ -201,5 +202,46 @@ export const relationshipTransformers = {
     }
 
     return { general, specific };
+  },
+
+  // Enrich composite aspects with planet sign and house data from composite chart
+  enrichCompositeAspects: (
+    scoredItems: ClusterScoredItem[],
+    compositeChart?: CompositeChart
+  ): ClusterScoredItem[] => {
+    if (!compositeChart?.planets) {
+      return scoredItems;
+    }
+
+    // Create a lookup map for composite planets
+    const planetLookup: Record<string, { sign: string; house: number }> = {};
+    compositeChart.planets.forEach(planet => {
+      planetLookup[planet.name] = {
+        sign: planet.sign,
+        house: planet.house,
+      };
+    });
+
+    // Enrich composite aspects with planet data
+    return scoredItems.map(item => {
+      // Only enrich composite aspects that have planet data
+      if (item.source === 'composite' && item.planet1 && item.planet2) {
+        const planet1Data = planetLookup[item.planet1];
+        const planet2Data = planetLookup[item.planet2];
+
+        if (planet1Data && planet2Data) {
+          return {
+            ...item,
+            planet1Sign: planet1Data.sign,
+            planet2Sign: planet2Data.sign,
+            planet1House: planet1Data.house,
+            planet2House: planet2Data.house,
+          };
+        }
+      }
+
+      // Return item unchanged if not a composite aspect or data not found
+      return item;
+    });
   },
 };

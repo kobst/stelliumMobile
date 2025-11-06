@@ -8,6 +8,7 @@ import {
   getAspectColor,
   PLANET_COLORS,
 } from './ChartUtils';
+import { AstroIcon } from '../../../utils/astrologyIcons';
 
 interface SynastryAspectsTableProps {
   aspects: SynastryAspect[];
@@ -53,8 +54,6 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
 
   const renderAspectRow = (aspect: SynastryAspect, index: number) => {
     const aspectColor = getAspectColor(aspect.aspectType as AspectType);
-    const planet1Color = PLANET_COLORS[aspect.planet1 as PlanetName] || colors.onSurface;
-    const planet2Color = PLANET_COLORS[aspect.planet2 as PlanetName] || colors.onSurface;
 
     return (
       <View key={`${aspect.planet1}-${aspect.planet2}-${index}`}
@@ -62,42 +61,36 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
 
         {/* User A Planet Symbol */}
         <View style={styles.planetCell}>
-          <Text style={[styles.planetSymbol, { color: planet1Color }]}>
-            {getPlanetGlyph(aspect.planet1 as PlanetName)}
-          </Text>
+          <AstroIcon type="planet" name={aspect.planet1 as PlanetName} size={16} color={colors.onSurface} />
         </View>
 
         {/* User A Planet Name */}
         <View style={styles.nameCell}>
           <Text style={[styles.planetName, { color: colors.onSurface }]}>{aspect.planet1}</Text>
-          <Text style={[styles.userName, { color: colors.primary }]}>({userAName})</Text>
         </View>
 
         {/* Aspect Symbol */}
         <View style={styles.aspectSymbolCell}>
-          <Text style={[styles.aspectSymbol, { color: aspectColor }]}>
+          <Text style={[styles.aspectSymbol, { color: colors.onSurface }]}>
             {getAspectSymbol(aspect.aspectType)}
           </Text>
         </View>
 
         {/* Aspect Name */}
         <View style={styles.aspectNameCell}>
-          <Text style={[styles.aspectName, { color: aspectColor }]}>
+          <Text style={[styles.aspectName, { color: colors.onSurface }]}>
             {getAspectName(aspect.aspectType)}
           </Text>
         </View>
 
         {/* User B Planet Symbol */}
         <View style={styles.planetCell}>
-          <Text style={[styles.planetSymbol, { color: planet2Color }]}>
-            {getPlanetGlyph(aspect.planet2 as PlanetName)}
-          </Text>
+          <AstroIcon type="planet" name={aspect.planet2 as PlanetName} size={16} color={colors.onSurface} />
         </View>
 
         {/* User B Planet Name */}
         <View style={styles.nameCell}>
           <Text style={[styles.planetName, { color: colors.onSurface }]}>{aspect.planet2}</Text>
-          <Text style={[styles.userName, { color: colors.primary }]}>({userBName})</Text>
         </View>
 
         {/* Orb */}
@@ -128,11 +121,8 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
 
       {/* Header */}
       <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
-        <View style={styles.planetCell}>
-          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☽</Text>
-        </View>
-        <View style={styles.nameCell}>
-          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>{userAName}</Text>
+        <View style={styles.planetHeaderCell}>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>{userAName.split(' ')[0]}'s Planet</Text>
         </View>
         <View style={styles.aspectSymbolCell}>
           <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>◦</Text>
@@ -140,11 +130,8 @@ const SynastryAspectsTable: React.FC<SynastryAspectsTableProps> = ({
         <View style={styles.aspectNameCell}>
           <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Aspect</Text>
         </View>
-        <View style={styles.planetCell}>
-          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☉</Text>
-        </View>
-        <View style={styles.nameCell}>
-          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>{userBName}</Text>
+        <View style={styles.planetHeaderCell}>
+          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>{userBName.split(' ')[0]}'s Planet</Text>
         </View>
         <View style={styles.orbCell}>
           <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Orb</Text>
@@ -203,6 +190,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nameCell: {
+    flex: 2,
+    paddingHorizontal: 4,
+  },
+  planetHeaderCell: {
+    width: 30,
     flex: 2,
     paddingHorizontal: 4,
   },

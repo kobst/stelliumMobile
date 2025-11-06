@@ -117,32 +117,47 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
         />
       );
 
-      // Cluster label
-      const labelRadius = MAX_RADIUS + 20;
+      // Cluster label - increased radius to prevent cutoff
+      const labelRadius = MAX_RADIUS + 30;
       const labelX = CENTER_X + Math.cos(angle) * labelRadius;
       const labelY = CENTER_Y + Math.sin(angle) * labelRadius;
 
+      // Name label (top)
       clusterElements.push(
         <SvgText
           key={`label-${clusterName}`}
           x={labelX}
-          y={labelY}
+          y={labelY - 10}
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize={12}
           fill={colors.onSurface}
           fontWeight="600"
         >
-          {config.emoji} {config.name}
+          {config.name}
         </SvgText>
       );
 
-      // Score label
+      // Emoji label (middle - below name)
+      clusterElements.push(
+        <SvgText
+          key={`emoji-${clusterName}`}
+          x={labelX}
+          y={labelY + 5}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={12}
+        >
+          {config.emoji}
+        </SvgText>
+      );
+
+      // Score label (bottom)
       clusterElements.push(
         <SvgText
           key={`score-${clusterName}`}
           x={labelX}
-          y={labelY + 15}
+          y={labelY + 20}
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize={10}
@@ -181,9 +196,6 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
       <View style={styles.header}>
         <Text style={[styles.tier, { color: getScoreColor(averageScore) }]}>{tier}</Text>
         <Text style={[styles.profile, { color: colors.onSurface }]}>{profile}</Text>
-        <Text style={[styles.average, { color: colors.onSurfaceVariant }]}>
-          Average: {Math.round(averageScore * 100)}%
-        </Text>
       </View>
 
       <View style={styles.radarContainer}>
@@ -232,7 +244,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   profile: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
     marginBottom: 4,
   },

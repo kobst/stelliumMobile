@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useStore } from '../store';
 import { useTheme } from '../theme';
 
@@ -10,25 +10,32 @@ import ChartStack from './ChartStack';
 import RelationshipsStack from './RelationshipsStack';
 import CelebrityStack from './CelebrityStack';
 
+// Import SVG icons
+import HoroscopeIcon from '../../assets/navigation/horoscopes.svg';
+import ChartIcon from '../../assets/navigation/charts.svg';
+import RelationshipsIcon from '../../assets/navigation/relationships.svg';
+import CelebritiesIcon from '../../assets/navigation/celebrities.svg';
+
 const Tab = createBottomTabNavigator();
 
-// Simple icon component placeholder (we'll improve this later)
-const TabIcon: React.FC<{ name: string; focused: boolean }> = ({ name, focused }) => {
-  const getIconText = () => {
+// Tab icon component with SVG icons
+const TabIcon: React.FC<{ name: string; focused: boolean; color: string }> = ({ name, focused, color }) => {
+  const getIcon = () => {
     switch (name) {
-      case 'Horoscope': return '☀️';
-      case 'Chart': return '⭕';
-      case 'Relationships': return '💕';
-      case 'Celebrity': return '⭐';
-      default: return '•';
+      case 'Horoscope': return HoroscopeIcon;
+      case 'Chart': return ChartIcon;
+      case 'Relationships': return RelationshipsIcon;
+      case 'Celebrity': return CelebritiesIcon;
+      default: return null;
     }
   };
 
+  const Icon = getIcon();
+  if (!Icon) return null;
+
   return (
     <View style={styles.iconContainer}>
-      <Text style={[styles.iconText, focused && styles.iconTextFocused]}>
-        {getIconText()}
-      </Text>
+      <Icon width={24} height={24} color={color} fill={color} />
     </View>
   );
 };
@@ -40,8 +47,8 @@ const TabNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused }) => (
-          <TabIcon name={route.name} focused={focused} />
+        tabBarIcon: ({ focused, color }) => (
+          <TabIcon name={route.name} focused={focused} color={color} />
         ),
         tabBarActiveTintColor: colors.tabBarActive,
         tabBarInactiveTintColor: colors.tabBarInactive,
@@ -51,9 +58,11 @@ const TabNavigator: React.FC = () => {
           borderTopWidth: 1,
           paddingBottom: 8,
           paddingTop: 8,
+          paddingHorizontal: 8,
           height: 80,
         },
         tabBarLabelStyle: styles.tabBarLabel,
+        tabBarItemStyle: styles.tabBarItem,
         headerShown: false,
       })}
       screenListeners={{
@@ -76,7 +85,7 @@ const TabNavigator: React.FC = () => {
       <Tab.Screen
         name="Relationships"
         component={RelationshipsStack}
-        options={{ title: 'Relationships' }}
+        options={{ title: 'Relations' }}
       />
       <Tab.Screen
         name="Celebrity"
@@ -89,20 +98,16 @@ const TabNavigator: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabBarLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     marginTop: 4,
+  },
+  tabBarItem: {
+    paddingHorizontal: 4,
   },
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  iconText: {
-    fontSize: 24,
-    opacity: 0.6,
-  },
-  iconTextFocused: {
-    opacity: 1,
   },
 });
 

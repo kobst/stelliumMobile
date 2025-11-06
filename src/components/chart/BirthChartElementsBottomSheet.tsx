@@ -8,10 +8,14 @@ import {
   StyleSheet,
   TextInput,
   Dimensions,
+  Alert,
+  SafeAreaView,
 } from 'react-native';
 import { useTheme } from '../../theme';
-import { BirthChartElement } from '../../api/charts';
+import { BirthChartElement, BirthChartAspect } from '../../api/charts';
 import { BirthChart } from '../../types';
+import BirthChartAspectCard from './BirthChartAspectCard';
+import { getPlanetGlyph, PlanetName } from './ChartUtils';
 
 interface BirthChartElementsBottomSheetProps {
   visible: boolean;
@@ -168,11 +172,27 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
     return 'position';
   };
 
+  // Handle element selection with limit check
+  const handleElementPress = (element: BirthChartElement) => {
+    const isCurrentlySelected = isElementSelected(element);
+
+    if (!isCurrentlySelected && selectedElements.length >= 3) {
+      Alert.alert(
+        'Selection Limit',
+        'Maximum 3 items can be selected. Deselect one to add another.',
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
+
+    onSelectElement(element);
+  };
+
   // Filter buttons
   const filterButtons = [
-    { key: 'all', label: 'All', count: chartElements.length },
-    { key: 'positions', label: 'Positions', count: chartElements.filter(el => el.type === 'position').length },
-    { key: 'aspects', label: 'Aspects', count: chartElements.filter(el => el.type === 'aspect').length },
+    { key: 'all', label: 'All' },
+    { key: 'positions', label: 'Positions' },
+    { key: 'aspects', label: 'Aspects' },
   ] as const;
 
   return (
@@ -182,28 +202,23 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <View style={styles.headerContent}>
-            <Text style={[styles.title, { color: colors.onSurface }]}>
-              Select Chart Elements
-            </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={[styles.closeText, { color: colors.primary }]}>Done</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={[styles.headerTitle, { color: colors.onSurface }]}>
+            Select Chart Elements
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
+            Choose up to 3 chart elements ({selectedElements.length}/3)
+          </Text>
 
-          <View style={styles.selectionInfo}>
-            <Text style={[styles.selectionCount, { color: colors.onSurfaceVariant }]}>
-              {selectedElements.length} of 4 selected
-            </Text>
-            {selectedElements.length > 0 && (
-              <TouchableOpacity onPress={onClearSelection} style={styles.clearButton}>
-                <Text style={[styles.clearText, { color: colors.error }]}>Clear All</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          {/* Close Button */}
+          <TouchableOpacity
+            style={[styles.closeButton, { backgroundColor: colors.surfaceVariant }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.closeButtonText, { color: colors.onSurfaceVariant }]}>×</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Search */}
@@ -235,16 +250,16 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
                 style={[
                   styles.filterButton,
                   {
-                    backgroundColor: activeFilter === button.key ? colors.primary : colors.background,
+                    backgroundColor: activeFilter === button.key ? colors.primary : colors.surfaceVariant,
                     borderColor: colors.border,
                   },
                 ]}
               >
                 <Text style={[
                   styles.filterButtonText,
-                  { color: activeFilter === button.key ? colors.onPrimary : colors.onSurface },
+                  { color: activeFilter === button.key ? colors.onPrimary : colors.onSurfaceVariant },
                 ]}>
-                  {button.label} ({button.count})
+                  {button.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -261,83 +276,57 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
             const isSelected = isElementSelected(element);
             const category = getElementCategory(element);
 
+            // Render aspect cards with new BirthChartAspectCard component
+            if (element.type === 'aspect') {
+              return (
+                <BirthChartAspectCard
+                  key={index}
+                  element={element}
+                  colors={colors}
+                  onPress={handleElementPress}
+                  isSelected={isSelected}
+                />
+              );
+            }
+
+            // Render position cards with planets tab styling
+            const houseText = element.house ? ` in House ${element.house}` : '';
+            const retroText = element.isRetrograde ? ' ℞' : '';
+
             return (
               <TouchableOpacity
                 key={index}
-                onPress={() => onSelectElement(element)}
+                onPress={() => handleElementPress(element)}
                 style={[
-                  styles.elementCard,
+                  styles.positionCard,
                   {
                     backgroundColor: isSelected ? colors.primaryContainer : colors.surface,
                     borderColor: isSelected ? colors.primary : colors.border,
                   },
                 ]}
               >
-                <View style={styles.elementHeader}>
-                  <View style={[
-                    styles.elementTypeTag,
-                    {
-                      backgroundColor: element.type === 'position' ? colors.secondaryContainer : colors.tertiaryContainer,
-                    },
-                  ]}>
+                <View style={styles.positionCardContent}>
+                  <Text style={styles.planetGlyph}>{getPlanetGlyph(element.planet as PlanetName)}</Text>
+                  <View style={styles.planetInfo}>
                     <Text style={[
-                      styles.elementTypeText,
-                      {
-                        color: element.type === 'position' ? colors.onSecondaryContainer : colors.onTertiaryContainer,
-                      },
+                      styles.planetName,
+                      { color: isSelected ? colors.onPrimaryContainer : colors.onSurface },
                     ]}>
-                      {element.type === 'position' ? 'Position' : 'Aspect'}
+                      {element.planet}
                     </Text>
-                  </View>
-                  {isSelected && (
-                    <View style={[styles.selectedBadge, { backgroundColor: colors.primary }]}>
-                      <Text style={[styles.selectedBadgeText, { color: colors.onPrimary }]}>✓</Text>
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.elementContent}>
-                  <Text style={[
-                    styles.elementTitle,
-                    { color: isSelected ? colors.onPrimaryContainer : colors.onSurface },
-                  ]}>
-                    {getElementDisplayName(element)}
-                  </Text>
-
-                  {element.type === 'aspect' && (
-                    <View style={styles.aspectDetails}>
-                      <Text style={[
-                        styles.aspectDetail,
-                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
-                      ]}>
-                        {element.planet1} in {element.planet1Sign}
-                        {element.planet1House && ` (${getOrdinal(element.planet1House)} house)`}
-                      </Text>
-                      <Text style={[
-                        styles.aspectDetail,
-                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
-                      ]}>
-                        {element.planet2} in {element.planet2Sign}
-                        {element.planet2House && ` (${getOrdinal(element.planet2House)} house)`}
-                      </Text>
-                      <Text style={[
-                        styles.orbText,
-                        { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
-                      ]}>
-                        Orb: {element.orb.toFixed(1)}°
-                      </Text>
-                    </View>
-                  )}
-
-                  {element.type === 'position' && element.degree && (
                     <Text style={[
-                      styles.degreeText,
+                      styles.planetPosition,
                       { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
                     ]}>
-                      {element.degree.toFixed(1)}° {element.sign}
+                      {element.sign}{houseText}{retroText}
                     </Text>
-                  )}
+                  </View>
                 </View>
+                {isSelected && (
+                  <View style={[styles.selectedBadge, { backgroundColor: colors.primary }]}>
+                    <Text style={[styles.selectedBadgeText, { color: colors.onPrimary }]}>✓</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -350,7 +339,35 @@ const BirthChartElementsBottomSheet: React.FC<BirthChartElementsBottomSheetProps
             </View>
           )}
         </ScrollView>
-      </View>
+
+        {/* Footer */}
+        <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+          <TouchableOpacity
+            style={[styles.clearButtonFooter, { backgroundColor: colors.errorContainer }]}
+            onPress={onClearSelection}
+            disabled={selectedElements.length === 0}
+          >
+            <Text style={[
+              styles.clearButtonText,
+              {
+                color: selectedElements.length === 0 ? colors.onSurfaceVariant : colors.onErrorContainer,
+                opacity: selectedElements.length === 0 ? 0.5 : 1,
+              }
+            ]}>
+              Clear All ({selectedElements.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.doneButton, { backgroundColor: colors.primary }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.doneButtonText, { color: colors.onPrimary }]}>
+              Done
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -360,42 +377,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 20,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    padding: 16,
     borderBottomWidth: 1,
+    position: 'relative',
   },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  title: {
+  headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
   },
   closeButton: {
-    padding: 4,
-  },
-  closeText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  selectionInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  selectionCount: {
-    fontSize: 14,
-  },
-  clearButton: {
-    padding: 4,
-  },
-  clearText: {
-    fontSize: 14,
-    fontWeight: '500',
+  closeButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   searchContainer: {
     padding: 16,
@@ -431,27 +437,34 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  elementCard: {
+  positionCard: {
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-  },
-  elementHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
   },
-  elementTypeTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+  positionCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  elementTypeText: {
-    fontSize: 11,
+  planetGlyph: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  planetInfo: {
+    flex: 1,
+  },
+  planetName: {
+    fontSize: 17,
     fontWeight: '600',
-    textTransform: 'uppercase',
+  },
+  planetPosition: {
+    fontSize: 13,
+    marginTop: 2,
   },
   selectedBadge: {
     width: 20,
@@ -464,28 +477,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  elementContent: {
-    gap: 4,
-  },
-  elementTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  aspectDetails: {
-    gap: 2,
-  },
-  aspectDetail: {
-    fontSize: 13,
-  },
-  orbText: {
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-  degreeText: {
-    fontSize: 13,
-    fontStyle: 'italic',
-  },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -494,6 +485,32 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  footer: {
+    flexDirection: 'row',
+    padding: 16,
+    borderTopWidth: 1,
+    gap: 12,
+  },
+  clearButtonFooter: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  doneButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

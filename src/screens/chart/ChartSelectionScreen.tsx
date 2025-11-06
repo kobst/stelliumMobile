@@ -10,7 +10,7 @@ import {
   RefreshControl,
   SafeAreaView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../../store';
 import { usersApi, PaginatedUserSubjectsResponse } from '../../api';
 import { SubjectDocument } from '../../types';
@@ -21,6 +21,7 @@ import UpgradeBanner from '../../components/UpgradeBanner';
 import { HeaderWithProfile } from '../../components/navigation';
 import PlanetaryIcons from '../../components/chart/PlanetaryIcons';
 import AnalysisTypeIndicator from '../../components/chart/AnalysisTypeIndicator';
+import ProfileAvatar from '../../components/profile/ProfileAvatar';
 
 const ChartSelectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -32,10 +33,15 @@ const ChartSelectionScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const hasLoadedInitially = React.useRef(false);
 
   useEffect(() => {
     loadGuestSubjects();
+    hasLoadedInitially.current = true;
   }, []);
+
+  // Don't auto-refresh on focus - it causes infinite loops
+  // User can manually pull-to-refresh or new guests are added via callback
 
   const loadGuestSubjects = async (isRefresh = false) => {
     if (!userData?.id) {return;}
@@ -65,7 +71,12 @@ const ChartSelectionScreen: React.FC = () => {
         if (isRefresh) {
           setGuestSubjects(guests);
         } else {
-          setGuestSubjects(prev => [...prev, ...guests]);
+          // Deduplicate by ID to prevent duplicate entries
+          setGuestSubjects(prev => {
+            const existingIds = new Set(prev.map(s => s._id));
+            const newGuests = guests.filter((g: SubjectDocument) => !existingIds.has(g._id));
+            return [...prev, ...newGuests];
+          });
         }
 
         setHasMore(result.pagination.hasNext);
@@ -89,6 +100,8 @@ const ChartSelectionScreen: React.FC = () => {
   };
 
   const handleRefresh = () => {
+    setCurrentPage(1);
+    setHasMore(true);
     loadGuestSubjects(true);
   };
 
@@ -107,7 +120,6 @@ const ChartSelectionScreen: React.FC = () => {
     });
   };
 
-
   if (!userData) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -122,9 +134,10 @@ const ChartSelectionScreen: React.FC = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <HeaderWithProfile title="Birth Charts" showSafeArea={false} />
+
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, styles.contentWithReducedTopPadding]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -141,93 +154,89 @@ const ChartSelectionScreen: React.FC = () => {
         }}
         scrollEventThrottle={400}
       >
-      {/* My Birth Chart Section */}
-      <Text style={[styles.header, { color: colors.onSurface }]}>My Birth Chart</Text>
+        {/* My Birth Chart Section */}
+        <Text style={[styles.header, { color: colors.onSurface }]}>My Birth Chart</Text>
 
-      {/* Compact My Birth Chart Row */}
-      <TouchableOpacity
-        style={[styles.compactChartCard, { backgroundColor: colors.surface }]}
-        onPress={() => handleSelectChart(null)}
-        activeOpacity={0.8}
-      >
-        <View style={[styles.compactChartAvatar, { backgroundColor: colors.surfaceVariant }]}>
-          <Text style={[styles.avatarText, { color: colors.onSurfaceVariant }]}>
-            {userData.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-          </Text>
-        </View>
-        <View style={styles.compactChartInfo}>
-          <Text style={[styles.compactChartTitle, { color: colors.onSurface }]}>
-            {userData.name}
-          </Text>
-          <PlanetaryIcons user={userData} />
-          <Text style={[styles.compactChartSubtitle, { color: colors.onSurfaceVariant }]}>
-            {new Date(userData.birthYear, userData.birthMonth - 1, userData.birthDay).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })} - {userData.birthLocation}
-          </Text>
-          <AnalysisTypeIndicator analysisStatus={userData.analysisStatus} />
-        </View>
-        <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
-      </TouchableOpacity>
+        {/* Compact My Birth Chart Row */}
+        <TouchableOpacity
+          style={[styles.compactChartCard, { backgroundColor: colors.surface }]}
+          onPress={() => handleSelectChart(null)}
+          activeOpacity={0.8}
+        >
+          <View style={{ marginRight: 16 }}>
+            <ProfileAvatar subject={userData} size={64} showOnlineIndicator={false} />
+          </View>
+          <View style={styles.compactChartInfo}>
+            <Text style={[styles.compactChartTitle, { color: colors.onSurface }]}>
+              {userData.name}
+            </Text>
+            <PlanetaryIcons user={userData} />
+            <Text style={[styles.compactChartSubtitle, { color: colors.onSurfaceVariant }]}>
+              {new Date(userData.birthYear, userData.birthMonth - 1, userData.birthDay).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })} - {userData.birthLocation}
+            </Text>
+            <AnalysisTypeIndicator analysisStatus={userData.analysisStatus} userId={userData.id} />
+          </View>
+          <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
+        </TouchableOpacity>
 
-      {/* Divider */}
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        {/* Divider */}
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-      {/* Friends & Family Section */}
-      <Text style={[styles.sectionHeader, { color: colors.onSurface }]}>Friends & Family</Text>
+        {/* Friends & Family Section */}
+        <Text style={[styles.sectionHeader, { color: colors.onSurface }]}>Friends & Family</Text>
 
-      {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
-      ) : error ? (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-      ) : (
-        <>
-          {guestSubjects.map((subject) => {
-            // Parse date-only string to avoid timezone shifts
-            let birthDate: Date;
-            const dob = subject.dateOfBirth;
-            if (dob && /^\d{4}-\d{2}-\d{2}$/.test(dob)) {
-              const [y, m, d] = dob.split('-').map(Number);
-              birthDate = new Date(y, m - 1, d);
-            } else {
-              const d = new Date(dob);
-              birthDate = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-            }
+        {loading ? (
+          <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+        ) : error ? (
+          <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        ) : (
+          <>
+            {guestSubjects.map((subject) => {
+              // Parse date-only string to avoid timezone shifts
+              let birthDate: Date;
+              const dob = subject.dateOfBirth;
+              if (dob && /^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+                const [y, m, d] = dob.split('-').map(Number);
+                birthDate = new Date(y, m - 1, d);
+              } else {
+                const d = new Date(dob);
+                birthDate = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+              }
 
-            return (
-              <TouchableOpacity
-                key={subject._id}
-                style={[styles.guestCard, { backgroundColor: colors.surface }]}
-                onPress={() => handleSelectChart(subject)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.guestAvatar, { backgroundColor: colors.surfaceVariant }]}>
-                  <Text style={[styles.avatarText, { color: colors.onSurfaceVariant }]}>
-                    {subject.firstName[0]}{subject.lastName[0]}
-                  </Text>
-                </View>
-                <View style={styles.guestInfo}>
-                  <Text style={[styles.guestName, { color: colors.onSurface }]}>
-                    {subject.firstName} {subject.lastName}
-                  </Text>
-                  <PlanetaryIcons subject={subject} />
-                  <Text style={[styles.guestDetails, { color: colors.onSurfaceVariant }]}>
-                    {birthDate.toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })} - {subject.placeOfBirth}
-                  </Text>
-                  <AnalysisTypeIndicator analysisStatus={subject.analysisStatus} />
-                </View>
-                <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </>
-      )}
+              return (
+                <TouchableOpacity
+                  key={subject._id}
+                  style={[styles.guestCard, { backgroundColor: colors.surface }]}
+                  onPress={() => handleSelectChart(subject)}
+                  activeOpacity={0.8}
+                >
+                  <View style={{ marginRight: 12 }}>
+                    <ProfileAvatar subject={subject} size={48} showOnlineIndicator={false} />
+                  </View>
+                  <View style={styles.guestInfo}>
+                    <Text style={[styles.guestName, { color: colors.onSurface }]}>
+                      {subject.firstName} {subject.lastName}
+                    </Text>
+                    <PlanetaryIcons subject={subject} />
+                    <Text style={[styles.guestDetails, { color: colors.onSurfaceVariant }]}>
+                      {birthDate.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })} - {subject.placeOfBirth}
+                    </Text>
+                    <AnalysisTypeIndicator analysisStatus={subject.analysisStatus} userId={subject._id} />
+                  </View>
+                  <Text style={[styles.chevron, { color: colors.onSurfaceVariant }]}>›</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </>
+        )}
 
         {/* Loading indicator for pagination */}
         {loading && !refreshing && guestSubjects.length > 0 && (
@@ -254,8 +263,11 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
+  contentWithReducedTopPadding: {
+    paddingTop: 4,
+  },
   header: {
-    fontSize: 17,
+    fontSize: 22,
     fontWeight: '600',
     marginBottom: 12,
   },
@@ -300,7 +312,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionHeader: {
-    fontSize: 17,
+    fontSize: 22,
     fontWeight: '600',
     marginBottom: 16,
   },

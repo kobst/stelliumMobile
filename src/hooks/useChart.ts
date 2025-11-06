@@ -35,6 +35,7 @@ export const useChart = (userId?: string): UseChartReturn => {
     setWorkflowState: setStoreWorkflowState,
     setAnalysisState,
     creationWorkflowState,
+    analysisWorkflowState,
   } = useStore();
 
   const clearError = () => setError(null);
@@ -108,7 +109,7 @@ export const useChart = (userId?: string): UseChartReturn => {
       const response = await chartsApi.startFullAnalysis(targetUserId);
       console.log('useChart - startFullAnalysis response:', response);
       setWorkflowState(response);
-      setStoreWorkflowState(response);
+      setStoreWorkflowState({ ...response, userId: targetUserId });
 
       // Start polling for status
       if (response.workflowId) {
@@ -138,9 +139,14 @@ export const useChart = (userId?: string): UseChartReturn => {
           const statusResponse = await chartsApi.pollAnalysisStatus(targetUserId, workflowId);
           console.log('useChart - Poll response:', statusResponse);
           setWorkflowState(statusResponse);
-          setStoreWorkflowState(statusResponse);
+          setStoreWorkflowState({ ...statusResponse, userId: targetUserId });
 
-          if (statusResponse.completed) {
+          // Check if workflow is completed (handle both 'completed' and status-based completion)
+          const isWorkflowDone = statusResponse.completed ||
+                                 statusResponse.status === 'completed' ||
+                                 statusResponse.status === 'completed_with_failures';
+
+          if (isWorkflowDone) {
             console.log('useChart - Workflow completed, fetching analysis data');
             clearInterval(pollInterval);
             setLoading(false);
@@ -198,9 +204,49 @@ export const useChart = (userId?: string): UseChartReturn => {
     }
   }, [userId, userData?.id, loading, setStoreWorkflowState, setAnalysisState]);
 
+  // Load existing analysis on mount if store indicates it exists
+  useEffect(() => {
+    const targetUserId = userId || userData?.id;
 
-  // Don't auto-load analysis - let users explicitly trigger it with the button
-  // This prevents flashing between loading states when switching tabs
+    // Skip if no user ID, already have analysis loaded, or store says no analysis exists
+    if (!targetUserId || fullAnalysis !== null || !analysisWorkflowState.hasFullAnalysis) {
+      return;
+    }
+
+    // Try to fetch existing analysis from API
+    const fetchExistingAnalysis = async () => {
+      setLoading(true);
+      try {
+        console.log('useChart - Loading existing analysis from API for user:', targetUserId);
+        const response = await chartsApi.fetchAnalysis(targetUserId);
+        setFullAnalysis(response);
+
+        // Extract overview from the response structure
+        const basicAnalysis = response.interpretation?.basicAnalysis;
+        if (basicAnalysis?.overview) {
+          setOverview(basicAnalysis.overview);
+        }
+
+        // Update store with chart data
+        if (response.planets && response.houses && response.aspects) {
+          setChartData(response.planets, response.houses, response.aspects);
+        }
+
+        console.log('useChart - Existing analysis loaded successfully');
+      } catch (err) {
+        console.error('useChart - Failed to load existing analysis:', err);
+        // Reset store state since analysis doesn't actually exist
+        setAnalysisState({
+          hasFullAnalysis: false,
+          analysisContent: {},
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExistingAnalysis();
+  }, [userId, userData?.id, fullAnalysis, analysisWorkflowState.hasFullAnalysis, setChartData, setAnalysisState]);
 
   // Check for meaningful analysis data (not just basic overview)
   const hasAnalysisData = Boolean(

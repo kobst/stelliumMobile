@@ -8,9 +8,11 @@ import {
   TextInput,
   StyleSheet,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useTheme } from '../../theme';
 import { ClusterScoredItem } from '../../api/relationships';
+import AspectCard from './AspectCard';
 
 interface ConsolidatedItemsBottomSheetProps {
   visible: boolean;
@@ -19,18 +21,12 @@ interface ConsolidatedItemsBottomSheetProps {
   selectedElements: ClusterScoredItem[];
   onSelectElement: (element: ClusterScoredItem) => void;
   onClearSelection: () => void;
+  userAName?: string;
+  userBName?: string;
 }
 
 type FilterType = 'all' | 'sparks' | 'supports' | 'challenges' | 'keystones';
 type SourceType = 'synastry' | 'composite';
-
-const SPARK_TYPE_EMOJIS = {
-  sexual: '🔥',
-  transformative: '⚡️',
-  intellectual: '🧠',
-  emotional: '💖',
-  power: '👑',
-};
 
 const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> = ({
   visible,
@@ -39,6 +35,8 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
   selectedElements,
   onSelectElement,
   onClearSelection,
+  userAName = 'Person A',
+  userBName = 'Person B',
 }) => {
   const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,59 +93,25 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
     return items.sort((a, b) => b.overallCentrality - a.overallCentrality);
   }, [scoredItems, activeFilter, searchQuery, activeSourceFilters]);
 
-  // Get filter counts based on current source selection
-  const filterCounts = useMemo(() => {
-    // First filter by source if not all sources are selected
-    let baseItems = scoredItems;
-    if (activeSourceFilters.size > 0 && activeSourceFilters.size < 2) {
-      baseItems = scoredItems.filter(item => activeSourceFilters.has(item.source as SourceType));
-    }
-
-    return {
-      all: baseItems.length,
-      sparks: baseItems.filter(item =>
-        item.clusterContributions.some(cc => cc.spark === true)
-      ).length,
-      supports: baseItems.filter(item =>
-        item.clusterContributions.some(cc => cc.valence === 1)
-      ).length,
-      challenges: baseItems.filter(item =>
-        item.clusterContributions.some(cc => cc.valence === -1)
-      ).length,
-      keystones: baseItems.filter(item =>
-        item.clusterContributions.some(cc => cc.isKeystone === true)
-      ).length,
-    };
-  }, [scoredItems, activeSourceFilters]);
-
   // Check if element is selected
   const isSelected = (element: ClusterScoredItem): boolean => {
     return selectedElements.some(selected => selected.id === element.id);
   };
 
-  // Get element display details
-  const getElementDetails = (element: ClusterScoredItem) => {
-    const topContribution = element.clusterContributions.reduce((prev, current) =>
-      prev.score > current.score ? prev : current
-    );
-    const sparks = element.clusterContributions.filter(cc => cc.spark);
-    const maxScore = Math.max(...element.clusterContributions.map(cc => cc.score));
+  // Handle element selection with limit check
+  const handleElementPress = (element: ClusterScoredItem) => {
+    const currentlySelected = isSelected(element);
 
-    return { topContribution, sparks, maxScore };
-  };
+    if (!currentlySelected && selectedElements.length >= 3) {
+      Alert.alert(
+        'Selection Limit',
+        'Maximum 3 items can be selected. Deselect one to add another.',
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
 
-  // Format element title for display
-  const getElementTitle = (element: ClusterScoredItem): string => {
-    if (element.source === 'synastry' && element.type === 'aspect') {
-      return `${element.planet1} ${element.aspect} ${element.planet2}`;
-    }
-    if (element.source === 'composite' && element.type === 'aspect') {
-      return `${element.planet1} ${element.aspect} ${element.planet2}`;
-    }
-    if (element.type === 'housePlacement') {
-      return `${element.planet1} → House ${element.planet2}`;
-    }
-    return element.description?.substring(0, 40) || 'Unknown Element';
+    onSelectElement(element);
   };
 
   // Handle source filter toggle
@@ -187,7 +151,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
   };
 
   // Render category filter button (radio style)
-  const renderCategoryFilterButton = (filter: FilterType, label: string, count: number) => {
+  const renderCategoryFilterButton = (filter: FilterType, label: string) => {
     const isActive = activeFilter === filter;
     return (
       <TouchableOpacity
@@ -205,7 +169,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
           styles.filterButtonText,
           { color: isActive ? colors.onPrimary : colors.onSurface },
         ]}>
-          {label} ({count})
+          {label}
         </Text>
       </TouchableOpacity>
     );
@@ -221,18 +185,23 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={[styles.closeButtonText, { color: colors.primary }]}>Done</Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.onSurface }]}>
+          <Text style={[styles.headerTitle, { color: colors.onSurface }]}>
             Select Elements
           </Text>
-          <Text style={[styles.selectionCounter, { color: colors.onSurfaceVariant }]}>
-            {selectedElements.length}/4
+          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
+            Choose up to 3 relationship elements ({selectedElements.length}/3)
           </Text>
+
+          {/* Close Button */}
+          <TouchableOpacity
+            style={[styles.closeButton, { backgroundColor: colors.surfaceVariant }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.closeButtonText, { color: colors.onSurfaceVariant }]}>×</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Search and Clear */}
+        {/* Search */}
         <View style={styles.searchSection}>
           <TextInput
             value={searchQuery}
@@ -240,21 +209,11 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
             placeholder="Search elements..."
             placeholderTextColor={colors.onSurfaceVariant}
             style={[styles.searchInput, {
-              backgroundColor: colors.surface,
+              backgroundColor: colors.background,
               color: colors.onSurface,
               borderColor: colors.border,
             }]}
           />
-          {selectedElements.length > 0 && (
-            <TouchableOpacity
-              onPress={onClearSelection}
-              style={[styles.clearButton, { backgroundColor: colors.errorContainer }]}
-            >
-              <Text style={[styles.clearButtonText, { color: colors.onErrorContainer }]}>
-                Clear All
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         {/* Source Filter Row */}
@@ -276,11 +235,11 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterContent}
           >
-            {renderCategoryFilterButton('all', 'All', filterCounts.all)}
-            {renderCategoryFilterButton('keystones', 'Keystones', filterCounts.keystones)}
-            {renderCategoryFilterButton('sparks', 'Sparks', filterCounts.sparks)}
-            {renderCategoryFilterButton('supports', 'Supports', filterCounts.supports)}
-            {renderCategoryFilterButton('challenges', 'Challenges', filterCounts.challenges)}
+            {renderCategoryFilterButton('all', 'All')}
+            {renderCategoryFilterButton('keystones', 'Keystones')}
+            {renderCategoryFilterButton('sparks', 'Sparks')}
+            {renderCategoryFilterButton('supports', 'Supports')}
+            {renderCategoryFilterButton('challenges', 'Challenges')}
           </ScrollView>
         </View>
 
@@ -297,123 +256,48 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
               </Text>
             </View>
           ) : (
-            filteredItems.map((item) => {
-              const { topContribution, sparks, maxScore } = getElementDetails(item);
-              const selected = isSelected(item);
-
-              return (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[
-                    styles.itemCard,
-                    {
-                      backgroundColor: selected ? colors.primaryContainer : colors.surface,
-                      borderColor: selected ? colors.primary : colors.border,
-                      borderWidth: selected ? 2 : 1,
-                    },
-                  ]}
-                  onPress={() => onSelectElement(item)}
-                  activeOpacity={0.7}
-                >
-                  {/* Header with badges */}
-                  <View style={styles.itemHeader}>
-                    <View style={styles.itemBadges}>
-                      {/* Source badge */}
-                      <View style={[
-                        styles.sourceBadge,
-                        { backgroundColor: item.source === 'synastry' ? '#2196F3' : '#9C27B0' },
-                      ]}>
-                        <Text style={[styles.sourceBadgeText, { color: 'white' }]}>
-                          {item.source === 'synastry' ? 'Syn' : 'Comp'}
-                        </Text>
-                      </View>
-
-                      {/* Keystone badge */}
-                      {item.isOverallKeystone && (
-                        <View style={[styles.keystoneBadge, { backgroundColor: '#FFD700' }]}>
-                          <Text style={[styles.keystoneBadgeText, { color: '#8B4513' }]}>👑</Text>
-                        </View>
-                      )}
-
-                      {/* Spark badges */}
-                      {sparks.map((spark, index) => (
-                        <View key={index} style={styles.sparkBadge}>
-                          <Text style={styles.sparkEmoji}>
-                            {SPARK_TYPE_EMOJIS[spark.sparkType as keyof typeof SPARK_TYPE_EMOJIS] || '✨'}
-                          </Text>
-                        </View>
-                      ))}
-
-                      {/* Star rating */}
-                      {item.maxStarRating > 0 && (
-                        <Text style={styles.starRating}>
-                          {'⭐️'.repeat(Math.min(item.maxStarRating, 5))}
-                        </Text>
-                      )}
-
-                      {/* Selection checkmark */}
-                      {selected && (
-                        <View style={[styles.selectedBadge, { backgroundColor: colors.primary }]}>
-                          <Text style={[styles.selectedBadgeText, { color: colors.onPrimary }]}>✓</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Main content */}
-                  <View style={styles.itemContent}>
-                    <Text style={[
-                      styles.itemTitle,
-                      { color: selected ? colors.onPrimaryContainer : colors.onSurface },
-                    ]}>
-                      {getElementTitle(item)}
-                    </Text>
-
-                    <Text style={[
-                      styles.itemDescription,
-                      { color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
-                    ]}
-                    numberOfLines={2}>
-                      {item.description}
-                    </Text>
-
-                    {/* Bottom row with score and valence */}
-                    <View style={styles.itemBottomRow}>
-                      {/* Score badge */}
-                      <View style={[
-                        styles.scoreBadge,
-                        {
-                          backgroundColor: maxScore >= 0 ? '#10b98120' : '#ef444420',
-                        },
-                      ]}>
-                        <Text style={[
-                          styles.scoreBadgeText,
-                          { color: maxScore >= 0 ? '#10b981' : '#ef4444' },
-                        ]}>
-                          {maxScore > 0 ? '+' : ''}{maxScore.toFixed(0)}
-                        </Text>
-                      </View>
-
-                      {/* Valence indicator */}
-                      <View style={styles.valenceContainer}>
-                        <View style={[
-                          styles.valenceIndicator,
-                          { backgroundColor: topContribution.valence === 1 ? '#4CAF50' : '#F44336' },
-                        ]} />
-                        <Text style={[
-                          styles.valenceText,
-                          { color: selected ? colors.onPrimaryContainer : colors.onSurfaceVariant },
-                        ]}>
-                          {topContribution.valence === 1 ? 'Support' : 'Challenge'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })
+            filteredItems.map((item) => (
+              <AspectCard
+                key={item.id}
+                item={item}
+                colors={colors}
+                onPress={handleElementPress}
+                isSelected={isSelected(item)}
+                showSelection={true}
+                userAName={userAName}
+                userBName={userBName}
+              />
+            ))
           )}
         </ScrollView>
+
+        {/* Footer */}
+        <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+          <TouchableOpacity
+            style={[styles.clearButtonFooter, { backgroundColor: colors.errorContainer }]}
+            onPress={onClearSelection}
+            disabled={selectedElements.length === 0}
+          >
+            <Text style={[
+              styles.clearButtonText,
+              {
+                color: selectedElements.length === 0 ? colors.onSurfaceVariant : colors.onErrorContainer,
+                opacity: selectedElements.length === 0 ? 0.5 : 1,
+              }
+            ]}>
+              Clear All ({selectedElements.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.doneButton, { backgroundColor: colors.primary }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.doneButtonText, { color: colors.onPrimary }]}>
+              Done
+            </Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     </Modal>
   );
@@ -424,29 +308,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    padding: 16,
     borderBottomWidth: 1,
+    position: 'relative',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
   },
   closeButton: {
-    padding: 4,
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   closeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
-  },
-  selectionCounter: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   searchSection: {
     flexDirection: 'row',
@@ -462,15 +348,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 14,
-  },
-  clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  clearButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   sourceFilterContainer: {
     paddingVertical: 6,
@@ -525,105 +402,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
-  itemCard: {
-    borderRadius: 12,
+  footer: {
+    flexDirection: 'row',
     padding: 16,
-    marginBottom: 12,
+    borderTopWidth: 1,
+    gap: 12,
   },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  itemBadges: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  sourceBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  sourceBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  keystoneBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  keystoneBadgeText: {
-    fontSize: 10,
-  },
-  sparkBadge: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sparkEmoji: {
-    fontSize: 12,
-  },
-  starRating: {
-    fontSize: 10,
-  },
-  selectedBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  itemContent: {
+  clearButtonFooter: {
     flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
   },
-  itemTitle: {
+  clearButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 4,
   },
-  itemDescription: {
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 8,
-  },
-  itemBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  doneButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
   },
-  scoreBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  scoreBadgeText: {
-    fontSize: 11,
+  doneButtonText: {
+    fontSize: 14,
     fontWeight: '600',
-  },
-  valenceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  valenceIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  valenceText: {
-    fontSize: 10,
-    fontWeight: '500',
   },
 });
 
