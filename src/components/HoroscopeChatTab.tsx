@@ -7,6 +7,8 @@ import HoroscopeTransitsBottomSheet from './HoroscopeTransitsBottomSheet';
 import { AstroIcon } from '../../utils/astrologyIcons';
 import { formatDateRange } from '../utils/dateHelpers';
 import { parseReferencedCodes, DecodedElement } from '../utils/parseReferencedCodes';
+import { useStore } from '../store';
+import { superwallService } from '../services/SuperwallService';
 
 interface HoroscopeChatTabProps {
   userId: string;
@@ -24,6 +26,8 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
   onRetryTransitWindows,
 }) => {
   const { colors } = useTheme();
+  const { userSubscription } = useStore();
+  const subscriptionTier = userSubscription?.tier || 'free';
   const scrollViewRef = useRef<ScrollView>(null);
   // Auto-scroll helpers/flags
   const didLoadInitialHistoryRef = useRef(false);
@@ -228,6 +232,11 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
 
   // Get contextual hint
   const getHint = (): string => {
+    // Show premium feature hint for free users
+    if (subscriptionTier === 'free') {
+      return '🔒 Premium Feature - Upgrade to ask Stellium custom questions about your transits';
+    }
+
     const hasQuery = query.trim().length > 0;
     const hasTransits = selectedTransits.length > 0;
 
@@ -286,6 +295,16 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
   const handleSubmit = async () => {
     if (!canSubmit()) {
       setError('Please enter a query or select at least one transit');
+      return;
+    }
+
+    // Check if free user - show paywall
+    if (subscriptionTier === 'free') {
+      try {
+        await superwallService.showSettingsUpgradePaywall();
+      } catch (error) {
+        console.error('[HoroscopeChatTab] Failed to show paywall:', error);
+      }
       return;
     }
 
@@ -708,20 +727,28 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
 
             <TouchableOpacity
               onPress={handleSubmit}
-              disabled={!canSubmit() || isLoading}
+              disabled={subscriptionTier !== 'free' && (!canSubmit() || isLoading)}
               style={[
                 styles.sendButton,
                 {
-                  backgroundColor: canSubmit() && !isLoading ? colors.primary : colors.surfaceVariant,
-                  opacity: canSubmit() && !isLoading ? 1 : 0.5,
+                  backgroundColor: subscriptionTier === 'free'
+                    ? colors.primary
+                    : (canSubmit() && !isLoading ? colors.primary : colors.surfaceVariant),
+                  opacity: subscriptionTier === 'free'
+                    ? 1
+                    : (canSubmit() && !isLoading ? 1 : 0.5),
                 },
               ]}
             >
               <Text style={[
                 styles.sendButtonText,
-                { color: canSubmit() && !isLoading ? colors.onPrimary : colors.onSurfaceVariant },
+                {
+                  color: subscriptionTier === 'free'
+                    ? colors.onPrimary
+                    : (canSubmit() && !isLoading ? colors.onPrimary : colors.onSurfaceVariant)
+                },
               ]}>
-                Send
+                {subscriptionTier === 'free' ? 'Upgrade to Use' : 'Send'}
               </Text>
             </TouchableOpacity>
           </View>
