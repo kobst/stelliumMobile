@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRelationshipWorkflow } from '../../hooks/useRelationshipWorkflow';
 import { useStore } from '../../store';
+import { useTheme } from '../../theme';
+import { useCreditsGate } from '../../hooks/useCreditsGate';
 
 interface CompleteRelationshipAnalysisButtonProps {
   compositeChartId: string;
@@ -15,8 +17,13 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
   onAnalysisComplete,
   hasAnalysisData = false,
 }) => {
+  const { colors } = useTheme();
+
   // Store state (minimal, only for scores and completion)
   const { relationshipWorkflowState } = useStore();
+
+  // Credits gate hook
+  const { checkAndProceed, isChecking, canAfford } = useCreditsGate();
 
   // Hook state
   const {
@@ -36,6 +43,20 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
                               relationshipWorkflowState.activeCompositeChartId === compositeChartId;
   const isAnalysisInProgress = isStartingAnalysis || isPolling || isWorkflowRunning || isStorePollingActive;
 
+  const getButtonText = (): string => {
+    if (isChecking) {
+      return 'Checking credits...';
+    }
+    if (isAnalysisInProgress) {
+      return 'Analysis in Progress...';
+    }
+    return 'Complete Full Analysis (60 credits)';
+  };
+
+  const isButtonDisabled = (): boolean => {
+    return !compositeChartId || isAnalysisInProgress || isChecking;
+  };
+
   useEffect(() => {
     // Handle completion
     if (workflowComplete || relationshipWorkflowState.completed) {
@@ -46,10 +67,22 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
   const handleStartAnalysis = async () => {
     if (!compositeChartId || isAnalysisInProgress) {return;}
 
-    try {
-      await startFullRelationshipAnalysis(compositeChartId);
-    } catch (err) {
-      console.error('Failed to start relationship analysis:', err);
+    // Check credits and proceed with analysis
+    const allowed = await checkAndProceed({
+      action: 'fullRelationshipReport',
+      source: 'relationship_analysis_tab',
+      onProceed: async () => {
+        try {
+          await startFullRelationshipAnalysis(compositeChartId);
+        } catch (err) {
+          console.error('Failed to start relationship analysis:', err);
+          throw err; // Re-throw to let credit gate handle it
+        }
+      },
+    });
+
+    if (!allowed) {
+      console.log('CompleteRelationshipAnalysisButton - User did not have enough credits or cancelled paywall');
     }
   };
 
@@ -66,15 +99,15 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorIcon}>❌</Text>
-        <Text style={styles.errorTitle}>Analysis Failed</Text>
-        <Text style={styles.errorText}>
+        <Text style={[styles.errorTitle, { color: colors.error }]}>Analysis Failed</Text>
+        <Text style={[styles.errorText, { color: colors.onSurfaceVariant }]}>
           We encountered an error generating your analysis. Please try again.
         </Text>
         <TouchableOpacity
-          style={styles.retryButton}
+          style={[styles.retryButton, { backgroundColor: colors.error }]}
           onPress={handleStartAnalysis}
         >
-          <Text style={styles.retryButtonText}>Retry Analysis</Text>
+          <Text style={[styles.retryButtonText, { color: colors.onError }]}>Retry Analysis</Text>
         </TouchableOpacity>
       </View>
     );
@@ -83,30 +116,40 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
   // Default state - show the button
   return (
     <TouchableOpacity
-      style={styles.button}
+      style={[
+        styles.button,
+        { backgroundColor: colors.primary },
+        isButtonDisabled() && [styles.buttonDisabled, { backgroundColor: colors.onSurfaceVariant }],
+      ]}
       onPress={handleStartAnalysis}
-      disabled={isAnalysisInProgress}
+      disabled={isButtonDisabled()}
     >
-      <Text style={styles.buttonText}>Complete Full Analysis</Text>
+      <Text style={[
+        styles.buttonText,
+        { color: colors.onPrimary },
+        isButtonDisabled() && { color: colors.onSurface },
+      ]}>
+        {getButtonText()}
+      </Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#4f46e5',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 20,
   },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   buttonText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
-
 
   // Error state
   errorContainer: {
@@ -121,25 +164,21 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#dc2626',
     marginBottom: 8,
   },
   errorText: {
     fontSize: 15,
-    color: '#6b7280',
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 22,
     paddingHorizontal: 20,
   },
   retryButton: {
-    backgroundColor: '#dc2626',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },

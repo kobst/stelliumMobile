@@ -57,6 +57,7 @@ const HoroscopeScreen: React.FC = () => {
           loading={loading}
           error={error}
           userId={userData.id}
+          onRetryTransitWindows={loadTransitWindows}
         />
       </View>
     </SafeAreaView>

@@ -10,6 +10,7 @@ import {
   filterPlanets,
   getZodiacPositionFromDegree,
 } from './ChartUtils';
+import { AstroIcon } from '../../../utils/astrologyIcons';
 
 interface PlanetTableProps {
   planets: BackendPlanet[];
@@ -20,16 +21,13 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
   const filteredPlanets = filterPlanets(planets);
 
   const renderPlanetRow = (planet: BackendPlanet, index: number) => {
-    const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
     const { sign, position } = getZodiacPositionFromDegree(planet.full_degree);
 
     return (
       <View key={planet.name} style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow, { borderBottomColor: colors.border }]}>
         {/* Planet Symbol */}
         <View style={styles.symbolCell}>
-          <Text style={[styles.planetSymbol, { color: planetColor }]}>
-            {getPlanetGlyph(planet.name as PlanetName)}
-          </Text>
+          <AstroIcon type="planet" name={planet.name as PlanetName} size={18} color={colors.onSurfaceVariant} />
         </View>
 
         {/* Planet Name */}
@@ -44,9 +42,7 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
 
         {/* Sign Symbol */}
         <View style={styles.symbolCell}>
-          <Text style={[styles.signSymbol, { color: colors.primary }]}>
-            {getZodiacGlyph(sign)}
-          </Text>
+          <AstroIcon type="zodiac" name={sign} size={16} color={colors.primary} />
         </View>
 
         {/* Sign Name */}
@@ -77,19 +73,13 @@ const PlanetTable: React.FC<PlanetTableProps> = ({ planets }) => {
 
       {/* Header */}
       <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant }]}>
-        <View style={styles.symbolCell}>
-          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☽</Text>
-        </View>
-        <View style={styles.nameCell}>
+        <View style={styles.planetHeaderCell}>
           <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Planet</Text>
         </View>
         <View style={styles.degreeCell}>
           <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Degree</Text>
         </View>
-        <View style={styles.symbolCell}>
-          <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>♈</Text>
-        </View>
-        <View style={styles.signCell}>
+        <View style={styles.signHeaderCell}>
           <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Sign</Text>
         </View>
         <View style={styles.houseCell}>
@@ -150,11 +140,21 @@ const styles = StyleSheet.create({
     flex: 2,
     paddingLeft: 8,
   },
+  planetHeaderCell: {
+    width: 40 + 8, // symbolCell width + nameCell padding
+    flex: 2,
+    paddingLeft: 8,
+  },
   degreeCell: {
     width: 50,
     alignItems: 'center',
   },
   signCell: {
+    flex: 1.5,
+    paddingLeft: 8,
+  },
+  signHeaderCell: {
+    width: 40 + 8, // symbolCell width + signCell padding
     flex: 1.5,
     paddingLeft: 8,
   },

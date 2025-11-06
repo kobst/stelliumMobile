@@ -104,13 +104,7 @@ const SynastryTables: React.FC<SynastryTablesProps> = ({ relationship }) => {
       >
         {pages.map((page, index) => (
           <View key={index} style={[styles.page, { width: screenWidth }]}>
-            <ScrollView
-              style={styles.pageContent}
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={styles.pageScrollContent}
-            >
-              {page.component}
-            </ScrollView>
+            {page.component}
           </View>
         ))}
       </ScrollView>

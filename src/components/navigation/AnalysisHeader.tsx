@@ -2,14 +2,25 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme';
 import { ProfileAvatar } from '../profile';
+import { User, SubjectDocument } from '../../types';
 
 interface AnalysisHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: string | React.ReactNode;
   meta?: string;
+  subject?: User | SubjectDocument | null; // Optional subject to display avatar for
+  onAvatarLongPress?: () => void; // Optional handler for long-press on avatar (for guest photo editing)
+  hideAvatar?: boolean; // Optional flag to hide the avatar entirely
 }
 
-export const AnalysisHeader: React.FC<AnalysisHeaderProps> = ({ title, subtitle, meta }) => {
+export const AnalysisHeader: React.FC<AnalysisHeaderProps> = ({
+  title,
+  subtitle,
+  meta,
+  subject,
+  onAvatarLongPress,
+  hideAvatar = false,
+}) => {
   const { colors } = useTheme();
 
   return (
@@ -18,15 +29,26 @@ export const AnalysisHeader: React.FC<AnalysisHeaderProps> = ({ title, subtitle,
         <View style={styles.textContent}>
           <Text style={[styles.title, { color: colors.onSurfaceHigh }]}>{title}</Text>
           {subtitle && (
-            <Text style={[styles.subtitle, { color: colors.onSurfaceHigh }]}>{subtitle}</Text>
+            typeof subtitle === 'string' ? (
+              <Text style={[styles.subtitle, { color: colors.onSurfaceHigh }]}>{subtitle}</Text>
+            ) : (
+              subtitle
+            )
           )}
           {meta && (
             <Text style={[styles.meta, { color: colors.onSurfaceMed }]}>{meta}</Text>
           )}
         </View>
-        <View style={styles.avatarContainer}>
-          <ProfileAvatar size={40} />
-        </View>
+        {!hideAvatar && (
+          <View style={styles.avatarContainer}>
+            <ProfileAvatar
+              size={40}
+              subject={subject}
+              showOnlineIndicator={!subject}
+              onLongPress={subject ? onAvatarLongPress : undefined}
+            />
+          </View>
+        )}
       </View>
     </View>
   );

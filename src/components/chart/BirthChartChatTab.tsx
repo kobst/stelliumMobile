@@ -4,20 +4,27 @@ import { useTheme } from '../../theme';
 import { BirthChartElement, BirthChartChatMessage, chartsApi } from '../../api/charts';
 import { BirthChart } from '../../types';
 import BirthChartElementsBottomSheet from './BirthChartElementsBottomSheet';
+import { useCreditsGate } from '../../hooks/useCreditsGate';
+import { parseReferencedCodes, convertToBirthChartElements } from '../../utils/parseReferencedCodes';
 
 interface BirthChartChatTabProps {
-  userId: string;
+  subjectId: string; // Subject ID - user's own ID for their chart, or guest subject _id for guest charts
   birthChart: BirthChart;
   preSelectedElements?: BirthChartElement[];
+  guestFirstName?: string; // First name of guest if this is a guest chart
 }
 
 const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
-  userId,
+  subjectId,
   birthChart,
   preSelectedElements = [],
+  guestFirstName,
 }) => {
   const { colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Credits gate hook
+  const { checkAndProceed, isChecking, canAfford } = useCreditsGate();
 
   // State management
   const [selectedElements, setSelectedElements] = useState<BirthChartElement[]>(preSelectedElements);
@@ -35,16 +42,17 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
     }
   }, [chatMessages, isLoading]);
 
-  // Load chat history when component mounts
+  // Load chat history when component mounts or when subjectId changes
   useEffect(() => {
     const loadChatHistory = async () => {
-      if (!userId || chatMessages.length > 0) {return;}
+      if (!subjectId) {return;}
 
-      console.log('Loading birth chart chat history for user:', userId);
+      console.log('Loading birth chart chat history for subject:', subjectId);
       setIsHistoryLoading(true);
+      setChatMessages([]); // Clear existing messages when loading new chat history
 
       try {
-        const response = await chartsApi.fetchBirthChartEnhancedChatHistory(userId, 50);
+        const response = await chartsApi.fetchBirthChartEnhancedChatHistory(subjectId, 50);
         console.log('Birth chart chat history response:', response);
         console.log('Raw chat history array:', JSON.stringify(response.chatHistory, null, 2));
 
@@ -64,12 +72,41 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               selectedAspectsLength: msg.metadata?.selectedAspects?.length,
             });
 
+            // Parse referenced codes if present in messages (can be in user or assistant messages)
+            // Check both metadata.referencedCodes (expected) and msg.referencedCodes (backend bug fallback)
+            const referencedCodes = msg.metadata?.referencedCodes || (msg as any).referencedCodes;
+
+            // Log what we found
+            if (referencedCodes && referencedCodes.length > 0) {
+              console.log(`[BirthChartChat] Found referencedCodes in ${msg.role} message:`, referencedCodes);
+            }
+
+            const referencedElements = referencedCodes && referencedCodes.length > 0
+              ? convertToBirthChartElements(parseReferencedCodes(referencedCodes))
+              : undefined;
+
+            // Filter out backend-generated default text for custom mode
+            let messageContent = msg.content;
+            if (msg.role === 'user' && msg.metadata?.mode === 'custom') {
+              // Check if content matches common default patterns
+              const defaultPatterns = [
+                /^What can you tell me about these (aspects?|elements?|chart elements?)\??$/i,
+                /^Generated? (natal|birth)?\s*chart (analysis|reading) for/i,
+                /^Custom (analysis|reading) for/i,
+              ];
+              const isDefaultText = defaultPatterns.some(pattern => pattern.test(msg.content.trim()));
+              if (isDefaultText) {
+                messageContent = ''; // Clear default text for custom mode
+              }
+            }
+
             const transformedMessage: BirthChartChatMessage = {
               id: `history-${index}-${Date.now()}`,
               type: msg.role === 'user' ? 'user' : 'assistant',
-              content: msg.content,
+              content: messageContent,
               timestamp: new Date(msg.timestamp),
               selectedElements: msg.metadata?.selectedAspects || undefined, // Birth chart API uses selectedAspects
+              referencedElements,
             };
 
             // For assistant messages with metadata, also assign to the previous user message if it doesn't have metadata
@@ -92,7 +129,24 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               }
             }
 
+            // If this is a user message with referencedElements, transfer them to the next assistant message
+            if (msg.role === 'user' && referencedElements && referencedElements.length > 0) {
+              // Store them temporarily, will be assigned to next assistant message below
+              transformedMessage.referencedElements = referencedElements;
+            }
+
             transformedMessages.push(transformedMessage);
+
+            // If the previous message was a user message with referencedElements, transfer them to this assistant message
+            if (msg.role === 'assistant' && transformedMessages.length >= 2) {
+              const prevMessage = transformedMessages[transformedMessages.length - 2];
+              if (prevMessage.type === 'user' && prevMessage.referencedElements) {
+                console.log('[BirthChartChat] Transferring referencedElements from user message to assistant message');
+                transformedMessage.referencedElements = prevMessage.referencedElements;
+                // Clear from user message since we don't display them there
+                delete prevMessage.referencedElements;
+              }
+            }
           }
 
           // Debug: Log final transformed messages
@@ -119,7 +173,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
         console.error('Failed to load birth chart chat history:', err);
         console.error('Error details:', {
           message: err instanceof Error ? err.message : 'Unknown error',
-          userId,
+          subjectId,
           stack: err instanceof Error ? err.stack : undefined,
         });
 
@@ -132,7 +186,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
     };
 
     loadChatHistory();
-  }, [userId]);
+  }, [subjectId]);
 
   // Check if user can submit
   const canSubmit = (): boolean => {
@@ -145,11 +199,12 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
   const getHint = (): string => {
     const hasQuery = query.trim().length > 0;
     const hasElements = selectedElements.length > 0;
+    const chartOwner = guestFirstName ? `${guestFirstName}'s natal chart` : 'your birth chart';
 
     if (!hasQuery && !hasElements) {return 'Select chart elements or ask a question to get started';}
     if (hasQuery && hasElements) {return "I'll answer your question about the selected chart elements";}
-    if (hasQuery) {return "I'll answer your question about your birth chart";}
-    return "I'll analyze your selected chart elements";
+    if (hasQuery) {return `I'll answer your question about ${chartOwner}`;}
+    return `I'll analyze the selected chart elements`;
   };
 
   // Handle element selection
@@ -210,81 +265,117 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
+    // Check credits and proceed with chat message
+    const allowed = await checkAndProceed({
+      action: 'askStelliumQuestion',
+      source: 'birth_chart_chat',
+      onProceed: async () => {
+        setIsLoading(true);
+        setError(null);
 
-    // Create request body - birth chart API expects selectedAspects, not selectedElements
-    const requestBody: { query?: string; selectedAspects?: BirthChartElement[] } = {};
-    if (query.trim()) {
-      requestBody.query = query.trim();
-    }
-    if (selectedElements.length > 0) {
-      requestBody.selectedAspects = selectedElements; // Backend expects selectedAspects
-    }
+        // Create request body - birth chart API expects selectedAspects, not selectedElements
+        const requestBody: { query?: string; selectedAspects?: BirthChartElement[] } = {};
+        if (query.trim()) {
+          requestBody.query = query.trim();
+        }
+        if (selectedElements.length > 0) {
+          requestBody.selectedAspects = selectedElements; // Backend expects selectedAspects
+        }
 
-    // Add user message to chat if there's a query
-    if (query.trim()) {
-      const userMessage: BirthChartChatMessage = {
-        id: `user-${Date.now()}`,
-        type: 'user',
-        content: query.trim(),
-        timestamp: new Date(),
-        selectedElements: selectedElements.length > 0 ? [...selectedElements] : undefined,
-      };
+        // Add user message to chat if there's a query OR selected elements (for custom mode)
+        if (query.trim() || selectedElements.length > 0) {
+          const userMessage: BirthChartChatMessage = {
+            id: `user-${Date.now()}`,
+            type: 'user',
+            content: query.trim(),
+            timestamp: new Date(),
+            selectedElements: selectedElements.length > 0 ? [...selectedElements] : undefined,
+            mode: query.trim() ? (selectedElements.length > 0 ? 'hybrid' : 'chat') : 'custom',
+          };
 
-      console.log('Creating user message with selectedElements:', {
-        hasSelectedElements: !!userMessage.selectedElements,
-        selectedElementsCount: userMessage.selectedElements?.length,
-        selectedElements: userMessage.selectedElements,
-      });
+          console.log('Creating user message with selectedElements:', {
+            hasSelectedElements: !!userMessage.selectedElements,
+            selectedElementsCount: userMessage.selectedElements?.length,
+            selectedElements: userMessage.selectedElements,
+            mode: userMessage.mode,
+          });
 
-      setChatMessages(prev => [...prev, userMessage]);
-    }
+          setChatMessages(prev => [...prev, userMessage]);
+        }
 
-    // Add loading message
-    const loadingId = `loading-${Date.now()}`;
-    setChatMessages(prev => [...prev, {
-      id: loadingId,
-      type: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      loading: true,
-    }]);
-
-    try {
-      const response = await chartsApi.enhancedChatForBirthChart(userId, requestBody);
-
-      if (response.success) {
-        // Remove loading message and add actual response
-        setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
-
-        const assistantMessage: BirthChartChatMessage = {
-          id: `assistant-${Date.now()}`,
-          type: 'assistant',
-          content: response.answer,
-          timestamp: new Date(),
-        };
-        setChatMessages(prev => [...prev, assistantMessage]);
-
-        // Clear form after successful submission
+        // Clear form immediately after adding user message
         setQuery('');
         setSelectedElements([]);
-      } else {
-        throw new Error('Failed to get response');
-      }
-    } catch (err) {
-      // Remove loading message and add error
-      setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
 
-      const errorMessage: BirthChartChatMessage = {
-        id: `error-${Date.now()}`,
-        type: 'error',
-        content: err instanceof Error ? err.message : 'An error occurred while processing your request',
-        timestamp: new Date(),
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+        // Add loading message
+        const loadingId = `loading-${Date.now()}`;
+        setChatMessages(prev => [...prev, {
+          id: loadingId,
+          type: 'assistant',
+          content: '',
+          timestamp: new Date(),
+          loading: true,
+        }]);
+
+        try {
+          const response = await chartsApi.enhancedChatForBirthChart(subjectId, requestBody);
+
+          console.log('[BirthChartChat] 📥 RAW API Response:', JSON.stringify(response, null, 2));
+          console.log('[BirthChartChat] 📥 New response received:', {
+            hasReferencedCodes: !!response.referencedCodes,
+            referencedCodes: response.referencedCodes,
+            referencedCodesLength: response.referencedCodes?.length,
+            success: response.success,
+            hasAnswer: !!response.answer,
+            mode: response.mode,
+          });
+
+          if (response.success) {
+            // Remove loading message and add actual response
+            setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
+
+            // Parse referenced codes from API response
+            const referencedElements = response.referencedCodes
+              ? convertToBirthChartElements(parseReferencedCodes(response.referencedCodes))
+              : undefined;
+
+            if (referencedElements && referencedElements.length > 0) {
+              console.log('[BirthChartChat] ✨ Parsed new message referenced elements:', referencedElements);
+            } else {
+              console.log('[BirthChartChat] ⚠️ No referencedCodes in new message response');
+            }
+
+            const assistantMessage: BirthChartChatMessage = {
+              id: `assistant-${Date.now()}`,
+              type: 'assistant',
+              content: response.answer,
+              timestamp: new Date(),
+              referencedElements,
+            };
+            setChatMessages(prev => [...prev, assistantMessage]);
+          } else {
+            throw new Error('Failed to get response');
+          }
+        } catch (err) {
+          // Remove loading message and add error
+          setChatMessages(prev => prev.filter(msg => msg.id !== loadingId));
+
+          const errorMessage: BirthChartChatMessage = {
+            id: `error-${Date.now()}`,
+            type: 'error',
+            content: err instanceof Error ? err.message : 'An error occurred while processing your request',
+            timestamp: new Date(),
+          };
+          setChatMessages(prev => [...prev, errorMessage]);
+          throw err; // Re-throw to let credit gate handle it
+        } finally {
+          setIsLoading(false);
+        }
+      },
+    });
+
+    if (!allowed) {
+      console.log('Birth Chart Chat - User did not have enough credits or cancelled paywall');
     }
   };
 
@@ -333,12 +424,14 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
 
         {chatMessages.length === 0 && !isHistoryLoading ? (
           <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyIcon]}>🌟</Text>
             <Text style={[styles.emptyTitle, { color: colors.onSurface }]}>
-              Start a Conversation
+              Ask Stellium
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.onSurfaceVariant }]}>
-              Select chart elements and/or ask questions to get personalized astrological insights about your birth chart.
+              {guestFirstName
+                ? `Select chart elements and/or ask questions to get personalized astrological insights about ${guestFirstName}'s natal chart.`
+                : "Select chart elements and/or ask questions to get personalized astrological insights about your birth chart."
+              }
             </Text>
 
           </View>
@@ -406,6 +499,29 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
                         })}
                       </View>
                     )}
+
+                    {/* Referenced elements for assistant messages */}
+                    {message.type === 'assistant' && message.referencedElements && message.referencedElements.length > 0 && (
+                      <View style={[styles.inlineElementChips, { backgroundColor: colors.surfaceVariant, padding: 8, borderRadius: 8, marginTop: 8 }]}>
+                        <Text style={[styles.selectedElementsLabel, { color: colors.onSurfaceVariant, fontWeight: 'bold' }]}>
+                          Referenced elements:
+                        </Text>
+                        {message.referencedElements.map((element, idx) => {
+                          const displayName = getElementDisplayName(element);
+                          return (
+                            <View key={`ref-${element.type}-${idx}-${element.code || element.planet || idx}`} style={[styles.inlineElementChip, {
+                              backgroundColor: colors.primaryContainer,
+                              borderColor: colors.primary,
+                              borderWidth: 1,
+                            }]}>
+                              <Text style={[styles.inlineElementChipText, { color: colors.onPrimaryContainer, fontWeight: '600' }]}>
+                                {displayName}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
                   </>
                 )}
               </View>
@@ -462,7 +578,10 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Ask a question about your birth chart..."
+            placeholder={guestFirstName
+              ? `Ask a question about ${guestFirstName}'s natal chart...`
+              : "Ask a question about your birth chart..."
+            }
             placeholderTextColor={colors.onSurfaceVariant}
             style={[styles.textInput, {
               backgroundColor: colors.background,
@@ -479,26 +598,26 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               style={[styles.addButton, { backgroundColor: colors.secondary }]}
             >
               <Text style={[styles.addButtonText, { color: colors.onSecondary }]}>
-                +Add Aspects and Positions ({selectedElements.length}/3)
+                +Add Chart Details ({selectedElements.length}/3)
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleSubmit}
-              disabled={!canSubmit() || isLoading}
+              disabled={!canSubmit() || isLoading || isChecking}
               style={[
                 styles.sendButton,
                 {
-                  backgroundColor: canSubmit() && !isLoading ? colors.primary : colors.surfaceVariant,
-                  opacity: canSubmit() && !isLoading ? 1 : 0.5,
+                  backgroundColor: canSubmit() && !isLoading && !isChecking ? colors.primary : colors.surfaceVariant,
+                  opacity: canSubmit() && !isLoading && !isChecking ? 1 : 0.5,
                 },
               ]}
             >
               <Text style={[
                 styles.sendButtonText,
-                { color: canSubmit() && !isLoading ? colors.onPrimary : colors.onSurfaceVariant },
+                { color: canSubmit() && !isLoading && !isChecking ? colors.onPrimary : colors.onSurfaceVariant },
               ]}>
-                Send
+                {isChecking ? 'Checking...' : isLoading ? 'Sending...' : 'Send (1 credit)'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -552,10 +671,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 40,
     paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 20,

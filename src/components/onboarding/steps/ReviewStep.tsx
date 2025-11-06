@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { WizardStep } from '../WizardStep';
 import { useTheme } from '../../../theme';
@@ -20,6 +21,7 @@ interface ReviewStepProps {
   amPm: 'AM' | 'PM';
   unknownTime: boolean;
   placeOfBirth: string;
+  profileImageUri?: string | null;
   onEditStep: (stepIndex: number) => void;
 }
 
@@ -35,6 +37,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   amPm,
   unknownTime,
   placeOfBirth,
+  profileImageUri,
   onEditStep,
 }) => {
   const { colors } = useTheme();
@@ -60,22 +63,23 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   };
 
   const formatTime = () => {
-    if (unknownTime) {return 'Unknown time (solar chart)';}
+    if (unknownTime) {return 'Unknown time';}
     if (!birthHour || !birthMinute) {return 'Not specified';}
     return `${birthHour}:${birthMinute.padStart(2, '0')} ${amPm}`;
   };
 
   const ReviewSection: React.FC<{
-    title: string;
+    label: string;
     value: string;
     onEdit: () => void;
-    icon: string;
-  }> = ({ title, value, onEdit, icon }) => (
+  }> = ({ label, value, onEdit }) => (
     <View style={styles.reviewSection}>
       <View style={styles.reviewHeader}>
-        <View style={styles.reviewTitleContainer}>
-          <Text style={styles.reviewIcon}>{icon}</Text>
-          <Text style={styles.reviewTitle}>{title}</Text>
+        <View style={styles.labelContainer}>
+          <View style={styles.checkmarkContainer}>
+            <Text style={styles.checkmark}>✓</Text>
+          </View>
+          <Text style={styles.reviewLabel}>{label}</Text>
         </View>
         <TouchableOpacity style={styles.editButton} onPress={onEdit}>
           <Text style={styles.editButtonText}>Edit</Text>
@@ -89,35 +93,46 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     <WizardStep
       title="Review your information"
       subtitle="Make sure everything looks correct before we create your personalized chart"
-      icon="⭐"
     >
       <View style={styles.reviewContainer}>
-        <ReviewSection
-          title="Name & Gender"
-          value={`${firstName} ${lastName}\n${formatGender(gender)}`}
-          onEdit={() => onEditStep(0)}
-          icon="👤"
-        />
+        {/* Name & Gender with Profile Photo */}
+        <View style={styles.reviewSection}>
+          <View style={styles.reviewHeader}>
+            <View style={styles.labelContainer}>
+              <View style={styles.checkmarkContainer}>
+                <Text style={styles.checkmark}>✓</Text>
+              </View>
+              <Text style={styles.reviewLabel}>Name & Gender</Text>
+            </View>
+            <TouchableOpacity style={styles.editButton} onPress={() => onEditStep(0)}>
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.nameGenderContent}>
+            {profileImageUri && (
+              <Image
+                source={{ uri: profileImageUri }}
+                style={styles.profilePhoto}
+              />
+            )}
+            <View style={styles.nameGenderText}>
+              <Text style={styles.reviewValue}>{firstName} {lastName}</Text>
+              <Text style={styles.reviewValue}>{formatGender(gender)}</Text>
+            </View>
+          </View>
+        </View>
 
         <ReviewSection
-          title="Birth Date & Time"
-          value={`${formatDate()}\n${formatTime()}`}
-          onEdit={() => onEditStep(1)}
-          icon="📅"
-        />
-
-        <ReviewSection
-          title="Birth Location"
+          label="Birth Location"
           value={placeOfBirth || 'Not specified'}
-          onEdit={() => onEditStep(2)}
-          icon="📍"
+          onEdit={() => onEditStep(1)}
         />
-      </View>
 
-      <View style={styles.finalMessageContainer}>
-        <Text style={styles.finalMessage}>
-          ✨ Ready to discover your cosmic blueprint? Your personalized astrological chart awaits!
-        </Text>
+        <ReviewSection
+          label="Birth Date & Time"
+          value={`${formatDate()}\n${formatTime()}`}
+          onEdit={() => onEditStep(2)}
+        />
       </View>
     </WizardStep>
   );
@@ -126,14 +141,11 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
 const createStyles = (colors: any) => StyleSheet.create({
   reviewContainer: {
     gap: 20,
-    marginBottom: 32,
   },
   reviewSection: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: 14,
+    padding: 16,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -141,18 +153,30 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  reviewTitleContainer: {
+  labelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
-  reviewIcon: {
-    fontSize: 20,
-    marginRight: 8,
+  checkmarkContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  reviewTitle: {
-    fontSize: 16,
+  checkmark: {
+    color: colors.onPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  reviewLabel: {
+    fontSize: 12,
     fontWeight: '600',
-    color: colors.onSurface,
+    color: colors.onSurfaceMed,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   editButton: {
     paddingVertical: 6,
@@ -168,20 +192,22 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   reviewValue: {
     fontSize: 16,
-    color: colors.onSurfaceMed,
-    lineHeight: 24,
-  },
-  finalMessageContainer: {
-    backgroundColor: colors.surfaceVariant,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-  },
-  finalMessage: {
-    fontSize: 16,
     color: colors.onSurface,
-    textAlign: 'center',
     lineHeight: 24,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  nameGenderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  profilePhoto: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.surface,
+  },
+  nameGenderText: {
+    flex: 1,
   },
 });

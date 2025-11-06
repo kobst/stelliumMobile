@@ -11,6 +11,7 @@ import {
   ZODIAC_COLORS,
   filterPlanets,
 } from './ChartUtils';
+import { AstroIcon } from '../../../utils/astrologyIcons';
 
 interface CompositeChartTablesProps {
   compositeChart: CompositeChart;
@@ -71,7 +72,6 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
   // Planet Table
   const renderPlanetTable = () => {
     const renderPlanetRow = (planet: any, index: number) => {
-      const planetColor = PLANET_COLORS[planet.name as PlanetName] || colors.onSurface;
       const position = planet.norm_degree;
 
       return (
@@ -87,9 +87,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
         >
           {/* Planet Symbol */}
           <View style={styles.symbolCell}>
-            <Text style={[styles.planetSymbol, { color: planetColor }]}>
-              {getPlanetGlyph(planet.name as PlanetName)}
-            </Text>
+            <AstroIcon type="planet" name={planet.name as PlanetName} size={18} color={colors.onSurfaceVariant} />
           </View>
 
           {/* Planet Name */}
@@ -104,9 +102,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
 
           {/* Sign Symbol */}
           <View style={styles.symbolCell}>
-            <Text style={[styles.signSymbol, { color: colors.primary }]}>
-              {getZodiacGlyph(planet.sign as ZodiacSign)}
-            </Text>
+            <AstroIcon type="zodiac" name={planet.sign as ZodiacSign} size={16} color={colors.primary} />
           </View>
 
           {/* Sign Name */}
@@ -130,19 +126,13 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
 
         {/* Header */}
         <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.strokeSubtle }]}>
-          <View style={styles.symbolCell}>
-            <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☽</Text>
-          </View>
-          <View style={styles.nameCell}>
+          <View style={styles.planetHeaderCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Planet</Text>
           </View>
           <View style={styles.degreeCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Degree</Text>
           </View>
-          <View style={styles.symbolCell}>
-            <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>♈</Text>
-          </View>
-          <View style={styles.signCell}>
+          <View style={styles.signHeaderCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Sign</Text>
           </View>
           <View style={styles.houseCell}>
@@ -167,7 +157,6 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
     const renderHouseRow = (house: any, index: number) => {
       const position = house.degree % 360; // Normalize degree
       const signPosition = position % 30; // Position within sign
-      const signColor = ZODIAC_COLORS[house.sign as ZodiacSign] || colors.primary;
 
       return (
         <View key={house.house} style={[
@@ -180,16 +169,14 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
             <Text style={[styles.houseNumber, { color: colors.onSurface }]}>{house.house}</Text>
           </View>
 
-          {/* Sign Symbol */}
-          <View style={styles.symbolCell}>
-            <Text style={[styles.signSymbol, { color: signColor }]}>
-              {house.sign ? getZodiacGlyph(house.sign as ZodiacSign) : '-'}
-            </Text>
-          </View>
-
-          {/* Sign Name */}
-          <View style={styles.signCell}>
-            <Text style={[styles.signName, { color: colors.onSurface }]}>{house.sign || 'Unknown'}</Text>
+          {/* Sign (Symbol + Name combined) */}
+          <View style={styles.houseSignCell}>
+            {house.sign ? (
+              <AstroIcon type="zodiac" name={house.sign as ZodiacSign} size={20} color={colors.primary} />
+            ) : (
+              <Text style={[styles.signSymbol, { color: colors.primary }]}>-</Text>
+            )}
+            <Text style={[styles.signName, { color: colors.onSurface, marginLeft: 8 }]}>{house.sign || 'Unknown'}</Text>
           </View>
 
           {/* Degree */}
@@ -209,10 +196,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
           <View style={styles.houseNumberCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>House</Text>
           </View>
-          <View style={styles.symbolCell}>
-            <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>♈</Text>
-          </View>
-          <View style={styles.signCell}>
+          <View style={styles.houseSignHeaderCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Sign</Text>
           </View>
           <View style={styles.degreeCell}>
@@ -232,8 +216,6 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
   const renderAspectsTable = () => {
     const renderAspectRow = (aspect: any, index: number) => {
       const aspectColor = getAspectColor(aspect.aspectType as AspectType);
-      const planet1Color = PLANET_COLORS[aspect.aspectingPlanet as PlanetName] || colors.onSurface;
-      const planet2Color = PLANET_COLORS[aspect.aspectedPlanet as PlanetName] || colors.onSurface;
 
       return (
         <View key={`${aspect.aspectingPlanet}-${aspect.aspectedPlanet}-${index}`}
@@ -245,9 +227,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
 
           {/* First Planet Symbol */}
           <View style={styles.planetCell}>
-            <Text style={[styles.planetSymbol, { color: planet1Color }]}>
-              {getPlanetGlyph(aspect.aspectingPlanet as PlanetName)}
-            </Text>
+            <AstroIcon type="planet" name={aspect.aspectingPlanet as PlanetName} size={16} color={colors.onSurfaceVariant} />
           </View>
 
           {/* First Planet Name */}
@@ -271,9 +251,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
 
           {/* Second Planet Symbol */}
           <View style={styles.planetCell}>
-            <Text style={[styles.planetSymbol, { color: planet2Color }]}>
-              {getPlanetGlyph(aspect.aspectedPlanet as PlanetName)}
-            </Text>
+            <AstroIcon type="planet" name={aspect.aspectedPlanet as PlanetName} size={16} color={colors.onSurfaceVariant} />
           </View>
 
           {/* Second Planet Name */}
@@ -295,10 +273,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
 
         {/* Header */}
         <View style={[styles.row, styles.headerRow, { backgroundColor: colors.surfaceVariant, borderBottomColor: colors.strokeSubtle }]}>
-          <View style={styles.planetCell}>
-            <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☽</Text>
-          </View>
-          <View style={styles.nameCell}>
+          <View style={styles.aspectPlanetHeaderCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Planet</Text>
           </View>
           <View style={styles.aspectSymbolCell}>
@@ -307,10 +282,7 @@ const CompositeChartTables: React.FC<CompositeChartTablesProps> = ({
           <View style={styles.aspectNameCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Aspect</Text>
           </View>
-          <View style={styles.planetCell}>
-            <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>☉</Text>
-          </View>
-          <View style={styles.nameCell}>
+          <View style={styles.aspectPlanetHeaderCell}>
             <Text style={[styles.headerText, { color: colors.onSurfaceVariant }]}>Planet</Text>
           </View>
           <View style={styles.orbCell}>
@@ -386,11 +358,21 @@ const styles = StyleSheet.create({
     flex: 2,
     paddingLeft: 8,
   },
+  planetHeaderCell: {
+    width: 40 + 8,
+    flex: 2,
+    paddingLeft: 8,
+  },
   degreeCell: {
     width: 50,
     alignItems: 'center',
   },
   signCell: {
+    flex: 1.5,
+    paddingLeft: 8,
+  },
+  signHeaderCell: {
+    width: 40 + 8,
     flex: 1.5,
     paddingLeft: 8,
   },
@@ -402,9 +384,25 @@ const styles = StyleSheet.create({
     width: 60,
     alignItems: 'center',
   },
+  houseSignCell: {
+    flexDirection: 'row',
+    flex: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  houseSignHeaderCell: {
+    width: 40 + 8,
+    flex: 1.5,
+    alignItems: 'center',
+  },
   planetCell: {
     width: 30,
     alignItems: 'center',
+  },
+  aspectPlanetHeaderCell: {
+    width: 30,
+    flex: 2,
+    paddingLeft: 8,
   },
   aspectSymbolCell: {
     width: 25,

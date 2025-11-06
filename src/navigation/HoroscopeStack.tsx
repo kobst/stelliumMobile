@@ -25,7 +25,7 @@ const HoroscopeStack: React.FC = () => {
       <Stack.Screen
         name="HoroscopeMain"
         component={HoroscopeScreen}
-        options={{ title: 'Daily Horoscope' }}
+        options={{ title: 'Daily Horoscope', headerShown: false }}
       />
       <Stack.Screen
         name="TransitSelection"

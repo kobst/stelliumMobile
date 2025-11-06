@@ -8,6 +8,7 @@ import {
   Modal,
   SafeAreaView,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useTheme } from '../theme';
 import { TransitEvent } from '../types';
@@ -33,8 +34,9 @@ const HoroscopeTransitsBottomSheet: React.FC<HoroscopeTransitsBottomSheetProps> 
 }) => {
   const { colors } = useTheme();
   const [filterTab, setFilterTab] = useState<'all' | 'natal' | 'transit-to-transit'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter transits based on type
+  // Filter transits based on type and search query
   const filteredTransits = useMemo(() => {
     if (!transitWindows || transitWindows.length === 0) return [];
 
@@ -47,13 +49,32 @@ const HoroscopeTransitsBottomSheet: React.FC<HoroscopeTransitsBottomSheetProps> 
       filtered = filtered.filter(transit => transit.type === 'transit-to-transit');
     }
 
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(transit => {
+        const searchableText = [
+          transit.transitingPlanet,
+          transit.transitingSign,
+          transit.targetPlanet,
+          transit.targetSign,
+          transit.aspect,
+          transit.description,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return searchableText.includes(query);
+      });
+    }
+
     // Sort by priority and date
     return filtered.sort((a, b) => {
       const priorityDiff = (b.priority || 0) - (a.priority || 0);
       if (priorityDiff !== 0) return priorityDiff;
       return new Date(a.start).getTime() - new Date(b.start).getTime();
     });
-  }, [transitWindows, filterTab]);
+  }, [transitWindows, filterTab, searchQuery]);
 
   // Check if transit is selected
   const isTransitSelected = (transit: TransitEvent): boolean => {
@@ -191,6 +212,21 @@ const HoroscopeTransitsBottomSheet: React.FC<HoroscopeTransitsBottomSheetProps> 
           </TouchableOpacity>
         </View>
 
+        {/* Search Bar */}
+        <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search transits..."
+            placeholderTextColor={colors.onSurfaceVariant}
+            style={[styles.searchInput, {
+              color: colors.onSurface,
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+            }]}
+          />
+        </View>
+
         {/* Filter Tabs */}
         <View style={[styles.filterTabs, { backgroundColor: colors.surface }]}>
           <ScrollView
@@ -249,31 +285,6 @@ const HoroscopeTransitsBottomSheet: React.FC<HoroscopeTransitsBottomSheetProps> 
                   onPress={() => handleTransitPress(transit)}
                   activeOpacity={0.7}
                 >
-                  {/* Selection Indicator */}
-                  <View style={styles.transitHeader}>
-                    <View style={[
-                      styles.selectionIndicator,
-                      isSelected ? styles.selectedIndicator : styles.unselectedIndicator,
-                      {
-                        backgroundColor: isSelected ? colors.primary : colors.surface,
-                        borderColor: isSelected ? colors.primary : colors.onSurfaceVariant,
-                      }
-                    ]}>
-                      {isSelected ? (
-                        <Text style={[styles.checkmark, { color: colors.onPrimary }]}>✓</Text>
-                      ) : null}
-                    </View>
-
-                    {/* Priority Indicator */}
-                    {transit.priority && transit.priority > 5 && (
-                      <View style={[styles.priorityBadge, { backgroundColor: colors.secondary }]}>
-                        <Text style={[styles.priorityText, { color: colors.onSecondary }]}>
-                          High
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
                   {/* Transit Description */}
                   <View style={styles.transitContent}>
                     <TransitDescriptionWithSymbols
@@ -312,6 +323,13 @@ const HoroscopeTransitsBottomSheet: React.FC<HoroscopeTransitsBottomSheetProps> 
                       </Text>
                     )}
                   </View>
+
+                  {/* Selection Badge (bottom-right corner) */}
+                  {isSelected && (
+                    <View style={styles.selectedBadge}>
+                      <Text style={styles.selectedCheckmark}>✓</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })
@@ -381,6 +399,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
+  searchContainer: {
+    padding: 16,
+  },
+  searchInput: {
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    fontSize: 16,
+  },
   filterTabs: {
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -424,41 +452,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    position: 'relative',
   },
-  transitHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  selectionIndicator: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
+  selectedBadge: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#8b5cf6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
-  selectedIndicator: {
-    transform: [{ scale: 1 }],
-  },
-  unselectedIndicator: {
-    transform: [{ scale: 1 }],
-  },
-  checkmark: {
+  selectedCheckmark: {
     fontSize: 12,
     fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 'auto',
-  },
-  priorityText: {
-    fontSize: 10,
-    fontWeight: '600',
+    color: '#ffffff',
   },
   transitContent: {
     flex: 1,

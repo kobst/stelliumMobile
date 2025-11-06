@@ -188,4 +188,78 @@ export const usersApi = {
 
     return response;
   },
+
+  // Profile Photo APIs
+
+  // Get presigned URL for profile photo upload
+  getPresignedUploadUrl: async (
+    subjectId: string,
+    contentType: string = 'image/jpeg'
+  ): Promise<{ uploadUrl: string; photoKey: string; expiresIn: number }> => {
+    console.log('\n=== USERS API: getPresignedUploadUrl ===');
+    console.log('Subject ID:', subjectId);
+    console.log('Content Type:', contentType);
+
+    const response = await apiClient.post<{
+      success: boolean;
+      uploadUrl: string;
+      photoKey: string;
+      expiresIn: number;
+      instructions: string;
+    }>(`/subjects/${subjectId}/profile-photo/presigned-url`, { contentType });
+
+    console.log('Response received:', JSON.stringify(response, null, 2));
+    console.log('=====================================\n');
+
+    return {
+      uploadUrl: response.uploadUrl,
+      photoKey: response.photoKey,
+      expiresIn: response.expiresIn,
+    };
+  },
+
+  // Confirm profile photo upload
+  confirmProfilePhotoUpload: async (
+    subjectId: string,
+    photoKey: string
+  ): Promise<{ profilePhotoUrl: string; profilePhotoKey: string; updatedAt: string }> => {
+    console.log('\n=== USERS API: confirmProfilePhotoUpload ===');
+    console.log('Subject ID:', subjectId);
+    console.log('Photo Key:', photoKey);
+
+    const response = await apiClient.post<{
+      success: boolean;
+      profilePhotoUrl: string;
+      profilePhotoKey: string;
+      updatedAt: string;
+    }>(`/subjects/${subjectId}/profile-photo/confirm`, { photoKey });
+
+    console.log('Response received:', JSON.stringify(response, null, 2));
+    console.log('=====================================\n');
+
+    return {
+      profilePhotoUrl: response.profilePhotoUrl,
+      profilePhotoKey: response.profilePhotoKey,
+      updatedAt: response.updatedAt,
+    };
+  },
+
+  // Delete profile photo
+  deleteProfilePhoto: async (
+    subjectId: string
+  ): Promise<{ success: boolean; message: string; deletedAt: string }> => {
+    console.log('\n=== USERS API: deleteProfilePhoto ===');
+    console.log('Subject ID:', subjectId);
+
+    const response = await apiClient.delete<{
+      success: boolean;
+      message: string;
+      deletedAt: string;
+    }>(`/subjects/${subjectId}/profile-photo`);
+
+    console.log('Response received:', JSON.stringify(response, null, 2));
+    console.log('===================================\n');
+
+    return response;
+  },
 };
