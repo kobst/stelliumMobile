@@ -381,16 +381,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
     return (
       <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-        {/* Relationship Header */}
-        <View style={[styles.overviewHeader, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.relationshipTier, { color: colors.primary }]}>
-            {clusterScoring.overall.tier}
-          </Text>
-          <Text style={[styles.relationshipProfile, { color: colors.onSurface }]}>
-            {clusterScoring.overall.profile}
-          </Text>
-        </View>
-
         {/* Initial Overview */}
         {analysisData?.initialOverview && (
           <View style={[styles.overviewCard, { backgroundColor: colors.surface }]}>
