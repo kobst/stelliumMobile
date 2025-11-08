@@ -7,6 +7,8 @@ import {
   AnalysisWorkflowState,
   RelationshipWorkflowState,
   UserSubscription,
+  UsageMetrics,
+  SubscriptionEntitlements,
   HoroscopeFilter,
   TabName,
   Planet,
@@ -23,6 +25,8 @@ interface StoreState {
   userId: string;
   isAuthenticated: boolean;
   userSubscription: UserSubscription | null;
+  usageMetrics: UsageMetrics | null;
+  entitlements: SubscriptionEntitlements | null;
 
   // Birth Chart Data
   userPlanets: Planet[];
@@ -53,6 +57,14 @@ interface StoreState {
   activeTab: TabName;
   profileModalVisible: boolean;
 
+  // Insufficient Credits Modal State
+  insufficientCreditsModal: {
+    visible: boolean;
+    currentCredits: number;
+    requiredCredits: number;
+    onAddCreditsCallback: (() => void) | null;
+  };
+
   // Theme State
   themeMode: ThemeMode;
 
@@ -76,6 +88,10 @@ interface StoreState {
   setActiveTab: (tab: TabName) => void;
   setProfileModalVisible: (visible: boolean) => void;
 
+  // Insufficient Credits Modal Actions
+  showCreditModal: (currentCredits: number, requiredCredits: number, onAddCredits: () => void) => void;
+  hideCreditModal: () => void;
+
   // Theme Actions
   setThemeMode: (theme: ThemeMode) => void;
 
@@ -93,6 +109,16 @@ interface StoreState {
   addGuestSubject: (subject: User) => void;
   setSelectedSubject: (subject: User | null) => void;
 
+  // Subscription Actions
+  setSubscription: (subscription: UserSubscription | null) => void;
+  setUsageMetrics: (usage: UsageMetrics | null) => void;
+  setEntitlements: (entitlements: SubscriptionEntitlements | null) => void;
+  updateSubscriptionData: (data: {
+    subscription?: UserSubscription;
+    usage?: UsageMetrics;
+    entitlements?: SubscriptionEntitlements;
+  }) => void;
+
   // Persistence Actions
   initializeFromStorage: () => Promise<void>;
   persistUserData: () => Promise<void>;
@@ -106,6 +132,8 @@ export const useStore = create<StoreState>((set, get) => ({
   userId: '',
   isAuthenticated: false,
   userSubscription: null,
+  usageMetrics: null,
+  entitlements: null,
 
   userPlanets: [],
   userHouses: [],
@@ -124,6 +152,7 @@ export const useStore = create<StoreState>((set, get) => ({
 
   creationWorkflowState: {
     workflowId: null,
+    userId: null,
     status: null,
     isCompleted: false,
     progress: null,
@@ -153,6 +182,14 @@ export const useStore = create<StoreState>((set, get) => ({
   error: null,
   activeTab: 'horoscope',
   profileModalVisible: false,
+
+  // Insufficient Credits Modal State
+  insufficientCreditsModal: {
+    visible: false,
+    currentCredits: 0,
+    requiredCredits: 0,
+    onAddCreditsCallback: null,
+  },
 
   // Theme State
   themeMode: 'system',
@@ -221,6 +258,25 @@ export const useStore = create<StoreState>((set, get) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   setProfileModalVisible: (visible) => set({ profileModalVisible: visible }),
 
+  // Insufficient Credits Modal Actions
+  showCreditModal: (currentCredits, requiredCredits, onAddCredits) => set({
+    insufficientCreditsModal: {
+      visible: true,
+      currentCredits,
+      requiredCredits,
+      onAddCreditsCallback: onAddCredits,
+    },
+  }),
+
+  hideCreditModal: () => set({
+    insufficientCreditsModal: {
+      visible: false,
+      currentCredits: 0,
+      requiredCredits: 0,
+      onAddCreditsCallback: null,
+    },
+  }),
+
   // Theme Actions
   setThemeMode: (theme) => {
     set({ themeMode: theme });
@@ -261,6 +317,19 @@ export const useStore = create<StoreState>((set, get) => ({
   })),
 
   setSelectedSubject: (subject) => set({ selectedSubject: subject }),
+
+  // Subscription Actions
+  setSubscription: (subscription) => set({ userSubscription: subscription }),
+
+  setUsageMetrics: (usage) => set({ usageMetrics: usage }),
+
+  setEntitlements: (entitlements) => set({ entitlements }),
+
+  updateSubscriptionData: (data) => set((state) => ({
+    userSubscription: data.subscription !== undefined ? data.subscription : state.userSubscription,
+    usageMetrics: data.usage !== undefined ? data.usage : state.usageMetrics,
+    entitlements: data.entitlements !== undefined ? data.entitlements : state.entitlements,
+  })),
 
   // Persistence Actions
   initializeFromStorage: async () => {
@@ -309,6 +378,8 @@ export const useStore = create<StoreState>((set, get) => ({
         userId: '',
         isAuthenticated: false,
         userSubscription: null,
+        usageMetrics: null,
+        entitlements: null,
         userPlanets: [],
         userHouses: [],
         userAspects: [],
@@ -323,6 +394,7 @@ export const useStore = create<StoreState>((set, get) => ({
         selectedSubject: null,
         creationWorkflowState: {
           workflowId: null,
+          userId: null,
           status: null,
           isCompleted: false,
           progress: null,
@@ -350,6 +422,12 @@ export const useStore = create<StoreState>((set, get) => ({
         transitData: [],
         selectedTransits: new Set(),
         customHoroscope: null,
+        insufficientCreditsModal: {
+          visible: false,
+          currentCredits: 0,
+          requiredCredits: 0,
+          onAddCreditsCallback: null,
+        },
       });
 
       console.log('All user data cleared from store and storage');

@@ -81,6 +81,8 @@ PODS:
   - hermes-engine (0.79.2):
     - hermes-engine/Pre-built (= 0.79.2)
   - hermes-engine/Pre-built (0.79.2)
+  - PurchasesHybridCommon (17.10.0):
+    - RevenueCat (= 5.43.0)
   - RCT-Folly (2024.11.18.00):
     - boost
     - DoubleConversion
@@ -1870,6 +1872,7 @@ PODS:
     - React-perflogger (= 0.79.2)
     - React-utils (= 0.79.2)
   - RecaptchaInterop (101.0.0)
+  - RevenueCat (5.43.0)
   - RNAppleAuthentication (2.4.1):
     - React-Core
   - RNCAsyncStorage (1.24.0):
@@ -1977,6 +1980,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNPurchases (9.5.4):
+    - PurchasesHybridCommon (= 17.10.0)
+    - React-Core
   - RNReanimated (3.18.0):
     - DoubleConversion
     - glog
@@ -2202,6 +2208,34 @@ PODS:
     - ReactCommon/turbomodule/core
     - Yoga
   - SocketRocket (0.7.1)
+  - Superscript (0.2.8)
+  - superwall-react-native (2.1.7):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SuperwallKit (= 4.5.0)
+    - Yoga
+  - SuperwallKit (4.5.0):
+    - Superscript (= 0.2.8)
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -2288,9 +2322,11 @@ DEPENDENCIES:
   - "RNFBAuth (from `../node_modules/@react-native-firebase/auth`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
+  - RNPurchases (from `../node_modules/react-native-purchases`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
+  - "superwall-react-native (from `../node_modules/@superwall/react-native-superwall`)"
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -2313,8 +2349,12 @@ SPEC REPOS:
     - GoogleUtilities
     - GTMAppAuth
     - GTMSessionFetcher
+    - PurchasesHybridCommon
     - RecaptchaInterop
+    - RevenueCat
     - SocketRocket
+    - Superscript
+    - SuperwallKit
 
 EXTERNAL SOURCES:
   boost:
@@ -2480,12 +2520,16 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-gesture-handler"
   RNGoogleSignin:
     :path: "../node_modules/@react-native-google-signin/google-signin"
+  RNPurchases:
+    :path: "../node_modules/react-native-purchases"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
     :path: "../node_modules/react-native-screens"
   RNSVG:
     :path: "../node_modules/react-native-svg"
+  superwall-react-native:
+    :path: "../node_modules/@superwall/react-native-superwall"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -2515,6 +2559,7 @@ SPEC CHECKSUMS:
   GTMAppAuth: f69bd07d68cd3b766125f7e072c45d7340dea0de
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   hermes-engine: 314be5250afa5692b57b4dd1705959e1973a8ebe
+  PurchasesHybridCommon: b7b4eafb55fbaaac19b4c36d4082657a3f0d8490
   RCT-Folly: e78785aa9ba2ed998ea4151e314036f6c49e6d82
   RCTDeprecation: 83ffb90c23ee5cea353bd32008a7bca100908f8c
   RCTRequired: eb7c0aba998009f47a540bec9e9d69a54f68136e
@@ -2583,6 +2628,7 @@ SPEC CHECKSUMS:
   ReactCodegen: 041559ba76d00f6680dfa0916b3c791f4babe5ea
   ReactCommon: 1511ef100f1afa4c199fe52fe7a8d2529a41429a
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
+  RevenueCat: a51003d4cb33820cc504cf177c627832b462a98e
   RNAppleAuthentication: c3dddf5918126c9aae85dc2e2ce9fb87835e9e04
   RNCAsyncStorage: 7389d6a3f23f10f39b523b68eda4088fa6b5eae9
   RNDateTimePicker: 5f3dc35f39b939ebbdb6f23178372c8f626a8da7
@@ -2590,10 +2636,14 @@ SPEC CHECKSUMS:
   RNFBAuth: b5e52895796572e99a9024ae0d601ef8b21588ac
   RNGestureHandler: 6b48571964d1b4302f531bb07f8360399a02200a
   RNGoogleSignin: 878950ffb3e09689b0d65a66c7c363a6d8480047
+  RNPurchases: 2569675abdc1dbc739f2eec0fa564a112cf860de
   RNReanimated: 0df48dab58b5ee37fd1d1341caba79f59a1187ec
   RNScreens: 90b905d545a5ebbe976985702b8a39e3475727b2
   RNSVG: 45e3c3210465e75ab6374c9f746179e75d76ce48
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
+  Superscript: 82dbb40f502823160e75503ebc1b6bac756a503d
+  superwall-react-native: 8d057d42596894de96fc2c367c571dd5a25a6299
+  SuperwallKit: 3ab5d4b65bf0b90da96aefc2bab31d3492c97d96
   Yoga: 50518ade05048235d91a78b803336dbb5b159d5d
 
 PODFILE CHECKSUM: 72d9f77a5b43be4f2f242f33de9fde3da5a3408e

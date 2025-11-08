@@ -451,12 +451,14 @@ export const relationshipsApi = {
     success: boolean;
     analysis?: string;
     answer?: string; // Temporary compatibility field
+    referencedCodes?: string[];
     mode?: string;
   }> => {
     return apiClient.post<{
       success: boolean;
       analysis?: string;
       answer?: string; // Temporary compatibility field
+      referencedCodes?: string[];
       mode?: string;
     }>(`/relationships/${compositeChartId}/enhanced-chat`, requestBody);
   },
@@ -474,6 +476,7 @@ export const relationshipsApi = {
       metadata?: {
         mode?: 'chat' | 'custom' | 'hybrid';
         selectedElements?: ClusterScoredItem[];
+        referencedCodes?: string[];
         elementCount?: number;
       };
     }>;
@@ -494,6 +497,7 @@ export const relationshipsApi = {
         metadata?: {
           mode?: 'chat' | 'custom' | 'hybrid';
           selectedElements?: ClusterScoredItem[];
+          referencedCodes?: string[];
           elementCount?: number;
         };
       }>;

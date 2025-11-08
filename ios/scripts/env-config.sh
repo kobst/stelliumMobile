@@ -5,16 +5,17 @@
 
 ENV_FILE=""
 
-if [ "${CONFIGURATION}" == "Debug.Dev" ] || [ "${CONFIGURATION}" == "Release.Dev" ]; then
+# Use Debug for dev environment, Release for prod environment
+if [ "${CONFIGURATION}" == "Debug" ]; then
     ENV_FILE=".env.dev"
-elif [ "${CONFIGURATION}" == "Debug.Prod" ] || [ "${CONFIGURATION}" == "Release.Prod" ] || [ "${CONFIGURATION}" == "Debug" ] || [ "${CONFIGURATION}" == "Release" ]; then
+elif [ "${CONFIGURATION}" == "Release" ]; then
     ENV_FILE=".env.prod"
 else
     echo "warning: Unknown configuration '${CONFIGURATION}', defaulting to .env.dev"
     ENV_FILE=".env.dev"
 fi
 
-echo "Using environment config: ${ENV_FILE}"
+echo "Using environment config: ${ENV_FILE} for configuration: ${CONFIGURATION}"
 
 # Copy the appropriate env file to the project root
 cp "${PROJECT_DIR}/../${ENV_FILE}" "${PROJECT_DIR}/../.env"
