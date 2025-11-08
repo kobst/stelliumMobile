@@ -25,12 +25,15 @@ import {
 } from '../utils/dateHelpers';
 import { useTheme } from '../theme';
 import { AstroIcon } from '../../utils/astrologyIcons';
+import HoroscopeChatTab from './HoroscopeChatTab';
+import LockedHoroscopeTab from './LockedHoroscopeTab';
 
 interface HoroscopeContainerProps {
   transitWindows?: TransitEvent[];
   loading?: boolean;
   error?: string | null;
   userId?: string;
+  onRetryTransitWindows?: () => void;
 }
 
 interface HoroscopeCache {
@@ -44,6 +47,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   loading = false,
   error = null,
   userId,
+  onRetryTransitWindows,
 }) => {
   const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<HoroscopeFilter>('today');
@@ -56,7 +60,19 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   const [horoscopeError, setHoroscopeError] = useState<string | null>(null);
   const [loadedTabs, setLoadedTabs] = useState<Set<HoroscopeFilter>>(new Set());
 
-  const { userData } = useStore();
+  const { userData, userSubscription } = useStore();
+
+  // Get subscription tier (default to 'free' if not set)
+  const subscriptionTier = userSubscription?.tier || 'free';
+
+  // Check if a tab is locked for the current subscription tier
+  const isTabLocked = (tab: HoroscopeFilter): boolean => {
+    if (subscriptionTier === 'free') {
+      // Free users can only access 'thisWeek' and 'chat'
+      return tab === 'today' || tab === 'thisMonth';
+    }
+    return false;
+  };
 
   // Helper function to add timeout to promises
   const withTimeout = (promise: Promise<any>, timeoutMs: number = 30000): Promise<any> => {
@@ -298,9 +314,11 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     fetchHoroscopeForTab(activeTab, true);
   };
 
-  // Load horoscope when active tab changes
+  // Load horoscope when active tab changes (but not for chat tab)
   useEffect(() => {
-    fetchHoroscopeForTab(activeTab);
+    if (activeTab !== 'chat') {
+      fetchHoroscopeForTab(activeTab);
+    }
   }, [activeTab, userId, userData?.id]);
 
 
@@ -329,6 +347,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     { key: 'today', label: 'Today' },
     { key: 'thisWeek', label: 'This Week' },
     { key: 'thisMonth', label: 'This Month' },
+    { key: 'chat', label: 'Ask Stellium' },
   ] as const;
 
   return (
@@ -341,43 +360,62 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           style={styles.tabContainer}
           contentContainerStyle={styles.tabContentContainer}
         >
-          {tabOptions.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[
-                styles.tabButton,
-                activeTab === tab.key && styles.activeTabButton,
-              ]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Text
+          {tabOptions.map((tab) => {
+            const locked = isTabLocked(tab.key);
+            return (
+              <TouchableOpacity
+                key={tab.key}
                 style={[
-                  styles.tabButtonText,
-                  activeTab === tab.key && styles.activeTabButtonText,
+                  styles.tabButton,
+                  activeTab === tab.key && styles.activeTabButton,
+                  locked && styles.lockedTabButton,
                 ]}
+                onPress={() => setActiveTab(tab.key)}
               >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <View style={styles.tabButtonContent}>
+                  <Text
+                    style={[
+                      styles.tabButtonText,
+                      activeTab === tab.key && styles.activeTabButtonText,
+                      locked && styles.lockedTabButtonText,
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                  {locked && <Text style={styles.lockIcon}>🔒</Text>}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
-      {/* Scrollable Content */}
-      <ScrollView style={styles.scrollContent}>
+      {/* Scrollable Content or Chat */}
+      {activeTab === 'chat' ? (
+        <HoroscopeChatTab
+          userId={userId!}
+          transitWindows={transitWindows}
+          transitWindowsLoading={loading}
+          transitWindowsError={error}
+          onRetryTransitWindows={onRetryTransitWindows || (() => {})}
+        />
+      ) : isTabLocked(activeTab) ? (
+        <LockedHoroscopeTab horoscopeType={activeTab === 'today' ? 'daily' : 'monthly'} />
+      ) : (
+        <ScrollView style={styles.scrollContent}>
 
-        {/* Partial Error Indicator */}
-        {horoscopeError && hasAnyData && (
-          <View style={styles.partialErrorNotice}>
-            <Text style={styles.partialErrorText}>
-              ⚠️ Some horoscopes couldn't be loaded. Switch to other tabs to see available content.
-            </Text>
-          </View>
-        )}
+          {/* Partial Error Indicator */}
+          {horoscopeError && hasAnyData && (
+            <View style={styles.partialErrorNotice}>
+              <Text style={styles.partialErrorText}>
+                ⚠️ Some horoscopes couldn't be loaded. Switch to other tabs to see available content.
+              </Text>
+            </View>
+          )}
 
-        {/* Horoscope Content */}
-        <View style={styles.section}>
-          {horoscopeCache[activeTab] ? (
+          {/* Horoscope Content */}
+          <View style={styles.section}>
+            {horoscopeCache[activeTab] ? (
             <View style={styles.horoscopeCard}>
               <Text style={styles.horoscopeTitle}>
                 Your {activeTab === 'today' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
@@ -392,14 +430,35 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
               {/* Daily horoscope key transits */}
               {activeTab === 'today' && horoscopeCache[activeTab]?.horoscope.keyTransits && horoscopeCache[activeTab]!.horoscope.keyTransits!.length > 0 && (
                 <View style={styles.keyTransitsSection}>
-                  <Text style={styles.keyTransitsTitle}>Key Planetary Influences</Text>
+                  <Text style={styles.keyTransitsTitle}>Key Influences</Text>
                   {horoscopeCache[activeTab]!.horoscope.keyTransits!.map((transit, index) => (
-                    <View key={index} style={styles.transitItem}>
-                      <Text style={styles.transitText}>
-                        <Text style={styles.transitPlanet}>{transit.transitingPlanet}</Text> {transit.aspect} {transit.targetPlanet}
-                      </Text>
-                      <Text style={styles.transitDate}>
-                        (exact: {formatDate(transit.exactDate)})
+                    <View key={index} style={[styles.keyThemeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                      <View style={styles.keyThemeContent}>
+                        {/* Transiting Planet */}
+                        <View style={styles.keyThemeIconText}>
+                          <AstroIcon type="planet" name={transit.transitingPlanet} size={16} color={colors.onSurface} />
+                          <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                            {' '}{transit.transitingPlanet}
+                          </Text>
+                        </View>
+
+                        {/* Aspect */}
+                        <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                          {' '}{getAspectSymbol(transit.aspect)} {transit.aspect}{' '}
+                        </Text>
+
+                        {/* Target Planet */}
+                        <View style={styles.keyThemeIconText}>
+                          <AstroIcon type="planet" name={transit.targetPlanet} size={16} color={colors.onSurface} />
+                          <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                            {' '}{transit.targetPlanet}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Exact Date */}
+                      <Text style={[styles.keyThemeDateText, { color: colors.onSurfaceVariant }]}>
+                        exact: {formatDate(transit.exactDate)}
                       </Text>
                     </View>
                   ))}
@@ -409,12 +468,41 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
               {/* Weekly/Monthly horoscope key themes */}
               {activeTab !== 'today' && horoscopeCache[activeTab]?.horoscope.analysis?.keyThemes && (
                 <View style={styles.keyThemesSection}>
-                  <Text style={styles.keyThemesTitle}>Key Themes</Text>
+                  <Text style={styles.keyThemesTitle}>Key Influences</Text>
                   {horoscopeCache[activeTab]!.horoscope.analysis!.keyThemes!.map((theme, index) => (
-                    <Text key={index} style={styles.themeText}>
-                      {theme.transitingPlanet} {theme.aspect} {theme.targetPlanet || ''}
-                      {theme.exactDate && ` (${formatDate(theme.exactDate)})`}
-                    </Text>
+                    <View key={index} style={[styles.keyThemeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                      <View style={styles.keyThemeContent}>
+                        {/* Transiting Planet */}
+                        <View style={styles.keyThemeIconText}>
+                          <AstroIcon type="planet" name={theme.transitingPlanet} size={16} color={colors.onSurface} />
+                          <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                            {' '}{theme.transitingPlanet}
+                          </Text>
+                        </View>
+
+                        {/* Aspect */}
+                        <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                          {' '}{getAspectSymbol(theme.aspect)} {theme.aspect}{' '}
+                        </Text>
+
+                        {/* Target Planet */}
+                        {theme.targetPlanet && (
+                          <View style={styles.keyThemeIconText}>
+                            <AstroIcon type="planet" name={theme.targetPlanet} size={16} color={colors.onSurface} />
+                            <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                              {' '}{theme.targetPlanet}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Exact Date */}
+                      {theme.exactDate && (
+                        <Text style={[styles.keyThemeDateText, { color: colors.onSurfaceVariant }]}>
+                          {formatDate(theme.exactDate)}
+                        </Text>
+                      )}
+                    </View>
                   ))}
                 </View>
               )}
@@ -453,7 +541,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
             </View>
           )}
         </View>
-      </ScrollView>
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -520,6 +609,20 @@ const createStyles = (colors: any) => StyleSheet.create({
   activeTabButtonText: {
     color: colors.onPrimary,
   },
+  tabButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  lockedTabButton: {
+    opacity: 0.7,
+  },
+  lockedTabButtonText: {
+    opacity: 0.8,
+  },
+  lockIcon: {
+    fontSize: 12,
+  },
   section: {
     margin: 16,
   },
@@ -562,23 +665,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: colors.onSurface,
-    marginBottom: 8,
-  },
-  transitItem: {
-    marginBottom: 8,
-  },
-  transitText: {
-    fontSize: 14,
-    color: colors.onSurface,
-  },
-  transitPlanet: {
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  transitDate: {
-    fontSize: 12,
-    color: colors.onSurfaceVariant,
-    marginTop: 2,
+    marginBottom: 12,
   },
   keyThemesSection: {
     marginTop: 16,
@@ -590,12 +677,30 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: colors.onSurface,
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  themeText: {
-    fontSize: 15,
-    color: colors.onSurface,
-    marginBottom: 4,
+  keyThemeCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  keyThemeContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  keyThemeIconText: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  keyThemeDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  keyThemeDateText: {
+    fontSize: 12,
+    marginTop: 8,
   },
   partialErrorNotice: {
     backgroundColor: colors.surfaceVariant,

@@ -2,6 +2,7 @@ import React, { createContext, useEffect, useState, ReactNode } from 'react';
 import { useColorScheme, StatusBar } from 'react-native';
 import { ColorPalette, darkTheme, lightTheme, ThemeMode } from './colors';
 import { useStore } from '../store';
+import { superwallService } from '../services/SuperwallService';
 
 interface ThemeContextType {
   colors: ColorPalette;
@@ -50,6 +51,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       StatusBar.setBackgroundColor(colors.background, true);
     }
   }, [isDark, colors.background]);
+
+  // Sync Superwall paywall theme with app theme
+  useEffect(() => {
+    const colorScheme = isDark ? 'dark' : 'light';
+    superwallService.setInterfaceStyle(colorScheme);
+  }, [isDark]);
 
   const contextValue: ThemeContextType = {
     colors,

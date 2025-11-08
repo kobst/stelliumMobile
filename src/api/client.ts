@@ -1,4 +1,5 @@
 import Config from 'react-native-config';
+import auth from '@react-native-firebase/auth';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -28,6 +29,26 @@ class ApiClient {
     this.defaultHeaders = {
       'Content-Type': 'application/json',
     };
+  }
+
+  /**
+   * Get Firebase ID token for authenticated requests
+   * Backend requires: Authorization: Bearer <firebase_id_token>
+   */
+  private async getAuthToken(): Promise<string | null> {
+    try {
+      const currentUser = auth().currentUser;
+      if (!currentUser) {
+        console.warn('[ApiClient] No authenticated user');
+        return null;
+      }
+
+      const token = await currentUser.getIdToken();
+      return token;
+    } catch (error) {
+      console.error('[ApiClient] Failed to get auth token:', error);
+      return null;
+    }
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
@@ -77,10 +98,17 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
+    // Get Firebase auth token for authenticated requests
+    const authToken = await this.getAuthToken();
+    const authHeaders = authToken
+      ? { Authorization: `Bearer ${authToken}` }
+      : {};
+
     const config: RequestInit = {
       ...options,
       headers: {
         ...this.defaultHeaders,
+        ...authHeaders,
         ...options.headers,
       },
     };

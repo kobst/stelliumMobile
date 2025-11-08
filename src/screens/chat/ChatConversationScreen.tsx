@@ -142,14 +142,32 @@ const ChatConversationScreen: React.FC = () => {
 
       case 'birth_chart':
         // For birth charts, we need to determine if it's the user's chart or a guest chart
-        const chartUserId = thread.userId;
         const guestSubject = thread.guestSubject;
+        // Extract birthChart from guestSubject or use user's birthChart
+        const birthChart = guestSubject?.birthChart || userData?.birthChart;
+        const guestFirstName = guestSubject?.firstName;
+        // Determine the subject ID: use guest's _id for guest charts, user's id for their own chart
+        const subjectId = guestSubject?._id || userData?.id || '';
 
+        if (!birthChart) {
+          return (
+            <View style={styles.errorContainer}>
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                Birth chart data not available
+              </Text>
+            </View>
+          );
+        }
+
+        // The subjectId is used for both API endpoint routing and distinguishing chat histories
+        // For user's own chart: subjectId = user's own ID
+        // For guest charts: subjectId = guest subject's _id
         return (
           <BirthChartChatTab
-            userId={chartUserId}
-            guestSubject={guestSubject}
+            subjectId={subjectId}
+            birthChart={birthChart}
             preSelectedElements={preSelectedElements}
+            guestFirstName={guestFirstName}
           />
         );
 
@@ -189,9 +207,17 @@ const ChatConversationScreen: React.FC = () => {
           );
         }
 
-        // Get user names from relationship
-        const userAName = relationship?.userAName || 'User A';
-        const userBName = relationship?.userBName || 'User B';
+        // Get user names from relationship (note: fields are userA_name and userB_name with underscores)
+        const userAName = relationship?.userA_name || 'User A';
+        const userBName = relationship?.userB_name || 'User B';
+
+        console.log('[ChatConversationScreen] Relationship names:', {
+          hasRelationship: !!relationship,
+          userA_name: relationship?.userA_name,
+          userB_name: relationship?.userB_name,
+          userAName,
+          userBName,
+        });
 
         return (
           <RelationshipChatTab
