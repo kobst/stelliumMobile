@@ -6,13 +6,49 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '../theme';
+import { superwallService } from '../services/SuperwallService';
 
 interface UpgradeBannerProps {
-  itemType: 'charts' | 'relationships';
+  itemType: 'charts' | 'relationships' | 'reports' | 'chat';
   currentCount: number;
   limit: number;
   onUpgradePress?: () => void;
 }
+
+// Helper functions for dynamic content
+const getTitle = (itemType: UpgradeBannerProps['itemType']): string => {
+  switch (itemType) {
+    case 'charts':
+      return 'Quick Chart';
+    case 'relationships':
+      return 'Quick Match';
+    case 'reports':
+      return 'Report';
+    case 'chat':
+      return 'Chat Question';
+    default:
+      return 'Usage';
+  }
+};
+
+const getMessage = (
+  itemType: UpgradeBannerProps['itemType'],
+  currentCount: number,
+  limit: number
+): string => {
+  switch (itemType) {
+    case 'charts':
+      return `You've used ${currentCount}/${limit} Quick Charts this month. Upgrade for more!`;
+    case 'relationships':
+      return `You've used ${currentCount}/${limit} Quick Matches this month. Upgrade for more!`;
+    case 'reports':
+      return `You've used ${currentCount}/${limit} Reports this month. Upgrade for more!`;
+    case 'chat':
+      return `You've used ${currentCount}/${limit} chat questions this month. Upgrade for unlimited access!`;
+    default:
+      return `You've reached your monthly limit. Upgrade to continue!`;
+  }
+};
 
 const UpgradeBanner: React.FC<UpgradeBannerProps> = ({
   itemType,
@@ -22,12 +58,32 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  const handleUpgrade = () => {
+  const handleUpgrade = async () => {
     if (onUpgradePress) {
       onUpgradePress();
-    } else {
-      // Default upgrade flow - could navigate to subscription screen
-      console.log('Navigate to upgrade screen');
+      return;
+    }
+
+    // Show appropriate Superwall paywall based on item type
+    try {
+      switch (itemType) {
+        case 'charts':
+          await superwallService.showChartLimitPaywall(currentCount, limit);
+          break;
+        case 'relationships':
+          await superwallService.showRelationshipLimitPaywall(currentCount, limit);
+          break;
+        case 'reports':
+          await superwallService.showReportLimitPaywall(currentCount, limit);
+          break;
+        case 'chat':
+          await superwallService.showChatLimitPaywall(currentCount, limit);
+          break;
+        default:
+          await superwallService.showUpgradePaywall('upgrade_banner');
+      }
+    } catch (error) {
+      console.error('[UpgradeBanner] Failed to show paywall:', error);
     }
   };
 
@@ -36,10 +92,10 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({
       <View style={[styles.banner, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
         <View style={styles.content}>
           <Text style={[styles.title, { color: colors.onSurface }]}>
-            {itemType === 'charts' ? 'Chart' : 'Relationship'} Limit Reached
+            {getTitle(itemType)} Limit Reached
           </Text>
           <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
-            You've created {currentCount}/{limit} {itemType}. Upgrade to create more.
+            {getMessage(itemType, currentCount, limit)}
           </Text>
         </View>
         <TouchableOpacity
