@@ -430,14 +430,35 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
               {/* Daily horoscope key transits */}
               {activeTab === 'today' && horoscopeCache[activeTab]?.horoscope.keyTransits && horoscopeCache[activeTab]!.horoscope.keyTransits!.length > 0 && (
                 <View style={styles.keyTransitsSection}>
-                  <Text style={styles.keyTransitsTitle}>Key Planetary Influences</Text>
+                  <Text style={styles.keyTransitsTitle}>Key Influences</Text>
                   {horoscopeCache[activeTab]!.horoscope.keyTransits!.map((transit, index) => (
-                    <View key={index} style={styles.transitItem}>
-                      <Text style={styles.transitText}>
-                        <Text style={styles.transitPlanet}>{transit.transitingPlanet}</Text> {transit.aspect} {transit.targetPlanet}
-                      </Text>
-                      <Text style={styles.transitDate}>
-                        (exact: {formatDate(transit.exactDate)})
+                    <View key={index} style={[styles.keyThemeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                      <View style={styles.keyThemeContent}>
+                        {/* Transiting Planet */}
+                        <View style={styles.keyThemeIconText}>
+                          <AstroIcon type="planet" name={transit.transitingPlanet} size={16} color={colors.onSurface} />
+                          <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                            {' '}{transit.transitingPlanet}
+                          </Text>
+                        </View>
+
+                        {/* Aspect */}
+                        <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                          {' '}{getAspectSymbol(transit.aspect)} {transit.aspect}{' '}
+                        </Text>
+
+                        {/* Target Planet */}
+                        <View style={styles.keyThemeIconText}>
+                          <AstroIcon type="planet" name={transit.targetPlanet} size={16} color={colors.onSurface} />
+                          <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                            {' '}{transit.targetPlanet}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Exact Date */}
+                      <Text style={[styles.keyThemeDateText, { color: colors.onSurfaceVariant }]}>
+                        exact: {formatDate(transit.exactDate)}
                       </Text>
                     </View>
                   ))}
@@ -447,12 +468,41 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
               {/* Weekly/Monthly horoscope key themes */}
               {activeTab !== 'today' && horoscopeCache[activeTab]?.horoscope.analysis?.keyThemes && (
                 <View style={styles.keyThemesSection}>
-                  <Text style={styles.keyThemesTitle}>Key Themes</Text>
+                  <Text style={styles.keyThemesTitle}>Key Influences</Text>
                   {horoscopeCache[activeTab]!.horoscope.analysis!.keyThemes!.map((theme, index) => (
-                    <Text key={index} style={styles.themeText}>
-                      {theme.transitingPlanet} {theme.aspect} {theme.targetPlanet || ''}
-                      {theme.exactDate && ` (${formatDate(theme.exactDate)})`}
-                    </Text>
+                    <View key={index} style={[styles.keyThemeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                      <View style={styles.keyThemeContent}>
+                        {/* Transiting Planet */}
+                        <View style={styles.keyThemeIconText}>
+                          <AstroIcon type="planet" name={theme.transitingPlanet} size={16} color={colors.onSurface} />
+                          <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                            {' '}{theme.transitingPlanet}
+                          </Text>
+                        </View>
+
+                        {/* Aspect */}
+                        <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                          {' '}{getAspectSymbol(theme.aspect)} {theme.aspect}{' '}
+                        </Text>
+
+                        {/* Target Planet */}
+                        {theme.targetPlanet && (
+                          <View style={styles.keyThemeIconText}>
+                            <AstroIcon type="planet" name={theme.targetPlanet} size={16} color={colors.onSurface} />
+                            <Text style={[styles.keyThemeDescription, { color: colors.onSurface }]}>
+                              {' '}{theme.targetPlanet}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Exact Date */}
+                      {theme.exactDate && (
+                        <Text style={[styles.keyThemeDateText, { color: colors.onSurfaceVariant }]}>
+                          {formatDate(theme.exactDate)}
+                        </Text>
+                      )}
+                    </View>
                   ))}
                 </View>
               )}
@@ -615,23 +665,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: colors.onSurface,
-    marginBottom: 8,
-  },
-  transitItem: {
-    marginBottom: 8,
-  },
-  transitText: {
-    fontSize: 14,
-    color: colors.onSurface,
-  },
-  transitPlanet: {
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  transitDate: {
-    fontSize: 12,
-    color: colors.onSurfaceVariant,
-    marginTop: 2,
+    marginBottom: 12,
   },
   keyThemesSection: {
     marginTop: 16,
@@ -643,12 +677,30 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: colors.onSurface,
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  themeText: {
-    fontSize: 15,
-    color: colors.onSurface,
-    marginBottom: 4,
+  keyThemeCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  keyThemeContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  keyThemeIconText: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  keyThemeDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  keyThemeDateText: {
+    fontSize: 12,
+    marginTop: 8,
   },
   partialErrorNotice: {
     backgroundColor: colors.surfaceVariant,
