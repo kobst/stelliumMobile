@@ -8,6 +8,7 @@ import {
   TextInput,
   StyleSheet,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useTheme } from '../../theme';
 import { ClusterScoredItem } from '../../api/relationships';
@@ -92,34 +93,25 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
     return items.sort((a, b) => b.overallCentrality - a.overallCentrality);
   }, [scoredItems, activeFilter, searchQuery, activeSourceFilters]);
 
-  // Get filter counts based on current source selection
-  const filterCounts = useMemo(() => {
-    // First filter by source if not all sources are selected
-    let baseItems = scoredItems;
-    if (activeSourceFilters.size > 0 && activeSourceFilters.size < 2) {
-      baseItems = scoredItems.filter(item => activeSourceFilters.has(item.source as SourceType));
-    }
-
-    return {
-      all: baseItems.length,
-      sparks: baseItems.filter(item =>
-        item.clusterContributions.some(cc => cc.spark === true)
-      ).length,
-      supports: baseItems.filter(item =>
-        item.clusterContributions.some(cc => cc.valence === 1)
-      ).length,
-      challenges: baseItems.filter(item =>
-        item.clusterContributions.some(cc => cc.valence === -1)
-      ).length,
-      keystones: baseItems.filter(item =>
-        item.clusterContributions.some(cc => cc.isKeystone === true)
-      ).length,
-    };
-  }, [scoredItems, activeSourceFilters]);
-
   // Check if element is selected
   const isSelected = (element: ClusterScoredItem): boolean => {
     return selectedElements.some(selected => selected.id === element.id);
+  };
+
+  // Handle element selection with limit check
+  const handleElementPress = (element: ClusterScoredItem) => {
+    const currentlySelected = isSelected(element);
+
+    if (!currentlySelected && selectedElements.length >= 3) {
+      Alert.alert(
+        'Selection Limit',
+        'Maximum 3 items can be selected. Deselect one to add another.',
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
+
+    onSelectElement(element);
   };
 
   // Handle source filter toggle
@@ -159,7 +151,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
   };
 
   // Render category filter button (radio style)
-  const renderCategoryFilterButton = (filter: FilterType, label: string, count: number) => {
+  const renderCategoryFilterButton = (filter: FilterType, label: string) => {
     const isActive = activeFilter === filter;
     return (
       <TouchableOpacity
@@ -177,7 +169,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
           styles.filterButtonText,
           { color: isActive ? colors.onPrimary : colors.onSurface },
         ]}>
-          {label} ({count})
+          {label}
         </Text>
       </TouchableOpacity>
     );
@@ -193,18 +185,23 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={[styles.closeButtonText, { color: colors.primary }]}>Done</Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.onSurface }]}>
+          <Text style={[styles.headerTitle, { color: colors.onSurface }]}>
             Select Elements
           </Text>
-          <Text style={[styles.selectionCounter, { color: colors.onSurfaceVariant }]}>
-            {selectedElements.length}/4
+          <Text style={[styles.headerSubtitle, { color: colors.onSurfaceVariant }]}>
+            Choose up to 3 relationship elements ({selectedElements.length}/3)
           </Text>
+
+          {/* Close Button */}
+          <TouchableOpacity
+            style={[styles.closeButton, { backgroundColor: colors.surfaceVariant }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.closeButtonText, { color: colors.onSurfaceVariant }]}>×</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Search and Clear */}
+        {/* Search */}
         <View style={styles.searchSection}>
           <TextInput
             value={searchQuery}
@@ -212,21 +209,11 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
             placeholder="Search elements..."
             placeholderTextColor={colors.onSurfaceVariant}
             style={[styles.searchInput, {
-              backgroundColor: colors.surface,
+              backgroundColor: colors.background,
               color: colors.onSurface,
               borderColor: colors.border,
             }]}
           />
-          {selectedElements.length > 0 && (
-            <TouchableOpacity
-              onPress={onClearSelection}
-              style={[styles.clearButton, { backgroundColor: colors.error }]}
-            >
-              <Text style={[styles.clearButtonText, { color: 'white' }]}>
-                Clear All
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         {/* Source Filter Row */}
@@ -248,11 +235,11 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterContent}
           >
-            {renderCategoryFilterButton('all', 'All', filterCounts.all)}
-            {renderCategoryFilterButton('keystones', 'Keystones', filterCounts.keystones)}
-            {renderCategoryFilterButton('sparks', 'Sparks', filterCounts.sparks)}
-            {renderCategoryFilterButton('supports', 'Supports', filterCounts.supports)}
-            {renderCategoryFilterButton('challenges', 'Challenges', filterCounts.challenges)}
+            {renderCategoryFilterButton('all', 'All')}
+            {renderCategoryFilterButton('keystones', 'Keystones')}
+            {renderCategoryFilterButton('sparks', 'Sparks')}
+            {renderCategoryFilterButton('supports', 'Supports')}
+            {renderCategoryFilterButton('challenges', 'Challenges')}
           </ScrollView>
         </View>
 
@@ -274,7 +261,7 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
                 key={item.id}
                 item={item}
                 colors={colors}
-                onPress={onSelectElement}
+                onPress={handleElementPress}
                 isSelected={isSelected(item)}
                 showSelection={true}
                 userAName={userAName}
@@ -283,6 +270,34 @@ const ConsolidatedItemsBottomSheet: React.FC<ConsolidatedItemsBottomSheetProps> 
             ))
           )}
         </ScrollView>
+
+        {/* Footer */}
+        <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+          <TouchableOpacity
+            style={[styles.clearButtonFooter, { backgroundColor: colors.errorContainer }]}
+            onPress={onClearSelection}
+            disabled={selectedElements.length === 0}
+          >
+            <Text style={[
+              styles.clearButtonText,
+              {
+                color: selectedElements.length === 0 ? colors.onSurfaceVariant : colors.onErrorContainer,
+                opacity: selectedElements.length === 0 ? 0.5 : 1,
+              }
+            ]}>
+              Clear All ({selectedElements.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.doneButton, { backgroundColor: colors.primary }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.doneButtonText, { color: colors.onPrimary }]}>
+              Done
+            </Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     </Modal>
   );
@@ -293,29 +308,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    padding: 16,
     borderBottomWidth: 1,
+    position: 'relative',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
   },
   closeButton: {
-    padding: 4,
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   closeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
-  },
-  selectionCounter: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   searchSection: {
     flexDirection: 'row',
@@ -331,15 +348,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 14,
-  },
-  clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  clearButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   sourceFilterContainer: {
     paddingVertical: 6,
@@ -393,6 +401,32 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  footer: {
+    flexDirection: 'row',
+    padding: 16,
+    borderTopWidth: 1,
+    gap: 12,
+  },
+  clearButtonFooter: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  doneButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

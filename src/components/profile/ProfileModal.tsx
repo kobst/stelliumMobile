@@ -9,7 +9,9 @@ import {
   Alert,
   SafeAreaView,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
+import Purchases, { PurchasesStoreProduct } from 'react-native-purchases';
 import { useTheme } from '../../theme';
 import { useStore } from '../../store';
 import { forceSignOut } from '../../utils/authHelpers';
@@ -21,11 +23,32 @@ import {
   ImageResult,
 } from '../../utils/imageHelpers';
 import { usersApi } from '../../api/users';
+import { navigate } from '../../navigation/navigationService';
+import { CREDIT_PACKS } from '../../config/subscriptionConfig';
+import { CreditBalanceDisplay } from '../CreditBalanceDisplay';
 
 const ProfileModal: React.FC = () => {
   const { colors, theme, setTheme } = useTheme();
-  const { userData, profileModalVisible, setProfileModalVisible, setUserData } = useStore();
+  const { userData, profileModalVisible, setProfileModalVisible, setUserData, userSubscription } = useStore();
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [creditPackProducts, setCreditPackProducts] = useState<PurchasesStoreProduct[]>([]);
+  const [loadingCreditPacks, setLoadingCreditPacks] = useState(false);
+
+  const getSubscriptionBadge = () => {
+    const tier = userSubscription?.tier || 'free';
+    switch (tier) {
+      case 'free':
+        return { label: 'Free Plan', color: '#9CA3AF' };
+      case 'premium':
+        return { label: 'Premium Plan', color: '#8b5cf6' };
+      case 'pro':
+        return { label: 'Pro Plan', color: '#6366f1' };
+      default:
+        return { label: 'Free Plan', color: '#9CA3AF' };
+    }
+  };
+
+  const subscriptionBadge = getSubscriptionBadge();
 
   const handleProfilePhotoPress = () => {
     if (!userData?.id) {
@@ -218,6 +241,83 @@ const ProfileModal: React.FC = () => {
     }
   };
 
+  const loadCreditPackProducts = async () => {
+    try {
+      setLoadingCreditPacks(true);
+      console.log('[ProfileModal] Loading credit pack products...');
+
+      const products = await Purchases.getProducts(
+        CREDIT_PACKS.map(pack => pack.revenueCatProductId)
+      );
+
+      console.log('[ProfileModal] Found credit pack products:', products.length);
+      products.forEach(product => {
+        console.log(`  - ${product.identifier}: ${product.priceString}`);
+      });
+
+      setCreditPackProducts(products);
+
+      if (products.length === 0) {
+        Alert.alert(
+          'No Products Found',
+          'Could not load credit pack products. Make sure StoreKit Configuration is active.'
+        );
+      }
+    } catch (error) {
+      console.error('[ProfileModal] Failed to load credit packs:', error);
+      Alert.alert('Error', 'Failed to load credit pack products. Check console.');
+    } finally {
+      setLoadingCreditPacks(false);
+    }
+  };
+
+  const handlePurchaseCreditPack = async (product: PurchasesStoreProduct) => {
+    try {
+      console.log('[ProfileModal] Purchasing credit pack:', product.identifier);
+
+      Alert.alert(
+        'Test Purchase',
+        `Attempting to purchase ${product.title} for ${product.priceString}. This is a test - no real money will be charged.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Continue',
+            onPress: async () => {
+              try {
+                const { customerInfo } = await Purchases.purchaseStoreProduct(product);
+
+                console.log('[ProfileModal] Purchase successful!');
+                console.log('[ProfileModal] Customer info:', customerInfo);
+
+                Alert.alert(
+                  'Purchase Successful! 🎉',
+                  `Test purchase of ${product.title} completed.\n\n` +
+                  `In production, this would:\n` +
+                  `1. Trigger RevenueCat webhook\n` +
+                  `2. Backend would add credits\n` +
+                  `3. User would see updated balance`
+                );
+              } catch (purchaseError: any) {
+                console.error('[ProfileModal] Purchase failed:', purchaseError);
+
+                if (purchaseError.userCancelled) {
+                  Alert.alert('Cancelled', 'Purchase was cancelled.');
+                } else {
+                  Alert.alert(
+                    'Purchase Failed',
+                    purchaseError.message || 'Unknown error occurred'
+                  );
+                }
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('[ProfileModal] Purchase error:', error);
+    }
+  };
+
   const MenuItem: React.FC<{
     title: string;
     subtitle?: string;
@@ -284,12 +384,24 @@ const ProfileModal: React.FC = () => {
               <Text style={[styles.profileName, { color: colors.onSurface }]}>
                 {userData?.name || 'User'}
               </Text>
-              <View style={[styles.subscriptionBadge, { backgroundColor: '#9CA3AF' }]}>
+              <View style={[styles.subscriptionBadge, { backgroundColor: subscriptionBadge.color }]}>
                 <Text style={[styles.subscriptionText, { color: '#FFFFFF' }]}>
-                  Free Plan
+                  {subscriptionBadge.label}
                 </Text>
               </View>
             </View>
+          </View>
+
+          {/* Credit Balance */}
+          <View style={styles.creditBalanceSection}>
+            <CreditBalanceDisplay
+              variant="card"
+              onPress={() => {
+                navigate('Subscription');
+                // Close modal after navigation to allow screen to display
+                setTimeout(() => setProfileModalVisible(false), 50);
+              }}
+            />
           </View>
 
           {/* Account Info */}
@@ -308,8 +420,9 @@ const ProfileModal: React.FC = () => {
                 title="Subscription and Purchases"
                 subtitle="Manage plans and perks"
                 onPress={() => {
-                  // TODO: Navigate to subscription management
-                  Alert.alert('Coming Soon', 'Subscription management will be available in a future update.');
+                  navigate('Subscription');
+                  // Close modal after navigation to allow screen to display
+                  setTimeout(() => setProfileModalVisible(false), 50);
                 }}
               />
             </View>
@@ -368,6 +481,75 @@ const ProfileModal: React.FC = () => {
               />
             </View>
           </View>
+
+          {/* Credit Pack Testing (Development only) */}
+          {__DEV__ && (
+            <View style={styles.section}>
+              <SectionHeader title="🧪 CREDIT PACK TESTING" />
+
+              <TouchableOpacity
+                style={[styles.testButton, { backgroundColor: '#10b981' }]}
+                onPress={loadCreditPackProducts}
+                disabled={loadingCreditPacks}
+              >
+                {loadingCreditPacks ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.testButtonText}>Load Credit Pack Products</Text>
+                )}
+              </TouchableOpacity>
+
+              {creditPackProducts.length > 0 && (
+                <View style={[styles.menuGroup, { backgroundColor: colors.surface, marginTop: 12 }]}>
+                  <Text style={[styles.productsSectionTitle, { color: colors.onSurfaceVariant, padding: 12, paddingBottom: 0 }]}>
+                    Available Products ({creditPackProducts.length}):
+                  </Text>
+                  {creditPackProducts.map((product, index) => {
+                    const packInfo = CREDIT_PACKS.find(p => p.revenueCatProductId === product.identifier);
+                    const isLast = index === creditPackProducts.length - 1;
+                    return (
+                      <View
+                        key={product.identifier}
+                        style={[
+                          styles.productItem,
+                          { borderBottomColor: colors.border },
+                          isLast && { borderBottomWidth: 0 }
+                        ]}
+                      >
+                        <View style={styles.productInfo}>
+                          <Text style={[styles.productTitle, { color: colors.onSurface }]}>
+                            {product.title}
+                          </Text>
+                          <Text style={[styles.productDescription, { color: colors.onSurfaceVariant }]}>
+                            {packInfo?.credits || '?'} credits • {product.priceString}
+                          </Text>
+                          <Text style={[styles.productId, { color: colors.onSurfaceVariant }]}>
+                            {product.identifier}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={[styles.buyButton, { backgroundColor: colors.primary }]}
+                          onPress={() => handlePurchaseCreditPack(product)}
+                        >
+                          <Text style={[styles.buyButtonText, { color: '#ffffff' }]}>
+                            Test Buy
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {!loadingCreditPacks && creditPackProducts.length === 0 && (
+                <View style={[styles.infoCard, { backgroundColor: colors.surfaceVariant, marginTop: 12 }]}>
+                  <Text style={[styles.infoText, { color: colors.onSurfaceVariant }]}>
+                    Tap "Load Credit Pack Products" to verify StoreKit configuration.
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Sign Out */}
           <View style={styles.section}>
@@ -455,6 +637,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  creditBalanceSection: {
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
   section: {
     marginTop: 24,
   },
@@ -514,6 +700,63 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 40,
+  },
+  testButton: {
+    marginHorizontal: 16,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  testButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  productsSectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  productItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  productInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  productTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  productDescription: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  productId: {
+    fontSize: 11,
+    fontFamily: 'Courier',
+  },
+  buyButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  buyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  infoCard: {
+    marginHorizontal: 16,
+    padding: 12,
+    borderRadius: 8,
+  },
+  infoText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
 

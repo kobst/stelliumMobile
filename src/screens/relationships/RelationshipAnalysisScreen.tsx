@@ -25,6 +25,7 @@ import SynastryTables from '../../components/chart/SynastryTables';
 import CompositeTables from '../../components/chart/CompositeTables';
 import AspectColorLegend from '../../components/chart/AspectColorLegend';
 import RelationshipAnalysisTab from '../../components/relationship/RelationshipAnalysisTab';
+import RelationshipChatTab from '../../components/relationship/RelationshipChatTab';
 import V3ClusterRadar from '../../components/relationship/V3ClusterRadar';
 import ConsolidatedItemsGrid from '../../components/relationship/ConsolidatedItemsGrid';
 import { AnalysisHeader } from '../../components/navigation/AnalysisHeader';
@@ -62,6 +63,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
     { label: 'Scores', routeName: 'scores' },
     { label: 'Overview', routeName: 'overview' },
     { label: '360 Analysis', routeName: 'guidance' },
+    { label: 'Ask Stellium', routeName: 'chat' },
   ];
 
   const chartSubTabs = [
@@ -434,6 +436,19 @@ const RelationshipAnalysisScreen: React.FC = () => {
               loadAnalysisData(true);
             }}
             loading={loading}
+          />
+        );
+      case 'chat':
+        const consolidatedItems = relationshipTransformers.enrichCompositeAspects(
+          relationshipData?.clusterScoring?.scoredItems || [],
+          relationshipData?.compositeChart
+        );
+        return (
+          <RelationshipChatTab
+            compositeChartId={relationship._id}
+            consolidatedItems={consolidatedItems}
+            userAName={relationship.userA_name}
+            userBName={relationship.userB_name}
           />
         );
       default:

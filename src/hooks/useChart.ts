@@ -109,7 +109,7 @@ export const useChart = (userId?: string): UseChartReturn => {
       const response = await chartsApi.startFullAnalysis(targetUserId);
       console.log('useChart - startFullAnalysis response:', response);
       setWorkflowState(response);
-      setStoreWorkflowState(response);
+      setStoreWorkflowState({ ...response, userId: targetUserId });
 
       // Start polling for status
       if (response.workflowId) {
@@ -139,7 +139,7 @@ export const useChart = (userId?: string): UseChartReturn => {
           const statusResponse = await chartsApi.pollAnalysisStatus(targetUserId, workflowId);
           console.log('useChart - Poll response:', statusResponse);
           setWorkflowState(statusResponse);
-          setStoreWorkflowState(statusResponse);
+          setStoreWorkflowState({ ...statusResponse, userId: targetUserId });
 
           // Check if workflow is completed (handle both 'completed' and status-based completion)
           const isWorkflowDone = statusResponse.completed ||
