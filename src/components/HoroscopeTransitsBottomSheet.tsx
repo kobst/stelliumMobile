@@ -314,12 +314,12 @@ const HoroscopeTransitsBottomSheet: React.FC<HoroscopeTransitsBottomSheetProps> 
                       </Text>
                     )}
 
-                    {transit.orbAtStart !== undefined && transit.orbAtEnd !== undefined && (
+                    {transit.orbAtRequestStart !== undefined && transit.orbAtRequestEnd !== undefined && (
                       <Text style={[
                         styles.transitOrbInfo,
                         { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant }
                       ]}>
-                        Orb: {transit.orbAtStart.toFixed(1)}° → {transit.orbAtEnd.toFixed(1)}° ({transit.orbDirection})
+                        Orb: {transit.orbAtRequestStart.toFixed(1)}° → {transit.orbAtRequestEnd.toFixed(1)}°
                       </Text>
                     )}
                   </View>

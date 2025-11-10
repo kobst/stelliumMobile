@@ -91,11 +91,16 @@ export const getTomorrowRange = (): DateRange => {
 // Parse a date string into a local Date without timezone-shift for date-only values (YYYY-MM-DD)
 export const parseDateStringAsLocalDate = (dateString: string): Date => {
   if (!dateString) return new Date(NaN);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    const [y, m, d] = dateString.split('-').map(Number);
+
+  // Extract just the date portion from ISO timestamps (YYYY-MM-DDTHH:mm:ss.sssZ)
+  // This prevents timezone conversion from shifting the displayed date
+  const dateOnlyMatch = dateString.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (dateOnlyMatch) {
+    const [y, m, d] = dateOnlyMatch[1].split('-').map(Number);
     return new Date(y, m - 1, d);
   }
-  // For other ISO strings (with time and/or timezone), rely on native parsing
+
+  // Fallback for unexpected formats
   return new Date(dateString);
 };
 
