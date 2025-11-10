@@ -53,8 +53,8 @@ export interface TransitEvent {
   transitingPlanet: string;
   targetPlanet?: string;
   aspect: string;
-  start: string;
-  end: string;
+  start: string; // Full astronomical start date (may be before request period)
+  end: string; // Full astronomical end date (may be after request period)
   exact?: string;
   description?: string;
   transitingSign?: string;
@@ -63,11 +63,12 @@ export interface TransitEvent {
   targetHouse?: number;
   transitingSigns?: string[];
   moonPhaseData?: any;
-  // New API fields
-  isExactInRange?: boolean;
-  orbAtStart?: number;
-  orbAtEnd?: number;
-  orbDirection?: 'approaching' | 'separating' | 'stationary';
+  // API metadata fields
+  isExactInRange?: boolean; // True if exact date falls within requested period
+  startsBeforeRequest?: boolean; // Transit started before the requested period
+  endsAfterRequest?: boolean; // Transit continues after the requested period
+  orbAtRequestStart?: number; // Orb at the start of the requested period
+  orbAtRequestEnd?: number; // Orb at the end of the requested period
   priority?: number;
   isRetrograde?: boolean;
   targetIsRetrograde?: boolean;
