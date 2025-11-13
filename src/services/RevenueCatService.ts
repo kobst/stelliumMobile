@@ -22,6 +22,7 @@ import { subscriptionsApi } from '../api/subscriptions';
 import { useStore } from '../store';
 import { SubscriptionTier } from '../types';
 import { superwallService } from './SuperwallService';
+import { FEATURE_FLAGS } from '../config/featureFlags';
 
 class RevenueCatService {
   private isConfigured = false;
@@ -125,6 +126,17 @@ class RevenueCatService {
    */
   private async handleCustomerInfoUpdate(customerInfo: CustomerInfo): Promise<void> {
     try {
+      // Feature flag: Force subscription tier for paywall testing
+      const forcedTier = FEATURE_FLAGS.forceSubscriptionTier;
+      if (forcedTier !== null) {
+        const status = forcedTier === 'free'
+          ? SubscriptionStatus.Inactive()
+          : SubscriptionStatus.Active([]);
+        console.log(`[RevenueCat] forceSubscriptionTier=${forcedTier} - setting Superwall status to ${forcedTier === 'free' ? 'Inactive' : 'Active'}`);
+        await superwallService.updateSubscriptionStatus(status);
+        return;
+      }
+
       const entitlements = customerInfo.entitlements.active;
       const hasActiveEntitlement = Object.keys(entitlements).length > 0;
 
@@ -427,6 +439,17 @@ class RevenueCatService {
         return;
       }
 
+      // Feature flag: Force subscription tier for paywall testing
+      const forcedTier = FEATURE_FLAGS.forceSubscriptionTier;
+      if (forcedTier !== null) {
+        const status = forcedTier === 'free'
+          ? SubscriptionStatus.Inactive()
+          : SubscriptionStatus.Active([]);
+        console.log(`[RevenueCat] forceSubscriptionTier=${forcedTier} - setting Superwall status to ${forcedTier === 'free' ? 'Inactive' : 'Active'} (sync)`);
+        await superwallService.updateSubscriptionStatus(status);
+        return;
+      }
+
       const entitlements = customerInfo.entitlements.active;
       const hasActiveEntitlement = Object.keys(entitlements).length > 0;
 
@@ -482,6 +505,13 @@ class RevenueCatService {
    */
   async getActiveTier(): Promise<SubscriptionTier> {
     try {
+      // Feature flag: Force subscription tier for paywall testing
+      const forcedTier = FEATURE_FLAGS.forceSubscriptionTier;
+      if (forcedTier !== null) {
+        console.log(`[RevenueCat] forceSubscriptionTier=${forcedTier} - returning forced tier`);
+        return forcedTier;
+      }
+
       const customerInfo = await this.getCustomerInfo();
 
       if (!customerInfo) {

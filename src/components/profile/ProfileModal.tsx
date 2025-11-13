@@ -26,10 +26,12 @@ import { usersApi } from '../../api/users';
 import { navigate } from '../../navigation/navigationService';
 import { CREDIT_PACKS } from '../../config/subscriptionConfig';
 import { CreditBalanceDisplay } from '../CreditBalanceDisplay';
+import { useEffectiveSubscription } from '../../hooks/useEffectiveSubscription';
 
 const ProfileModal: React.FC = () => {
   const { colors, theme, setTheme } = useTheme();
-  const { userData, profileModalVisible, setProfileModalVisible, setUserData, userSubscription } = useStore();
+  const { userData, profileModalVisible, setProfileModalVisible, setUserData } = useStore();
+  const userSubscription = useEffectiveSubscription();
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [creditPackProducts, setCreditPackProducts] = useState<PurchasesStoreProduct[]>([]);
   const [loadingCreditPacks, setLoadingCreditPacks] = useState(false);
