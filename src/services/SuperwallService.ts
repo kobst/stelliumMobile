@@ -14,6 +14,7 @@ import { PAYWALL_EVENTS, PaywallEvent } from '../config/subscriptionConfig';
 import { useStore } from '../store';
 import { revenueCatPurchaseController } from './RevenueCatPurchaseController';
 import { ColorSchemeName } from 'react-native';
+import { FEATURE_FLAGS } from '../config/featureFlags';
 
 class SuperwallService {
   private isConfigured = false;
@@ -368,8 +369,12 @@ class SuperwallService {
         return;
       }
 
+      // Apply feature flag override for subscription tier
+      const forcedTier = FEATURE_FLAGS.forceSubscriptionTier;
+      const effectiveTier = forcedTier !== null ? forcedTier : userSubscription.tier;
+
       const attributes: Record<string, any> = {
-        subscription_tier: userSubscription.tier,
+        subscription_tier: effectiveTier,
         subscription_status: userSubscription.status,
       };
 

@@ -20,6 +20,7 @@ import CancellationModal from '../../components/subscription/CancellationModal';
 import { getPlanConfig } from '../../config/subscriptionConfig';
 import { CreditBalanceDisplay } from '../../components/CreditBalanceDisplay';
 import { useCreditBalance } from '../../hooks/useCreditBalance';
+import { useEffectiveSubscription } from '../../hooks/useEffectiveSubscription';
 
 interface SubscriptionScreenProps {
   navigation: any;
@@ -29,9 +30,9 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
   const { colors } = useTheme();
   const {
     userData,
-    userSubscription,
     updateSubscriptionData,
   } = useStore();
+  const userSubscription = useEffectiveSubscription();
 
   const {
     total,
