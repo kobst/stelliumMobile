@@ -6,6 +6,8 @@ import { relationshipsApi } from '../../api/relationships';
 import ConsolidatedItemsBottomSheet from './ConsolidatedItemsBottomSheet';
 import { useCreditsGate } from '../../hooks/useCreditsGate';
 import { parseReferencedCodes, DecodedElement } from '../../utils/parseReferencedCodes';
+import { CreditActionButton } from '../ui/CreditActionButton';
+import { CREDIT_COSTS } from '../../config/subscriptionConfig';
 
 interface ChatMessage {
   id: string;
@@ -643,24 +645,15 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={!currentMode || isLoading || isChecking}
-              style={[
-                styles.sendButton,
-                {
-                  backgroundColor: currentMode && !isLoading && !isChecking ? colors.primary : colors.surfaceVariant,
-                  opacity: currentMode && !isLoading && !isChecking ? 1 : 0.5,
-                },
-              ]}
-            >
-              <Text style={[
-                styles.sendButtonText,
-                { color: currentMode && !isLoading && !isChecking ? colors.onPrimary : colors.onSurfaceVariant },
-              ]}>
-                {isChecking ? 'Checking...' : isLoading ? 'Sending...' : 'Send (1 credit)'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.sendButtonContainer}>
+              <CreditActionButton
+                cost={CREDIT_COSTS.askStelliumQuestion}
+                actionText={isChecking ? 'Checking credits...' : isLoading ? 'Sending...' : 'Send'}
+                onPress={handleSubmit}
+                disabled={!currentMode}
+                loading={isLoading || isChecking}
+              />
+            </View>
           </View>
         </View>
 
@@ -916,17 +909,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  sendButton: {
+  sendButtonContainer: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    marginLeft: 8,
+    marginTop: 20,
   },
   errorText: {
     fontSize: 12,

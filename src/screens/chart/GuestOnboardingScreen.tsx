@@ -7,6 +7,7 @@ import { usersApi } from '../../api';
 import { useStore } from '../../store';
 import { uploadProfilePhotoPresigned } from '../../utils/imageHelpers';
 import { useCreditsGate } from '../../hooks/useCreditsGate';
+import { CREDIT_COSTS } from '../../config/subscriptionConfig';
 
 import { WizardContainer } from '../../components/onboarding/WizardContainer';
 import { GuestNameGenderStep } from '../../components/onboarding/steps/GuestNameGenderStep';
@@ -355,7 +356,10 @@ const GuestOnboardingScreen: React.FC = () => {
         canGoBack={!isSubmitting && !isChecking}
         currentStep={currentStep}
         onStepChange={handleStepChange}
-        completeButtonText={isChecking ? "Checking credits..." : "Create Chart (10 credits)"}
+        completeButtonText="Create Chart"
+        creditCost={CREDIT_COSTS.quickChartOverview}
+        isCheckingCredits={isChecking}
+        isLoading={isSubmitting}
       >
         {steps}
       </WizardContainer>

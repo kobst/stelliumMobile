@@ -6,6 +6,8 @@ import { BirthChart } from '../../types';
 import BirthChartElementsBottomSheet from './BirthChartElementsBottomSheet';
 import { useCreditsGate } from '../../hooks/useCreditsGate';
 import { parseReferencedCodes, convertToBirthChartElements } from '../../utils/parseReferencedCodes';
+import { CreditActionButton } from '../ui/CreditActionButton';
+import { CREDIT_COSTS } from '../../config/subscriptionConfig';
 
 interface BirthChartChatTabProps {
   subjectId: string; // Subject ID - user's own ID for their chart, or guest subject _id for guest charts
@@ -602,24 +604,15 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={!canSubmit() || isLoading || isChecking}
-              style={[
-                styles.sendButton,
-                {
-                  backgroundColor: canSubmit() && !isLoading && !isChecking ? colors.primary : colors.surfaceVariant,
-                  opacity: canSubmit() && !isLoading && !isChecking ? 1 : 0.5,
-                },
-              ]}
-            >
-              <Text style={[
-                styles.sendButtonText,
-                { color: canSubmit() && !isLoading && !isChecking ? colors.onPrimary : colors.onSurfaceVariant },
-              ]}>
-                {isChecking ? 'Checking...' : isLoading ? 'Sending...' : 'Send (1 credit)'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.sendButtonContainer}>
+              <CreditActionButton
+                cost={CREDIT_COSTS.askStelliumQuestion}
+                actionText={isChecking ? 'Checking credits...' : isLoading ? 'Sending...' : 'Send'}
+                onPress={handleSubmit}
+                disabled={!canSubmit()}
+                loading={isLoading || isChecking}
+              />
+            </View>
           </View>
         </View>
 
@@ -820,17 +813,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  sendButton: {
+  sendButtonContainer: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    marginLeft: 8,
+    marginTop: 20,
   },
   errorText: {
     fontSize: 12,
