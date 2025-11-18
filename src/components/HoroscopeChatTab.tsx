@@ -9,6 +9,8 @@ import { formatDateRange } from '../utils/dateHelpers';
 import { parseReferencedCodes, DecodedElement } from '../utils/parseReferencedCodes';
 import { useStore } from '../store';
 import { superwallService } from '../services/SuperwallService';
+import { CreditActionButton } from './ui/CreditActionButton';
+import { CREDIT_COSTS } from '../config/subscriptionConfig';
 
 interface HoroscopeChatTabProps {
   userId: string;
@@ -725,32 +727,29 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={subscriptionTier !== 'free' && (!canSubmit() || isLoading)}
-              style={[
-                styles.sendButton,
-                {
-                  backgroundColor: subscriptionTier === 'free'
-                    ? colors.primary
-                    : (canSubmit() && !isLoading ? colors.primary : colors.surfaceVariant),
-                  opacity: subscriptionTier === 'free'
-                    ? 1
-                    : (canSubmit() && !isLoading ? 1 : 0.5),
-                },
-              ]}
-            >
-              <Text style={[
-                styles.sendButtonText,
-                {
-                  color: subscriptionTier === 'free'
-                    ? colors.onPrimary
-                    : (canSubmit() && !isLoading ? colors.onPrimary : colors.onSurfaceVariant)
-                },
-              ]}>
-                {subscriptionTier === 'free' ? 'Upgrade to Use' : 'Send'}
-              </Text>
-            </TouchableOpacity>
+            {subscriptionTier === 'free' ? (
+              <TouchableOpacity
+                onPress={handleSubmit}
+                style={[
+                  styles.sendButton,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
+                <Text style={[styles.sendButtonText, { color: colors.onPrimary }]}>
+                  Upgrade to Use
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.sendButtonContainer}>
+                <CreditActionButton
+                  cost={CREDIT_COSTS.askStelliumQuestion}
+                  actionText={isLoading ? 'Sending...' : 'Send'}
+                  onPress={handleSubmit}
+                  disabled={!canSubmit()}
+                  loading={isLoading}
+                />
+              </View>
+            )}
           </View>
         </View>
 
@@ -988,6 +987,11 @@ const styles = StyleSheet.create({
   sendButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  sendButtonContainer: {
+    flex: 1,
+    marginLeft: 8,
+    marginTop: 20,
   },
   errorText: {
     fontSize: 12,

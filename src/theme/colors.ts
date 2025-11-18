@@ -83,6 +83,12 @@ export interface ColorPalette {
   signCapricorn: string;
   signAquarius: string;
   signPisces: string;
+
+  // Gradient colors for buttons
+  gradientPrimaryStart: string;
+  gradientPrimaryEnd: string;
+  gradientDisabledStart: string;
+  gradientDisabledEnd: string;
 }
 
 export const darkTheme: ColorPalette = {
@@ -170,6 +176,12 @@ export const darkTheme: ColorPalette = {
   signCapricorn: '#059669',    // Earth - Emerald
   signAquarius: '#0ea5e9',     // Air - Sky
   signPisces: '#8b5cf6',       // Water - Violet
+
+  // Gradient colors for buttons
+  gradientPrimaryStart: '#A07BFF',
+  gradientPrimaryEnd: '#8B5FFF',
+  gradientDisabledStart: '#4A5568',
+  gradientDisabledEnd: '#2D3748',
 };
 
 export const lightTheme: ColorPalette = {
@@ -257,6 +269,12 @@ export const lightTheme: ColorPalette = {
   signCapricorn: '#047857',    // Earth - Emerald
   signAquarius: '#0284c7',     // Air - Sky
   signPisces: '#5b3fd1',       // Water - Violet
+
+  // Gradient colors for buttons
+  gradientPrimaryStart: '#7C5BFF',
+  gradientPrimaryEnd: '#6B4DFF',
+  gradientDisabledStart: '#CBD5E0',
+  gradientDisabledEnd: '#A0AEC0',
 };
 
 export type ThemeMode = 'light' | 'dark' | 'system';

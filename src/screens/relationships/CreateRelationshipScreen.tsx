@@ -17,6 +17,8 @@ import CelebritiesTab from '../../components/CelebritiesTab';
 import { useTheme } from '../../theme';
 import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
 import { useCreditsGate } from '../../hooks/useCreditsGate';
+import { CreditActionButton } from '../../components/ui/CreditActionButton';
+import { CREDIT_COSTS } from '../../config/subscriptionConfig';
 
 interface GuestUser {
   _id: string;
@@ -255,29 +257,15 @@ const CreateRelationshipScreen: React.FC = () => {
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.createButton,
-              { backgroundColor: colors.primary },
-              (isCreating || isChecking) && [styles.createButtonDisabled, { backgroundColor: colors.onSurfaceVariant }]
-            ]}
-            onPress={handleCreateRelationship}
-            disabled={isCreating || isChecking}
-          >
-            {isChecking ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={colors.onPrimary} />
-                <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>Checking credits...</Text>
-              </View>
-            ) : isCreating ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={colors.onPrimary} />
-                <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>Creating...</Text>
-              </View>
-            ) : (
-              <Text style={[styles.createButtonText, { color: colors.onPrimary }]}>✨ Create Relationship (10 credits)</Text>
-            )}
-          </TouchableOpacity>
+          <View style={styles.buttonWrapper}>
+            <CreditActionButton
+              cost={CREDIT_COSTS.relationshipOverview}
+              actionText={isChecking ? 'Checking credits...' : isCreating ? 'Creating...' : 'Create Relationship'}
+              onPress={handleCreateRelationship}
+              disabled={isCreating || isChecking}
+              loading={isChecking || isCreating}
+            />
+          </View>
         </View>
       )}
     </View>
@@ -357,23 +345,8 @@ const styles = StyleSheet.create({
   selectionDetails: {
     fontSize: 14,
   },
-  createButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+  buttonWrapper: {
     alignItems: 'center',
-  },
-  createButtonDisabled: {
-    opacity: 0.6,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  createButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
   },
 });
 

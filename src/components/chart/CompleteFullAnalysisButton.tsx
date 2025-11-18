@@ -4,6 +4,8 @@ import { useChart } from '../../hooks/useChart';
 import { useStore } from '../../store';
 import { useTheme } from '../../theme';
 import { useCreditsGate } from '../../hooks/useCreditsGate';
+import { CreditActionButton } from '../ui/CreditActionButton';
+import { CREDIT_COSTS } from '../../config/subscriptionConfig';
 
 interface CompleteFullAnalysisButtonProps {
   userId?: string;
@@ -120,12 +122,16 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
     if (hasActiveWorkflow) {
       return 'Analysis in Progress...';
     }
-    return 'Complete Full Analysis (75 credits)';
+    return 'Complete Full Analysis';
   };
 
   const isButtonDisabled = (): boolean => {
     const targetUserId = userId || activeUserContext?.id || userData?.id;
     return !targetUserId || hasActiveWorkflow || isChecking;
+  };
+
+  const isLoading = (): boolean => {
+    return isChecking || hasActiveWorkflow;
   };
 
 
@@ -156,54 +162,23 @@ const CompleteFullAnalysisButton: React.FC<CompleteFullAnalysisButtonProps> = ({
 
   // Default state - show the button
   return (
-    <TouchableOpacity
-      style={[
-        styles.button,
-        { backgroundColor: colors.primary },
-        isButtonDisabled() && [styles.buttonDisabled, { backgroundColor: colors.onSurfaceVariant }],
-      ]}
-      onPress={handleStartAnalysis}
-      disabled={isButtonDisabled()}
-    >
-      <Text style={[
-        styles.buttonText,
-        { color: colors.onPrimary },
-        isButtonDisabled() && { color: colors.onSurface },
-      ]}>
-        {getButtonText()}
-      </Text>
-    </TouchableOpacity>
+    <View style={styles.buttonContainer}>
+      <CreditActionButton
+        cost={CREDIT_COSTS.fullNatalReport}
+        actionText={getButtonText()}
+        onPress={handleStartAnalysis}
+        disabled={isButtonDisabled()}
+        loading={isLoading()}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  button: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+  buttonContainer: {
     marginTop: 20,
+    marginHorizontal: 16,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  progressContainer: {
-    marginTop: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  progressText: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-
   // Inline error state
   inlineErrorContainer: {
     alignItems: 'center',
