@@ -37,9 +37,14 @@ const RelationshipsStack: React.FC = () => {
         headerStyle: {
           backgroundColor: colors.surface,
         },
-        headerTintColor: colors.onSurface,
+        headerTintColor: colors.primary,
         headerTitleStyle: {
           fontWeight: 'bold',
+        },
+        headerBackTitle: '',
+        headerBackTitleVisible: false,
+        headerLeftContainerStyle: {
+          paddingLeft: 16,
         },
       }}
     >
@@ -58,7 +63,6 @@ const RelationshipsStack: React.FC = () => {
         component={CategoryDetailScreen}
         options={({ route }) => ({
           title: route.params.categoryName,
-          headerBackTitle: 'Back',
         })}
       />
       <Stack.Screen

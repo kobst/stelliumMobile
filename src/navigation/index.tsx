@@ -51,13 +51,22 @@ const RootNavigator: React.FC = () => {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
+          headerBackTitleVisible: false,
         }}
       >
         {profileComplete ? (
           <>
             <Stack.Screen name="Main" component={TabNavigator} />
-            <Stack.Screen name="Subscription" component={SubscriptionScreen} />
-            <Stack.Screen name="CreditPurchase" component={CreditPurchaseScreen} />
+            <Stack.Screen
+              name="Subscription"
+              component={SubscriptionScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="CreditPurchase"
+              component={CreditPurchaseScreen}
+              options={{ headerShown: false }}
+            />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={UserOnboardingWizard} />

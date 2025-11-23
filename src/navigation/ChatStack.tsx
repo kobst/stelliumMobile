@@ -10,6 +10,7 @@ const ChatStack: React.FC = () => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
+        headerBackTitleVisible: false,
       }}
     >
       <Stack.Screen

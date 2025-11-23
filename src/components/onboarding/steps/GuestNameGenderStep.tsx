@@ -71,9 +71,6 @@ export const GuestNameGenderStep: React.FC<GuestNameGenderStepProps> = ({
             />
           ) : (
             <View style={styles.photoPlaceholder}>
-              <Text style={[styles.photoPlaceholderText, { color: colors.onSurfaceVariant }]}>
-                Add Photo
-              </Text>
               <Text style={[styles.photoPlaceholderIcon, { color: colors.onSurfaceVariant }]}>
                 +
               </Text>
@@ -81,7 +78,7 @@ export const GuestNameGenderStep: React.FC<GuestNameGenderStepProps> = ({
           )}
         </TouchableOpacity>
         <Text style={[styles.photoHint, { color: colors.onSurfaceLow }]}>
-          Optional
+          Add Photo (optional)
         </Text>
       </View>
 

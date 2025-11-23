@@ -366,11 +366,10 @@ const ProfileModal: React.FC = () => {
     >
       <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <View style={styles.header}>
           <View style={styles.headerSpacer} />
-          <Text style={[styles.headerTitle, { color: colors.onSurface }]}>Profile</Text>
           <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
-            <Text style={[styles.closeButtonText, { color: colors.onSurfaceVariant }]}>Close ✕</Text>
+            <Text style={[styles.closeButtonText, { color: colors.onSurfaceVariant }]}>✕</Text>
           </TouchableOpacity>
         </View>
 
@@ -584,8 +583,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingVertical: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -599,7 +597,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   closeButtonText: {
-    fontSize: 17,
+    fontSize: 24,
     fontWeight: '600',
   },
   headerTitle: {
@@ -617,7 +615,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
     marginHorizontal: 16,
-    marginTop: 16,
+    marginTop: 8,
     borderRadius: 16,
   },
   profileInfo: {

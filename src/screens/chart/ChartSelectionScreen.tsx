@@ -16,7 +16,6 @@ import { usersApi, PaginatedUserSubjectsResponse } from '../../api';
 import { SubjectDocument } from '../../types';
 import { userTransformers } from '../../transformers/user';
 import { useTheme } from '../../theme';
-import AddFooterButton from '../../components/AddFooterButton';
 import UpgradeBanner from '../../components/UpgradeBanner';
 import { HeaderWithProfile } from '../../components/navigation';
 import PlanetaryIcons from '../../components/chart/PlanetaryIcons';
@@ -155,7 +154,6 @@ const ChartSelectionScreen: React.FC = () => {
         scrollEventThrottle={400}
       >
         {/* My Birth Chart Section */}
-        <Text style={[styles.header, { color: colors.onSurface }]}>My Birth Chart</Text>
 
         {/* Compact My Birth Chart Row */}
         <TouchableOpacity
@@ -187,7 +185,16 @@ const ChartSelectionScreen: React.FC = () => {
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {/* Friends & Family Section */}
-        <Text style={[styles.sectionHeader, { color: colors.onSurface }]}>Friends & Family</Text>
+        <View style={styles.sectionHeaderContainer}>
+          <Text style={[styles.sectionHeader, { color: colors.onSurface }]}>Friends & Family</Text>
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: colors.primary }]}
+            onPress={handleAddNewChart}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.addButtonText, { color: colors.onPrimary }]}>Add Birth Chart</Text>
+          </TouchableOpacity>
+        </View>
 
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
@@ -243,12 +250,6 @@ const ChartSelectionScreen: React.FC = () => {
           <ActivityIndicator size="small" color={colors.primary} style={styles.paginationLoader} />
         )}
       </ScrollView>
-
-      {/* Footer Button */}
-      <AddFooterButton
-        title="+ Add New Birth Chart"
-        onPress={handleAddNewChart}
-      />
     </SafeAreaView>
   );
 };
@@ -311,10 +312,24 @@ const styles = StyleSheet.create({
     height: 1,
     marginBottom: 24,
   },
+  sectionHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionHeader: {
     fontSize: 22,
     fontWeight: '600',
-    marginBottom: 16,
+  },
+  addButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   guestCard: {
     flexDirection: 'row',

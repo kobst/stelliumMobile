@@ -125,7 +125,7 @@ export const darkTheme: ColorPalette = {
 
   // Navigation
   tabBarBackground: '#1f2937',
-  tabBarBorder: '#374151',
+  tabBarBorder: '#a78bfa',
   tabBarActive: '#8b5cf6',
   tabBarInactive: '#6b7280',
 
@@ -218,7 +218,7 @@ export const lightTheme: ColorPalette = {
 
   // Navigation
   tabBarBackground: '#FFFFFF',
-  tabBarBorder: '#E1E6F0',
+  tabBarBorder: '#c4b5fd',
   tabBarActive: '#6B4DFF',
   tabBarInactive: '#6B7280',
 
