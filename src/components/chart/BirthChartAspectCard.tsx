@@ -8,6 +8,7 @@ interface BirthChartAspectCardProps {
   colors: any;
   onPress?: (element: BirthChartAspect) => void;
   isSelected?: boolean;
+  variant?: 'card' | 'list';
 }
 
 const ASPECT_SYMBOLS: { [key: string]: string } = {
@@ -43,23 +44,29 @@ const BirthChartAspectCard: React.FC<BirthChartAspectCardProps> = ({
   colors,
   onPress,
   isSelected = false,
+  variant = 'card',
 }) => {
   const aspectType = element.aspectType.toLowerCase();
   const aspectName = element.aspectType.charAt(0).toUpperCase() + element.aspectType.slice(1);
   const aspectColor = ASPECT_COLORS[aspectType] || ASPECT_COLORS['conjunction'];
 
+  const Wrapper = variant === 'card' && onPress ? TouchableOpacity : View;
+  const wrapperProps = variant === 'card' && onPress ? {
+    onPress: () => onPress(element),
+    activeOpacity: 0.8,
+  } : {};
+
   return (
-    <TouchableOpacity
+    <Wrapper
       style={[
-        styles.card,
-        {
+        variant === 'card' ? styles.card : styles.listItem,
+        variant === 'card' && {
           backgroundColor: colors.surface,
           borderColor: isSelected ? colors.primary : 'transparent',
           borderWidth: 1,
         },
       ]}
-      onPress={() => onPress?.(element)}
-      activeOpacity={0.8}
+      {...wrapperProps}
     >
       {/* Title Section */}
       <View style={styles.titleSection}>
@@ -134,7 +141,7 @@ const BirthChartAspectCard: React.FC<BirthChartAspectCardProps> = ({
           </View>
         )}
       </View>
-    </TouchableOpacity>
+    </Wrapper>
   );
 };
 
@@ -144,6 +151,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 8,
+  },
+  listItem: {
+    width: '100%',
+    paddingVertical: 12,
   },
   titleSection: {
     flexDirection: 'row',

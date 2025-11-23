@@ -14,6 +14,7 @@ interface CreditActionButtonProps {
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
+  compact?: boolean;
 }
 
 export const CreditActionButton: React.FC<CreditActionButtonProps> = ({
@@ -22,6 +23,7 @@ export const CreditActionButton: React.FC<CreditActionButtonProps> = ({
   onPress,
   disabled = false,
   loading = false,
+  compact = false,
 }) => {
   const {colors} = useTheme();
 
@@ -40,42 +42,42 @@ export const CreditActionButton: React.FC<CreditActionButtonProps> = ({
       onPress={onPress}
       disabled={!isInteractive}
       activeOpacity={0.8}
-      style={styles.container}>
+      style={compact ? styles.compactContainer : styles.container}>
       <View
         style={[
-          styles.button,
+          compact ? styles.compactButton : styles.button,
           {backgroundColor: getBackgroundColor()},
           disabled && styles.disabledButton,
         ]}>
-        {/* Left section: Icon + Cost */}
-        <View style={styles.leftSection}>
-          <Text style={[styles.icon, {color: colors.onPrimary}]}>⚡</Text>
-          <Text style={[styles.costText, {color: colors.onPrimary}]}>
-            {cost}
-          </Text>
-        </View>
-
-        {/* Vertical divider */}
-        <View
-          style={[
-            styles.divider,
-            {backgroundColor: colors.onPrimary},
-          ]}
-        />
-
-        {/* Right section: Action text or loading */}
-        <View style={styles.rightSection}>
+        {/* Left section: Action text or loading */}
+        <View style={compact ? styles.compactRightSection : styles.rightSection}>
           {loading ? (
             <ActivityIndicator size="small" color={colors.onPrimary} />
           ) : (
             <Text
-              style={[styles.actionText, {color: colors.onPrimary}]}
+              style={[compact ? styles.compactActionText : styles.actionText, {color: colors.onPrimary}]}
               numberOfLines={1}
               ellipsizeMode="clip"
             >
               {actionText}
             </Text>
           )}
+        </View>
+
+        {/* Vertical divider */}
+        <View
+          style={[
+            compact ? styles.compactDivider : styles.divider,
+            {backgroundColor: colors.onPrimary},
+          ]}
+        />
+
+        {/* Right section: Cost + Icon */}
+        <View style={compact ? styles.compactLeftSection : styles.leftSection}>
+          <Text style={[compact ? styles.compactCostText : styles.costText, {color: colors.onPrimary}]}>
+            {cost}
+          </Text>
+          <Text style={[compact ? styles.compactIcon : styles.icon, {color: colors.onPrimary}]}>⚡</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -102,7 +104,7 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 18,
-    marginRight: 6,
+    marginLeft: 6,
   },
   costText: {
     fontSize: 16,
@@ -115,9 +117,46 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   rightSection: {
-    paddingLeft: 4,
+    paddingRight: 4,
   },
   actionText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Compact styles for embedded button
+  compactContainer: {
+    borderRadius: 18,
+  },
+  compactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 18,
+    height: 36,
+  },
+  compactLeftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  compactIcon: {
+    fontSize: 14,
+    marginLeft: 3,
+  },
+  compactCostText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  compactDivider: {
+    width: 1,
+    height: 16,
+    marginHorizontal: 4,
+    opacity: 0.3,
+  },
+  compactRightSection: {
+    paddingRight: 2,
+  },
+  compactActionText: {
     fontSize: 16,
     fontWeight: '600',
   },

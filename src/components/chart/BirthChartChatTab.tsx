@@ -430,10 +430,7 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
               Ask Stellium
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.onSurfaceVariant }]}>
-              {guestFirstName
-                ? `Select chart elements and/or ask questions to get personalized astrological insights about ${guestFirstName}'s natal chart.`
-                : "Select chart elements and/or ask questions to get personalized astrological insights about your birth chart."
-              }
+              Add chart elements (+) to focus on. Or just ask a question.
             </Text>
 
           </View>
@@ -570,51 +567,50 @@ const BirthChartChatTab: React.FC<BirthChartChatTabProps> = ({
 
       {/* Input Section */}
       <View style={[styles.inputSection, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        {/* Contextual Hint */}
-        <Text style={[styles.hint, { color: colors.onSurfaceVariant }]}>
-          {getHint()}
-        </Text>
-
-        {/* Input Row */}
+        {/* Input Row with Plus Button and Text Input with Embedded Send Button */}
         <View style={styles.inputRow}>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={guestFirstName
-              ? `Ask a question about ${guestFirstName}'s natal chart...`
-              : "Ask a question about your birth chart..."
-            }
-            placeholderTextColor={colors.onSurfaceVariant}
-            style={[styles.textInput, {
-              backgroundColor: colors.background,
-              color: colors.onSurface,
-              borderColor: colors.border,
-            }]}
-            multiline
-            maxLength={500}
-          />
+          {/* Plus Button */}
+          <TouchableOpacity
+            onPress={() => setShowBottomSheet(true)}
+            style={[styles.plusButton, { backgroundColor: colors.surfaceVariant }]}
+          >
+            <Text style={[styles.plusButtonText, { color: colors.onSurfaceVariant }]}>+</Text>
+          </TouchableOpacity>
 
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              onPress={() => setShowBottomSheet(true)}
-              style={[styles.addButton, { backgroundColor: colors.secondary }]}
-            >
-              <Text style={[styles.addButtonText, { color: colors.onSecondary }]}>
-                +Add Chart Details ({selectedElements.length}/3)
-              </Text>
-            </TouchableOpacity>
+          {/* Text Input Wrapper with Embedded Send Button */}
+          <View style={styles.inputWrapper}>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Ask a question"
+              placeholderTextColor={colors.onSurfaceVariant}
+              style={[styles.textInput, {
+                backgroundColor: colors.background,
+                color: colors.onSurface,
+                borderColor: colors.border,
+              }]}
+              multiline
+              maxLength={500}
+            />
 
-            <View style={styles.sendButtonContainer}>
+            {/* Embedded Send Button */}
+            <View style={styles.embeddedButtonContainer}>
               <CreditActionButton
                 cost={CREDIT_COSTS.askStelliumQuestion}
-                actionText={isChecking ? 'Checking credits...' : isLoading ? 'Sending...' : 'Send'}
+                actionText="↑"
                 onPress={handleSubmit}
                 disabled={!canSubmit()}
                 loading={isLoading || isChecking}
+                compact={true}
               />
             </View>
           </View>
         </View>
+
+        {/* Contextual Hint - Moved Below Input */}
+        <Text style={[styles.hint, { color: colors.onSurfaceVariant }]}>
+          Add chart elements (+) to focus on. Or just ask a question.
+        </Text>
 
         {/* Error Message */}
         {error && (
@@ -777,46 +773,45 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    marginBottom: 12,
+    marginTop: 8,
     textAlign: 'center',
     fontStyle: 'italic',
   },
   inputRow: {
-    flexDirection: 'column',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     gap: 8,
+  },
+  plusButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusButtonText: {
+    fontSize: 24,
+    fontWeight: '400',
+  },
+  inputWrapper: {
+    flex: 1,
+    position: 'relative',
   },
   textInput: {
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 24,
+    paddingHorizontal: 16,
     paddingVertical: 10,
+    paddingRight: 72,
     fontSize: 16,
     minHeight: 44,
     maxHeight: 100,
     textAlignVertical: 'top',
-    width: '100%',
   },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  addButton: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  sendButtonContainer: {
-    flex: 1,
-    marginLeft: 8,
-    marginTop: 20,
+  embeddedButtonContainer: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
   },
   errorText: {
     fontSize: 12,

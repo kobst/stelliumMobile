@@ -130,7 +130,7 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
       <View style={[styles.header, { backgroundColor: '#F8F6FF' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={[styles.backButtonText, { color: colors.primary }]}>
-            ‹ Back
+            ‹
           </Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.onSurface }]}>
@@ -418,10 +418,12 @@ const styles = StyleSheet.create({
   backButton: {
     paddingVertical: 4,
     paddingRight: 8,
+    minWidth: 44,
   },
   backButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '400',
+    lineHeight: 32,
   },
   headerTitle: {
     fontSize: 20,
@@ -589,7 +591,7 @@ const styles = StyleSheet.create({
   buyButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 24,
+    borderRadius: 12,
     minWidth: 140,
     alignItems: 'center',
   },

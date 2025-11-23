@@ -182,7 +182,7 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
             style={styles.backButton}
           >
             <Text style={[styles.backButtonText, { color: colors.primary }]}>
-              ‹ Back
+              ‹
             </Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.onSurface }]}>
@@ -211,7 +211,7 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
           style={styles.backButton}
         >
           <Text style={[styles.backButtonText, { color: colors.primary }]}>
-            ‹ Back
+            ‹
           </Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.onSurface }]}>
@@ -398,10 +398,12 @@ const styles = StyleSheet.create({
   backButton: {
     paddingVertical: 4,
     paddingRight: 8,
+    minWidth: 44,
   },
   backButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '400',
+    lineHeight: 32,
   },
   headerTitle: {
     fontSize: 18,
