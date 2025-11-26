@@ -5,6 +5,7 @@ import TabNavigator from './TabNavigator';
 import UserOnboardingWizard from '../screens/UserOnboardingWizard';
 import SubscriptionScreen from '../screens/subscription/SubscriptionScreen';
 import CreditPurchaseScreen from '../screens/CreditPurchaseScreen';
+import DataUsageScreen from '../screens/DataUsageScreen';
 import { useStore } from '../store';
 import { ProfileModal } from '../components/profile';
 import { navigationRef } from './navigationService';
@@ -65,6 +66,11 @@ const RootNavigator: React.FC = () => {
             <Stack.Screen
               name="CreditPurchase"
               component={CreditPurchaseScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="DataUsage"
+              component={DataUsageScreen}
               options={{ headerShown: false }}
             />
           </>

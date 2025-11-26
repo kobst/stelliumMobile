@@ -99,7 +99,7 @@ export const darkTheme: ColorPalette = {
   // Surface colors
   background: '#0f172a',
   surface: '#1e293b',
-  surfaceVariant: '#1a2540',
+  surfaceVariant: '#2d3a52',
 
   // Content colors
   onBackground: '#EAF0FF',
