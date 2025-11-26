@@ -125,9 +125,9 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
   const proPlan = SUBSCRIPTION_PLANS.pro;
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: '#F8F6FF' }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: '#F8F6FF' }]}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={[styles.backButtonText, { color: colors.primary }]}>
             ‹
@@ -196,9 +196,9 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
               style={[
                 styles.subscriptionCard,
                 {
-                  backgroundColor: currentTier === 'free' ? '#F7F3FF' : '#ECE7FF',
-                  borderColor: currentTier === 'free' ? colors.primary : '#7A5BFF',
-                  shadowColor: currentTier === 'free' ? colors.primary : '#7A5BFF',
+                  backgroundColor: colors.surface,
+                  borderColor: colors.primary,
+                  shadowColor: colors.primary,
                   shadowOpacity: 0.1,
                   shadowRadius: 12,
                   shadowOffset: { width: 0, height: 4 },
@@ -212,7 +212,7 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
                 <Text
                   style={[
                     styles.subscriptionBadge,
-                    { color: currentTier === 'free' ? colors.primary : '#7A5BFF' },
+                    { color: colors.primary },
                   ]}
                 >
                   {currentTier === 'free' ? '✨ PREMIUM' : '💫 PRO'}
@@ -251,10 +251,10 @@ const CreditPurchaseScreen: React.FC<CreditPurchaseScreenProps> = ({
               <View
                 style={[
                   styles.upgradeButton,
-                  { backgroundColor: currentTier === 'free' ? colors.primary : '#7A5BFF' },
+                  { backgroundColor: colors.primary },
                 ]}
               >
-                <Text style={[styles.upgradeButtonText, { color: '#FFFFFF' }]}>
+                <Text style={[styles.upgradeButtonText, { color: colors.onPrimary }]}>
                   {currentTier === 'free' ? 'Upgrade to Premium →' : 'Upgrade to Pro →'}
                 </Text>
               </View>

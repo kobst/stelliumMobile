@@ -179,14 +179,19 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
     // If current user is leftName, show rightName as partner
     // If current user is rightName, show leftName as partner
     // If neither matches current user, default to rightName (userB)
-    const partnerName = leftName === 'You' ? rightName : (rightName === 'You' ? leftName : rightName);
+    const partnerNameFromRelationship = leftName === 'You' ? rightName : (rightName === 'You' ? leftName : rightName);
 
     // Get partner subject for profile photo
     // If subject is missing (user deleted), create a minimal subject with just the name for initials
     const partnerSubject = partnerSubjects[item._id] || {
-      firstName: partnerName.split(' ')[0] || partnerName,
-      lastName: partnerName.split(' ').slice(1).join(' ') || '',
+      firstName: partnerNameFromRelationship.split(' ')[0] || partnerNameFromRelationship,
+      lastName: partnerNameFromRelationship.split(' ').slice(1).join(' ') || '',
     } as SubjectDocument;
+
+    // Use full name from subject if available, otherwise fall back to relationship name
+    const partnerName = partnerSubjects[item._id]
+      ? `${partnerSubjects[item._id].firstName} ${partnerSubjects[item._id].lastName}`.trim()
+      : partnerNameFromRelationship;
 
     // Get analysis data from clusterScoring (primary) or relationshipAnalysisStatus (fallback)
     const clusterScoring = item.clusterScoring;

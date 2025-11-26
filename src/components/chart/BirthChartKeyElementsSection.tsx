@@ -86,7 +86,7 @@ const BirthChartKeyElementsSection: React.FC<BirthChartKeyElementsSectionProps> 
                 <View key={`${element.planet}-${element.sign}-${index}`}>
                   <View style={styles.positionCard}>
                     <View style={styles.positionCardContent}>
-                      <Text style={styles.planetGlyph}>{getPlanetGlyph(element.planet as PlanetName)}</Text>
+                      <Text style={[styles.planetGlyph, { color: colors.onSurface }]}>{getPlanetGlyph(element.planet as PlanetName)}</Text>
                       <View style={styles.planetInfo}>
                         <Text style={[styles.planetName, { color: colors.onSurface }]}>
                           {element.planet}

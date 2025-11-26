@@ -174,7 +174,7 @@ const ProfileModal: React.FC = () => {
   };
 
   const handleContactSupport = async () => {
-    const email = 'admin@stellium.ai';
+    const email = 'support@stellium.ai';
     const subject = 'Support Request';
     const url = `mailto:${email}?subject=${encodeURIComponent(subject)}`;
 
@@ -183,25 +183,25 @@ const ProfileModal: React.FC = () => {
       if (canOpen) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Error', 'Unable to open email client. Please email admin@stellium.ai directly.');
+        Alert.alert('Error', 'Unable to open email client. Please email support@stellium.ai directly.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Unable to open email client. Please email admin@stellium.ai directly.');
+      Alert.alert('Error', 'Unable to open email client. Please email support@stellium.ai directly.');
     }
   };
 
   const handleHelpCenter = async () => {
-    const url = 'https://stellium.ai/help';
+    const url = 'https://www.stellium.ai/help';
 
     try {
       const canOpen = await Linking.canOpenURL(url);
       if (canOpen) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Error', 'Unable to open help center. Please visit stellium.ai/help in your browser.');
+        Alert.alert('Error', 'Unable to open help center. Please visit www.stellium.ai/help in your browser.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Unable to open help center. Please visit stellium.ai/help in your browser.');
+      Alert.alert('Error', 'Unable to open help center. Please visit www.stellium.ai/help in your browser.');
     }
   };
 
@@ -405,26 +405,41 @@ const ProfileModal: React.FC = () => {
             />
           </View>
 
-          {/* Account Info */}
+          {/* Account */}
           <View style={styles.section}>
             <SectionHeader title="ACCOUNT" />
             <View style={[styles.menuGroup, { backgroundColor: colors.surface }]}>
               <MenuItem
-                title="Account Settings"
-                subtitle="Manage your account details"
-                onPress={() => {
-                  // TODO: Navigate to account settings
-                  Alert.alert('Coming Soon', 'Account settings will be available in a future update.');
-                }}
-              />
-              <MenuItem
-                title="Subscription and Purchases"
-                subtitle="Manage plans and perks"
+                title="Subscription & Purchases"
                 onPress={() => {
                   navigate('Subscription');
                   // Close modal after navigation to allow screen to display
                   setTimeout(() => setProfileModalVisible(false), 50);
                 }}
+              />
+              <MenuItem
+                title="Delete My Account"
+                onPress={() => {
+                  Alert.alert(
+                    'Delete Account',
+                    'Are you sure you want to delete your account? This action cannot be undone.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: () => {
+                          Alert.alert('Coming Soon', 'Account deletion will be available in a future update.');
+                        }
+                      }
+                    ]
+                  );
+                }}
+              />
+              <MenuItem
+                title="Sign Out"
+                onPress={handleSignOut}
+                showChevron={false}
               />
             </View>
           </View>
@@ -440,33 +455,54 @@ const ProfileModal: React.FC = () => {
               />
               <MenuItem
                 title="Notifications"
-                subtitle="Manage your notifications"
                 onPress={() => {
                   Alert.alert('Coming Soon', 'Notification settings will be available in a future update.');
-                }}
-              />
-              <MenuItem
-                title="Privacy"
-                subtitle="Control your privacy settings"
-                onPress={() => {
-                  Alert.alert('Coming Soon', 'Privacy settings will be available in a future update.');
                 }}
               />
             </View>
           </View>
 
-          {/* Help & Support */}
+          {/* Privacy */}
           <View style={styles.section}>
-            <SectionHeader title="HELP & SUPPORT" />
+            <SectionHeader title="PRIVACY" />
+            <View style={[styles.menuGroup, { backgroundColor: colors.surface }]}>
+              <MenuItem
+                title="Privacy Policy"
+                onPress={async () => {
+                  const url = 'https://www.stellium.ai/privacy-policy';
+                  try {
+                    const canOpen = await Linking.canOpenURL(url);
+                    if (canOpen) {
+                      await Linking.openURL(url);
+                    } else {
+                      Alert.alert('Error', 'Unable to open privacy policy. Please visit stellium.ai/privacy-policy in your browser.');
+                    }
+                  } catch (error) {
+                    Alert.alert('Error', 'Unable to open privacy policy. Please visit stellium.ai/privacy-policy in your browser.');
+                  }
+                }}
+              />
+              <MenuItem
+                title="Data Usage"
+                onPress={() => {
+                  navigate('DataUsage');
+                  // Close modal after navigation to allow screen to display
+                  setTimeout(() => setProfileModalVisible(false), 50);
+                }}
+              />
+            </View>
+          </View>
+
+          {/* Support */}
+          <View style={styles.section}>
+            <SectionHeader title="SUPPORT" />
             <View style={[styles.menuGroup, { backgroundColor: colors.surface }]}>
               <MenuItem
                 title="Help Center"
-                subtitle="Get answers to common questions"
                 onPress={handleHelpCenter}
               />
               <MenuItem
                 title="Contact Support"
-                subtitle="Get help from our team"
                 onPress={handleContactSupport}
               />
               <MenuItem
@@ -484,7 +520,7 @@ const ProfileModal: React.FC = () => {
           </View>
 
           {/* Credit Pack Testing (Development only) */}
-          {__DEV__ && (
+          {false && __DEV__ && (
             <View style={styles.section}>
               <SectionHeader title="🧪 CREDIT PACK TESTING" />
 
@@ -551,18 +587,6 @@ const ProfileModal: React.FC = () => {
               )}
             </View>
           )}
-
-          {/* Sign Out */}
-          <View style={styles.section}>
-            <TouchableOpacity
-              style={[styles.signOutButton, { backgroundColor: colors.error }]}
-              onPress={handleSignOut}
-            >
-              <Text style={[styles.signOutButtonText, { color: colors.onError }]}>
-                Sign Out
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Bottom spacing */}
           <View style={styles.bottomSpacing} />

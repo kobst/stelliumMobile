@@ -46,7 +46,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const { colors } = useTheme();
   const { relationship } = route.params;
 
-  const [activeTab, setActiveTab] = useState('charts');
+  const [activeTab, setActiveTab] = useState('scores');
   const [chartSubTab, setChartSubTab] = useState('synastry');
 
   const [userAData, setUserAData] = useState<SubjectDocument | null>(null);
@@ -59,8 +59,8 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
   // Navigation configuration
   const topTabs = [
-    { label: 'Charts', routeName: 'charts' },
     { label: 'Scores', routeName: 'scores' },
+    { label: 'Charts', routeName: 'charts' },
     { label: 'Overview', routeName: 'overview' },
     { label: '360 Analysis', routeName: 'guidance' },
     { label: 'Ask Stellium', routeName: 'chat' },
@@ -345,6 +345,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
           clusters={relationshipData?.clusterScoring?.clusters || {}}
           tier={relationshipData?.clusterScoring?.overall?.tier || ''}
           profile={relationshipData?.clusterScoring?.overall?.profile || ''}
+          overallScore={relationshipData?.clusterScoring?.overall?.score}
         />
 
         {/* Consolidated Items Grid */}
