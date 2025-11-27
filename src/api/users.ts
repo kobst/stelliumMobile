@@ -262,4 +262,31 @@ export const usersApi = {
 
     return response;
   },
+
+  // Delete account and all associated data
+  deleteAccount: async (userId: string): Promise<{
+    success: boolean;
+    message: string;
+    deletionResults: any;
+    totalDeleted: number;
+    firebaseAuthDeletionRequired: boolean;
+    firebaseUid: string;
+  }> => {
+    console.log('\n=== USERS API: deleteAccount ===');
+    console.log('User ID:', userId);
+
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+      deletionResults: any;
+      totalDeleted: number;
+      firebaseAuthDeletionRequired: boolean;
+      firebaseUid: string;
+    }>('/account/delete', { userId });
+
+    console.log('Response received:', JSON.stringify(response, null, 2));
+    console.log('================================\n');
+
+    return response;
+  },
 };
