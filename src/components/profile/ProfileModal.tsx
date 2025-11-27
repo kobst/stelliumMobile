@@ -27,6 +27,7 @@ import { navigate } from '../../navigation/navigationService';
 import { CREDIT_PACKS } from '../../config/subscriptionConfig';
 import { CreditBalanceDisplay } from '../CreditBalanceDisplay';
 import { useEffectiveSubscription } from '../../hooks/useEffectiveSubscription';
+import { useAccountDeletion } from '../../hooks/useAccountDeletion';
 
 const ProfileModal: React.FC = () => {
   const { colors, theme, setTheme } = useTheme();
@@ -35,6 +36,7 @@ const ProfileModal: React.FC = () => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [creditPackProducts, setCreditPackProducts] = useState<PurchasesStoreProduct[]>([]);
   const [loadingCreditPacks, setLoadingCreditPacks] = useState(false);
+  const { initiateAccountDeletion, isDeleting } = useAccountDeletion();
 
   const getSubscriptionBadge = () => {
     const tier = userSubscription?.tier || 'free';
@@ -419,22 +421,9 @@ const ProfileModal: React.FC = () => {
               />
               <MenuItem
                 title="Delete My Account"
-                onPress={() => {
-                  Alert.alert(
-                    'Delete Account',
-                    'Are you sure you want to delete your account? This action cannot be undone.',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Delete',
-                        style: 'destructive',
-                        onPress: () => {
-                          Alert.alert('Coming Soon', 'Account deletion will be available in a future update.');
-                        }
-                      }
-                    ]
-                  );
-                }}
+                onPress={initiateAccountDeletion}
+                showChevron={false}
+                rightComponent={isDeleting ? <ActivityIndicator size="small" color={colors.onSurfaceVariant} /> : undefined}
               />
               <MenuItem
                 title="Sign Out"
@@ -593,6 +582,7 @@ const ProfileModal: React.FC = () => {
         </ScrollView>
 
         <LoadingOverlay visible={isUploadingPhoto} message="Updating photo..." />
+        <LoadingOverlay visible={isDeleting} message="Deleting account..." />
       </SafeAreaView>
     </Modal>
   );
