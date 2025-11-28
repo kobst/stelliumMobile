@@ -57,7 +57,11 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     thisMonth: null,
   });
   const [horoscopeLoading, setHoroscopeLoading] = useState(false);
-  const [horoscopeError, setHoroscopeError] = useState<string | null>(null);
+  const [horoscopeErrors, setHoroscopeErrors] = useState<Record<string, string | null>>({
+    today: null,
+    thisWeek: null,
+    thisMonth: null,
+  });
   const [loadedTabs, setLoadedTabs] = useState<Set<HoroscopeFilter>>(new Set());
 
   const { userData, userSubscription } = useStore();
@@ -267,7 +271,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
 
     setHoroscopeLoading(true);
     if (isRetry) {
-      setHoroscopeError(null);
+      setHoroscopeErrors(prev => ({ ...prev, [tab]: null }));
     }
 
     try {
@@ -297,12 +301,15 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       }));
 
       setLoadedTabs(prev => new Set([...prev, tab]));
-      if (isRetry) {
-        setHoroscopeError(null);
-      }
+      // Clear error for this tab on success
+      setHoroscopeErrors(prev => ({ ...prev, [tab]: null }));
     } catch (error) {
       console.error(`Error fetching ${tab} horoscope:`, error);
-      setHoroscopeError(`Failed to load ${tab} horoscope: ${(error as Error).message}`);
+      // Set error only for this specific tab
+      setHoroscopeErrors(prev => ({
+        ...prev,
+        [tab]: `Failed to load ${tab} horoscope: ${(error as Error).message}`,
+      }));
       setLoadedTabs(prev => new Set([...prev, tab])); // Mark as loaded even if failed
     } finally {
       setHoroscopeLoading(false);
@@ -335,10 +342,12 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
 
   // Only show full error state if we have no data at all
   const hasAnyData = Object.values(horoscopeCache).some(value => value !== null);
-  if ((error || horoscopeError) && !hasAnyData) {
+  const hasAnyHoroscopeError = Object.values(horoscopeErrors).some(err => err !== null);
+  if ((error || hasAnyHoroscopeError) && !hasAnyData) {
+    const errorMessage = error || Object.values(horoscopeErrors).find(err => err !== null);
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Error loading data: {error || horoscopeError}</Text>
+        <Text style={styles.errorText}>Error loading data: {errorMessage}</Text>
       </View>
     );
   }
@@ -404,14 +413,20 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       ) : (
         <ScrollView style={styles.scrollContent}>
 
-          {/* Partial Error Indicator */}
-          {horoscopeError && hasAnyData && (
-            <View style={styles.partialErrorNotice}>
-              <Text style={styles.partialErrorText}>
-                ⚠️ Some horoscopes couldn't be loaded. Switch to other tabs to see available content.
-              </Text>
-            </View>
-          )}
+          {/* Partial Error Indicator - only show if OTHER tabs have errors and current tab loaded successfully */}
+          {(() => {
+            const otherTabsHaveErrors = Object.entries(horoscopeErrors).some(
+              ([tab, err]) => tab !== activeTab && err !== null
+            );
+            const currentTabLoaded = horoscopeCache[activeTab] !== null;
+            return otherTabsHaveErrors && currentTabLoaded && (
+              <View style={styles.partialErrorNotice}>
+                <Text style={styles.partialErrorText}>
+                  ⚠️ Some horoscopes couldn't be loaded. Switch to other tabs to see available content.
+                </Text>
+              </View>
+            );
+          })()}
 
           {/* Horoscope Content */}
           <View style={styles.section}>
@@ -527,8 +542,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
                   <Text style={styles.horoscopeErrorText}>
                     We're experiencing issues loading this horoscope. Please try again.
                   </Text>
-                  {horoscopeError && (
-                    <Text style={styles.errorDetails}>Error: {horoscopeError}</Text>
+                  {horoscopeErrors[activeTab] && (
+                    <Text style={styles.errorDetails}>Error: {horoscopeErrors[activeTab]}</Text>
                   )}
                   <TouchableOpacity
                     style={styles.retryButton}
