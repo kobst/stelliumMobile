@@ -60,8 +60,8 @@ const RelationshipAnalysisScreen: React.FC = () => {
   // Navigation configuration
   const topTabs = [
     { label: 'Scores', routeName: 'scores' },
-    { label: 'Charts', routeName: 'charts' },
     { label: 'Overview', routeName: 'overview' },
+    { label: 'Charts', routeName: 'charts' },
     { label: '360 Analysis', routeName: 'guidance' },
     { label: 'Ask Stellium', routeName: 'chat' },
   ];
