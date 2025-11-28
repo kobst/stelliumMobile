@@ -4,42 +4,17 @@ import auth from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { usersApi } from '../api/users';
 import { useStore } from '../store';
+import { navigate } from '../navigation/navigationService';
 
 export const useAccountDeletion = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const { userData, clearAllData } = useStore();
 
   /**
-   * Show confirmation dialog before deletion
-   */
-  const initiateAccountDeletion = () => {
-    Alert.alert(
-      'Delete Account?',
-      'This will permanently delete:\n\n' +
-      '• Your birth chart and analysis\n' +
-      '• All guest charts you created\n' +
-      '• All relationship analyses\n' +
-      '• All horoscopes and chat history\n' +
-      '• Your subscription and credits\n\n' +
-      'This action cannot be undone.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete My Account',
-          style: 'destructive',
-          onPress: () => handleDeleteAccount(),
-        },
-      ]
-    );
-  };
-
-  /**
    * Main deletion flow orchestrator
+   * Called from DeleteConfirmationModal after user types "DELETE"
    */
-  const handleDeleteAccount = async () => {
+  const deleteAccount = async () => {
     try {
       const currentUser = auth().currentUser;
 
@@ -117,7 +92,7 @@ export const useAccountDeletion = () => {
       if (currentUser) {
         await currentUser.reauthenticateWithCredential(googleCredential);
         // Retry deletion after successful re-auth
-        await handleDeleteAccount();
+        await deleteAccount();
       }
     } catch (error: any) {
       console.error('Google re-auth error:', error);
@@ -143,7 +118,7 @@ export const useAccountDeletion = () => {
       if (currentUser) {
         await currentUser.reauthenticateWithCredential(appleCredential);
         // Retry deletion after successful re-auth
-        await handleDeleteAccount();
+        await deleteAccount();
       }
     } catch (error: any) {
       console.error('Apple re-auth error:', error);
@@ -174,7 +149,7 @@ export const useAccountDeletion = () => {
       if (currentUser) {
         await currentUser.reauthenticateWithCredential(facebookCredential);
         // Retry deletion after successful re-auth
-        await handleDeleteAccount();
+        await deleteAccount();
       }
     } catch (error: any) {
       console.error('Facebook re-auth error:', error);
@@ -217,7 +192,7 @@ export const useAccountDeletion = () => {
 
               await currentUser.reauthenticateWithCredential(credential);
               // Retry deletion after successful re-auth
-              await handleDeleteAccount();
+              await deleteAccount();
             } catch (error: any) {
               console.error('Password re-auth error:', error);
 
@@ -266,22 +241,10 @@ export const useAccountDeletion = () => {
       console.log('🧹 Clearing local data...');
       await clearLocalData();
 
-      // Step 4: Show success message
+      // Step 4: Navigate to success screen
       setIsDeleting(false);
-
-      Alert.alert(
-        'Account Deleted',
-        'Your account and all associated data have been permanently deleted.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // The clearAllData() call will trigger sign out
-              // and App.tsx will navigate to AuthScreen
-            },
-          },
-        ]
-      );
+      console.log('✅ Account deletion complete, navigating to AccountDeletedScreen');
+      navigate('AccountDeleted');
     } catch (error: any) {
       console.error('❌ Deletion failed:', error);
       throw error;
@@ -304,7 +267,7 @@ export const useAccountDeletion = () => {
   };
 
   return {
-    initiateAccountDeletion,
+    deleteAccount,
     isDeleting,
   };
 };
