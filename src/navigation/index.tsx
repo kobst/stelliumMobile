@@ -6,6 +6,9 @@ import UserOnboardingWizard from '../screens/UserOnboardingWizard';
 import SubscriptionScreen from '../screens/subscription/SubscriptionScreen';
 import CreditPurchaseScreen from '../screens/CreditPurchaseScreen';
 import DataUsageScreen from '../screens/DataUsageScreen';
+import ManageAccountScreen from '../screens/settings/ManageAccountScreen';
+import DeleteAccountScreen from '../screens/settings/DeleteAccountScreen';
+import AccountDeletedScreen from '../screens/settings/AccountDeletedScreen';
 import { useStore } from '../store';
 import { ProfileModal } from '../components/profile';
 import { navigationRef } from './navigationService';
@@ -71,6 +74,21 @@ const RootNavigator: React.FC = () => {
             <Stack.Screen
               name="DataUsage"
               component={DataUsageScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ManageAccount"
+              component={ManageAccountScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="DeleteAccount"
+              component={DeleteAccountScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="AccountDeleted"
+              component={AccountDeletedScreen}
               options={{ headerShown: false }}
             />
           </>
