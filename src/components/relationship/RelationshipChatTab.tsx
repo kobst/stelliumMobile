@@ -153,25 +153,31 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
             };
 
             // For assistant messages with metadata, also assign to the previous user message if it doesn't have metadata
+            // BUT only transfer selectedElements if mode is 'custom' or 'hybrid' (user actually selected them)
             if (msg.role === 'assistant' && msg.metadata && index > 0) {
               const prevMsg = response.chatHistory[index - 1];
               if (prevMsg.role === 'user' && !prevMsg.metadata) {
-                // The user message that prompted this assistant response should inherit the elements
+                // The user message that prompted this assistant response should inherit the mode
                 const prevTransformedMsg = transformedMessages[transformedMessages.length - 1];
                 if (prevTransformedMsg && prevTransformedMsg.type === 'user') {
                   prevTransformedMsg.mode = msg.metadata.mode;
-                  prevTransformedMsg.selectedElements = msg.metadata.selectedElements || msg.metadata.scoredItems;
+                  // Only transfer selectedElements if mode is 'custom' or 'hybrid'
+                  if (msg.metadata.mode === 'custom' || msg.metadata.mode === 'hybrid') {
+                    prevTransformedMsg.selectedElements = msg.metadata.selectedElements || msg.metadata.scoredItems;
+                  }
                   prevTransformedMsg.elementCount = msg.metadata.elementCount;
                 }
               }
             }
 
-            // Transfer selectedElements from assistant to previous user message (even if user has metadata)
-            // This handles hybrid mode where user asked a question with selected elements
+            // Transfer selectedElements from assistant to previous user message ONLY if mode is 'custom' or 'hybrid'
+            // For 'chat' mode, the elements are AI-generated analysis, not user-selected
             if (msg.role === 'assistant' && transformedMessage.selectedElements && transformedMessage.selectedElements.length > 0 && index > 0) {
               const prevTransformedMsg = transformedMessages[transformedMessages.length - 1];
-              if (prevTransformedMsg && prevTransformedMsg.type === 'user' && !prevTransformedMsg.selectedElements) {
-                console.log('[RelationshipChat] 📋 Transferring selectedElements from assistant to user message');
+              const mode = msg.metadata?.mode || prevTransformedMsg?.mode;
+              // Only transfer if mode is 'custom' or 'hybrid' (user actually selected elements)
+              if (prevTransformedMsg && prevTransformedMsg.type === 'user' && !prevTransformedMsg.selectedElements && (mode === 'custom' || mode === 'hybrid')) {
+                console.log('[RelationshipChat] 📋 Transferring selectedElements from assistant to user message (mode:', mode, ')');
                 prevTransformedMsg.selectedElements = transformedMessage.selectedElements;
               }
             }
