@@ -14,6 +14,7 @@ interface V3ClusterRadarProps {
   clusters: Record<string, ClusterMetrics>;
   tier: string;
   profile: string;
+  overallScore?: number;
 }
 
 interface ClusterInfo {
@@ -31,14 +32,15 @@ const CLUSTER_CONFIG: { [key: string]: ClusterInfo } = {
   Stability: { name: 'Stability', emoji: '🏛️', color: '#9C27B0', angle: 198 },
 };
 
-const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile }) => {
+const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile, overallScore }) => {
   const { colors } = useTheme();
 
   const getScoreColor = (score: number): string => {
-    if (score >= 0.8) {return '#4CAF50';}
-    if (score >= 0.6) {return '#FF9800';}
-    if (score >= 0.4) {return '#FFC107';}
-    return '#F44336';
+    // Convert to percentage if needed (0-1 range to 0-100)
+    const percentageScore = score > 1 ? score : score * 100;
+    if (percentageScore >= 71) { return '#10B981'; }
+    if (percentageScore >= 41) { return '#F59E0B'; }
+    return '#EF4444';
   };
 
 
@@ -56,9 +58,9 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
           cy={CENTER_Y}
           r={radius}
           fill="none"
-          stroke={colors.border}
-          strokeWidth={index === levels.length - 1 ? 2 : 1}
-          opacity={0.3}
+          stroke="#c4b5fd"
+          strokeWidth={index === levels.length - 1 ? 2 : 1.5}
+          opacity={0.6}
         />
       );
     });
@@ -76,9 +78,9 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
           y1={CENTER_Y}
           x2={endX}
           y2={endY}
-          stroke={colors.border}
-          strokeWidth={1}
-          opacity={0.3}
+          stroke="#c4b5fd"
+          strokeWidth={1.5}
+          opacity={0.6}
         />
       );
     });
@@ -127,7 +129,7 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
         <SvgText
           key={`label-${clusterName}`}
           x={labelX}
-          y={labelY - 10}
+          y={labelY - 5}
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize={12}
@@ -138,26 +140,12 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
         </SvgText>
       );
 
-      // Emoji label (middle - below name)
-      clusterElements.push(
-        <SvgText
-          key={`emoji-${clusterName}`}
-          x={labelX}
-          y={labelY + 5}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={12}
-        >
-          {config.emoji}
-        </SvgText>
-      );
-
       // Score label (bottom)
       clusterElements.push(
         <SvgText
           key={`score-${clusterName}`}
           x={labelX}
-          y={labelY + 20}
+          y={labelY + 10}
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize={10}
@@ -184,17 +172,25 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
     return [polygonElement, ...clusterElements];
   };
 
-  const averageScore = Object.entries(CLUSTER_CONFIG).reduce((sum, [clusterName]) => {
+  // Use the provided overallScore if available, otherwise calculate from clusters
+  const calculatedAverageScore = Object.entries(CLUSTER_CONFIG).reduce((sum, [clusterName]) => {
     const clusterData = clusters[clusterName];
     const score = clusterData?.score || 0;
     const normalizedScore = score > 1 ? score / 100 : score;
     return sum + normalizedScore;
   }, 0) / 5;
 
+  // Prefer the backend's overall score to ensure consistency
+  const averageScore = overallScore !== undefined
+    ? (overallScore > 1 ? overallScore / 100 : overallScore)
+    : calculatedAverageScore;
+
+  const cumulativeScore = Math.round(overallScore !== undefined ? overallScore : averageScore * 100);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }]}>
       <View style={styles.header}>
-        <Text style={[styles.tier, { color: getScoreColor(averageScore) }]}>{tier}</Text>
+        <Text style={[styles.tier, { color: getScoreColor(averageScore) }]}>Overall Score: {cumulativeScore}%</Text>
         <Text style={[styles.profile, { color: colors.onSurface }]}>{profile}</Text>
       </View>
 
@@ -215,7 +211,7 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
             <View key={clusterName} style={styles.legendItem}>
               <View style={[styles.legendColor, { backgroundColor: config.color }]} />
               <Text style={[styles.legendText, { color: colors.onSurface }]}>
-                {config.emoji} {config.name}
+                {config.name}
               </Text>
               <Text style={[styles.legendScore, { color: getScoreColor(normalizedScore) }]}>
                 {score > 1 ? Math.round(score) : Math.round(score * 100)}%
@@ -230,13 +226,17 @@ const V3ClusterRadar: React.FC<V3ClusterRadarProps> = ({ clusters, tier, profile
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
     borderRadius: 12,
-    margin: 8,
+    marginHorizontal: 8,
+    marginTop: 0,
+    marginBottom: 8,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   tier: {
     fontSize: 24,
@@ -244,16 +244,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   profile: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
     marginBottom: 4,
+    textAlign: 'center',
   },
   average: {
     fontSize: 14,
   },
   radarContainer: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 4,
   },
   legend: {
     gap: 8,

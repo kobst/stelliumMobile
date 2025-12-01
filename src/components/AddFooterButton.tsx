@@ -21,7 +21,13 @@ const AddFooterButton: React.FC<AddFooterButtonProps> = ({
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[
+      styles.container,
+      {
+        backgroundColor: colors.background,
+        borderTopColor: colors.isDark ? '#a78bfa' : '#c4b5fd',
+      }
+    ]}>
       <TouchableOpacity
         style={[
           styles.button,
@@ -42,8 +48,9 @@ const AddFooterButton: React.FC<AddFooterButtonProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    paddingBottom: 32, // Extra padding for safe area
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
   },
   button: {
     borderRadius: 12,

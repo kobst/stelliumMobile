@@ -35,9 +35,14 @@ const ChartStack: React.FC = () => {
         headerStyle: {
           backgroundColor: colors.surface,
         },
-        headerTintColor: colors.onSurface,
+        headerTintColor: colors.primary,
         headerTitleStyle: {
           fontWeight: 'bold',
+        },
+        headerBackTitle: '',
+        headerBackTitleVisible: false,
+        headerLeftContainerStyle: {
+          paddingLeft: 16,
         },
       }}
     >
@@ -77,7 +82,6 @@ const ChartStack: React.FC = () => {
         component={ChartCategoryDetailScreen}
         options={({ route }) => ({
           title: route.params.categoryName,
-          headerBackTitle: '360 Analysis',
         })}
       />
     </Stack.Navigator>

@@ -267,12 +267,12 @@ const ChartScreen: React.FC = () => {
   } = useChart(getSubjectId(subject));
 
   // Navigation state
-  const [activeTab, setActiveTab] = useState('chart');
+  const [activeTab, setActiveTab] = useState('overview');
   const [activeSubTab, setActiveSubTab] = useState('wheel');
 
   const topTabs = [
-    { label: 'Chart', routeName: 'chart' },
     { label: 'Overview', routeName: 'overview' },
+    { label: 'Chart', routeName: 'chart' },
     { label: 'Patterns & Dominance', routeName: 'patterns' },
     { label: 'Planets', routeName: 'planets' },
     { label: '360 Analysis', routeName: 'analysis' },

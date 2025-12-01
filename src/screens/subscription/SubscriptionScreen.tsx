@@ -20,6 +20,7 @@ import CancellationModal from '../../components/subscription/CancellationModal';
 import { getPlanConfig } from '../../config/subscriptionConfig';
 import { CreditBalanceDisplay } from '../../components/CreditBalanceDisplay';
 import { useCreditBalance } from '../../hooks/useCreditBalance';
+import { useEffectiveSubscription } from '../../hooks/useEffectiveSubscription';
 
 interface SubscriptionScreenProps {
   navigation: any;
@@ -29,9 +30,9 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
   const { colors } = useTheme();
   const {
     userData,
-    userSubscription,
     updateSubscriptionData,
   } = useStore();
+  const userSubscription = useEffectiveSubscription();
 
   const {
     total,
@@ -181,7 +182,7 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
             style={styles.backButton}
           >
             <Text style={[styles.backButtonText, { color: colors.primary }]}>
-              ‹ Back
+              ‹
             </Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.onSurface }]}>
@@ -210,7 +211,7 @@ const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ navigation }) =
           style={styles.backButton}
         >
           <Text style={[styles.backButtonText, { color: colors.primary }]}>
-            ‹ Back
+            ‹
           </Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.onSurface }]}>
@@ -397,10 +398,12 @@ const styles = StyleSheet.create({
   backButton: {
     paddingVertical: 4,
     paddingRight: 8,
+    minWidth: 44,
   },
   backButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '400',
+    lineHeight: 32,
   },
   headerTitle: {
     fontSize: 18,

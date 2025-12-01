@@ -6,6 +6,8 @@ import { relationshipsApi } from '../../api/relationships';
 import ConsolidatedItemsBottomSheet from './ConsolidatedItemsBottomSheet';
 import { useCreditsGate } from '../../hooks/useCreditsGate';
 import { parseReferencedCodes, DecodedElement } from '../../utils/parseReferencedCodes';
+import { CreditActionButton } from '../ui/CreditActionButton';
+import { CREDIT_COSTS } from '../../config/subscriptionConfig';
 
 interface ChatMessage {
   id: string;
@@ -151,25 +153,31 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
             };
 
             // For assistant messages with metadata, also assign to the previous user message if it doesn't have metadata
+            // BUT only transfer selectedElements if mode is 'custom' or 'hybrid' (user actually selected them)
             if (msg.role === 'assistant' && msg.metadata && index > 0) {
               const prevMsg = response.chatHistory[index - 1];
               if (prevMsg.role === 'user' && !prevMsg.metadata) {
-                // The user message that prompted this assistant response should inherit the elements
+                // The user message that prompted this assistant response should inherit the mode
                 const prevTransformedMsg = transformedMessages[transformedMessages.length - 1];
                 if (prevTransformedMsg && prevTransformedMsg.type === 'user') {
                   prevTransformedMsg.mode = msg.metadata.mode;
-                  prevTransformedMsg.selectedElements = msg.metadata.selectedElements || msg.metadata.scoredItems;
+                  // Only transfer selectedElements if mode is 'custom' or 'hybrid'
+                  if (msg.metadata.mode === 'custom' || msg.metadata.mode === 'hybrid') {
+                    prevTransformedMsg.selectedElements = msg.metadata.selectedElements || msg.metadata.scoredItems;
+                  }
                   prevTransformedMsg.elementCount = msg.metadata.elementCount;
                 }
               }
             }
 
-            // Transfer selectedElements from assistant to previous user message (even if user has metadata)
-            // This handles hybrid mode where user asked a question with selected elements
+            // Transfer selectedElements from assistant to previous user message ONLY if mode is 'custom' or 'hybrid'
+            // For 'chat' mode, the elements are AI-generated analysis, not user-selected
             if (msg.role === 'assistant' && transformedMessage.selectedElements && transformedMessage.selectedElements.length > 0 && index > 0) {
               const prevTransformedMsg = transformedMessages[transformedMessages.length - 1];
-              if (prevTransformedMsg && prevTransformedMsg.type === 'user' && !prevTransformedMsg.selectedElements) {
-                console.log('[RelationshipChat] 📋 Transferring selectedElements from assistant to user message');
+              const mode = msg.metadata?.mode || prevTransformedMsg?.mode;
+              // Only transfer if mode is 'custom' or 'hybrid' (user actually selected elements)
+              if (prevTransformedMsg && prevTransformedMsg.type === 'user' && !prevTransformedMsg.selectedElements && (mode === 'custom' || mode === 'hybrid')) {
+                console.log('[RelationshipChat] 📋 Transferring selectedElements from assistant to user message (mode:', mode, ')');
                 prevTransformedMsg.selectedElements = transformedMessage.selectedElements;
               }
             }
@@ -612,57 +620,50 @@ const RelationshipChatTab: React.FC<RelationshipChatTabProps> = ({
 
       {/* Input Section */}
       <View style={[styles.inputSection, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        {/* Contextual Hint */}
-        <Text style={[styles.hint, { color: colors.onSurfaceVariant }]}>
-          {getHint(currentMode)}
-        </Text>
-
-        {/* Input Row */}
+        {/* Input Row with Plus Button and Text Input with Embedded Send Button */}
         <View style={styles.inputRow}>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Ask a question about your relationship..."
-            placeholderTextColor={colors.onSurfaceVariant}
-            style={[styles.textInput, {
-              backgroundColor: colors.background,
-              color: colors.onSurface,
-              borderColor: colors.border,
-            }]}
-            multiline
-            maxLength={500}
-          />
+          {/* Plus Button */}
+          <TouchableOpacity
+            onPress={() => setShowBottomSheet(true)}
+            style={[styles.plusButton, { backgroundColor: colors.surfaceVariant }]}
+          >
+            <Text style={[styles.plusButtonText, { color: colors.onSurfaceVariant }]}>+</Text>
+          </TouchableOpacity>
 
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              onPress={() => setShowBottomSheet(true)}
-              style={[styles.addButton, { backgroundColor: colors.secondary }]}
-            >
-              <Text style={[styles.addButtonText, { color: colors.onSecondary }]}>
-                +Add Chart Details ({selectedElements.length}/3)
-              </Text>
-            </TouchableOpacity>
+          {/* Text Input Wrapper with Embedded Send Button */}
+          <View style={styles.inputWrapper}>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Ask a question"
+              placeholderTextColor={colors.onSurfaceVariant}
+              style={[styles.textInput, {
+                backgroundColor: colors.background,
+                color: colors.onSurface,
+                borderColor: colors.border,
+              }]}
+              multiline
+              maxLength={500}
+            />
 
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={!currentMode || isLoading || isChecking}
-              style={[
-                styles.sendButton,
-                {
-                  backgroundColor: currentMode && !isLoading && !isChecking ? colors.primary : colors.surfaceVariant,
-                  opacity: currentMode && !isLoading && !isChecking ? 1 : 0.5,
-                },
-              ]}
-            >
-              <Text style={[
-                styles.sendButtonText,
-                { color: currentMode && !isLoading && !isChecking ? colors.onPrimary : colors.onSurfaceVariant },
-              ]}>
-                {isChecking ? 'Checking...' : isLoading ? 'Sending...' : 'Send (1 credit)'}
-              </Text>
-            </TouchableOpacity>
+            {/* Embedded Send Button */}
+            <View style={styles.embeddedButtonContainer}>
+              <CreditActionButton
+                cost={CREDIT_COSTS.askStelliumQuestion}
+                actionText="↑"
+                onPress={handleSubmit}
+                disabled={!currentMode}
+                loading={isLoading || isChecking}
+                compact={true}
+              />
+            </View>
           </View>
         </View>
+
+        {/* Contextual Hint - Moved Below Input */}
+        <Text style={[styles.hint, { color: colors.onSurfaceVariant }]}>
+          Add synastry or composite elements (+) to sharpen the reading — or just type a question.
+        </Text>
 
         {/* Error Message */}
         {error && (
@@ -880,53 +881,45 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    marginBottom: 12,
+    marginTop: 8,
     textAlign: 'center',
     fontStyle: 'italic',
   },
   inputRow: {
-    flexDirection: 'column',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     gap: 8,
+  },
+  plusButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusButtonText: {
+    fontSize: 24,
+    fontWeight: '400',
+  },
+  inputWrapper: {
+    flex: 1,
+    position: 'relative',
   },
   textInput: {
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 24,
+    paddingHorizontal: 16,
     paddingVertical: 10,
+    paddingRight: 72,
     fontSize: 16,
     minHeight: 44,
     maxHeight: 100,
     textAlignVertical: 'top',
-    width: '100%',
   },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  addButton: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  sendButton: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+  embeddedButtonContainer: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
   },
   errorText: {
     fontSize: 12,

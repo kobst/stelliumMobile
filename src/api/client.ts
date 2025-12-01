@@ -104,6 +104,9 @@ class ApiClient {
       ? { Authorization: `Bearer ${authToken}` }
       : {};
 
+    // Set timeout - 60 seconds for chat endpoints, 30 seconds for others
+    const timeoutMs = endpoint.includes('/chat') || endpoint.includes('/enhanced-chat') ? 60000 : 30000;
+
     const config: RequestInit = {
       ...options,
       headers: {
@@ -114,7 +117,22 @@ class ApiClient {
     };
 
     try {
-      const response = await fetch(url, config);
+      // Create timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new ApiError({
+            message: 'Request timeout',
+            code: 'TIMEOUT',
+          }));
+        }, timeoutMs);
+      });
+
+      // Race between fetch and timeout
+      const response = await Promise.race([
+        fetch(url, config),
+        timeoutPromise,
+      ]);
+
       return await this.handleResponse<T>(response);
     } catch (error) {
       console.error(`API request failed: ${endpoint}`, error);

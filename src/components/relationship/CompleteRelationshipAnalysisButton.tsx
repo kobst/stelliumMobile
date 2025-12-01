@@ -4,6 +4,8 @@ import { useRelationshipWorkflow } from '../../hooks/useRelationshipWorkflow';
 import { useStore } from '../../store';
 import { useTheme } from '../../theme';
 import { useCreditsGate } from '../../hooks/useCreditsGate';
+import { CreditActionButton } from '../ui/CreditActionButton';
+import { CREDIT_COSTS } from '../../config/subscriptionConfig';
 
 interface CompleteRelationshipAnalysisButtonProps {
   compositeChartId: string;
@@ -50,11 +52,15 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
     if (isAnalysisInProgress) {
       return 'Analysis in Progress...';
     }
-    return 'Complete Full Analysis (60 credits)';
+    return 'Complete Full Analysis';
   };
 
   const isButtonDisabled = (): boolean => {
     return !compositeChartId || isAnalysisInProgress || isChecking;
+  };
+
+  const isLoading = (): boolean => {
+    return isChecking || isAnalysisInProgress;
   };
 
   useEffect(() => {
@@ -115,42 +121,23 @@ const CompleteRelationshipAnalysisButton: React.FC<CompleteRelationshipAnalysisB
 
   // Default state - show the button
   return (
-    <TouchableOpacity
-      style={[
-        styles.button,
-        { backgroundColor: colors.primary },
-        isButtonDisabled() && [styles.buttonDisabled, { backgroundColor: colors.onSurfaceVariant }],
-      ]}
-      onPress={handleStartAnalysis}
-      disabled={isButtonDisabled()}
-    >
-      <Text style={[
-        styles.buttonText,
-        { color: colors.onPrimary },
-        isButtonDisabled() && { color: colors.onSurface },
-      ]}>
-        {getButtonText()}
-      </Text>
-    </TouchableOpacity>
+    <View style={styles.buttonContainer}>
+      <CreditActionButton
+        cost={CREDIT_COSTS.fullRelationshipReport}
+        actionText={getButtonText()}
+        onPress={handleStartAnalysis}
+        disabled={isButtonDisabled()}
+        loading={isLoading()}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  button: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+  buttonContainer: {
     marginTop: 20,
+    marginHorizontal: 16,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
   // Error state
   errorContainer: {
     alignItems: 'center',
