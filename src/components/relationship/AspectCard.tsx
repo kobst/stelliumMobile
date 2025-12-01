@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   titleSection: {
     flexDirection: 'row',

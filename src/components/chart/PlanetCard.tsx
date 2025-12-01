@@ -245,33 +245,38 @@ const PlanetCard: React.FC<PlanetCardProps> = ({
           {parsedData.aspects.length > 0 && (
             <View style={styles.aspectsSubsection}>
               <Text style={[styles.astroDataLabel, { color: colors.primary }]}>Aspects</Text>
-              {parsedData.aspects.slice(0, 5).map((aspect, index) => ( // Limit to 5 aspects
-                <View key={index} style={styles.aspectRow}>
-                  <View style={styles.aspectPlanets}>
-                    <AstroIcon
-                      type="planet"
-                      name={aspect.planet1}
-                      size={12}
-                      color={colors.onSurface}
-                    />
-                    <Text style={[styles.aspectSymbol, { color: colors.onSurface }]}>
-                      {getAspectSymbol(aspect.aspectType)}
+              {parsedData.aspects.slice(0, 5).map((aspect, index) => {
+                // Determine the other planet (not the current one)
+                const otherPlanet = aspect.planet1 === planet ? aspect.planet2 : aspect.planet1;
+
+                return (
+                  <View key={index} style={styles.aspectRow}>
+                    <View style={styles.aspectPlanets}>
+                      <AstroIcon
+                        type="planet"
+                        name={planet}
+                        size={12}
+                        color={colors.onSurface}
+                      />
+                      <Text style={[styles.aspectSymbol, { color: colors.onSurface }]}>
+                        {getAspectSymbol(aspect.aspectType)}
+                      </Text>
+                      <AstroIcon
+                        type="planet"
+                        name={otherPlanet}
+                        size={12}
+                        color={colors.onSurface}
+                      />
+                    </View>
+                    <Text style={[styles.aspectDescription, { color: colors.onSurface }]}>
+                      {aspect.orbDescription} {aspect.aspectType} to {otherPlanet}
                     </Text>
-                    <AstroIcon
-                      type="planet"
-                      name={aspect.planet1 === planet ? aspect.planet2 : aspect.planet1}
-                      size={12}
-                      color={colors.onSurface}
-                    />
+                    <Text style={[styles.aspectOrb, { color: colors.onSurfaceVariant }]}>
+                      {aspect.orb.toFixed(1)}°
+                    </Text>
                   </View>
-                  <Text style={[styles.aspectDescription, { color: colors.onSurface }]}>
-                    {aspect.orbDescription} {aspect.aspectType} to {aspect.planet1 === planet ? aspect.planet2 : aspect.planet1}
-                  </Text>
-                  <Text style={[styles.aspectOrb, { color: colors.onSurfaceVariant }]}>
-                    {aspect.orb.toFixed(1)}°
-                  </Text>
-                </View>
-              ))}
+                );
+              })}
               {parsedData.aspects.length > 5 && (
                 <Text style={[styles.moreAspects, { color: colors.primary }]}>
                   +{parsedData.aspects.length - 5} more aspects

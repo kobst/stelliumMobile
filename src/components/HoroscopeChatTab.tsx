@@ -9,6 +9,8 @@ import { formatDateRange } from '../utils/dateHelpers';
 import { parseReferencedCodes, DecodedElement } from '../utils/parseReferencedCodes';
 import { useStore } from '../store';
 import { superwallService } from '../services/SuperwallService';
+import { CreditActionButton } from './ui/CreditActionButton';
+import { CREDIT_COSTS } from '../config/subscriptionConfig';
 
 interface HoroscopeChatTabProps {
   userId: string;
@@ -693,66 +695,61 @@ const HoroscopeChatTab: React.FC<HoroscopeChatTabProps> = ({
 
       {/* Input Section */}
       <View style={[styles.inputSection, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        {/* Contextual Hint */}
-        <Text style={[styles.hint, { color: colors.onSurfaceVariant }]}>
-          {getHint()}
-        </Text>
-
-
-        {/* Input Row */}
+        {/* Input Row with Plus Button and Text Input with Embedded Send Button */}
         <View style={styles.inputRow}>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Ask a question about your horoscope..."
-            placeholderTextColor={colors.onSurfaceVariant}
-            style={[styles.textInput, {
-              backgroundColor: colors.background,
-              color: colors.onSurface,
-              borderColor: colors.border,
-            }]}
-            multiline
-            maxLength={500}
-          />
+          {/* Plus Button */}
+          <TouchableOpacity
+            onPress={() => setShowBottomSheet(true)}
+            style={[styles.plusButton, { backgroundColor: colors.surfaceVariant }]}
+          >
+            <Text style={[styles.plusButtonText, { color: colors.onSurfaceVariant }]}>+</Text>
+          </TouchableOpacity>
 
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              onPress={() => setShowBottomSheet(true)}
-              style={[styles.addButton, { backgroundColor: colors.secondary }]}
-            >
-              <Text style={[styles.addButtonText, { color: colors.onSecondary }]}>
-                +Add Transit Details ({selectedTransits.length}/3)
-              </Text>
-            </TouchableOpacity>
+          {/* Text Input Wrapper with Embedded Send Button */}
+          <View style={styles.inputWrapper}>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Ask a question"
+              placeholderTextColor={colors.onSurfaceVariant}
+              style={[styles.textInput, {
+                backgroundColor: colors.background,
+                color: colors.onSurface,
+                borderColor: colors.border,
+              }]}
+              multiline
+              maxLength={500}
+            />
 
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={subscriptionTier !== 'free' && (!canSubmit() || isLoading)}
-              style={[
-                styles.sendButton,
-                {
-                  backgroundColor: subscriptionTier === 'free'
-                    ? colors.primary
-                    : (canSubmit() && !isLoading ? colors.primary : colors.surfaceVariant),
-                  opacity: subscriptionTier === 'free'
-                    ? 1
-                    : (canSubmit() && !isLoading ? 1 : 0.5),
-                },
-              ]}
-            >
-              <Text style={[
-                styles.sendButtonText,
-                {
-                  color: subscriptionTier === 'free'
-                    ? colors.onPrimary
-                    : (canSubmit() && !isLoading ? colors.onPrimary : colors.onSurfaceVariant)
-                },
-              ]}>
-                {subscriptionTier === 'free' ? 'Upgrade to Use' : 'Send'}
-              </Text>
-            </TouchableOpacity>
+            {/* Embedded Send Button */}
+            {subscriptionTier === 'free' ? (
+              <TouchableOpacity
+                onPress={handleSubmit}
+                style={[styles.embeddedSendButton, { backgroundColor: colors.primary }]}
+              >
+                <Text style={[styles.embeddedSendButtonText, { color: colors.onPrimary }]}>
+                  ↑
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.embeddedButtonContainer}>
+                <CreditActionButton
+                  cost={CREDIT_COSTS.askStelliumQuestion}
+                  actionText="↑"
+                  onPress={handleSubmit}
+                  disabled={!canSubmit()}
+                  loading={isLoading}
+                  compact={true}
+                />
+              </View>
+            )}
           </View>
         </View>
+
+        {/* Contextual Hint - Moved Below Input */}
+        <Text style={[styles.hint, { color: colors.onSurfaceVariant }]}>
+          Add transits (+) for a precise reading — or just ask anything.
+        </Text>
 
         {/* Error Message */}
         {error && (
@@ -941,53 +938,59 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    marginBottom: 12,
+    marginTop: 8,
     textAlign: 'center',
     fontStyle: 'italic',
   },
   inputRow: {
-    flexDirection: 'column',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     gap: 8,
+  },
+  plusButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusButtonText: {
+    fontSize: 24,
+    fontWeight: '400',
+  },
+  inputWrapper: {
+    flex: 1,
+    position: 'relative',
   },
   textInput: {
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 24,
+    paddingHorizontal: 16,
     paddingVertical: 10,
+    paddingRight: 72,
     fontSize: 16,
     minHeight: 44,
     maxHeight: 100,
     textAlignVertical: 'top',
-    width: '100%',
   },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  addButton: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 12,
+  embeddedSendButton: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addButtonText: {
-    fontSize: 13,
+  embeddedSendButtonText: {
+    fontSize: 20,
     fontWeight: '600',
   },
-  sendButton: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+  embeddedButtonContainer: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
   },
   errorText: {
     fontSize: 12,

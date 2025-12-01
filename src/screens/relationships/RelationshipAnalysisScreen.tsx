@@ -46,7 +46,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
   const { colors } = useTheme();
   const { relationship } = route.params;
 
-  const [activeTab, setActiveTab] = useState('charts');
+  const [activeTab, setActiveTab] = useState('scores');
   const [chartSubTab, setChartSubTab] = useState('synastry');
 
   const [userAData, setUserAData] = useState<SubjectDocument | null>(null);
@@ -59,9 +59,9 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
   // Navigation configuration
   const topTabs = [
-    { label: 'Charts', routeName: 'charts' },
     { label: 'Scores', routeName: 'scores' },
     { label: 'Overview', routeName: 'overview' },
+    { label: 'Charts', routeName: 'charts' },
     { label: '360 Analysis', routeName: 'guidance' },
     { label: 'Ask Stellium', routeName: 'chat' },
   ];
@@ -345,6 +345,7 @@ const RelationshipAnalysisScreen: React.FC = () => {
           clusters={relationshipData?.clusterScoring?.clusters || {}}
           tier={relationshipData?.clusterScoring?.overall?.tier || ''}
           profile={relationshipData?.clusterScoring?.overall?.profile || ''}
+          overallScore={relationshipData?.clusterScoring?.overall?.score}
         />
 
         {/* Consolidated Items Grid */}
@@ -381,16 +382,6 @@ const RelationshipAnalysisScreen: React.FC = () => {
 
     return (
       <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-        {/* Relationship Header */}
-        <View style={[styles.overviewHeader, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.relationshipTier, { color: colors.primary }]}>
-            {clusterScoring.overall.tier}
-          </Text>
-          <Text style={[styles.relationshipProfile, { color: colors.onSurface }]}>
-            {clusterScoring.overall.profile}
-          </Text>
-        </View>
-
         {/* Initial Overview */}
         {analysisData?.initialOverview && (
           <View style={[styles.overviewCard, { backgroundColor: colors.surface }]}>

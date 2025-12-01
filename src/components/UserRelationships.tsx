@@ -7,6 +7,8 @@ import { parseDateStringAsLocalDate } from '../utils/dateHelpers';
 import { useTheme } from '../theme';
 import { AstroIcon } from '../../utils/astrologyIcons';
 import RelationshipAnalysisTypeIndicator from './relationship/RelationshipAnalysisTypeIndicator';
+import ProfileAvatar from './profile/ProfileAvatar';
+import { usersApi, SubjectDocument } from '../api/users';
 
 interface UserRelationshipsProps {
   onRelationshipPress?: (relationship: UserCompositeChart) => void;
@@ -19,6 +21,7 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
   const [relationships, setRelationships] = useState<UserCompositeChart[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [partnerSubjects, setPartnerSubjects] = useState<Record<string, SubjectDocument>>({});
 
   useEffect(() => {
     loadRelationships();
@@ -46,12 +49,47 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
       console.log('getUserCompositeCharts response:', JSON.stringify(response, null, 2));
       console.log('First relationship analysis status:', response[0]?.relationshipAnalysisStatus);
       setRelationships(response);
+
+      // Fetch partner subjects for profile photos
+      await loadPartnerSubjects(response, userId);
     } catch (err) {
       console.error('Failed to load user relationships:', err);
       setError('Failed to load your relationships');
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadPartnerSubjects = async (relationships: UserCompositeChart[], currentUserId: string) => {
+    const subjectsMap: Record<string, SubjectDocument> = {};
+
+    for (const rel of relationships) {
+      let partnerId: string | undefined;
+
+      // Use userA_id and userB_id to determine partner
+      // If current user is userA, partner is userB (and vice versa)
+      if (rel.userA_id === currentUserId) {
+        partnerId = rel.userB_id;
+      } else if (rel.userB_id === currentUserId) {
+        partnerId = rel.userA_id;
+      } else {
+        // Neither matches current user, default to userB
+        partnerId = rel.userB_id;
+      }
+
+      // Fetch partner's subject data if we have an ID
+      if (partnerId) {
+        try {
+          const subject = await usersApi.getUser(partnerId);
+          subjectsMap[rel._id] = subject;
+          console.log(`Loaded partner subject for relationship ${rel._id}: ${subject.firstName} ${subject.lastName} (ID: ${partnerId})`);
+        } catch (err) {
+          console.error(`Failed to load subject for partner ${partnerId}:`, err);
+        }
+      }
+    }
+
+    setPartnerSubjects(subjectsMap);
   };
 
   const handleRelationshipPress = (relationship: UserCompositeChart) => {
@@ -138,7 +176,22 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
 
   const renderRelationshipItem = ({ item }: { item: UserCompositeChart }) => {
     const { leftName, rightName } = getDisplayNames(item);
-    const partnerName = leftName === 'You' ? rightName : leftName;
+    // If current user is leftName, show rightName as partner
+    // If current user is rightName, show leftName as partner
+    // If neither matches current user, default to rightName (userB)
+    const partnerNameFromRelationship = leftName === 'You' ? rightName : (rightName === 'You' ? leftName : rightName);
+
+    // Get partner subject for profile photo
+    // If subject is missing (user deleted), create a minimal subject with just the name for initials
+    const partnerSubject = partnerSubjects[item._id] || {
+      firstName: partnerNameFromRelationship.split(' ')[0] || partnerNameFromRelationship,
+      lastName: partnerNameFromRelationship.split(' ').slice(1).join(' ') || '',
+    } as SubjectDocument;
+
+    // Use full name from subject if available, otherwise fall back to relationship name
+    const partnerName = partnerSubjects[item._id]
+      ? `${partnerSubjects[item._id].firstName} ${partnerSubjects[item._id].lastName}`.trim()
+      : partnerNameFromRelationship;
 
     // Get analysis data from clusterScoring (primary) or relationshipAnalysisStatus (fallback)
     const clusterScoring = item.clusterScoring;
@@ -153,23 +206,8 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
     const tier = clusterScoring?.overall?.tier || analysisStatus?.overall?.tier || null;
     const profile = clusterScoring?.overall?.profile || analysisStatus?.overall?.profile || null;
 
-    // Get partner's data
-    const partnerDateOfBirth = leftName === 'You' ? item.userB_dateOfBirth : item.userA_dateOfBirth;
-
-    // Format partner's birth date
-    let formattedBirthDate = '';
-    if (partnerDateOfBirth) {
-      try {
-        const birthDate = parseDateStringAsLocalDate(partnerDateOfBirth);
-        formattedBirthDate = birthDate.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
-      } catch (e) {
-        // If parsing fails, skip the date
-      }
-    }
+    // Get partner's data - use same logic as partner name
+    const partnerDateOfBirth = leftName === 'You' ? item.userB_dateOfBirth : (rightName === 'You' ? item.userA_dateOfBirth : item.userB_dateOfBirth);
 
     // Get partner's sun sign for display
     const partnerSunSignName = getSunSignName(partnerDateOfBirth);
@@ -182,52 +220,53 @@ const UserRelationships: React.FC<UserRelationshipsProps> = ({ onRelationshipPre
         onPress={() => handleRelationshipPress(item)}
         activeOpacity={0.8}
       >
-        <View style={styles.cardTop}>
-          {/* Date created */}
-          <Text style={[styles.createdDate, { color: colors.onSurfaceVariant }]}>
-            {new Date(item.createdAt).toLocaleDateString()}
-          </Text>
+        {/* Profile Photo on Left */}
+        <View style={styles.avatarContainer}>
+          <ProfileAvatar
+            subject={partnerSubject}
+            size={40}
+            showOnlineIndicator={false}
+          />
         </View>
 
-        <View style={styles.cardHeader}>
-          <View style={styles.nameSection}>
-            <Text style={[styles.partnerName, { color: colors.onSurface }]}>{partnerName}</Text>
-            {partnerSunSignName && (
-              <View style={styles.sunSignContainer}>
-                <AstroIcon type="zodiac" name={partnerSunSignName} size={14} color={colors.primary} />
-                <Text style={[styles.sunSign, { color: colors.onSurfaceVariant }]}>{partnerSunSignName}</Text>
-              </View>
-            )}
-            {formattedBirthDate && (
-              <Text style={[styles.birthDate, { color: colors.onSurfaceVariant }]}>{formattedBirthDate}</Text>
+        {/* Content on Right */}
+        <View style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            <View style={styles.nameSection}>
+              <Text style={[styles.partnerName, { color: colors.onSurface }]}>{partnerName}</Text>
+              {partnerSunSignName && (
+                <View style={styles.sunSignContainer}>
+                  <AstroIcon type="zodiac" name={partnerSunSignName} size={14} color={colors.primary} />
+                  <Text style={[styles.sunSign, { color: colors.onSurfaceVariant }]}>{partnerSunSignName}</Text>
+                </View>
+              )}
+            </View>
+            {score !== null && (
+              <Text style={[styles.scoreText, { color: getScoreColor(score) }]}>{score}%</Text>
             )}
           </View>
-          {score !== null && (
-            <Text style={[styles.scoreText, { color: getScoreColor(score) }]}>{score}</Text>
+
+          {hasAnalysisData && (
+            <View style={styles.analysisInfo}>
+              <Text style={[styles.profileText, { color: colors.onSurfaceVariant }]}>{profile}</Text>
+              <RelationshipAnalysisTypeIndicator compositeChartId={item._id} />
+            </View>
+          )}
+
+          {hasAnalysisData && (
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    backgroundColor: getScoreColor(score!),
+                    width: `${score}%`
+                  }
+                ]}
+              />
+            </View>
           )}
         </View>
-
-        {hasAnalysisData && (
-          <View style={styles.analysisInfo}>
-            <Text style={[styles.tierText, { color: colors.primary }]}>{tier} Relationship</Text>
-            <Text style={[styles.profileText, { color: colors.onSurfaceVariant }]}>{profile}</Text>
-            <RelationshipAnalysisTypeIndicator compositeChartId={item._id} />
-          </View>
-        )}
-
-        {hasAnalysisData && (
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  backgroundColor: getScoreColor(score!),
-                  width: `${score}%`
-                }
-              ]}
-            />
-          </View>
-        )}
       </TouchableOpacity>
     );
   };
@@ -333,10 +372,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   relationshipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     borderWidth: 1,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+  },
+  avatarContainer: {
+    marginRight: 12,
+  },
+  cardContent: {
+    flex: 1,
   },
   cardTop: {
     marginBottom: 8,
@@ -374,7 +421,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   scoreText: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: 'bold',
     marginLeft: 12,
   },

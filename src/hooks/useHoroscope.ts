@@ -69,13 +69,36 @@ export const useHoroscope = (userId?: string): UseHoroscopeReturn => {
       const from = now.toISOString();
       const to = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(); // 3 months from now
 
+      console.log('🔵 [Transit Request] Requesting transits from:', from, 'to:', to);
+
       const response = await horoscopesApi.getTransitWindows(targetUserId, from, to);
+
+      console.log('🔵 [Transit Response] Raw API response:', JSON.stringify(response, null, 2));
+      console.log('🔵 [Transit Response] Transit events count:', response.transitEvents?.length || 0);
+      console.log('🔵 [Transit Response] Transit-to-transit events count:', response.transitToTransitEvents?.length || 0);
 
       // Combine transit-to-natal and transit-to-transit events
       const allTransitEvents = [
         ...response.transitEvents,
         ...(response.transitToTransitEvents || [])
       ];
+
+      // Log sample transit details
+      if (allTransitEvents.length > 0) {
+        console.log('🔵 [Transit Sample] First 3 transits:');
+        allTransitEvents.slice(0, 3).forEach((transit, idx) => {
+          console.log(`  Transit ${idx + 1}:`, {
+            description: transit.description,
+            start: transit.start,
+            end: transit.end,
+            exact: transit.exact,
+            startsBeforeRequest: transit.startsBeforeRequest,
+            endsAfterRequest: transit.endsAfterRequest,
+            orbAtRequestStart: transit.orbAtRequestStart,
+            orbAtRequestEnd: transit.orbAtRequestEnd,
+          });
+        });
+      }
 
       setTransitData(allTransitEvents);
       setStoreTransitData(allTransitEvents);

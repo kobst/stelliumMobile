@@ -107,10 +107,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingTop: 0,
+    paddingTop: 8,
   },
   cardWrapper: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
 });
 

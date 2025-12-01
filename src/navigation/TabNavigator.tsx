@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View } from 'react-native';
 import { useStore } from '../store';
 import { useTheme } from '../theme';
+import { isFeatureEnabled } from '../config/featureFlags';
 
 // Import stack navigators
 import HoroscopeStack from './HoroscopeStack';
@@ -55,7 +56,7 @@ const TabNavigator: React.FC = () => {
         tabBarStyle: {
           backgroundColor: colors.tabBarBackground,
           borderTopColor: colors.tabBarBorder,
-          borderTopWidth: 1,
+          borderTopWidth: 1.5,
           paddingBottom: 8,
           paddingTop: 8,
           paddingHorizontal: 8,
@@ -87,11 +88,13 @@ const TabNavigator: React.FC = () => {
         component={RelationshipsStack}
         options={{ title: 'Relations' }}
       />
-      <Tab.Screen
-        name="Celebrity"
-        component={CelebrityStack}
-        options={{ title: 'Celebrity' }}
-      />
+      {isFeatureEnabled('enableCelebrityTab') && (
+        <Tab.Screen
+          name="Celebrity"
+          component={CelebrityStack}
+          options={{ title: 'Celebrity' }}
+        />
+      )}
     </Tab.Navigator>
   );
 };

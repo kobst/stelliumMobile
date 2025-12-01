@@ -46,7 +46,7 @@ const RelationshipsScreen: React.FC = () => {
 
       {/* Footer Add Button */}
       <AddFooterButton
-        title="+ Add New Relationship"
+        title="Add Relationship"
         onPress={() => (navigation as any).navigate('CreateRelationship')}
       />
     </SafeAreaView>

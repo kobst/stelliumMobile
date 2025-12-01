@@ -101,7 +101,7 @@ const PlanetsTab: React.FC<PlanetsTabProps> = ({ userId, birthChart }) => {
           activeOpacity={0.7}
         >
           <View style={styles.sectionHeaderContent}>
-            <Text style={styles.planetGlyph}>{getPlanetGlyph(planet)}</Text>
+            <Text style={[styles.planetGlyph, { color: colors.onSurface }]}>{getPlanetGlyph(planet)}</Text>
             <View style={styles.planetInfo}>
               <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>{planet}</Text>
               {summary && (

@@ -16,9 +16,14 @@ const CelebrityStack: React.FC = () => {
         headerStyle: {
           backgroundColor: colors.surface,
         },
-        headerTintColor: colors.onSurface,
+        headerTintColor: colors.primary,
         headerTitleStyle: {
           fontWeight: 'bold',
+        },
+        headerBackTitle: '',
+        headerBackTitleVisible: false,
+        headerLeftContainerStyle: {
+          paddingLeft: 16,
         },
       }}
     >

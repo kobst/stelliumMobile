@@ -7,6 +7,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useTheme } from '../../theme';
+import { CreditActionButton } from '../ui/CreditActionButton';
 
 interface WizardContainerProps {
   children: ReactNode[];
@@ -19,6 +20,9 @@ interface WizardContainerProps {
   currentStep?: number;
   onStepChange?: (step: number) => void;
   completeButtonText?: string;
+  creditCost?: number;
+  isCheckingCredits?: boolean;
+  isLoading?: boolean;
 }
 
 export const WizardContainer: React.FC<WizardContainerProps> = ({
@@ -32,6 +36,9 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
   currentStep: externalCurrentStep,
   onStepChange,
   completeButtonText = 'Create My Chart',
+  creditCost,
+  isCheckingCredits = false,
+  isLoading = false,
 }) => {
   const { colors } = useTheme();
   const [internalCurrentStep, setInternalCurrentStep] = useState(0);
@@ -83,26 +90,44 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
 
       {/* Navigation Buttons */}
       <View style={styles.navigationContainer}>
-        {!isFirstStep && canGoBack && (
-          <TouchableOpacity style={styles.backButton} onPress={goBack}>
-            <Text style={styles.backButtonText}>{backButtonText}</Text>
-          </TouchableOpacity>
+        {isLastStep && creditCost !== undefined ? (
+          <>
+            {!isFirstStep && canGoBack && (
+              <TouchableOpacity style={styles.backButton} onPress={goBack}>
+                <Text style={styles.backButtonText}>{backButtonText}</Text>
+              </TouchableOpacity>
+            )}
+            <View style={styles.spacer} />
+            <CreditActionButton
+              cost={creditCost}
+              actionText={isCheckingCredits ? 'Checking credits...' : isLoading ? 'Creating...' : completeButtonText}
+              onPress={goNext}
+              disabled={!canGoNext}
+              loading={isCheckingCredits || isLoading}
+            />
+          </>
+        ) : (
+          <>
+            {!isFirstStep && canGoBack && (
+              <TouchableOpacity style={styles.backButton} onPress={goBack}>
+                <Text style={styles.backButtonText}>{backButtonText}</Text>
+              </TouchableOpacity>
+            )}
+            <View style={styles.spacer} />
+            <TouchableOpacity
+              style={[
+                styles.nextButton,
+                !canGoNext && styles.nextButtonDisabled,
+              ]}
+              onPress={goNext}
+              disabled={!canGoNext}
+            >
+              <Text style={styles.nextButtonText}>
+                {isLastStep ? completeButtonText : nextButtonText}
+              </Text>
+            </TouchableOpacity>
+          </>
         )}
-
-        <View style={styles.spacer} />
-
-        <TouchableOpacity
-          style={[
-            styles.nextButton,
-            !canGoNext && styles.nextButtonDisabled,
-          ]}
-          onPress={goNext}
-          disabled={!canGoNext}
-        >
-          <Text style={styles.nextButtonText}>
-            {isLastStep ? completeButtonText : nextButtonText}
-          </Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

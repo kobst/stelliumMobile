@@ -63,12 +63,16 @@ const BirthChartKeyElementsSection: React.FC<BirthChartKeyElementsSectionProps> 
             // Render aspect cards
             if (element.type === 'aspect') {
               return (
-                <View key={`${element.planet1}-${element.aspectType}-${element.planet2}-${index}`} style={styles.cardWrapper}>
+                <View key={`${element.planet1}-${element.aspectType}-${element.planet2}-${index}`}>
                   <BirthChartAspectCard
                     element={element}
                     colors={colors}
                     isSelected={false}
+                    variant="list"
                   />
+                  {index < keyElements.length - 1 && (
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                  )}
                 </View>
               );
             }
@@ -79,10 +83,10 @@ const BirthChartKeyElementsSection: React.FC<BirthChartKeyElementsSectionProps> 
               const retroText = element.isRetrograde ? ' ℞' : '';
 
               return (
-                <View key={`${element.planet}-${element.sign}-${index}`} style={styles.cardWrapper}>
-                  <View style={[styles.positionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View key={`${element.planet}-${element.sign}-${index}`}>
+                  <View style={styles.positionCard}>
                     <View style={styles.positionCardContent}>
-                      <Text style={styles.planetGlyph}>{getPlanetGlyph(element.planet as PlanetName)}</Text>
+                      <Text style={[styles.planetGlyph, { color: colors.onSurface }]}>{getPlanetGlyph(element.planet as PlanetName)}</Text>
                       <View style={styles.planetInfo}>
                         <Text style={[styles.planetName, { color: colors.onSurface }]}>
                           {element.planet}
@@ -93,6 +97,9 @@ const BirthChartKeyElementsSection: React.FC<BirthChartKeyElementsSectionProps> 
                       </View>
                     </View>
                   </View>
+                  {index < keyElements.length - 1 && (
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                  )}
                 </View>
               );
             }
@@ -144,12 +151,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   positionCard: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  divider: {
+    height: 1,
+    marginVertical: 8,
   },
   positionCardContent: {
     flexDirection: 'row',
