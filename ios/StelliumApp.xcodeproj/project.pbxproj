@@ -293,6 +293,7 @@
 		};
 		E75420452E8CA9D600F73FC1 /* Setup Environment Config */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -311,6 +312,7 @@
 		};
 		E7AEF7E42E90DC4000645D86 /* Copy Firebase Config */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);

@@ -13,18 +13,18 @@ REVERSED_CLIENT_ID=""
 echo "Info.plist Update Script - CONFIGURATION: ${CONFIGURATION}"
 echo "Info.plist Update Script - TARGET_NAME: ${TARGET_NAME}"
 
-# Check if we're building the Dev scheme
-if [[ "${TARGET_NAME}" == *".Dev"* ]] || [[ "${CONFIGURATION}" == *"Dev"* ]]; then
+# Select Google Sign-In client by build configuration
+if [ "${CONFIGURATION}" == "Debug" ]; then
     # Dev environment
     REVERSED_CLIENT_ID="com.googleusercontent.apps.1056285065517-bm65rgfa23gehv91ftjl63shphiaqe4b"
-    echo "Using Dev Google Sign-In configuration"
-elif [[ "${TARGET_NAME}" == *".Prod"* ]] || [[ "${CONFIGURATION}" == *"Prod"* ]]; then
+    echo "Using Dev Google Sign-In configuration (Debug)"
+elif [ "${CONFIGURATION}" == "Release" ]; then
     # Prod environment
     REVERSED_CLIENT_ID="com.googleusercontent.apps.63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio"
-    echo "Using Prod Google Sign-In configuration"
+    echo "Using Prod Google Sign-In configuration (Release)"
 else
     # Default to Dev
-    echo "warning: Could not determine environment, defaulting to Dev"
+    echo "warning: Unknown CONFIGURATION='${CONFIGURATION}', defaulting to Dev"
     REVERSED_CLIENT_ID="com.googleusercontent.apps.1056285065517-bm65rgfa23gehv91ftjl63shphiaqe4b"
 fi
 
