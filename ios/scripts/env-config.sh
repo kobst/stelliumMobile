@@ -11,7 +11,7 @@ if [ "${CONFIGURATION}" == "Debug" ]; then
 elif [ "${CONFIGURATION}" == "Release" ]; then
     ENV_FILE=".env.prod"
 else
-    echo "warning: Unknown configuration '${CONFIGURATION}', defaulting to .env.dev"
+    echo "warning: Unknown CONFIGURATION='${CONFIGURATION}', defaulting to .env.dev"
     ENV_FILE=".env.dev"
 fi
 
