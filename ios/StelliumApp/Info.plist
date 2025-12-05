@@ -8,6 +8,8 @@
 	<string>StelliumApp</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -27,7 +29,7 @@
 			<string></string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.1056285065517-bm65rgfa23gehv91ftjl63shphiaqe4b</string>
+				<string>com.googleusercontent.apps.63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio</string>
 			</array>
 		</dict>
 		<dict>

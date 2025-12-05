@@ -5,6 +5,14 @@
  * Updated to use credit-based system instead of individual feature limits.
  */
 
+import Config from 'react-native-config';
+
+// Determine if we're in production based on environment
+const isProduction = Config.ENV === 'production';
+
+// Product ID prefix based on environment
+const PRODUCT_PREFIX = isProduction ? 'com.stelliumapp' : 'com.stelliumapp.dev';
+
 export type SubscriptionTier = 'free' | 'premium' | 'pro';
 
 /**
@@ -46,21 +54,21 @@ export const CREDIT_PACKS: CreditPack[] = [
     credits: 75,
     price: 9.99,
     priceDisplay: '$9.99',
-    revenueCatProductId: 'com.stelliumapp.dev.credits.small',
+    revenueCatProductId: `${PRODUCT_PREFIX}.credits.small`,
   },
   {
     id: 'medium',
     credits: 200,
     price: 24.99,
     priceDisplay: '$24.99',
-    revenueCatProductId: 'com.stelliumapp.dev.credits.medium',
+    revenueCatProductId: `${PRODUCT_PREFIX}.credits.medium`,
   },
   {
     id: 'large',
     credits: 500,
     price: 49.99,
     priceDisplay: '$49.99',
-    revenueCatProductId: 'com.stelliumapp.dev.credits.large',
+    revenueCatProductId: `${PRODUCT_PREFIX}.credits.large`,
   },
 ];
 
@@ -168,7 +176,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
       relationshipChat: true,
       unlimitedActions: false,
     },
-    revenueCatProductId: 'com.stelliumapp.dev.premium.monthly',
+    revenueCatProductId: `${PRODUCT_PREFIX}.premium.monthly`,
     superwallPaywallId: 'premium_paywall',
     description: [
       '200 Credits per Month',
@@ -202,7 +210,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlanConfig
       relationshipChat: true,
       unlimitedActions: true,
     },
-    revenueCatProductId: 'com.stelliumapp.dev.pro.monthly',
+    revenueCatProductId: `${PRODUCT_PREFIX}.pro.monthly`,
     superwallPaywallId: 'pro_paywall',
     description: [
       '1000 Credits per Month',
