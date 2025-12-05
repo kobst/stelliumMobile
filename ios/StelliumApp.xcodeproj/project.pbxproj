@@ -395,7 +395,7 @@
 				CODE_SIGN_ENTITLEMENTS = StelliumApp/StelliumApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 38U6C5NF2M;
 				INFOPLIST_FILE = StelliumApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
