@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import {LoginManager, AccessToken} from 'react-native-fbsdk-next';
-import { GOOGLE_WEB_CLIENT_ID } from './src/config/firebase';
+import { GOOGLE_WEB_CLIENT_ID, IOS_GOOGLE_CLIENT_ID } from './src/config/firebase';
 
 // Dynamic import with fallback for Google Sign-In
 let GoogleSignin: any = null;
@@ -67,6 +67,7 @@ const AuthScreen: React.FC = () => {
       if (GoogleSignin && GoogleSignin.configure) {
         GoogleSignin.configure({
           webClientId: GOOGLE_WEB_CLIENT_ID,
+          iosClientId: IOS_GOOGLE_CLIENT_ID,
         });
       }
     } catch (error) {
@@ -147,19 +148,12 @@ const AuthScreen: React.FC = () => {
       if (!GoogleSignin) {
         throw new Error('Google Sign-In is not available');
       }
-      if (Platform.OS === 'android' && GoogleSignin.hasPlayServices) {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      if (userInfo.data?.idToken) {
+        const googleCredential = auth.GoogleAuthProvider.credential(userInfo.data.idToken);
+        await auth().signInWithCredential(googleCredential);
       }
-      const result = await GoogleSignin.signIn();
-      console.log('Google Sign-In result:', JSON.stringify(result, null, 2));
-      // Handle different API versions - token can be at result.idToken, result.data.idToken, or result.data?.idToken
-      const idToken = (result as any)?.idToken || (result as any)?.data?.idToken;
-      if (!idToken) {
-        console.error('Google Sign-In result structure:', Object.keys(result || {}));
-        throw new Error('No Google idToken returned');
-      }
-      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-      await auth().signInWithCredential(googleCredential);
     } catch (error: any) {
       console.error('Google Sign-In Error:', error);
       if (error.code !== 'SIGN_IN_CANCELLED') {

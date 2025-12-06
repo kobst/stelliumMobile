@@ -28,5 +28,10 @@ export const GOOGLE_WEB_CLIENT_ID = isDev
   ? '1056285065517-bm65rgfa23gehv91ftjl63shphiaqe4b.apps.googleusercontent.com'
   : '63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio.apps.googleusercontent.com';
 
+// iOS Client ID from GoogleService-Info.plist (CLIENT_ID)
+export const IOS_GOOGLE_CLIENT_ID = isDev
+  ? '1056285065517-bm65rgfa23gehv91ftjl63shphiaqe4b.apps.googleusercontent.com'
+  : '63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio.apps.googleusercontent.com';
+
 // Facebook App Configuration
 export const FACEBOOK_APP_ID = '561705813647639';
