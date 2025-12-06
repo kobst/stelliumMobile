@@ -213,7 +213,20 @@ const AuthScreen: React.FC = () => {
       const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
 
       // Sign in with Firebase
-      await auth().signInWithCredential(appleCredential);
+      const credResult = await auth().signInWithCredential(appleCredential);
+
+      // If Apple provided a name on first sign-in, persist it to Firebase profile
+      try {
+        const given = appleAuthRequestResponse.fullName?.givenName || '';
+        const family = appleAuthRequestResponse.fullName?.familyName || '';
+        const displayName = `${given} ${family}`.trim();
+        if (displayName && credResult?.user) {
+          await credResult.user.updateProfile({ displayName });
+        }
+      } catch (e) {
+        // Non-fatal if we fail to set display name
+        console.log('Apple displayName update skipped:', e);
+      }
     } catch (error: any) {
       console.error('Apple Sign-In Error:', error);
       if (error.code !== 'ERR_CANCELED') {
