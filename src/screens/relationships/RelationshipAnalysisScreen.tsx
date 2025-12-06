@@ -26,6 +26,7 @@ import CompositeTables from '../../components/chart/CompositeTables';
 import AspectColorLegend from '../../components/chart/AspectColorLegend';
 import RelationshipAnalysisTab from '../../components/relationship/RelationshipAnalysisTab';
 import RelationshipChatTab from '../../components/relationship/RelationshipChatTab';
+import LockedRelationshipChatTab from '../../components/relationship/LockedRelationshipChatTab';
 import V3ClusterRadar from '../../components/relationship/V3ClusterRadar';
 import ConsolidatedItemsGrid from '../../components/relationship/ConsolidatedItemsGrid';
 import { AnalysisHeader } from '../../components/navigation/AnalysisHeader';
@@ -430,6 +431,15 @@ const RelationshipAnalysisScreen: React.FC = () => {
           />
         );
       case 'chat':
+        // Ask Stellium requires 360 Analysis to be completed first
+        if (!analysisData?.completeAnalysis) {
+          return (
+            <LockedRelationshipChatTab
+              userAName={relationship.userA_name}
+              userBName={relationship.userB_name}
+            />
+          );
+        }
         const consolidatedItems = relationshipTransformers.enrichCompositeAspects(
           relationshipData?.clusterScoring?.scoredItems || [],
           relationshipData?.compositeChart

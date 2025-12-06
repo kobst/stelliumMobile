@@ -31,6 +31,8 @@ export interface CreditCost {
   relationshipOverview: number;
   fullRelationshipReport: number;
   askStelliumQuestion: number;
+  dailyHoroscope: number;
+  weeklyHoroscope: number;
 }
 
 export const CREDIT_COSTS: CreditCost = {
@@ -39,6 +41,8 @@ export const CREDIT_COSTS: CreditCost = {
   relationshipOverview: 10,
   fullRelationshipReport: 60,
   askStelliumQuestion: 1,
+  dailyHoroscope: 1,
+  weeklyHoroscope: 2,
 };
 
 export type CreditAction = keyof CreditCost;

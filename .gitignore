@@ -53,6 +53,9 @@ yarn-error.log
 !.env.dev
 !.env.prod
 
+# iOS Firebase generated plist (copied by build scripts)
+ios/GoogleService-Info.plist
+
 # fastlane
 #
 # It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
