@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -28,8 +28,19 @@ const UserOnboardingScreen: React.FC = () => {
   const { setUserData } = useStore();
   const { colors } = useTheme();
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // Prefill name when available (e.g., Sign in with Apple first sign-in)
+  const currentUser = auth().currentUser;
+  const initialNames = useMemo(() => {
+    const dn = currentUser?.displayName || '';
+    const parts = dn.trim().split(/\s+/);
+    return {
+      first: parts.length > 0 ? parts[0] : '',
+      last: parts.length > 1 ? parts.slice(1).join(' ') : '',
+    };
+  }, [currentUser?.displayName]);
+
+  const [firstName, setFirstName] = useState(initialNames.first);
+  const [lastName, setLastName] = useState(initialNames.last);
   const [birthYear, setBirthYear] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
   const [birthDay, setBirthDay] = useState('');
@@ -47,8 +58,17 @@ const UserOnboardingScreen: React.FC = () => {
 
   const validateForm = (): string[] => {
     const errs: string[] = [];
-    if (!firstName.trim()) {errs.push('First name is required');}
-    if (!lastName.trim()) {errs.push('Last name is required');}
+    // If user signed in with Apple, don't require entering name again –
+    // we use Apple displayName (if provided) or allow skipping.
+    const providerIds = currentUser?.providerData?.map(p => p.providerId) || [];
+    const isAppleSignin = providerIds.includes('apple.com');
+    const hasAnyName = (firstName && firstName.trim().length > 0) || (lastName && lastName.trim().length > 0);
+    if (!isAppleSignin) {
+      if (!firstName.trim()) {errs.push('First name is required');}
+      if (!lastName.trim()) {errs.push('Last name is required');}
+    } else {
+      // Optional for Apple Sign-In users; we will provide a sensible default later if empty
+    }
     if (!birthYear || !birthMonth || !birthDay) {errs.push('Complete birth date is required');}
     if (!unknownTime && (!birthHour || !birthMinute)) {errs.push('Birth time is required');}
     if (!lat || !lon) {errs.push('Location is required');}
@@ -175,7 +195,13 @@ const UserOnboardingScreen: React.FC = () => {
       // Prepare data in the format the store expects for navigation
       const userData = {
         id: '', // Will be set after user creation
-        name: `${firstName} ${lastName}`,
+        name: (() => {
+          const nameFromInputs = `${firstName || ''} ${lastName || ''}`.trim();
+          if (nameFromInputs) return nameFromInputs;
+          // Fallback to Firebase displayName or a generic label
+          if (currentUser?.displayName) return currentUser.displayName;
+          return 'My Chart';
+        })(),
         email: '', // Not collected in mobile
         birthYear: parseInt(birthYear),
         birthMonth: parseInt(birthMonth),
