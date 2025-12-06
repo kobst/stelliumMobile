@@ -24,6 +24,8 @@ export const CREDIT_COSTS = {
   relationshipOverview: 10,
   fullRelationshipReport: 60,
   askStelliumQuestion: 1,
+  dailyHoroscope: 1,
+  weeklyHoroscope: 2,
 } as const;
 
 export type CreditAction = keyof typeof CREDIT_COSTS;

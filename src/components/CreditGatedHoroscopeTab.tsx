@@ -1,55 +1,49 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../theme';
-import { superwallService } from '../services/SuperwallService';
-import { PAYWALL_EVENTS } from '../config/subscriptionConfig';
 
-interface LockedHoroscopeTabProps {
-  horoscopeType: 'daily' | 'monthly' | 'chat';
+interface CreditGatedHoroscopeTabProps {
+  horoscopeType: 'daily' | 'weekly';
+  creditCost: number;
+  onUnlock: () => void;
+  isLoading: boolean;
 }
 
-const LockedHoroscopeTab: React.FC<LockedHoroscopeTabProps> = ({ horoscopeType }) => {
+const CreditGatedHoroscopeTab: React.FC<CreditGatedHoroscopeTabProps> = ({
+  horoscopeType,
+  creditCost,
+  onUnlock,
+  isLoading,
+}) => {
   const { colors } = useTheme();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleUpgrade = async () => {
-    try {
-      setIsLoading(true);
-      // Use the same method as subscription screen which works
-      await superwallService.showSettingsUpgradePaywall();
-    } catch (error) {
-      console.error('[LockedHoroscopeTab] Failed to show paywall:', error);
-    } finally {
-      setIsLoading(false);
+  const displayName = horoscopeType === 'daily' ? 'Daily' : 'Weekly';
+
+  const getButtonText = (): string => {
+    if (isLoading) {
+      return 'Unlocking...';
     }
+    return `Unlock ${displayName} Horoscope`;
   };
-
-  const isChat = horoscopeType === 'chat';
-  const displayName = isChat ? 'Ask Stellium' : horoscopeType === 'daily' ? 'Daily' : 'Monthly';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        {/* Lock Icon */}
-        <View style={[styles.iconContainer, { backgroundColor: colors.primaryContainer }]}>
-          <Text style={styles.lockIcon}>🔒</Text>
+        {/* Horoscope Icon */}
+        <View style={[styles.iconContainer, { backgroundColor: colors.surfaceVariant }]}>
+          <Text style={styles.horoscopeIcon}>
+            {horoscopeType === 'daily' ? '☀️' : '📅'}
+          </Text>
         </View>
 
         {/* Title */}
         <Text style={[styles.title, { color: colors.onSurface }]}>
-          {isChat ? 'Ask Stellium' : `${displayName} Horoscope`}
-        </Text>
-
-        {/* Subtitle */}
-        <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
-          Premium Feature
+          {displayName} Horoscope
         </Text>
 
         {/* Description */}
         <Text style={[styles.description, { color: colors.onSurfaceVariant }]}>
-          {isChat
-            ? 'Upgrade to Premium or Pro to ask Stellium personalized questions about your transits and get AI-powered astrological guidance.'
-            : `Upgrade to Premium or Pro to unlock ${displayName.toLowerCase()} horoscopes and get deeper insights into your astrological journey.`}
+          Unlock your personalized {displayName.toLowerCase()} reading to discover the cosmic influences shaping your day.
         </Text>
 
         {/* Features List */}
@@ -57,43 +51,43 @@ const LockedHoroscopeTab: React.FC<LockedHoroscopeTabProps> = ({ horoscopeType }
           <View style={styles.featureItem}>
             <Text style={[styles.featureIcon, { color: colors.primary }]}>✓</Text>
             <Text style={[styles.featureText, { color: colors.onSurfaceVariant }]}>
-              {isChat ? 'Ask custom questions about your chart' : `Personalized ${displayName.toLowerCase()} readings`}
+              Personalized {displayName.toLowerCase()} insights
             </Text>
           </View>
           <View style={styles.featureItem}>
             <Text style={[styles.featureIcon, { color: colors.primary }]}>✓</Text>
             <Text style={[styles.featureText, { color: colors.onSurfaceVariant }]}>
-              {isChat ? 'AI-powered astrological insights' : 'Key planetary influences'}
+              Key planetary influences
             </Text>
           </View>
           <View style={styles.featureItem}>
             <Text style={[styles.featureIcon, { color: colors.primary }]}>✓</Text>
             <Text style={[styles.featureText, { color: colors.onSurfaceVariant }]}>
-              {isChat ? 'Personalized transit interpretations' : 'Actionable guidance and themes'}
+              Actionable guidance
             </Text>
           </View>
         </View>
 
-        {/* Upgrade Button */}
+        {/* Unlock Button */}
         <TouchableOpacity
-          style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
-          onPress={handleUpgrade}
+          style={[styles.unlockButton, { backgroundColor: colors.primary }]}
+          onPress={onUnlock}
           disabled={isLoading}
+          activeOpacity={0.8}
         >
           {isLoading ? (
             <ActivityIndicator size="small" color={colors.onPrimary} />
           ) : (
-            <Text style={[styles.upgradeButtonText, { color: colors.onPrimary }]}>
-              Upgrade to Premium
-            </Text>
+            <View style={styles.unlockButtonContent}>
+              <Text style={[styles.unlockButtonText, { color: colors.onPrimary }]}>
+                {getButtonText()}
+              </Text>
+              <View style={[styles.unlockButtonDivider, { backgroundColor: colors.onPrimary }]} />
+              <Text style={[styles.unlockButtonCost, { color: colors.onPrimary }]}>
+                {creditCost} ⚡
+              </Text>
+            </View>
           )}
-        </TouchableOpacity>
-
-        {/* Learn More Link */}
-        <TouchableOpacity onPress={handleUpgrade}>
-          <Text style={[styles.learnMoreText, { color: colors.primary }]}>
-            Learn more about Premium
-          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -123,22 +117,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20,
   },
-  lockIcon: {
+  horoscopeIcon: {
     fontSize: 40,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '600',
     marginBottom: 16,
     textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   description: {
     fontSize: 16,
@@ -164,22 +150,32 @@ const styles = StyleSheet.create({
     fontSize: 15,
     flex: 1,
   },
-  upgradeButton: {
+  unlockButton: {
     width: '100%',
-    paddingVertical: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
   },
-  upgradeButtonText: {
+  unlockButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  unlockButtonText: {
     fontSize: 16,
     fontWeight: '600',
   },
-  learnMoreText: {
-    fontSize: 14,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
+  unlockButtonDivider: {
+    width: 1,
+    height: 24,
+    marginHorizontal: 8,
+    opacity: 0.3,
+  },
+  unlockButtonCost: {
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 
-export default LockedHoroscopeTab;
+export default CreditGatedHoroscopeTab;
