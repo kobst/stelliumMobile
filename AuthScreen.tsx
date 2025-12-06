@@ -147,12 +147,16 @@ const AuthScreen: React.FC = () => {
       if (!GoogleSignin) {
         throw new Error('Google Sign-In is not available');
       }
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      if (userInfo.data?.idToken) {
-        const googleCredential = auth.GoogleAuthProvider.credential(userInfo.data.idToken);
-        await auth().signInWithCredential(googleCredential);
+      if (Platform.OS === 'android' && GoogleSignin.hasPlayServices) {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       }
+      const result = await GoogleSignin.signIn();
+      const idToken = (result as any)?.idToken;
+      if (!idToken) {
+        throw new Error('No Google idToken returned');
+      }
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      await auth().signInWithCredential(googleCredential);
     } catch (error: any) {
       console.error('Google Sign-In Error:', error);
       if (error.code !== 'SIGN_IN_CANCELLED') {
