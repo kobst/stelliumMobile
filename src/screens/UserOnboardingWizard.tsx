@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import Config from 'react-native-config';
 import { externalApi } from '../api';
-import { usersApi } from '../api';
+import { usersApi, subscriptionsApi } from '../api';
 import { useStore } from '../store';
 import { userTransformers } from '../transformers/user';
 import { uploadProfilePhotoPresigned } from '../utils/imageHelpers';
@@ -305,6 +305,16 @@ const UserOnboardingWizard: React.FC = () => {
             [{ text: 'OK' }]
           );
         }
+      }
+
+      // Initialize subscription for the newly created user using MongoDB ObjectId
+      try {
+        console.log('\nInitializing subscription for new user:', subjectId);
+        await subscriptionsApi.initializeSubscription(subjectId, { tier: 'free' });
+        console.log('Subscription initialized successfully');
+      } catch (subError) {
+        console.error('Failed to initialize subscription:', subError);
+        // Don't fail onboarding if subscription init fails - it can be retried later
       }
 
       // Store the created user in the store
