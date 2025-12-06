@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Alert } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import Config from 'react-native-config';
@@ -24,9 +24,20 @@ console.log('========================');
 const UserOnboardingWizard: React.FC = () => {
   const { setUserData } = useStore();
 
-  // Form state
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // Pre-fill name from Firebase displayName (e.g., from Sign in with Apple)
+  const currentUser = auth().currentUser;
+  const initialNames = useMemo(() => {
+    const displayName = currentUser?.displayName || '';
+    const parts = displayName.trim().split(/\s+/);
+    return {
+      first: parts.length > 0 ? parts[0] : '',
+      last: parts.length > 1 ? parts.slice(1).join(' ') : '',
+    };
+  }, [currentUser?.displayName]);
+
+  // Form state - pre-fill from Apple/Google sign-in if available
+  const [firstName, setFirstName] = useState(initialNames.first);
+  const [lastName, setLastName] = useState(initialNames.last);
   const [gender, setGender] = useState('');
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const [profileImageMimeType, setProfileImageMimeType] = useState('');
@@ -49,8 +60,16 @@ const UserOnboardingWizard: React.FC = () => {
 
   const validateForm = (): string[] => {
     const errs: string[] = [];
-    if (!firstName.trim()) {errs.push('First name is required');}
-    if (!lastName.trim()) {errs.push('Last name is required');}
+    // For Apple Sign-In users, name is already provided via displayName
+    // Only require name if not signed in with Apple or if displayName wasn't provided
+    const providerIds = currentUser?.providerData?.map(p => p.providerId) || [];
+    const isAppleSignin = providerIds.includes('apple.com');
+    const hasDisplayName = !!currentUser?.displayName;
+
+    if (!isAppleSignin || !hasDisplayName) {
+      if (!firstName.trim()) {errs.push('First name is required');}
+      if (!lastName.trim()) {errs.push('Last name is required');}
+    }
     if (!lat || !lon) {errs.push('Location is required');}
     if (!gender) {errs.push('Gender/Sex is required');}
 
@@ -180,10 +199,15 @@ const UserOnboardingWizard: React.FC = () => {
       const totalOffsetHours = await externalApi.fetchTimeZone(lat!, lon!, epochTimeSeconds);
       console.log('Timezone offset hours:', totalOffsetHours);
 
+      // Use entered name, or fall back to Firebase displayName for Apple Sign-In
+      const finalFirstName = firstName.trim() || initialNames.first || '';
+      const finalLastName = lastName.trim() || initialNames.last || '';
+      const finalName = `${finalFirstName} ${finalLastName}`.trim() || firebaseUser.displayName || 'User';
+
       // Prepare data in the format the store expects for navigation
       const userData = {
         id: '', // Will be set after user creation
-        name: `${firstName} ${lastName}`,
+        name: finalName,
         email: '', // Not collected in mobile
         birthYear: parseInt(birthYear),
         birthMonth: parseInt(birthMonth),
@@ -194,8 +218,8 @@ const UserOnboardingWizard: React.FC = () => {
         timezone: totalOffsetHours.toString(), // Required for navigation
         // Store frontend format data for later use
         frontendData: {
-          firstName,
-          lastName,
+          firstName: finalFirstName,
+          lastName: finalLastName,
           dateOfBirth: date,
           placeOfBirth,
           time: time,
@@ -215,8 +239,8 @@ const UserOnboardingWizard: React.FC = () => {
         console.log('\nCalling createUserUnknownTime API...');
         const createUserUnknownTimePayload = {
           firebaseUid: firebaseUser.uid, // Firebase Auth UID
-          firstName,
-          lastName,
+          firstName: finalFirstName,
+          lastName: finalLastName,
           gender,
           placeOfBirth,
           dateOfBirth: date,
@@ -232,8 +256,8 @@ const UserOnboardingWizard: React.FC = () => {
         console.log('\nCalling createUser API...');
         const createUserPayload = {
           firebaseUid: firebaseUser.uid, // Firebase Auth UID
-          firstName,
-          lastName,
+          firstName: finalFirstName,
+          lastName: finalLastName,
           dateOfBirth: date,
           placeOfBirth,
           time,
@@ -304,7 +328,12 @@ const UserOnboardingWizard: React.FC = () => {
   const getStepValidation = (stepIndex: number): boolean => {
     switch (stepIndex) {
       case 0: // Name & Gender
-        return Boolean(firstName.trim() && lastName.trim() && gender);
+        // For Apple Sign-In users with displayName, name fields can be pre-filled or empty
+        const providerIds = currentUser?.providerData?.map(p => p.providerId) || [];
+        const isAppleSignin = providerIds.includes('apple.com');
+        const hasDisplayName = !!currentUser?.displayName;
+        const nameValid = (isAppleSignin && hasDisplayName) || Boolean(firstName.trim() && lastName.trim());
+        return Boolean(nameValid && gender);
       case 1: // Birth Location
         return Boolean(lat && lon && placeOfBirth);
       case 2: // Birth Date & Time
