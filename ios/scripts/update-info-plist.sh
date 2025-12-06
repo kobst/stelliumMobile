@@ -4,7 +4,6 @@
 # It should be added as a pre-build script in Xcode (before Copy Bundle Resources)
 
 INFO_PLIST="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
-PROJECT_INFO_PLIST="${PROJECT_DIR}/StelliumApp/Info.plist"
 
 # Determine which Firebase config we're using
 FIREBASE_CONFIG=""
@@ -28,8 +27,7 @@ else
     REVERSED_CLIENT_ID="com.googleusercontent.apps.1056285065517-bm65rgfa23gehv91ftjl63shphiaqe4b"
 fi
 
-# Update Info.plist with the correct REVERSED_CLIENT_ID
-# Use PlistBuddy to update the URL scheme
-/usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 ${REVERSED_CLIENT_ID}" "${PROJECT_INFO_PLIST}"
+# Update the built Info.plist with the correct REVERSED_CLIENT_ID (avoid dirtying the repo file)
+/usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 ${REVERSED_CLIENT_ID}" "${INFO_PLIST}"
 
 echo "Updated Info.plist with REVERSED_CLIENT_ID: ${REVERSED_CLIENT_ID}"
