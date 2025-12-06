@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -22,11 +22,15 @@ import {
   getCurrentMonthRange,
   getNextMonthRange,
   dateRangesOverlap,
+  getISOWeekNumber,
 } from '../utils/dateHelpers';
 import { useTheme } from '../theme';
 import { AstroIcon } from '../../utils/astrologyIcons';
 import HoroscopeChatTab from './HoroscopeChatTab';
 import LockedHoroscopeTab from './LockedHoroscopeTab';
+import CreditGatedHoroscopeTab from './CreditGatedHoroscopeTab';
+import { useCreditsGate } from '../hooks/useCreditsGate';
+import { CREDIT_COSTS, CreditAction } from '../config/subscriptionConfig';
 
 interface HoroscopeContainerProps {
   transitWindows?: TransitEvent[];
@@ -64,19 +68,68 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   });
   const [loadedTabs, setLoadedTabs] = useState<Set<HoroscopeFilter>>(new Set());
 
+  // Credit gating state for free users
+  const [purchasedTabs, setPurchasedTabs] = useState<Record<string, boolean>>({});
+  const [pendingHoroscopeCache, setPendingHoroscopeCache] = useState<HoroscopeCache>({
+    today: null,
+    thisWeek: null,
+    thisMonth: null,
+  });
+  const [unlockingTab, setUnlockingTab] = useState<HoroscopeFilter | null>(null);
+
   const { userData, userSubscription } = useStore();
+  const { checkAndProceed, isChecking } = useCreditsGate();
 
   // Get subscription tier (default to 'free' if not set)
   const subscriptionTier = userSubscription?.tier || 'free';
 
-  // Check if a tab is locked for the current subscription tier
-  const isTabLocked = (tab: HoroscopeFilter): boolean => {
-    if (subscriptionTier === 'free') {
-      // Free users can only access 'thisWeek' and 'chat'
-      return tab === 'today' || tab === 'thisMonth';
+  // Check if a tab requires credits (only for free users, only daily/weekly)
+  const isTabCreditGated = useCallback((tab: HoroscopeFilter): boolean => {
+    // Premium/Pro users never see credit gates
+    if (subscriptionTier === 'premium' || subscriptionTier === 'pro') {
+      return false;
     }
-    return false;
-  };
+    // Monthly is always free for everyone
+    if (tab === 'thisMonth') {
+      return false;
+    }
+    // Chat tab is still subscription-locked (handled separately)
+    if (tab === 'chat') {
+      return false;
+    }
+    // Daily and weekly require credits for free users
+    return tab === 'today' || tab === 'thisWeek';
+  }, [subscriptionTier]);
+
+  // Get unique period key for caching purchases (e.g., "daily-2025-12-05")
+  const getPeriodKey = useCallback((tab: HoroscopeFilter): string => {
+    const now = new Date();
+    switch (tab) {
+      case 'today':
+        return `daily-${now.toISOString().split('T')[0]}`;
+      case 'thisWeek':
+        const weekNum = getISOWeekNumber(now);
+        return `weekly-${now.getFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
+      case 'thisMonth':
+        return `monthly-${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+      default:
+        return `unknown-${Date.now()}`;
+    }
+  }, []);
+
+  // Check if user has already paid for this tab's current period
+  const isTabPurchased = useCallback((tab: HoroscopeFilter): boolean => {
+    const periodKey = getPeriodKey(tab);
+    return purchasedTabs[periodKey] === true;
+  }, [purchasedTabs, getPeriodKey]);
+
+  // Check if tab should show credit gate UI (free users who haven't purchased)
+  const shouldShowCreditGate = useCallback((tab: HoroscopeFilter): boolean => {
+    return isTabCreditGated(tab) && !isTabPurchased(tab);
+  }, [isTabCreditGated, isTabPurchased]);
+
+  // Check if chat tab is subscription-locked (for free users)
+  const isChatLocked = subscriptionTier === 'free';
 
   // Helper function to add timeout to promises
   const withTimeout = (promise: Promise<any>, timeoutMs: number = 30000): Promise<any> => {
@@ -267,7 +320,21 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   // Fetch horoscope for a specific tab with retry capability
   const fetchHoroscopeForTab = async (tab: HoroscopeFilter, isRetry: boolean = false) => {
     const targetUserId = userId || userData?.id;
-    if (!targetUserId || (!isRetry && loadedTabs.has(tab) && horoscopeCache[tab])) {return;}
+    if (!targetUserId || tab === 'chat') {return;}
+
+    // Determine if this is a credit-gated tab that hasn't been purchased yet
+    const isCreditGated = isTabCreditGated(tab);
+    const isPurchased = isTabPurchased(tab);
+
+    // Skip if already have data in the appropriate cache (unless retrying)
+    if (!isRetry) {
+      if (isCreditGated && !isPurchased && pendingHoroscopeCache[tab]) {
+        return; // Already have pending data for credit-gated tab
+      }
+      if ((!isCreditGated || isPurchased) && horoscopeCache[tab]) {
+        return; // Already have accessible data
+      }
+    }
 
     setHoroscopeLoading(true);
     if (isRetry) {
@@ -295,10 +362,20 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
 
       const horoscope = await getHoroscopeForPeriod(targetUserId, startDate, type);
 
-      setHoroscopeCache(prev => ({
-        ...prev,
-        [tab]: horoscope,
-      }));
+      // Store in appropriate cache based on credit gating status
+      if (isCreditGated && !isPurchased) {
+        // Store in pending cache (user hasn't paid yet)
+        setPendingHoroscopeCache(prev => ({
+          ...prev,
+          [tab]: horoscope,
+        }));
+      } else {
+        // Store in main cache (accessible immediately)
+        setHoroscopeCache(prev => ({
+          ...prev,
+          [tab]: horoscope,
+        }));
+      }
 
       setLoadedTabs(prev => new Set([...prev, tab]));
       // Clear error for this tab on success
@@ -319,6 +396,48 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   // Retry function for failed horoscopes
   const retryHoroscope = () => {
     fetchHoroscopeForTab(activeTab, true);
+  };
+
+  // Handle unlocking a credit-gated horoscope
+  const handleUnlockHoroscope = async (tab: 'today' | 'thisWeek') => {
+    const creditAction: CreditAction = tab === 'today' ? 'dailyHoroscope' : 'weeklyHoroscope';
+
+    setUnlockingTab(tab);
+
+    try {
+      const allowed = await checkAndProceed({
+        action: creditAction,
+        source: `horoscope_${tab}`,
+        onProceed: async () => {
+          // Mark as purchased for this period
+          const periodKey = getPeriodKey(tab);
+          setPurchasedTabs(prev => ({
+            ...prev,
+            [periodKey]: true,
+          }));
+
+          // Move content from pending to main cache
+          if (pendingHoroscopeCache[tab]) {
+            setHoroscopeCache(prev => ({
+              ...prev,
+              [tab]: pendingHoroscopeCache[tab],
+            }));
+            setPendingHoroscopeCache(prev => ({
+              ...prev,
+              [tab]: null,
+            }));
+          }
+        },
+      });
+
+      if (!allowed) {
+        console.log('[HoroscopeContainer] User did not have enough credits or cancelled');
+      }
+    } catch (error) {
+      console.error('[HoroscopeContainer] Error unlocking horoscope:', error);
+    } finally {
+      setUnlockingTab(null);
+    }
   };
 
   // Load horoscope when active tab changes (but not for chat tab)
@@ -370,14 +489,14 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           contentContainerStyle={styles.tabContentContainer}
         >
           {tabOptions.map((tab) => {
-            const locked = isTabLocked(tab.key);
+            const chatLocked = tab.key === 'chat' && isChatLocked;
             return (
               <TouchableOpacity
                 key={tab.key}
                 style={[
                   styles.tabButton,
                   activeTab === tab.key && styles.activeTabButton,
-                  locked && styles.lockedTabButton,
+                  chatLocked && styles.lockedTabButton,
                 ]}
                 onPress={() => setActiveTab(tab.key)}
               >
@@ -386,12 +505,13 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
                     style={[
                       styles.tabButtonText,
                       activeTab === tab.key && styles.activeTabButtonText,
-                      locked && styles.lockedTabButtonText,
+                      chatLocked && styles.lockedTabButtonText,
                     ]}
                   >
                     {tab.label}
                   </Text>
-                  {locked && <Text style={styles.lockIcon}>🔒</Text>}
+                  {/* Show lock icon for subscription-locked chat tab */}
+                  {chatLocked && <Text style={styles.lockIcon}>🔒</Text>}
                 </View>
               </TouchableOpacity>
             );
@@ -401,15 +521,24 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
 
       {/* Scrollable Content or Chat */}
       {activeTab === 'chat' ? (
-        <HoroscopeChatTab
-          userId={userId!}
-          transitWindows={transitWindows}
-          transitWindowsLoading={loading}
-          transitWindowsError={error}
-          onRetryTransitWindows={onRetryTransitWindows || (() => {})}
+        isChatLocked ? (
+          <LockedHoroscopeTab horoscopeType="chat" />
+        ) : (
+          <HoroscopeChatTab
+            userId={userId!}
+            transitWindows={transitWindows}
+            transitWindowsLoading={loading}
+            transitWindowsError={error}
+            onRetryTransitWindows={onRetryTransitWindows || (() => {})}
+          />
+        )
+      ) : shouldShowCreditGate(activeTab) ? (
+        <CreditGatedHoroscopeTab
+          horoscopeType={activeTab === 'today' ? 'daily' : 'weekly'}
+          creditCost={activeTab === 'today' ? CREDIT_COSTS.dailyHoroscope : CREDIT_COSTS.weeklyHoroscope}
+          onUnlock={() => handleUnlockHoroscope(activeTab as 'today' | 'thisWeek')}
+          isLoading={unlockingTab === activeTab || isChecking}
         />
-      ) : isTabLocked(activeTab) ? (
-        <LockedHoroscopeTab horoscopeType={activeTab === 'today' ? 'daily' : 'monthly'} />
       ) : (
         <ScrollView style={styles.scrollContent}>
 
@@ -637,6 +766,14 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   lockIcon: {
     fontSize: 12,
+  },
+  creditIndicator: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  activeCreditIndicator: {
+    color: colors.onPrimary,
   },
   section: {
     margin: 16,
