@@ -1,146 +1,91 @@
-# iOS Build Configuration Setup
+# iOS Environment Setup (Dev vs Prod)
 
-This guide walks through setting up separate Dev and Prod schemes in Xcode for the StelliumApp project.
+This project uses two Xcode schemes and the standard Debug/Release configurations to manage Dev and Prod:
+
+- StelliumApp.Dev → Debug (Dev)
+- StelliumApp.Prod → Release (Prod)
+
+Environment selection and setup are automated via build scripts.
 
 ## Prerequisites
 - Xcode installed
 - CocoaPods configured (`cd ios && pod install`)
 
-## Step-by-Step Configuration
+## Schemes and Configurations
 
-### 1. Duplicate Build Configurations
+1. Open `ios/StelliumApp.xcworkspace` in Xcode.
+2. Product → Scheme → Manage Schemes.
+3. Ensure schemes exist:
+   - `StelliumApp.Dev`: Run configuration = `Debug`.
+   - `StelliumApp.Prod`: Run configuration = `Release` (set to ensure Prod behavior when running).
+4. Archive uses `Release` by default (suitable for Prod archives).
 
-1. Open `ios/StelliumApp.xcworkspace` in Xcode
-2. Select the project in the Project Navigator (top-level "StelliumApp")
-3. Select the "StelliumApp" project (not target) in the editor
-4. Go to the "Info" tab
-5. Under "Configurations", duplicate existing configurations:
-   - Duplicate "Debug" → Rename to "Debug.Dev"
-   - Duplicate "Debug" → Rename to "Debug.Prod"
-   - Duplicate "Release" → Rename to "Release.Dev"
-   - Duplicate "Release" → Rename to "Release.Prod"
+This simplified approach avoids maintaining four custom configurations and keeps logic clear: Debug = Dev, Release = Prod.
 
-### 2. Create Schemes
+## Build Scripts (already added)
 
-1. Go to **Product → Scheme → Manage Schemes**
-2. Duplicate the "StelliumApp" scheme:
-   - Click "StelliumApp" and click the gear icon → "Duplicate"
-   - Name it "StelliumApp.Dev"
-3. For **StelliumApp.Dev** scheme:
-   - Click "Edit"
-   - For each phase (Build, Run, Test, Profile, Analyze, Archive):
-     - Set Build Configuration to use `.Dev` variants
-     - Run: Debug.Dev
-     - Archive: Release.Dev
-4. Duplicate again for "StelliumApp.Prod":
-   - For each phase, use `.Prod` variants
-   - Run: Debug.Prod
-   - Archive: Release.Prod
+Under Target → Build Phases (before "Copy Bundle Resources"):
 
-### 3. Configure Bundle Identifiers
+1. Setup Environment Config
+   - Script: `"${PROJECT_DIR}/scripts/env-config.sh"`
+   - Behavior: copies `.env.dev` for `Debug` and `.env.prod` for `Release` to project root as `.env`.
+2. Copy Firebase Config
+   - Script: `"${PROJECT_DIR}/scripts/firebase-config.sh"`
+   - Behavior: copies `GoogleService-Info-Dev.plist` (Debug) or `GoogleService-Info-Prod.plist` (Release) to `ios/GoogleService-Info.plist`.
+3. Update Info-Plist
+   - Script: `bash "${PROJECT_DIR}/scripts/update-info-plist.sh"`
+   - Behavior: sets the correct Google Sign-In reversed client ID in `Info.plist` based on `Debug`/`Release`.
 
-1. Select the "StelliumApp" target
-2. Go to "Build Settings"
-3. Search for "Product Bundle Identifier"
-4. Click the disclosure triangle to expand configurations
-5. Set bundle IDs per configuration:
-   - Debug.Dev: `com.stelliumapp.dev`
-   - Release.Dev: `com.stelliumapp.dev`
-   - Debug.Prod: `com.stelliumapp`
-   - Release.Prod: `com.stelliumapp`
+Notes:
+- Leave "Run script only when installing" unchecked so these run every build.
+- The scripts decide environment strictly by `CONFIGURATION` (`Debug` vs `Release`).
 
-### 4. Configure Display Names
+## Firebase Files
 
-1. Still in "Build Settings"
-2. Search for "Product Name"
-3. Set per configuration:
-   - Debug.Dev: `Stellium Dev`
-   - Release.Dev: `Stellium Dev`
-   - Debug.Prod: `Stellium`
-   - Release.Prod: `Stellium`
+- Place both plists in `ios/` and add to the Xcode project (not to a target):
+  - `GoogleService-Info-Dev.plist`
+  - `GoogleService-Info-Prod.plist`
+- The script copies the correct one to `ios/GoogleService-Info.plist` at build time.
 
-### 5. Add Pre-Build Environment Script
+## Bundle Identifiers
 
-1. Select the "StelliumApp" target
-2. Go to "Build Phases"
-3. Click "+" → "New Run Script Phase"
-4. Drag it to the top (before "Check Pods Manifest.lock")
-5. Name it "Setup Environment Config"
-6. Add script content:
-```bash
-"${PROJECT_DIR}/scripts/env-config.sh"
-```
-7. Check "Run script: Based on dependency analysis"
+- Current development setup uses `com.stelliumapp.dev` for both Debug and Release to simplify local runs.
+- For true production archives, set the Release bundle identifier to `com.stelliumapp` and ensure provisioning/signing and Firebase Prod plist match that bundle ID.
 
-### 6. Configure Firebase per Environment
+## Running
 
-You'll need separate Firebase projects for dev and prod:
+CLI:
+- Dev: `./run-dev.sh` or `npm run ios:dev` or `npx react-native run-ios --scheme StelliumApp.Dev`
+- Prod: `./run-prod.sh` or `npm run ios:prod` or `npx react-native run-ios --scheme StelliumApp.Prod`
 
-1. Create two Firebase projects:
-   - `stellium-dev`
-   - `stellium-prod`
-
-2. Download `GoogleService-Info.plist` for each project
-
-3. Add both to Xcode:
-   - Rename them: `GoogleService-Info-Dev.plist` and `GoogleService-Info-Prod.plist`
-   - Add to project (don't add to target)
-
-4. Add another Run Script Phase (after "Setup Environment Config"):
-   - Name: "Select Firebase Config"
-   - Script:
-```bash
-if [ "${CONFIGURATION}" == *"Dev"* ]; then
-    cp "${PROJECT_DIR}/GoogleService-Info-Dev.plist" "${PROJECT_DIR}/GoogleService-Info.plist"
-else
-    cp "${PROJECT_DIR}/GoogleService-Info-Prod.plist" "${PROJECT_DIR}/GoogleService-Info.plist"
-fi
-```
-
-### 7. Run Pod Install
-
-After making these changes:
-```bash
-cd ios
-pod install
-```
-
-## Building and Running
-
-### Development Build
-```bash
-# From project root
-npm run ios:dev
-# or in Xcode, select "StelliumApp.Dev" scheme
-```
-
-### Production Build
-```bash
-# From project root
-npm run ios:prod
-# or in Xcode, select "StelliumApp.Prod" scheme
-```
+Xcode UI:
+- Select scheme → `StelliumApp.Dev` (Run = Debug) or `StelliumApp.Prod` (Run = Release) → Run.
 
 ## Verification
 
-To verify the configuration is working:
-1. Build with Dev scheme - should see "Stellium Dev" app name
-2. Check bundle ID in Xcode: Product → Scheme → Edit Scheme → Info tab
-3. Verify API endpoint in app (add temporary log in `apiClient.ts` if needed)
+- In Xcode build logs:
+  - "Using Firebase Dev configuration (Debug)" or "Using Firebase Prod configuration (Release)".
+  - "Using Dev/Prod Google Sign-In configuration (Debug/Release)".
+- In-app: `Config.ENV` is `development` (Dev) or `production` (Prod).
 
 ## Troubleshooting
 
-**Pod Installation Issues:**
+Pod installation issues:
 ```bash
 cd ios
 rm -rf Pods Podfile.lock
 pod install
 ```
 
-**Firebase Configuration Not Loading:**
-- Verify Run Script phase order (Environment Config must be first)
-- Check script has execute permissions: `chmod +x ios/scripts/env-config.sh`
+Firebase config not loading:
+- Verify Build Phases order (Environment → Firebase → Info-plist → Copy Bundle Resources).
+- Check execute permissions: `chmod +x ios/scripts/*.sh`.
 
-**Bundle ID Conflicts:**
-- Ensure dev and prod use different bundle IDs
-- Update provisioning profiles if using Apple Developer Account
+PIF error (Xcode package manager):
+```bash
+pkill -9 -f xcodebuild; pkill -9 -f swift; pkill -9 -f SourceKit; pkill -9 -f XCBBuildService
+rm -rf ~/Library/Developer/Xcode/DerivedData/*
+rm -rf ~/Library/Developer/Xcode/SourcePackages/*
+# Optional: remove Package.resolved files in the workspace
+```
+Then reopen Xcode → File → Packages → Reset Package Caches → Resolve Package Versions → Clean Build Folder.

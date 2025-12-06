@@ -25,6 +25,7 @@ import PatternsTab from '../../components/chart/PatternsTab';
 import PlanetsTab from '../../components/chart/PlanetsTab';
 import AnalysisTab from '../../components/chart/AnalysisTab';
 import BirthChartChatTab from '../../components/chart/BirthChartChatTab';
+import LockedBirthChartChatTab from '../../components/chart/LockedBirthChartChatTab';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { BirthChartElement } from '../../api/charts';
 import { parseDateStringAsLocalDate } from '../../utils/dateHelpers';
@@ -468,6 +469,10 @@ const ChartScreen: React.FC = () => {
       case 'analysis':
         return <AnalysisTab userId={getSubjectId(subject)} birthChart={subject?.birthChart} />;
       case 'chat':
+        // Ask Stellium requires 360 Analysis to be completed first
+        if (!hasAnalysisData) {
+          return <LockedBirthChartChatTab subjectName={getSubjectName(subject)} />;
+        }
         return <BirthChartChatTab subjectId={getSubjectId(subject)!} birthChart={subject?.birthChart} />;
       default:
         return null;
