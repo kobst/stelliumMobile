@@ -151,8 +151,11 @@ const AuthScreen: React.FC = () => {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       }
       const result = await GoogleSignin.signIn();
-      const idToken = (result as any)?.idToken;
+      console.log('Google Sign-In result:', JSON.stringify(result, null, 2));
+      // Handle different API versions - token can be at result.idToken, result.data.idToken, or result.data?.idToken
+      const idToken = (result as any)?.idToken || (result as any)?.data?.idToken;
       if (!idToken) {
+        console.error('Google Sign-In result structure:', Object.keys(result || {}));
         throw new Error('No Google idToken returned');
       }
       const googleCredential = auth.GoogleAuthProvider.credential(idToken);
