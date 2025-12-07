@@ -97,6 +97,25 @@ export interface CustomHoroscopeHistoryResponse {
   count: number;
 }
 
+// Unlock status check response
+export interface UnlockStatusResponse {
+  success: boolean;
+  isUnlocked: boolean;
+  period: 'daily' | 'weekly';
+  startDate: string;
+  endDate: string;
+}
+
+// Unlock horoscope response (credit deduction)
+export interface UnlockHoroscopeResponse {
+  success: boolean;
+  alreadyUnlocked: boolean;
+  creditsCharged: number;
+  period: 'daily' | 'weekly';
+  startDate: string;
+  endDate: string;
+}
+
 export const horoscopesApi = {
   // Get daily horoscope
   getDailyHoroscope: async (userId: string, date?: string): Promise<HoroscopeResponse> => {
@@ -209,5 +228,29 @@ export const horoscopesApi = {
       default:
         return horoscopesApi.getDailyHoroscope(userId);
     }
+  },
+
+  // Check if horoscope is already unlocked (fast ~50ms check)
+  checkUnlockStatus: async (
+    userId: string,
+    period: 'daily' | 'weekly',
+    startDate: string
+  ): Promise<UnlockStatusResponse> => {
+    return apiClient.post<UnlockStatusResponse>(
+      `/users/${userId}/horoscope/unlock-status`,
+      { period, startDate }
+    );
+  },
+
+  // Unlock horoscope (deduct credits and grant access)
+  unlockHoroscope: async (
+    userId: string,
+    period: 'daily' | 'weekly',
+    startDate: string
+  ): Promise<UnlockHoroscopeResponse> => {
+    return apiClient.post<UnlockHoroscopeResponse>(
+      `/users/${userId}/horoscope/unlock`,
+      { period, startDate }
+    );
   },
 };

@@ -7,6 +7,7 @@ interface CreditGatedHoroscopeTabProps {
   creditCost: number;
   onUnlock: () => void;
   isLoading: boolean;
+  isGenerating?: boolean;
 }
 
 const CreditGatedHoroscopeTab: React.FC<CreditGatedHoroscopeTabProps> = ({
@@ -14,6 +15,7 @@ const CreditGatedHoroscopeTab: React.FC<CreditGatedHoroscopeTabProps> = ({
   creditCost,
   onUnlock,
   isLoading,
+  isGenerating = false,
 }) => {
   const { colors } = useTheme();
 
@@ -67,6 +69,16 @@ const CreditGatedHoroscopeTab: React.FC<CreditGatedHoroscopeTabProps> = ({
             </Text>
           </View>
         </View>
+
+        {/* Generation Status Indicator */}
+        {isGenerating && (
+          <View style={styles.generatingIndicator}>
+            <ActivityIndicator size="small" color={colors.onSurfaceVariant} />
+            <Text style={[styles.generatingText, { color: colors.onSurfaceVariant }]}>
+              Preparing your horoscope...
+            </Text>
+          </View>
+        )}
 
         {/* Unlock Button */}
         <TouchableOpacity
@@ -175,6 +187,17 @@ const styles = StyleSheet.create({
   unlockButtonCost: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  generatingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    padding: 8,
+  },
+  generatingText: {
+    fontSize: 13,
+    marginLeft: 8,
   },
 });
 
