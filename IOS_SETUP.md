@@ -1,91 +1,121 @@
 # iOS Environment Setup (Dev vs Prod)
 
-This project uses two Xcode schemes and the standard Debug/Release configurations to manage Dev and Prod:
+This project uses **branch-based configuration** for Dev and Prod environments:
 
-- StelliumApp.Dev → Debug (Dev)
-- StelliumApp.Prod → Release (Prod)
+- **`dev` branch** → Dev Firebase project (stellium-dev)
+- **`main` branch** → Prod Firebase project (stellium-70a2a)
 
-Environment selection and setup are automated via build scripts.
+## How It Works
+
+Each branch contains the correct configuration files committed directly:
+
+| File | dev branch | main branch |
+|------|------------|-------------|
+| `ios/StelliumApp/GoogleService-Info.plist` | stellium-dev | stellium-70a2a |
+| `ios/StelliumApp/Info.plist` (URL scheme) | Dev CLIENT_ID | Prod CLIENT_ID |
+| `.env` | .env.dev values | .env.prod values |
+
+**No build scripts swap these files.** The config is part of the branch.
 
 ## Prerequisites
+
 - Xcode installed
 - CocoaPods configured (`cd ios && pod install`)
 
-## Schemes and Configurations
+## Development Workflow
 
-1. Open `ios/StelliumApp.xcworkspace` in Xcode.
-2. Product → Scheme → Manage Schemes.
-3. Ensure schemes exist:
-   - `StelliumApp.Dev`: Run configuration = `Debug`.
-   - `StelliumApp.Prod`: Run configuration = `Release` (set to ensure Prod behavior when running).
-4. Archive uses `Release` by default (suitable for Prod archives).
+### Daily Development (Dev)
 
-This simplified approach avoids maintaining four custom configurations and keeps logic clear: Debug = Dev, Release = Prod.
+```bash
+git checkout dev
+npm run ios:dev
+```
 
-## Build Scripts (already added)
+This runs with:
+- Firebase: stellium-dev
+- API: https://api.dev.stellium.ai
+- Bundle ID: com.stelliumapp.dev
 
-Under Target → Build Phases (before "Copy Bundle Resources"):
+### TestFlight / App Store (Prod)
 
-1. Setup Environment Config
-   - Script: `"${PROJECT_DIR}/scripts/env-config.sh"`
-   - Behavior: copies `.env.dev` for `Debug` and `.env.prod` for `Release` to project root as `.env`.
-2. Copy Firebase Config
-   - Script: `"${PROJECT_DIR}/scripts/firebase-config.sh"`
-   - Behavior: copies `GoogleService-Info-Dev.plist` (Debug) or `GoogleService-Info-Prod.plist` (Release) to `ios/GoogleService-Info.plist`.
-3. Update Info-Plist
-   - Script: `bash "${PROJECT_DIR}/scripts/update-info-plist.sh"`
-   - Behavior: sets the correct Google Sign-In reversed client ID in `Info.plist` based on `Debug`/`Release`.
+```bash
+git checkout main
+git merge dev  # Merge your changes (configs will conflict - keep main's)
+# Open Xcode, Archive with StelliumApp.Prod scheme
+```
 
-Notes:
-- Leave "Run script only when installing" unchecked so these run every build.
-- The scripts decide environment strictly by `CONFIGURATION` (`Debug` vs `Release`).
+This runs with:
+- Firebase: stellium-70a2a
+- API: https://api.stellium.ai
+- Bundle ID: com.stelliumapp
 
-## Firebase Files
+## Handling Merge Conflicts
 
-- Place both plists in `ios/` and add to the Xcode project (not to a target):
-  - `GoogleService-Info-Dev.plist`
-  - `GoogleService-Info-Prod.plist`
-- The script copies the correct one to `ios/GoogleService-Info.plist` at build time.
+When merging `dev` → `main`, you'll get conflicts in config files. **Always keep main's version:**
 
-## Bundle Identifiers
+```bash
+git checkout main
+git merge dev
 
-- Current development setup uses `com.stelliumapp.dev` for both Debug and Release to simplify local runs.
-- For true production archives, set the Release bundle identifier to `com.stelliumapp` and ensure provisioning/signing and Firebase Prod plist match that bundle ID.
+# If conflicts in these files, keep main's version:
+git checkout --ours ios/StelliumApp/GoogleService-Info.plist
+git checkout --ours ios/StelliumApp/Info.plist
+git add ios/StelliumApp/GoogleService-Info.plist ios/StelliumApp/Info.plist
+
+git commit
+```
+
+## Configuration Reference
+
+### Dev (stellium-dev)
+- CLIENT_ID: `1056285065517-bm65rgfa23gehv91ftjl63shphiaqe4b.apps.googleusercontent.com`
+- URL Scheme: `com.googleusercontent.apps.1056285065517-bm65rgfa23gehv91ftjl63shphiaqe4b`
+- Bundle ID: `com.stelliumapp.dev`
+
+### Prod (stellium-70a2a)
+- CLIENT_ID: `63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio.apps.googleusercontent.com`
+- URL Scheme: `com.googleusercontent.apps.63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio`
+- Bundle ID: `com.stelliumapp`
+
+## Schemes
+
+- `StelliumApp.Dev`: Debug configuration, for local development
+- `StelliumApp.Prod`: Release configuration, for TestFlight/App Store
 
 ## Running
 
 CLI:
-- Dev: `./run-dev.sh` or `npm run ios:dev` or `npx react-native run-ios --scheme StelliumApp.Dev`
-- Prod: `./run-prod.sh` or `npm run ios:prod` or `npx react-native run-ios --scheme StelliumApp.Prod`
+- Dev: `./run-dev.sh` or `npm run ios:dev`
+- Prod: `./run-prod.sh` or `npm run ios:prod`
 
 Xcode UI:
-- Select scheme → `StelliumApp.Dev` (Run = Debug) or `StelliumApp.Prod` (Run = Release) → Run.
+- Select scheme → Run
 
-## Verification
+## Archiving for TestFlight
 
-- In Xcode build logs:
-  - "Using Firebase Dev configuration (Debug)" or "Using Firebase Prod configuration (Release)".
-  - "Using Dev/Prod Google Sign-In configuration (Debug/Release)".
-- In-app: `Config.ENV` is `development` (Dev) or `production` (Prod).
+1. Ensure you're on `main` branch with Prod config
+2. Open `ios/StelliumApp.xcworkspace`
+3. Select `StelliumApp.Prod` scheme
+4. Product → Archive
+5. Distribute to App Store Connect
 
 ## Troubleshooting
 
-Pod installation issues:
+### Google Sign-In crashes
+- Verify `Info.plist` URL scheme matches `GoogleService-Info.plist` REVERSED_CLIENT_ID
+- Both must be from the same Firebase project (Dev or Prod)
+
+### Pod installation issues
 ```bash
 cd ios
 rm -rf Pods Podfile.lock
 pod install
 ```
 
-Firebase config not loading:
-- Verify Build Phases order (Environment → Firebase → Info-plist → Copy Bundle Resources).
-- Check execute permissions: `chmod +x ios/scripts/*.sh`.
-
-PIF error (Xcode package manager):
+### Wrong environment after branch switch
 ```bash
-pkill -9 -f xcodebuild; pkill -9 -f swift; pkill -9 -f SourceKit; pkill -9 -f XCBBuildService
-rm -rf ~/Library/Developer/Xcode/DerivedData/*
-rm -rf ~/Library/Developer/Xcode/SourcePackages/*
-# Optional: remove Package.resolved files in the workspace
+cd ios
+rm -rf build DerivedData
+pod install
+# Clean build in Xcode: Product → Clean Build Folder
 ```
-Then reopen Xcode → File → Packages → Reset Package Caches → Resolve Package Versions → Clean Build Folder.
