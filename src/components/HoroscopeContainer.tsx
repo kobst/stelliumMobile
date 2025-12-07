@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   ScrollView,
   Alert,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { useStore } from '../store';
 import { horoscopesApi, HoroscopeResponse, CustomHoroscopeResponse, TransitWindowsResponse } from '../api/horoscopes';
@@ -79,6 +81,10 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   const [unlockingTab, setUnlockingTab] = useState<HoroscopeFilter | null>(null);
   const [backgroundGenerating, setBackgroundGenerating] = useState<Record<string, boolean>>({});
 
+  // Track last known date to detect day changes
+  const lastKnownDateRef = useRef<string>(new Date().toISOString().split('T')[0]);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+
   const { userData, userSubscription } = useStore();
   const { refreshBalance, total, getCost } = useCreditBalance();
 
@@ -132,6 +138,51 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
 
   // Check if chat tab is subscription-locked (for free users)
   const isChatLocked = subscriptionTier === 'free';
+
+  // Check if a cached horoscope is stale (date range no longer contains today)
+  const isHoroscopeStale = useCallback((horoscope: HoroscopeResponse | null, tab: HoroscopeFilter): boolean => {
+    if (!horoscope) return false; // No cache = not stale, just empty
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const startDate = new Date(horoscope.horoscope.startDate);
+    const endDate = new Date(horoscope.horoscope.endDate);
+
+    // For daily horoscope, check if it's still today
+    if (tab === 'today') {
+      const horoscopeDateStr = startDate.toISOString().split('T')[0];
+      return horoscopeDateStr !== todayStr;
+    }
+
+    // For weekly/monthly, check if today is still within the range
+    return now < startDate || now > endDate;
+  }, []);
+
+  // Invalidate stale caches and reset unlock status for new periods
+  const invalidateStaleCaches = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Check if day has changed
+    if (today !== lastKnownDateRef.current) {
+      console.log('[HoroscopeContainer] Day changed, invalidating stale caches');
+      lastKnownDateRef.current = today;
+
+      // Clear caches for stale horoscopes
+      const tabsToCheck: Array<'today' | 'thisWeek' | 'thisMonth'> = ['today', 'thisWeek', 'thisMonth'];
+
+      tabsToCheck.forEach(tab => {
+        if (isHoroscopeStale(horoscopeCache[tab], tab)) {
+          console.log(`[HoroscopeContainer] ${tab} horoscope is stale, clearing cache`);
+          setHoroscopeCache(prev => ({ ...prev, [tab]: null }));
+          setPendingHoroscopeCache(prev => ({ ...prev, [tab]: null }));
+        }
+      });
+
+      // Reset unlock status for new period (will be re-checked from backend)
+      setUnlockStatus({});
+      setLoadedTabs(new Set());
+    }
+  }, [horoscopeCache, isHoroscopeStale]);
 
   // Helper function to add timeout to promises
   const withTimeout = (promise: Promise<any>, timeoutMs: number = 30000): Promise<any> => {
@@ -537,9 +588,34 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     }
   };
 
+  // Listen for app state changes to refresh stale horoscopes
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      // When app comes to foreground from background
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+        console.log('[HoroscopeContainer] App returned to foreground, checking for stale data');
+        invalidateStaleCaches();
+
+        // Refetch current tab if cache was invalidated
+        if (activeTab !== 'chat' && !horoscopeCache[activeTab as keyof HoroscopeCache]) {
+          fetchHoroscopeForTab(activeTab);
+        }
+      }
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [activeTab, invalidateStaleCaches, horoscopeCache]);
+
   // Load horoscope when active tab changes (but not for chat tab)
   useEffect(() => {
     if (activeTab !== 'chat') {
+      // Check for stale cache before fetching
+      invalidateStaleCaches();
       fetchHoroscopeForTab(activeTab);
     }
   }, [activeTab, userId, userData?.id]);
