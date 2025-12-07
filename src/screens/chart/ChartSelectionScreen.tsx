@@ -184,9 +184,9 @@ const ChartSelectionScreen: React.FC = () => {
         {/* Divider */}
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-        {/* Friends & Family Section */}
+        {/* Guest Charts Section */}
         <View style={styles.sectionHeaderContainer}>
-          <Text style={[styles.sectionHeader, { color: colors.onSurface }]}>Friends & Family</Text>
+          <Text style={[styles.sectionHeader, { color: colors.onSurface }]}>Guest Charts</Text>
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: colors.primary }]}
             onPress={handleAddNewChart}
