@@ -179,16 +179,17 @@ const CreateRelationshipScreen: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'celebrities',
-      label: 'Celebrities',
-      component: (
-        <CelebritiesTab
-          selectedPerson={activeTab === 'celebrities' ? selectedPerson as Celebrity : null}
-          onPersonSelect={handlePersonSelect}
-        />
-      ),
-    },
+    // TODO: Re-enable Celebrities tab when ready
+    // {
+    //   id: 'celebrities',
+    //   label: 'Celebrities',
+    //   component: (
+    //     <CelebritiesTab
+    //       selectedPerson={activeTab === 'celebrities' ? selectedPerson as Celebrity : null}
+    //       onPersonSelect={handlePersonSelect}
+    //     />
+    //   ),
+    // },
   ];
 
   return (
@@ -210,33 +211,35 @@ const CreateRelationshipScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Tab Navigation */}
-      <View style={[styles.tabContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabScrollContainer}
-        >
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab.id}
-              style={[
-                styles.tab,
-                activeTab === tab.id && [styles.activeTab, { borderBottomColor: colors.primary }],
-              ]}
-              onPress={() => handleTabSwitch(tab.id)}
-            >
-              <Text style={[
-                styles.tabText,
-                { color: colors.onSurfaceVariant },
-                activeTab === tab.id && [styles.activeTabText, { color: colors.primary }],
-              ]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {/* Tab Navigation - Hidden when only one tab, re-enable when Celebrities tab is added back */}
+      {tabs.length > 1 && (
+        <View style={[styles.tabContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabScrollContainer}
+          >
+            {tabs.map((tab) => (
+              <TouchableOpacity
+                key={tab.id}
+                style={[
+                  styles.tab,
+                  activeTab === tab.id && [styles.activeTab, { borderBottomColor: colors.primary }],
+                ]}
+                onPress={() => handleTabSwitch(tab.id)}
+              >
+                <Text style={[
+                  styles.tabText,
+                  { color: colors.onSurfaceVariant },
+                  activeTab === tab.id && [styles.activeTabText, { color: colors.primary }],
+                ]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Tab Content */}
       <View style={styles.contentContainer}>
