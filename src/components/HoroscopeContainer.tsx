@@ -29,7 +29,8 @@ import { AstroIcon } from '../../utils/astrologyIcons';
 import HoroscopeChatTab from './HoroscopeChatTab';
 import LockedHoroscopeTab from './LockedHoroscopeTab';
 import CreditGatedHoroscopeTab from './CreditGatedHoroscopeTab';
-import { useCreditsGate } from '../hooks/useCreditsGate';
+import { useCreditBalance } from '../hooks/useCreditBalance';
+import { creditFlowManager } from '../services/CreditFlowManager';
 import { CREDIT_COSTS, CreditAction } from '../config/subscriptionConfig';
 
 interface HoroscopeContainerProps {
@@ -68,17 +69,18 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   });
   const [loadedTabs, setLoadedTabs] = useState<Set<HoroscopeFilter>>(new Set());
 
-  // Credit gating state for free users
-  const [purchasedTabs, setPurchasedTabs] = useState<Record<string, boolean>>({});
+  // Credit gating state for free users - now synced with backend unlock status
+  const [unlockStatus, setUnlockStatus] = useState<Record<string, boolean>>({});
   const [pendingHoroscopeCache, setPendingHoroscopeCache] = useState<HoroscopeCache>({
     today: null,
     thisWeek: null,
     thisMonth: null,
   });
   const [unlockingTab, setUnlockingTab] = useState<HoroscopeFilter | null>(null);
+  const [backgroundGenerating, setBackgroundGenerating] = useState<Record<string, boolean>>({});
 
   const { userData, userSubscription } = useStore();
-  const { checkAndProceed, isChecking } = useCreditsGate();
+  const { refreshBalance, total, getCost } = useCreditBalance();
 
   // Get subscription tier (default to 'free' if not set)
   const subscriptionTier = userSubscription?.tier || 'free';
@@ -117,16 +119,16 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     }
   }, []);
 
-  // Check if user has already paid for this tab's current period
-  const isTabPurchased = useCallback((tab: HoroscopeFilter): boolean => {
+  // Check if user has already unlocked this tab's current period (from backend)
+  const isTabUnlocked = useCallback((tab: HoroscopeFilter): boolean => {
     const periodKey = getPeriodKey(tab);
-    return purchasedTabs[periodKey] === true;
-  }, [purchasedTabs, getPeriodKey]);
+    return unlockStatus[periodKey] === true;
+  }, [unlockStatus, getPeriodKey]);
 
-  // Check if tab should show credit gate UI (free users who haven't purchased)
+  // Check if tab should show credit gate UI (free users who haven't unlocked)
   const shouldShowCreditGate = useCallback((tab: HoroscopeFilter): boolean => {
-    return isTabCreditGated(tab) && !isTabPurchased(tab);
-  }, [isTabCreditGated, isTabPurchased]);
+    return isTabCreditGated(tab) && !isTabUnlocked(tab);
+  }, [isTabCreditGated, isTabUnlocked]);
 
   // Check if chat tab is subscription-locked (for free users)
   const isChatLocked = subscriptionTier === 'free';
@@ -141,7 +143,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     ]);
   };
 
-  // Helper function to get horoscope for a specific period
+  // Helper function to get horoscope for a specific period (now free - no credit charge)
   const getHoroscopeForPeriod = async (targetUserId: string, startDate: Date | string, type: 'daily' | 'weekly' | 'monthly') => {
     try {
       let response;
@@ -167,6 +169,138 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     } catch (error) {
       console.error(`Error getting ${type} horoscope:`, error);
       throw error;
+    }
+  };
+
+  // Check unlock status from backend (fast ~50ms check)
+  const checkUnlockStatusForTab = async (tab: 'today' | 'thisWeek', targetUserId: string): Promise<boolean> => {
+    const periodKey = getPeriodKey(tab);
+
+    // Return cached status if we already checked
+    if (unlockStatus[periodKey] !== undefined) {
+      return unlockStatus[periodKey];
+    }
+
+    const period = tab === 'today' ? 'daily' : 'weekly';
+    const startDate = tab === 'today'
+      ? getTodayRange().start.toISOString().split('T')[0]
+      : getCurrentWeekRange().start.toISOString().split('T')[0];
+
+    try {
+      const response = await horoscopesApi.checkUnlockStatus(targetUserId, period, startDate);
+      setUnlockStatus(prev => ({ ...prev, [periodKey]: response.isUnlocked }));
+      return response.isUnlocked;
+    } catch (error) {
+      console.error('[HoroscopeContainer] Failed to check unlock status:', error);
+      // Default to showing credit gate on error (fail-safe)
+      setUnlockStatus(prev => ({ ...prev, [periodKey]: false }));
+      return false;
+    }
+  };
+
+  // Load credit-gated horoscope with parallel unlock check + background generation
+  const loadCreditGatedHoroscope = async (
+    tab: 'today' | 'thisWeek',
+    targetUserId: string,
+    isRetry: boolean
+  ) => {
+    const periodKey = getPeriodKey(tab);
+
+    // Skip if already have unlocked content in main cache (unless retrying)
+    if (!isRetry && horoscopeCache[tab]) return;
+
+    const startDate = tab === 'today'
+      ? getTodayRange().start.toISOString().split('T')[0]
+      : getCurrentWeekRange().start.toISOString().split('T')[0];
+    const type = tab === 'today' ? 'daily' : 'weekly';
+
+    // 1. Check unlock status (fast ~50ms) - run in parallel with generation
+    const unlockStatusPromise = checkUnlockStatusForTab(tab, targetUserId);
+
+    // 2. Start background generation (FREE - no credit charge)
+    setBackgroundGenerating(prev => ({ ...prev, [tab]: true }));
+    const generatePromise = getHoroscopeForPeriod(targetUserId, startDate, type)
+      .then(horoscope => {
+        // Store in pending cache until unlocked
+        setPendingHoroscopeCache(prev => ({ ...prev, [tab]: horoscope }));
+        setLoadedTabs(prev => new Set([...prev, tab]));
+        setHoroscopeErrors(prev => ({ ...prev, [tab]: null }));
+        return horoscope;
+      })
+      .catch(error => {
+        console.error(`[HoroscopeContainer] Background generation failed for ${tab}:`, error);
+        setHoroscopeErrors(prev => ({
+          ...prev,
+          [tab]: `Failed to generate ${tab} horoscope: ${(error as Error).message}`,
+        }));
+        return null;
+      })
+      .finally(() => {
+        setBackgroundGenerating(prev => ({ ...prev, [tab]: false }));
+      });
+
+    // Wait for unlock status check (fast) to determine UI
+    const isUnlocked = await unlockStatusPromise;
+
+    if (isUnlocked) {
+      // User already has access - wait for generation and show content
+      const horoscope = await generatePromise;
+      if (horoscope) {
+        setHoroscopeCache(prev => ({ ...prev, [tab]: horoscope }));
+        setPendingHoroscopeCache(prev => ({ ...prev, [tab]: null }));
+      }
+    }
+    // If not unlocked, UI will show credit gate (generation continues in background)
+  };
+
+  // Load horoscope directly (for non-credit-gated tabs or premium/pro users)
+  const loadHoroscopeDirectly = async (
+    tab: 'today' | 'thisWeek' | 'thisMonth',
+    targetUserId: string,
+    isRetry: boolean
+  ) => {
+    // Skip if already have data (unless retrying)
+    if (!isRetry && horoscopeCache[tab]) return;
+
+    setHoroscopeLoading(true);
+    if (isRetry) {
+      setHoroscopeErrors(prev => ({ ...prev, [tab]: null }));
+    }
+
+    try {
+      let startDate: Date | string;
+      let type: 'daily' | 'weekly' | 'monthly';
+
+      switch (tab) {
+        case 'today':
+          startDate = getTodayRange().start.toISOString().split('T')[0];
+          type = 'daily';
+          break;
+        case 'thisWeek':
+          startDate = getCurrentWeekRange().start;
+          type = 'weekly';
+          break;
+        case 'thisMonth':
+          startDate = getCurrentMonthRange().start;
+          type = 'monthly';
+          break;
+        default:
+          throw new Error(`Unknown tab: ${tab}`);
+      }
+
+      const horoscope = await getHoroscopeForPeriod(targetUserId, startDate, type);
+      setHoroscopeCache(prev => ({ ...prev, [tab]: horoscope }));
+      setLoadedTabs(prev => new Set([...prev, tab]));
+      setHoroscopeErrors(prev => ({ ...prev, [tab]: null }));
+    } catch (error) {
+      console.error(`Error fetching ${tab} horoscope:`, error);
+      setHoroscopeErrors(prev => ({
+        ...prev,
+        [tab]: `Failed to load ${tab} horoscope: ${(error as Error).message}`,
+      }));
+      setLoadedTabs(prev => new Set([...prev, tab]));
+    } finally {
+      setHoroscopeLoading(false);
     }
   };
 
@@ -322,75 +456,15 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     const targetUserId = userId || userData?.id;
     if (!targetUserId || tab === 'chat') {return;}
 
-    // Determine if this is a credit-gated tab that hasn't been purchased yet
-    const isCreditGated = isTabCreditGated(tab);
-    const isPurchased = isTabPurchased(tab);
-
-    // Skip if already have data in the appropriate cache (unless retrying)
-    if (!isRetry) {
-      if (isCreditGated && !isPurchased && pendingHoroscopeCache[tab]) {
-        return; // Already have pending data for credit-gated tab
-      }
-      if ((!isCreditGated || isPurchased) && horoscopeCache[tab]) {
-        return; // Already have accessible data
-      }
+    // For credit-gated tabs (daily/weekly for free users), use parallel loading
+    if (isTabCreditGated(tab) && (tab === 'today' || tab === 'thisWeek')) {
+      await loadCreditGatedHoroscope(tab, targetUserId, isRetry);
+      return;
     }
 
-    setHoroscopeLoading(true);
-    if (isRetry) {
-      setHoroscopeErrors(prev => ({ ...prev, [tab]: null }));
-    }
-
-    try {
-      let startDate: Date | string;
-      let type: 'daily' | 'weekly' | 'monthly';
-
-      switch (tab) {
-        case 'today':
-          startDate = getTodayRange().start.toISOString().split('T')[0];
-          type = 'daily';
-          break;
-        case 'thisWeek':
-          startDate = getCurrentWeekRange().start;
-          type = 'weekly';
-          break;
-        case 'thisMonth':
-          startDate = getCurrentMonthRange().start;
-          type = 'monthly';
-          break;
-      }
-
-      const horoscope = await getHoroscopeForPeriod(targetUserId, startDate, type);
-
-      // Store in appropriate cache based on credit gating status
-      if (isCreditGated && !isPurchased) {
-        // Store in pending cache (user hasn't paid yet)
-        setPendingHoroscopeCache(prev => ({
-          ...prev,
-          [tab]: horoscope,
-        }));
-      } else {
-        // Store in main cache (accessible immediately)
-        setHoroscopeCache(prev => ({
-          ...prev,
-          [tab]: horoscope,
-        }));
-      }
-
-      setLoadedTabs(prev => new Set([...prev, tab]));
-      // Clear error for this tab on success
-      setHoroscopeErrors(prev => ({ ...prev, [tab]: null }));
-    } catch (error) {
-      console.error(`Error fetching ${tab} horoscope:`, error);
-      // Set error only for this specific tab
-      setHoroscopeErrors(prev => ({
-        ...prev,
-        [tab]: `Failed to load ${tab} horoscope: ${(error as Error).message}`,
-      }));
-      setLoadedTabs(prev => new Set([...prev, tab])); // Mark as loaded even if failed
-    } finally {
-      setHoroscopeLoading(false);
-    }
+    // Non-credit-gated tabs (monthly, premium/pro users) - load directly
+    // Cast to proper type since we've already filtered out 'chat' above
+    await loadHoroscopeDirectly(tab as 'today' | 'thisWeek' | 'thisMonth', targetUserId, isRetry);
   };
 
   // Retry function for failed horoscopes
@@ -398,43 +472,66 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     fetchHoroscopeForTab(activeTab, true);
   };
 
-  // Handle unlocking a credit-gated horoscope
+  // Handle unlocking a credit-gated horoscope (uses backend unlock endpoint)
   const handleUnlockHoroscope = async (tab: 'today' | 'thisWeek') => {
-    const creditAction: CreditAction = tab === 'today' ? 'dailyHoroscope' : 'weeklyHoroscope';
+    const targetUserId = userId || userData?.id;
+    if (!targetUserId) return;
 
     setUnlockingTab(tab);
 
+    const period = tab === 'today' ? 'daily' : 'weekly';
+    const startDate = tab === 'today'
+      ? getTodayRange().start.toISOString().split('T')[0]
+      : getCurrentWeekRange().start.toISOString().split('T')[0];
+
     try {
-      const allowed = await checkAndProceed({
-        action: creditAction,
-        source: `horoscope_${tab}`,
-        onProceed: async () => {
-          // Mark as purchased for this period
-          const periodKey = getPeriodKey(tab);
-          setPurchasedTabs(prev => ({
+      // Call backend unlock endpoint (this deducts credits)
+      const response = await horoscopesApi.unlockHoroscope(targetUserId, period, startDate);
+
+      if (response.success) {
+        // Update unlock status cache
+        const periodKey = getPeriodKey(tab);
+        setUnlockStatus(prev => ({ ...prev, [periodKey]: true }));
+
+        // Move content from pending to main cache
+        if (pendingHoroscopeCache[tab]) {
+          setHoroscopeCache(prev => ({
             ...prev,
-            [periodKey]: true,
+            [tab]: pendingHoroscopeCache[tab],
           }));
+          setPendingHoroscopeCache(prev => ({ ...prev, [tab]: null }));
+        }
 
-          // Move content from pending to main cache
-          if (pendingHoroscopeCache[tab]) {
-            setHoroscopeCache(prev => ({
-              ...prev,
-              [tab]: pendingHoroscopeCache[tab],
-            }));
-            setPendingHoroscopeCache(prev => ({
-              ...prev,
-              [tab]: null,
-            }));
-          }
-        },
-      });
+        // Refresh credit balance from backend to sync
+        refreshBalance();
 
-      if (!allowed) {
-        console.log('[HoroscopeContainer] User did not have enough credits or cancelled');
+        console.log('[HoroscopeContainer] Horoscope unlocked successfully:', {
+          tab,
+          creditsCharged: response.creditsCharged,
+          alreadyUnlocked: response.alreadyUnlocked,
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[HoroscopeContainer] Error unlocking horoscope:', error);
+
+      // Handle 402 Insufficient Credits error
+      if (error.status === 402 || error.code === 'INSUFFICIENT_CREDITS') {
+        // Show credit purchase flow
+        const creditAction: CreditAction = tab === 'today' ? 'dailyHoroscope' : 'weeklyHoroscope';
+        await creditFlowManager.handleInsufficientCredits({
+          currentTier: subscriptionTier,
+          currentCredits: error.available ?? total,
+          requiredCredits: error.required ?? getCost(creditAction),
+          source: `horoscope_${tab}`,
+        });
+      } else {
+        // Show generic error
+        Alert.alert(
+          'Unlock Failed',
+          'Unable to unlock horoscope. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
     } finally {
       setUnlockingTab(null);
     }
@@ -537,7 +634,8 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
           horoscopeType={activeTab === 'today' ? 'daily' : 'weekly'}
           creditCost={activeTab === 'today' ? CREDIT_COSTS.dailyHoroscope : CREDIT_COSTS.weeklyHoroscope}
           onUnlock={() => handleUnlockHoroscope(activeTab as 'today' | 'thisWeek')}
-          isLoading={unlockingTab === activeTab || isChecking}
+          isLoading={unlockingTab === activeTab}
+          isGenerating={backgroundGenerating[activeTab] || false}
         />
       ) : (
         <ScrollView style={styles.scrollContent}>

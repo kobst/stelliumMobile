@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import {LoginManager, AccessToken} from 'react-native-fbsdk-next';
-import { GOOGLE_WEB_CLIENT_ID } from './src/config/firebase';
+import { GOOGLE_WEB_CLIENT_ID, IOS_GOOGLE_CLIENT_ID } from './src/config/firebase';
 
 // Dynamic import with fallback for Google Sign-In
 let GoogleSignin: any = null;
@@ -67,6 +67,7 @@ const AuthScreen: React.FC = () => {
       if (GoogleSignin && GoogleSignin.configure) {
         GoogleSignin.configure({
           webClientId: GOOGLE_WEB_CLIENT_ID,
+          iosClientId: IOS_GOOGLE_CLIENT_ID,
         });
       }
     } catch (error) {
@@ -213,7 +214,20 @@ const AuthScreen: React.FC = () => {
       const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
 
       // Sign in with Firebase
-      await auth().signInWithCredential(appleCredential);
+      const credResult = await auth().signInWithCredential(appleCredential);
+
+      // If Apple provided a name on first sign-in, persist it to Firebase profile
+      try {
+        const given = appleAuthRequestResponse.fullName?.givenName || '';
+        const family = appleAuthRequestResponse.fullName?.familyName || '';
+        const displayName = `${given} ${family}`.trim();
+        if (displayName && credResult?.user) {
+          await credResult.user.updateProfile({ displayName });
+        }
+      } catch (e) {
+        // Non-fatal if we fail to set display name
+        console.log('Apple displayName update skipped:', e);
+      }
     } catch (error: any) {
       console.error('Apple Sign-In Error:', error);
       if (error.code !== 'ERR_CANCELED') {
