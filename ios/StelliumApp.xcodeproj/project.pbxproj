@@ -28,7 +28,7 @@
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = StelliumApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		CEA45C5FD53AFBF7312FA4BF /* Pods-StelliumApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StelliumApp.release.xcconfig"; path = "Target Support Files/Pods-StelliumApp/Pods-StelliumApp.release.xcconfig"; sourceTree = "<group>"; };
 		E71B63992EA701DF003C5F91 /* StoreKitConfiguration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StoreKitConfiguration.storekit; sourceTree = "<group>"; };
-		E776FF842DEC027700627A60 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		E776FF842DEC027700627A60 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "StelliumApp/GoogleService-Info.plist"; sourceTree = "<group>"; };
 		E787EA882E91949B0002241D /* StelliumApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = StelliumApp.entitlements; path = StelliumApp/StelliumApp.entitlements; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		FAF56E883E7A3D29EC178261 /* Pods-StelliumApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StelliumApp.debug.xcconfig"; path = "Target Support Files/Pods-StelliumApp/Pods-StelliumApp.debug.xcconfig"; sourceTree = "<group>"; };
@@ -356,7 +356,7 @@
 				CODE_SIGN_ENTITLEMENTS = StelliumApp/StelliumApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 38U6C5NF2M;
 				INFOPLIST_FILE = StelliumApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
