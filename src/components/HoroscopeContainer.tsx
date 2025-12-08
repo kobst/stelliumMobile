@@ -184,29 +184,20 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     }
   }, [horoscopeCache, isHoroscopeStale]);
 
-  // Helper function to add timeout to promises
-  const withTimeout = (promise: Promise<any>, timeoutMs: number = 30000): Promise<any> => {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
-      ),
-    ]);
-  };
-
   // Helper function to get horoscope for a specific period (now free - no credit charge)
+  // Note: Timeout and retry logic is handled by the API client (see src/api/client.ts)
   const getHoroscopeForPeriod = async (targetUserId: string, startDate: Date | string, type: 'daily' | 'weekly' | 'monthly') => {
     try {
       let response;
       switch (type) {
         case 'daily':
-          response = await withTimeout(horoscopesApi.generateDailyHoroscope(targetUserId, typeof startDate === 'string' ? startDate : startDate.toISOString().split('T')[0]));
+          response = await horoscopesApi.generateDailyHoroscope(targetUserId, typeof startDate === 'string' ? startDate : startDate.toISOString().split('T')[0]);
           break;
         case 'weekly':
-          response = await withTimeout(horoscopesApi.generateWeeklyHoroscope(targetUserId, typeof startDate === 'string' ? new Date(startDate) : startDate));
+          response = await horoscopesApi.generateWeeklyHoroscope(targetUserId, typeof startDate === 'string' ? new Date(startDate) : startDate);
           break;
         case 'monthly':
-          response = await withTimeout(horoscopesApi.generateMonthlyHoroscope(targetUserId, typeof startDate === 'string' ? new Date(startDate) : startDate));
+          response = await horoscopesApi.generateMonthlyHoroscope(targetUserId, typeof startDate === 'string' ? new Date(startDate) : startDate);
           break;
         default:
           throw new Error(`Unknown horoscope type: ${type}`);
