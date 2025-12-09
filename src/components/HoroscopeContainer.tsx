@@ -71,6 +71,19 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
   });
   const [loadedTabs, setLoadedTabs] = useState<Set<HoroscopeFilter>>(new Set());
 
+  // Extended loading state - tracks when loading takes longer than expected
+  // Shows "Still loading..." message after 30s instead of error during API retries
+  const [extendedLoading, setExtendedLoading] = useState<Record<string, boolean>>({
+    today: false,
+    thisWeek: false,
+    thisMonth: false,
+  });
+  const extendedLoadingTimerRef = useRef<Record<string, NodeJS.Timeout | null>>({
+    today: null,
+    thisWeek: null,
+    thisMonth: null,
+  });
+
   // Credit gating state for free users - now synced with backend unlock status
   const [unlockStatus, setUnlockStatus] = useState<Record<string, boolean>>({});
   const [pendingHoroscopeCache, setPendingHoroscopeCache] = useState<HoroscopeCache>({
@@ -183,6 +196,28 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       setLoadedTabs(new Set());
     }
   }, [horoscopeCache, isHoroscopeStale]);
+
+  // Helper to start extended loading timer for a tab
+  // After 30s of loading, show "Still loading..." message instead of error
+  const startExtendedLoadingTimer = useCallback((tab: 'today' | 'thisWeek' | 'thisMonth') => {
+    // Clear any existing timer
+    if (extendedLoadingTimerRef.current[tab]) {
+      clearTimeout(extendedLoadingTimerRef.current[tab]!);
+    }
+    // Set timer to show extended loading message after 30s
+    extendedLoadingTimerRef.current[tab] = setTimeout(() => {
+      setExtendedLoading(prev => ({ ...prev, [tab]: true }));
+    }, 30000);
+  }, []);
+
+  // Helper to clear extended loading state for a tab
+  const clearExtendedLoading = useCallback((tab: 'today' | 'thisWeek' | 'thisMonth') => {
+    if (extendedLoadingTimerRef.current[tab]) {
+      clearTimeout(extendedLoadingTimerRef.current[tab]!);
+      extendedLoadingTimerRef.current[tab] = null;
+    }
+    setExtendedLoading(prev => ({ ...prev, [tab]: false }));
+  }, []);
 
   // Helper function to get horoscope for a specific period (now free - no credit charge)
   // Note: Timeout and retry logic is handled by the API client (see src/api/client.ts)
@@ -305,9 +340,9 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
     if (!isRetry && horoscopeCache[tab]) return;
 
     setHoroscopeLoading(true);
-    if (isRetry) {
-      setHoroscopeErrors(prev => ({ ...prev, [tab]: null }));
-    }
+    // Clear any previous error and start extended loading timer
+    setHoroscopeErrors(prev => ({ ...prev, [tab]: null }));
+    startExtendedLoadingTimer(tab);
 
     try {
       let startDate: Date | string;
@@ -343,6 +378,7 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       setLoadedTabs(prev => new Set([...prev, tab]));
     } finally {
       setHoroscopeLoading(false);
+      clearExtendedLoading(tab);
     }
   };
 
@@ -822,10 +858,14 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
                 <>
                   <ActivityIndicator size="large" color={colors.primary} style={styles.generatingSpinner} />
                   <Text style={styles.horoscopeGeneratingTitle}>
-                    Generating Your {activeTab === 'today' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope
+                    {extendedLoading[activeTab as 'today' | 'thisWeek' | 'thisMonth']
+                      ? 'Still Loading...'
+                      : `Generating Your ${activeTab === 'today' ? 'Daily' : activeTab.includes('Week') ? 'Weekly' : 'Monthly'} Horoscope`}
                   </Text>
                   <Text style={styles.horoscopeGeneratingText}>
-                    We're analyzing the cosmic influences for this period...
+                    {extendedLoading[activeTab as 'today' | 'thisWeek' | 'thisMonth']
+                      ? 'This is taking longer than usual. Please wait while we prepare your personalized horoscope...'
+                      : 'We\'re analyzing the cosmic influences for this period...'}
                   </Text>
                 </>
               ) : (
