@@ -325,6 +325,10 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
       if (horoscope) {
         setHoroscopeCache(prev => ({ ...prev, [tab]: horoscope }));
         setPendingHoroscopeCache(prev => ({ ...prev, [tab]: null }));
+      } else {
+        // Generation failed - try loading directly as fallback
+        console.log(`[HoroscopeContainer] Background generation returned null for ${tab}, loading directly`);
+        await loadHoroscopeDirectly(tab, targetUserId, false);
       }
     }
     // If not unlocked, UI will show credit gate (generation continues in background)
@@ -571,13 +575,18 @@ const HoroscopeContainer: React.FC<HoroscopeContainerProps> = ({
         const periodKey = getPeriodKey(tab);
         setUnlockStatus(prev => ({ ...prev, [periodKey]: true }));
 
-        // Move content from pending to main cache
+        // Move content from pending to main cache if available
         if (pendingHoroscopeCache[tab]) {
           setHoroscopeCache(prev => ({
             ...prev,
             [tab]: pendingHoroscopeCache[tab],
           }));
           setPendingHoroscopeCache(prev => ({ ...prev, [tab]: null }));
+        } else {
+          // Background generation not complete yet - fetch horoscope directly
+          // User is now unlocked so this will load and display the content
+          console.log('[HoroscopeContainer] Pending cache empty, fetching horoscope directly');
+          loadHoroscopeDirectly(tab, targetUserId, false);
         }
 
         // Refresh credit balance from backend to sync
