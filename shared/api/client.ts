@@ -1,2 +1,2 @@
-export { apiClient, ApiError } from '../../src/api/client';
-export type { ApiResponse } from '../../src/api/client';
+export { apiClient, ApiError } from './baseClient';
+export type { ApiResponse } from './baseClient';

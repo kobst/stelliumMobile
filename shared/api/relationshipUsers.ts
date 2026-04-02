@@ -1,5 +1,5 @@
 import { relationshipApiClient } from './relationshipClient';
-import { SubjectDocument } from '../../src/types';
+import { SubjectDocument } from '../types/subject';
 import {
   getRelationshipAppRequestMetadata,
   RelationshipAppCreateUserRequest,

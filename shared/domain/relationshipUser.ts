@@ -1,4 +1,4 @@
-import { SubjectDocument } from '../../src/types';
+import { SubjectDocument } from '../types/subject';
 import { APP_DOMAINS } from './appDomains';
 
 export const RELATIONSHIP_APP_DOMAIN = APP_DOMAINS.relationshipApp;

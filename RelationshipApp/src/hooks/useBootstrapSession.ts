@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import auth from '@react-native-firebase/auth';
-import { ApiError, relationshipUsersApi } from '../../../shared/api';
+import { ApiError, relationshipUsersApi } from '../api';
 import { useRelationshipAppStore } from '../store';
 
 function isNotFoundError(error: unknown): boolean {
