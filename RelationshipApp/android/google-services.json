@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "763187884820",
+    "project_id": "stellium-relationship-dev",
+    "storage_bucket": "stellium-relationship-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:763187884820:android:54c7398e33f4414f8d0801",
+        "android_client_info": {
+          "package_name": "com.irisapp.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "763187884820-oj1c00j3dn6m0158eo8fkmorpmbrh0hn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWNAC62OIjsehMfZqI-mwW4e36LGSakVM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "763187884820-oj1c00j3dn6m0158eo8fkmorpmbrh0hn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "763187884820-8ujnq2ivctmsd4onsu8hal4t390n6ntv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.irisapp.dev"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
