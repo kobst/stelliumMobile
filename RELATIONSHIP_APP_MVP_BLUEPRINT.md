@@ -102,6 +102,38 @@ Initial shared candidates from the current codebase:
 - selected files under `src/transformers`
 - selected files under `src/types`
 
+### Data domain boundary
+
+The celebrity database remains shared with the current product.
+
+The account-user domain does not.
+
+The new relationship app should use a separate user/account namespace from:
+
+- the existing web frontend user base
+- the original mobile app account-self user base
+
+This is a product and data-model boundary, not just a frontend routing preference.
+
+The new app may reuse similar document structure, but it should not assume that an authenticated person in the old product automatically maps to the new product's primary self-profile record.
+
+### Recommendation for backend modeling
+
+Preferred options, in order:
+
+1. Separate collection for relationship-app account users
+2. Same collection with an explicit app-domain discriminator and strict query isolation
+
+Option 1 is cleaner and safer.
+
+If backend constraints force option 2, then every account-self style record must include an app-domain field such as:
+
+- `appDomain: 'stellium-classic' | 'relationship-app'`
+
+and every user lookup path must filter on it.
+
+The new app should not call generic "find user by Firebase UID" APIs unless those APIs are domain-aware.
+
 ## What Stays App-Specific
 
 The new app should not inherit old presentation/state just because it exists.
@@ -131,6 +163,8 @@ The current API surface already supports the new app's persistent self-profile m
 - `createUser`
 - `createUserUnknownTime`
 - `updateUser`
+
+However, these endpoints must become relationship-app aware before they are treated as final shared contracts. The new app should not read or create account-self records in the same logical namespace as the existing web/frontend account users.
 
 #### Real-person relationship analysis
 
@@ -169,28 +203,31 @@ Relationship chat already exists in usable form:
 
 These items should be validated before implementation spreads:
 
-1. Global romantic profile
+1. Relationship-app user/account model
+   Need a backend contract for separate relationship-app users while preserving the shared celebrity dataset.
+
+2. Global romantic profile
    Need a clear backend artifact or generation contract for user-level relationship style.
 
-2. Free weekly limits
+3. Free weekly limits
    Need server-side tracking for:
    - celebrity previews per week
    - real-person previews per week
    - one free question per week across the app
 
-3. Unlock model
+4. Unlock model
    Need a durable entitlement model for:
    - unlocked real-person relationship
    - unlocked celebrity relationship
    - optional romantic-profile unlock
    - optional chat extension
 
-4. Relationship-specific personal layer
+5. Relationship-specific personal layer
    Need confirmation whether this is:
    - part of the full relationship report, or
    - a separate generation step
 
-5. Preview payload contract
+6. Preview payload contract
    Need confirmation that free preview can be served primarily from structured scoring output plus lightweight overview generation.
 
 ## Product Architecture
@@ -567,11 +604,13 @@ shared/
 
 These should be answered before monetization and romantic-profile work goes deep:
 
-1. Is "romantic profile" a new backend resource or a generated view over existing self-profile data?
-2. Are unlocks permanent per relationship/profile?
-3. Does celebrity analysis create the same composite-chart identifier model as real-person analysis?
-4. Where is weekly usage enforced: backend only, or backend plus local cache?
-5. Should the new app share Firebase project and RevenueCat app, or get separate product identities?
+1. Will relationship-app users live in a separate collection, or in the same collection with a mandatory `appDomain` discriminator?
+2. Will relationship-app user creation and lookup get dedicated endpoints, or will existing endpoints become domain-aware?
+3. Is "romantic profile" a new backend resource or a generated view over existing self-profile data?
+4. Are unlocks permanent per relationship/profile?
+5. Does celebrity analysis create the same composite-chart identifier model as real-person analysis?
+6. Where is weekly usage enforced: backend only, or backend plus local cache?
+7. Should the new app share Firebase project and RevenueCat app, or get separate product identities?
 
 ## Recommendation Summary
 
@@ -579,6 +618,10 @@ Build a new relationship-first app in this repository.
 
 Keep the current app alive.
 
-Extract shared infrastructure.
+Extract shared infrastructure selectively.
+
+Keep celebrity data shared.
+
+Keep relationship-app users separate from the existing web/original-mobile user domain.
 
 Start implementation with the onboarding-to-preview vertical slice.
