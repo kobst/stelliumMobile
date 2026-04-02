@@ -41,6 +41,10 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
+# Service account keys / secrets
+**/secrets/
+*.serviceaccount.json
+
 # Environment variables
 .env
 .env.local
@@ -48,10 +52,10 @@ yarn-error.log
 .env.development.local
 .env.test.local
 .env.production.local
-
-# Keep base environment files but ignore local overrides
-!.env.dev
-!.env.prod
+.env.dev
+.env.prod
+**/.env.dev
+**/.env.prod
 
 # iOS Firebase generated plist (copied by build scripts)
 ios/GoogleService-Info.plist
