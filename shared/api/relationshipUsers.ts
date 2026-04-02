@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { relationshipApiClient } from './relationshipClient';
 import { SubjectDocument } from '../../src/types';
 import {
   getRelationshipAppRequestMetadata,
@@ -12,10 +12,10 @@ type SubjectResponse = SubjectDocument | { user: SubjectDocument };
 
 function unwrapSubjectDocument(response: SubjectResponse): SubjectDocument {
   if ('user' in response && response.user) {
-    return response.user;
+    return response.user as SubjectDocument;
   }
 
-  return response;
+  return response as SubjectDocument;
 }
 
 function normalizeRelationshipAppProfile(
@@ -65,7 +65,7 @@ function normalizeRelationshipAppProfile(
 
 export const relationshipUsersApi = {
   async getProfileByFirebaseUid(firebaseUid: string): Promise<RelationshipAppProfile> {
-    const response = await apiClient.post<SubjectResponse>('/getUserByFirebaseUid', {
+    const response = await relationshipApiClient.post<SubjectResponse>('/getUserByFirebaseUid', {
       firebaseUid,
       ...getRelationshipAppRequestMetadata(),
     });
@@ -76,7 +76,7 @@ export const relationshipUsersApi = {
   async createProfile(
     request: Omit<RelationshipAppCreateUserRequest, 'appDomain' | 'clientProduct'>
   ): Promise<RelationshipAppProfile> {
-    const response = await apiClient.post<SubjectResponse>('/createUser', {
+    const response = await relationshipApiClient.post<SubjectResponse>('/createUser', {
       ...request,
       ...getRelationshipAppRequestMetadata(),
     });
@@ -87,7 +87,7 @@ export const relationshipUsersApi = {
   async createProfileUnknownTime(
     request: Omit<RelationshipAppCreateUserUnknownTimeRequest, 'appDomain' | 'clientProduct'>
   ): Promise<RelationshipAppProfile> {
-    const response = await apiClient.post<SubjectResponse>('/createUserUnknownTime', {
+    const response = await relationshipApiClient.post<SubjectResponse>('/createUserUnknownTime', {
       ...request,
       ...getRelationshipAppRequestMetadata(),
     });
@@ -101,7 +101,7 @@ export const relationshipUsersApi = {
       Omit<RelationshipAppCreateUserRequest, 'firebaseUid' | 'appDomain' | 'clientProduct'>
     >
   ): Promise<RelationshipAppProfile> {
-    const response = await apiClient.put<SubjectResponse>(`/users/${userId}`, {
+    const response = await relationshipApiClient.put<SubjectResponse>(`/users/${userId}`, {
       ...updates,
       ...getRelationshipAppRequestMetadata(),
     });

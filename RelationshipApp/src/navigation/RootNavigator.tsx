@@ -9,6 +9,8 @@ import { SelectCelebrityScreen } from '../screens/SelectCelebrityScreen';
 import { RelationshipPreviewScreen } from '../screens/RelationshipPreviewScreen';
 import { UnlockScreen } from '../screens/UnlockScreen';
 import { MainTabs } from './MainTabs';
+import { BootstrapStatusScreen } from '../screens/BootstrapStatusScreen';
+import { useRelationshipAppStore } from '../store';
 
 export type RelationshipRootParamList = {
   Welcome: undefined;
@@ -24,10 +26,43 @@ export type RelationshipRootParamList = {
 const Stack = createStackNavigator<RelationshipRootParamList>();
 
 export const RootNavigator: React.FC = () => {
+  const authStatus = useRelationshipAppStore((state) => state.authStatus);
+  const bootstrapStatus = useRelationshipAppStore((state) => state.bootstrapStatus);
+  const bootstrapError = useRelationshipAppStore((state) => state.bootstrapError);
+  const hasCompletedSelfProfile = useRelationshipAppStore(
+    (state) => state.hasCompletedSelfProfile
+  );
+
+  if (bootstrapStatus === 'loading' || authStatus === 'booting') {
+    return (
+      <BootstrapStatusScreen
+        title="Connecting your relationship account."
+        body="Checking Firebase session state and loading the relationship-app profile if one already exists."
+        showSpinner
+      />
+    );
+  }
+
+  if (bootstrapStatus === 'error') {
+    return (
+      <BootstrapStatusScreen
+        title="We couldn't load your account."
+        body={bootstrapError ?? 'The relationship app could not finish bootstrapping.'}
+      />
+    );
+  }
+
+  const initialRouteName = hasCompletedSelfProfile
+    ? 'Main'
+    : authStatus === 'signedIn'
+      ? 'CreateSelfProfile'
+      : 'Welcome';
+
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Welcome"
+        key={initialRouteName}
+        initialRouteName={initialRouteName}
         screenOptions={{
           headerShown: false,
         }}
