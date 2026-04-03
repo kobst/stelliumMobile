@@ -8,6 +8,7 @@ import { CreatePartnerScreen } from '../screens/CreatePartnerScreen';
 import { SelectCelebrityScreen } from '../screens/SelectCelebrityScreen';
 import { RelationshipPreviewScreen } from '../screens/RelationshipPreviewScreen';
 import { UnlockScreen } from '../screens/UnlockScreen';
+import { FullRelationshipAnalysisScreen } from '../screens/FullRelationshipAnalysisScreen';
 import { MainTabs } from './MainTabs';
 import { BootstrapStatusScreen } from '../screens/BootstrapStatusScreen';
 import { useRelationshipAppStore } from '../store';
@@ -20,6 +21,7 @@ export type RelationshipRootParamList = {
   SelectCelebrity: undefined;
   RelationshipPreview: undefined;
   Unlock: undefined;
+  FullRelationshipAnalysis: undefined;
   Main: undefined;
 };
 
@@ -74,6 +76,7 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="SelectCelebrity" component={SelectCelebrityScreen} />
         <Stack.Screen name="RelationshipPreview" component={RelationshipPreviewScreen} />
         <Stack.Screen name="Unlock" component={UnlockScreen} />
+        <Stack.Screen name="FullRelationshipAnalysis" component={FullRelationshipAnalysisScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>

@@ -1,11 +1,17 @@
 import { create } from 'zustand';
 import { RELATIONSHIP_APP_DOMAIN, RelationshipAppProfile } from '../../../shared/domain/relationshipUser';
 import { SubjectDocument } from '../../../shared/types/subject';
-import { EnhancedRelationshipAnalysisResponse } from '../../../shared/api/relationships';
+import {
+  EnhancedRelationshipAnalysisResponse,
+  RelationshipAnalysisResponse,
+  RelationshipWorkflowStatusResponse,
+  UserCompositeChart,
+} from '../../../shared/api/relationships';
 
 export type TargetType = 'person' | 'celebrity' | null;
 export type RelationshipAuthStatus = 'booting' | 'signedOut' | 'signedIn';
 export type RelationshipBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
+export type RelationshipWorkflowPhase = 'idle' | 'starting' | 'polling' | 'completed' | 'error';
 
 interface RelationshipSessionState {
   authStatus: RelationshipAuthStatus;
@@ -24,6 +30,13 @@ interface RelationshipFlowState {
   activeTargetSubject: SubjectDocument | null;
   activeRelationshipId: string | null;
   previewAnalysis: EnhancedRelationshipAnalysisResponse | null;
+  fullAnalysis: RelationshipAnalysisResponse | null;
+  workflowStatus: RelationshipWorkflowStatusResponse | null;
+  workflowPhase: RelationshipWorkflowPhase;
+  workflowError: string | null;
+  relationshipHistory: UserCompositeChart[];
+  isHistoryLoading: boolean;
+  historyError: string | null;
 }
 
 interface RelationshipAppStore extends RelationshipSessionState, RelationshipFlowState {
@@ -44,6 +57,17 @@ interface RelationshipAppStore extends RelationshipSessionState, RelationshipFlo
   setActiveTargetSubject: (value: SubjectDocument | null) => void;
   setActiveRelationshipId: (value: string | null) => void;
   setPreviewAnalysis: (value: EnhancedRelationshipAnalysisResponse | null) => void;
+  setFullAnalysis: (value: RelationshipAnalysisResponse | null) => void;
+  setWorkflowState: (payload: {
+    workflowStatus?: RelationshipWorkflowStatusResponse | null;
+    workflowPhase?: RelationshipWorkflowPhase;
+    workflowError?: string | null;
+  }) => void;
+  setRelationshipHistory: (payload: {
+    relationshipHistory: UserCompositeChart[];
+    isHistoryLoading?: boolean;
+    historyError?: string | null;
+  }) => void;
   clearActiveRelationshipFlow: () => void;
 }
 
@@ -64,6 +88,13 @@ const initialFlowState: RelationshipFlowState = {
   activeTargetSubject: null,
   activeRelationshipId: null,
   previewAnalysis: null,
+  fullAnalysis: null,
+  workflowStatus: null,
+  workflowPhase: 'idle',
+  workflowError: null,
+  relationshipHistory: [],
+  isHistoryLoading: false,
+  historyError: null,
 };
 
 export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
@@ -102,6 +133,23 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
     set({
       previewAnalysis: value,
       activeRelationshipId: value?.compositeChartId ?? null,
+      fullAnalysis: null,
+      workflowStatus: null,
+      workflowPhase: 'idle',
+      workflowError: null,
+    }),
+  setFullAnalysis: (value) => set({ fullAnalysis: value }),
+  setWorkflowState: ({ workflowStatus, workflowPhase, workflowError }) =>
+    set((state) => ({
+      workflowStatus: workflowStatus === undefined ? state.workflowStatus : workflowStatus,
+      workflowPhase: workflowPhase ?? state.workflowPhase,
+      workflowError: workflowError === undefined ? state.workflowError : workflowError,
+    })),
+  setRelationshipHistory: ({ relationshipHistory, isHistoryLoading = false, historyError = null }) =>
+    set({
+      relationshipHistory,
+      isHistoryLoading,
+      historyError,
     }),
   clearActiveRelationshipFlow: () =>
     set({
@@ -109,5 +157,9 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       activeTargetSubject: null,
       activeRelationshipId: null,
       previewAnalysis: null,
+      fullAnalysis: null,
+      workflowStatus: null,
+      workflowPhase: 'idle',
+      workflowError: null,
     }),
 }));
