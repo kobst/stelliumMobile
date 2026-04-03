@@ -18,40 +18,14 @@ import { useTheme } from '../theme';
 import { RELATIONSHIP_APP_DOMAIN } from '../../../shared/domain/relationshipUser';
 import { externalApi, relationshipUsersApi } from '../api';
 import { relationshipAppEnv } from '../config/env';
+import {
+  getEpochSeconds,
+  isValidDate,
+  isValidTime,
+  parseNumberInput,
+} from '../utils/birthData';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
-
-function isValidDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
-  }
-
-  const [year, month, day] = value.split('-').map(Number);
-  const date = new Date(`${value}T12:00:00`);
-  return (
-    !Number.isNaN(date.getTime()) &&
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() + 1 === month &&
-    date.getUTCDate() === day
-  );
-}
-
-function isValidTime(value: string): boolean {
-  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
-}
-
-function getEpochSeconds(dateOfBirth: string, time: string): number {
-  return Math.floor(new Date(`${dateOfBirth}T${time}:00`).getTime() / 1000);
-}
-
-function parseNumberInput(value: string): number | null {
-  if (!value.trim()) {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
 
 export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
