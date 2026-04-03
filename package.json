@@ -11,10 +11,14 @@
     "ios": "react-native run-ios",
     "ios:dev": "ENVFILE=.env.dev react-native run-ios --scheme StelliumApp.Dev",
     "ios:prod": "ENVFILE=.env.prod react-native run-ios --scheme StelliumApp.Prod",
+    "ios:relationship:dev": "ENVFILE=RelationshipApp/.env.dev react-native run-ios --scheme StelliumApp.Dev",
+    "ios:relationship:prod": "ENVFILE=RelationshipApp/.env.prod react-native run-ios --scheme StelliumApp.Prod",
     "lint": "eslint .",
     "start": "react-native start",
     "start:dev": "ENVFILE=.env.dev react-native start",
     "start:prod": "ENVFILE=.env.prod react-native start",
+    "start:relationship:dev": "ENVFILE=RelationshipApp/.env.dev react-native start",
+    "start:relationship:prod": "ENVFILE=RelationshipApp/.env.prod react-native start",
     "test": "jest"
   },
   "dependencies": {

@@ -11,6 +11,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
+import { DevSessionPanel } from '../components/DevSessionPanel';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
@@ -71,6 +72,8 @@ export const HomeScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         ) : null}
+
+        <DevSessionPanel />
       </View>
     </SafeAreaView>
   );

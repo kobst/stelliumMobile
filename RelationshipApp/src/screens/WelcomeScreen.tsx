@@ -2,6 +2,7 @@ import React from 'react';
 import auth from '@react-native-firebase/auth';
 import { StackScreenProps } from '@react-navigation/stack';
 import { PlaceholderScreen } from '../components/PlaceholderScreen';
+import { DevSessionPanel } from '../components/DevSessionPanel';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 
@@ -52,6 +53,8 @@ export const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
       secondaryLabel="Skip To Home Shell"
       onPrimaryPress={handlePrimaryPress}
       onSecondaryPress={() => navigation.navigate('Main')}
-    />
+    >
+      <DevSessionPanel onAfterReset={() => setErrorMessage(null)} />
+    </PlaceholderScreen>
   );
 };

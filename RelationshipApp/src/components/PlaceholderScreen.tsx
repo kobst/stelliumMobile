@@ -12,6 +12,7 @@ interface PlaceholderScreenProps {
   eyebrow?: string;
   title: string;
   body: string;
+  children?: React.ReactNode;
   primaryLabel?: string;
   secondaryLabel?: string;
   onPrimaryPress?: () => void;
@@ -22,6 +23,7 @@ export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({
   eyebrow,
   title,
   body,
+  children,
   primaryLabel,
   secondaryLabel,
   onPrimaryPress,
@@ -37,6 +39,7 @@ export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({
         ) : null}
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
         <Text style={[styles.body, { color: colors.textMuted }]}>{body}</Text>
+        {children}
       </View>
 
       <View style={styles.actions}>

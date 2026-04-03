@@ -3,6 +3,7 @@ declare module 'react-native-config' {
     API_URL: string;
     GOOGLE_API_KEY: string;
     ENV: string;
+    APP_VARIANT?: string;
   }
 
   export const Config: NativeConfig;

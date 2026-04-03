@@ -7,6 +7,24 @@ function isNotFoundError(error: unknown): boolean {
   return error instanceof ApiError && error.status === 404;
 }
 
+function isMissingFirebaseUserError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const maybeCode =
+    typeof (error as { code?: unknown }).code === 'string'
+      ? (error as { code: string }).code
+      : '';
+  const maybeMessage =
+    error instanceof Error ? error.message : String(error);
+
+  return (
+    maybeCode === 'auth/user-not-found' ||
+    maybeMessage.includes('auth/user-not-found')
+  );
+}
+
 export function useBootstrapSession() {
   const setAuthState = useRelationshipAppStore((state) => state.setAuthState);
   const setBootstrapState = useRelationshipAppStore((state) => state.setBootstrapState);
@@ -39,6 +57,23 @@ export function useBootstrapSession() {
         setProfile(profile);
         setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
       } catch (error) {
+        if (isMissingFirebaseUserError(error)) {
+          try {
+            await auth().signOut();
+          } catch (signOutError) {
+            console.error('Failed to clear stale Firebase session:', signOutError);
+          }
+
+          setAuthState({
+            authStatus: 'signedOut',
+            firebaseUid: null,
+            firebaseEmail: null,
+          });
+          setProfile(null);
+          setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
+          return;
+        }
+
         if (isNotFoundError(error)) {
           setProfile(null);
           setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
