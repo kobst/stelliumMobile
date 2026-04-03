@@ -35,6 +35,12 @@ export const relationshipApiClient = {
   },
 
   poll<T>(endpoint: string, data: unknown, interval?: number, maxAttempts?: number) {
-    return apiClient.poll<T>(endpoint, data, interval, maxAttempts);
+    return apiClient.poll<T>(
+      endpoint,
+      data,
+      interval,
+      maxAttempts,
+      RELATIONSHIP_APP_HEADERS
+    );
   },
 };

@@ -2,4 +2,6 @@ export { ApiError, apiClient } from '../../../shared/api/client';
 export type { ApiResponse } from '../../../shared/api/client';
 export { relationshipApiClient } from '../../../shared/api/relationshipClient';
 export { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
+export { usersApi } from '../../../shared/api/users';
+export { relationshipsApi } from '../../../shared/api/relationships';
 export { externalApi } from '../../../shared/api/external';

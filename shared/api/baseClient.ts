@@ -233,7 +233,8 @@ class BaseApiClient {
     endpoint: string,
     data: unknown,
     interval: number = 3000,
-    maxAttempts: number = 20
+    maxAttempts: number = 20,
+    headers?: Record<string, string>
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       let attempts = 0;
@@ -242,7 +243,7 @@ class BaseApiClient {
         attempts += 1;
 
         try {
-          const response = await this.post<any>(endpoint, data);
+          const response = await this.post<any>(endpoint, data, headers);
 
           if (response.isCompleted || response.status === 'completed') {
             clearInterval(pollInterval);

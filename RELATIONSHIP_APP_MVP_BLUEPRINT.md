@@ -27,26 +27,29 @@ Completed so far:
 - shared API/client extraction has started under `shared/`
 - relationship-app auth/bootstrap flow is wired
 - a basic self-profile form scaffold now submits to the real relationship-app user domain
+- the first real-person compatibility preview path is now wired end to end:
+  - `CreatePartnerScreen` collects partner data
+  - guest subject creation runs against the shared backend
+  - free preview generation calls the shared relationship analysis API
+  - `RelationshipPreviewScreen` renders the real preview payload
 
 Still intentionally placeholder:
 
-- real-person target creation flow
 - celebrity selection flow
-- relationship preview API integration
 - unlock flow
 - chat flow
 - romantic profile flow
 
 ## Current Next Step
 
-Build the first real compatibility preview path:
+Build the first unlockable post-preview path:
 
-1. Implement `CreatePartnerScreen` as a plain functional form
-2. Create the guest subject through the shared backend
-3. Request the free relationship preview
-4. Render the real preview payload in `RelationshipPreviewScreen`
+1. Persist preview/composite-chart records into relationship-app history surfaces
+2. Implement `UnlockScreen` against a real entitlement or placeholder unlock contract
+3. Trigger `startFullRelationshipAnalysis` from the preview/unlock flow
+4. Poll workflow status and render the paused/completed states cleanly
 
-This remains the highest-value next milestone because it completes the first meaningful vertical slice without requiring final UX direction.
+This is now the highest-value next milestone because it turns the preview slice into a usable conversion path instead of a dead-end demo.
 
 ## Why
 
