@@ -14,6 +14,40 @@ We will not implement it as a large refactor inside the current `StelliumApp` sh
 
 We will keep the existing app intact while extracting shared infrastructure that both apps can use.
 
+## Current Status
+
+The plan is now partially implemented.
+
+Completed so far:
+
+- `RelationshipApp/` scaffold exists as a separate mobile app shell
+- relationship-app Firebase project configs have been added via local env templates and app config files
+- backend user/account lookup is app-domain aware
+- backend auth supports separate Firebase projects by app domain
+- shared API/client extraction has started under `shared/`
+- relationship-app auth/bootstrap flow is wired
+- a basic self-profile form scaffold now submits to the real relationship-app user domain
+
+Still intentionally placeholder:
+
+- real-person target creation flow
+- celebrity selection flow
+- relationship preview API integration
+- unlock flow
+- chat flow
+- romantic profile flow
+
+## Current Next Step
+
+Build the first real compatibility preview path:
+
+1. Implement `CreatePartnerScreen` as a plain functional form
+2. Create the guest subject through the shared backend
+3. Request the free relationship preview
+4. Render the real preview payload in `RelationshipPreviewScreen`
+
+This remains the highest-value next milestone because it completes the first meaningful vertical slice without requiring final UX direction.
+
 ## Why
 
 The existing mobile app has reusable backend integration, but its frontend shell is tightly coupled to a different product shape:
