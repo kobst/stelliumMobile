@@ -26,7 +26,12 @@ Implementation should proceed in this order:
 
 The repo still uses the main native target. Relationship app launch is selected through `APP_VARIANT=relationship` in the env file.
 
-Use:
+Default dev commands from the repo root:
+
+- `npm run start`
+- `npm run ios`
+
+Explicit relationship-app commands:
 
 - `npm run ios:relationship:dev`
 - `npm run start:relationship:dev`
@@ -35,3 +40,7 @@ Local env files live at:
 
 - `RelationshipApp/.env.dev`
 - `RelationshipApp/.env.prod`
+
+See also:
+
+- [`RUNBOOK.md`](/Users/edwardhan/stellium-mobile/StelliumApp/RUNBOOK.md)

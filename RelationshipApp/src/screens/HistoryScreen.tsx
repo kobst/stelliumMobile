@@ -21,6 +21,7 @@ export const HistoryScreen: React.FC = () => {
   const navigation = useNavigation<RootNavigation>();
   const { colors } = useTheme();
   const selfProfileId = useRelationshipAppStore((state) => state.selfProfileId);
+  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
   const relationshipHistory = useRelationshipAppStore((state) => state.relationshipHistory);
   const isHistoryLoading = useRelationshipAppStore((state) => state.isHistoryLoading);
   const historyError = useRelationshipAppStore((state) => state.historyError);
@@ -30,6 +31,10 @@ export const HistoryScreen: React.FC = () => {
   const setWorkflowState = useRelationshipAppStore((state) => state.setWorkflowState);
 
   useEffect(() => {
+    if (isLocalUxMode) {
+      return;
+    }
+
     if (!selfProfileId) {
       return;
     }
@@ -70,7 +75,7 @@ export const HistoryScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [selfProfileId, setRelationshipHistory]);
+  }, [isLocalUxMode, selfProfileId, setRelationshipHistory]);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>

@@ -5,3 +5,4 @@ export { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
 export { usersApi } from '../../../shared/api/users';
 export { relationshipsApi } from '../../../shared/api/relationships';
 export { externalApi } from '../../../shared/api/external';
+export type { PlaceSuggestion } from '../../../shared/api/external';

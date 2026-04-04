@@ -27,6 +27,7 @@ function resetRelationshipAppStore() {
     firebaseEmail: null,
     bootstrapError: null,
     profile: null,
+    isLocalUxMode: false,
     hasCompletedSelfProfile: false,
     selfProfileId: null,
     selfProfileDomain: 'relationship-app',
@@ -214,5 +215,81 @@ describe('relationship app analysis workflow hook', () => {
 
     expect(useRelationshipAppStore.getState().workflowPhase).toBe('error');
     expect(useRelationshipAppStore.getState().workflowError).toBe('Network dropped');
+  });
+
+  test('completes full analysis locally without backend calls in local ux mode', async () => {
+    await act(async () => {
+      resetRelationshipAppStore();
+      useRelationshipAppStore.setState({
+        isLocalUxMode: true,
+        activeRelationshipId: 'local-rel-1',
+        previewAnalysis: {
+          success: true,
+          compositeChartId: 'local-rel-1',
+          userA: { id: 'self_1', name: 'Alex Rivera' },
+          userB: { id: 'guest_1', name: 'Taylor Smith' },
+          clusters: {
+            Harmony: { score: 80, rawScore: 8, supportPct: 70, challengePct: 30, heatPct: 60, activityPct: 65, sparkElements: 2, quadrant: 'Easy-going', keystoneAspects: [] },
+            Passion: { score: 75, rawScore: 7.5, supportPct: 65, challengePct: 35, heatPct: 78, activityPct: 70, sparkElements: 3, quadrant: 'Dynamic', keystoneAspects: [] },
+            Connection: { score: 78, rawScore: 7.8, supportPct: 71, challengePct: 29, heatPct: 62, activityPct: 72, sparkElements: 2, quadrant: 'Easy-going', keystoneAspects: [] },
+            Stability: { score: 68, rawScore: 6.8, supportPct: 56, challengePct: 44, heatPct: 48, activityPct: 58, sparkElements: 1, quadrant: 'Dynamic', keystoneAspects: [] },
+            Growth: { score: 74, rawScore: 7.4, supportPct: 60, challengePct: 40, heatPct: 64, activityPct: 69, sparkElements: 2, quadrant: 'Dynamic', keystoneAspects: [] },
+          },
+          overall: {
+            score: 76,
+            formula: 'Local UX demo score',
+            dominantCluster: 'Harmony',
+            challengeCluster: 'Stability',
+            profile: 'Strong attraction with steady emotional support',
+            tier: 'Flourishing',
+            strengthClusters: ['Harmony', 'Connection'],
+            growthClusters: ['Stability'],
+            quadrantAnalytics: { distribution: {}, entropy: 1.1, dominantQuadrant: 'Dynamic', uniformity: 'Moderate' },
+            keystoneAspects: [],
+          },
+          scoredItems: [],
+          initialOverview: 'Demo preview',
+          tensionFlowAnalysis: {
+            supportDensity: 0.7,
+            challengeDensity: 0.3,
+            polarityRatio: 2.3,
+            quadrant: 'Dynamic',
+            totalAspects: 12,
+            supportAspects: 8,
+            challengeAspects: 4,
+            keystoneAspects: [],
+            insight: { quadrant: 'Dynamic', description: 'Demo', recommendations: [] },
+          },
+          compositeChart: { planets: [], houses: [], aspects: [], houseSystem: 'placidus', hasAccurateBirthTimes: true },
+          synastryAspects: [],
+          synastryHousePlacements: { AinB: [], BinA: [] },
+          status: 'scores_calculated',
+          metadata: {
+            processingTime: 'local',
+            clustersAnalyzed: 5,
+            totalScoredItems: 12,
+            workflowType: 'direct-cluster-scoring',
+            version: 'local-demo',
+            isCelebrityRelationship: false,
+            initialOverviewGenerated: true,
+          },
+        } as any,
+      });
+      renderer = ReactTestRenderer.create(<Harness compositeChartId="local-rel-1" />);
+    });
+
+    await act(async () => {
+      await hookValue?.startFullAnalysis();
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(700);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(relationshipsApi.startFullRelationshipAnalysis).not.toHaveBeenCalled();
+    expect(useRelationshipAppStore.getState().workflowPhase).toBe('completed');
+    expect(useRelationshipAppStore.getState().fullAnalysis?.holisticOverview).toContain('This full read suggests');
   });
 });

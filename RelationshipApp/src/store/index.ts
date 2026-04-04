@@ -20,6 +20,7 @@ interface RelationshipSessionState {
   firebaseEmail: string | null;
   bootstrapError: string | null;
   profile: RelationshipAppProfile | null;
+  isLocalUxMode: boolean;
 }
 
 interface RelationshipFlowState {
@@ -49,6 +50,7 @@ interface RelationshipAppStore extends RelationshipSessionState, RelationshipFlo
     bootstrapStatus: RelationshipBootstrapStatus;
     bootstrapError?: string | null;
   }) => void;
+  setLocalUxMode: (value: boolean) => void;
   setProfile: (profile: RelationshipAppProfile | null) => void;
   resetSession: () => void;
   setCompletedSelfProfile: (value: boolean) => void;
@@ -78,6 +80,7 @@ const initialSessionState: RelationshipSessionState = {
   firebaseEmail: null,
   bootstrapError: null,
   profile: null,
+  isLocalUxMode: false,
 };
 
 const initialFlowState: RelationshipFlowState = {
@@ -111,6 +114,7 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       bootstrapStatus,
       bootstrapError,
     }),
+  setLocalUxMode: (value) => set({ isLocalUxMode: value }),
   setProfile: (profile) =>
     set({
       profile,

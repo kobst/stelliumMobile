@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { relationshipsApi } from '../api';
+import { createLocalFullAnalysis, createLocalHistoryEntry } from '../mocks/demoData';
 import {
   RelationshipAnalysisResponse,
   RelationshipWorkflowStatusResponse,
@@ -18,16 +19,32 @@ export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null
   const workflowPhase = useRelationshipAppStore((state) => state.workflowPhase);
   const workflowError = useRelationshipAppStore((state) => state.workflowError);
   const fullAnalysis = useRelationshipAppStore((state) => state.fullAnalysis);
+  const previewAnalysis = useRelationshipAppStore((state) => state.previewAnalysis);
+  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
+  const relationshipHistory = useRelationshipAppStore((state) => state.relationshipHistory);
   const setWorkflowState = useRelationshipAppStore((state) => state.setWorkflowState);
   const setFullAnalysis = useRelationshipAppStore((state) => state.setFullAnalysis);
+  const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
 
   const loadFullAnalysis = useCallback(
     async (targetCompositeChartId: string): Promise<RelationshipAnalysisResponse> => {
+      if (isLocalUxMode && previewAnalysis) {
+        const response = createLocalFullAnalysis(previewAnalysis);
+        setFullAnalysis(response);
+        setRelationshipHistory({
+          relationshipHistory: [
+            createLocalHistoryEntry({ preview: previewAnalysis, fullAnalysis: response }),
+            ...relationshipHistory.filter((item) => item._id !== targetCompositeChartId),
+          ],
+        });
+        return response;
+      }
+
       const response = await relationshipsApi.fetchRelationshipAnalysis(targetCompositeChartId);
       setFullAnalysis(response);
       return response;
     },
-    [setFullAnalysis]
+    [isLocalUxMode, previewAnalysis, relationshipHistory, setFullAnalysis, setRelationshipHistory]
   );
 
   const refreshWorkflowStatus = useCallback(
@@ -62,6 +79,40 @@ export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null
     }
 
     try {
+      if (isLocalUxMode && compositeChartId && previewAnalysis) {
+        setWorkflowState({
+          workflowPhase: 'starting',
+          workflowError: null,
+        });
+
+        setTimeout(() => {
+          setWorkflowState({
+            workflowStatus: {
+              success: true,
+              workflowId: 'local-workflow',
+              compositeChartId,
+              status: 'completed',
+              completed: true,
+              phase: 'complete',
+              stepFunctionStatus: 'LOCAL_DEMO',
+              executionArn: 'local-demo',
+              message: 'Full analysis ready.',
+            },
+            workflowPhase: 'completed',
+            workflowError: null,
+          });
+          const response = createLocalFullAnalysis(previewAnalysis);
+          setFullAnalysis(response);
+          setRelationshipHistory({
+            relationshipHistory: [
+              createLocalHistoryEntry({ preview: previewAnalysis, fullAnalysis: response }),
+              ...relationshipHistory.filter((item) => item._id !== compositeChartId),
+            ],
+          });
+        }, 600);
+        return;
+      }
+
       setWorkflowState({
         workflowPhase: 'starting',
         workflowError: null,
@@ -81,7 +132,7 @@ export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null
           error instanceof Error ? error.message : 'Failed to start full relationship analysis.',
       });
     }
-  }, [compositeChartId, refreshWorkflowStatus, setWorkflowState]);
+  }, [compositeChartId, isLocalUxMode, previewAnalysis, refreshWorkflowStatus, relationshipHistory, setFullAnalysis, setRelationshipHistory, setWorkflowState]);
 
   useEffect(() => {
     if (!compositeChartId || workflowPhase !== 'polling') {

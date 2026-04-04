@@ -34,11 +34,24 @@ export const DevSessionPanel: React.FC<DevSessionPanelProps> = ({ onAfterReset }
     try {
       setIsResetting(true);
       setResetError(null);
-      await auth().signOut();
+      if (auth().currentUser) {
+        await auth().signOut();
+      }
       resetSession();
       onAfterReset?.();
     } catch (error) {
-      setResetError(error instanceof Error ? error.message : 'Could not reset session.');
+      const message = error instanceof Error ? error.message : 'Could not reset session.';
+
+      if (
+        message.includes('auth/no-current-user') ||
+        message.includes('No user currently signed in.')
+      ) {
+        resetSession();
+        onAfterReset?.();
+        return;
+      }
+
+      setResetError(message);
     } finally {
       setIsResetting(false);
     }

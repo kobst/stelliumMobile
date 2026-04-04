@@ -12,12 +12,14 @@ import {
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import { StackScreenProps } from '@react-navigation/stack';
+import { PlaceAutocompleteInput } from '../components/PlaceAutocompleteInput';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { RELATIONSHIP_APP_DOMAIN } from '../../../shared/domain/relationshipUser';
-import { externalApi, relationshipUsersApi } from '../api';
+import { externalApi, PlaceDetails, relationshipUsersApi } from '../api';
 import { relationshipAppEnv } from '../config/env';
+import { createLocalRelationshipProfile } from '../mocks/demoData';
 import {
   getEpochSeconds,
   isValidDate,
@@ -32,8 +34,9 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const setProfile = useRelationshipAppStore((state) => state.setProfile);
   const authStatus = useRelationshipAppStore((state) => state.authStatus);
   const firebaseEmail = useRelationshipAppStore((state) => state.firebaseEmail);
+  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
 
-  const currentUser = auth().currentUser;
+  const currentUser = isLocalUxMode ? null : auth().currentUser;
   const initialNames = useMemo(() => {
     const displayName = currentUser?.displayName || '';
     const parts = displayName.trim().split(/\s+/).filter(Boolean);
@@ -53,7 +56,6 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [placeOfBirth, setPlaceOfBirth] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
-  const [timezoneOffset, setTimezoneOffset] = useState('');
   const [isAutofillingLocation, setIsAutofillingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     let resolvedPlace = placeOfBirth.trim();
     let resolvedLat = parseNumberInput(latitude);
     let resolvedLon = parseNumberInput(longitude);
-    let resolvedTzone = parseNumberInput(timezoneOffset);
+    let resolvedTzone: number | null = null;
 
     if ((resolvedLat === null || resolvedLon === null) && resolvedPlace && canUseGoogleServices) {
       const geocoded = await externalApi.geocodeLocation(resolvedPlace);
@@ -80,7 +82,6 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       const timeForTimezone = birthTimeUnknown ? '12:00' : timeOfBirth;
       const epochTimeSeconds = getEpochSeconds(dateOfBirth, timeForTimezone);
       resolvedTzone = await externalApi.fetchTimeZone(resolvedLat, resolvedLon, epochTimeSeconds);
-      setTimezoneOffset(String(resolvedTzone));
     }
 
     return {
@@ -91,38 +92,40 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     };
   };
 
-  const handleAutofillLocation = async () => {
-    if (!placeOfBirth.trim()) {
-      Alert.alert('Location required', 'Enter a city or place name first.');
-      return;
+  const handlePlaceResolved = async (nextPlace?: string) => {
+    if (nextPlace && nextPlace !== placeOfBirth) {
+      setPlaceOfBirth(nextPlace);
     }
 
-    if (!canUseGoogleServices) {
-      Alert.alert(
-        'Google API key missing',
-        'Manual latitude, longitude, and timezone entry is required until the relationship app environment includes GOOGLE_API_KEY.'
-      );
+    const targetPlace = (nextPlace ?? placeOfBirth).trim();
+    if (!targetPlace || isAutofillingLocation || !canUseGoogleServices) {
       return;
     }
 
     try {
       setIsAutofillingLocation(true);
-      const resolved = await resolveLocationFields();
-      if (resolved.lat === null || resolved.lon === null || resolved.tzone === null) {
-        throw new Error('Could not resolve the full location payload.');
-      }
+      await resolveLocationFields();
     } catch (error) {
-      Alert.alert(
-        'Location lookup failed',
-        error instanceof Error ? error.message : 'Could not resolve this location.'
-      );
+      if (!isLocalUxMode) {
+        setSubmitError(error instanceof Error ? error.message : 'Could not resolve this location.');
+      }
     } finally {
       setIsAutofillingLocation(false);
     }
   };
 
+  const handlePlaceSelected = async (selection: PlaceDetails) => {
+    setPlaceOfBirth(selection.formattedAddress || selection.displayName || placeOfBirth);
+    if (selection.lat !== null) {
+      setLatitude(String(selection.lat));
+    }
+    if (selection.lng !== null) {
+      setLongitude(String(selection.lng));
+    }
+  };
+
   const handleSubmit = async () => {
-    if (authStatus !== 'signedIn' || !currentUser) {
+    if (!isLocalUxMode && (authStatus !== 'signedIn' || !currentUser)) {
       setSubmitError('A Firebase session is required before creating the relationship profile.');
       return;
     }
@@ -151,44 +154,63 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     setIsSubmitting(true);
 
     try {
-      const resolved = await resolveLocationFields();
+      const resolved = isLocalUxMode
+        ? {
+            placeOfBirth: placeOfBirth.trim(),
+            lat: null,
+            lon: null,
+            tzone: null,
+          }
+        : await resolveLocationFields();
 
       if (
+        !isLocalUxMode &&
         resolved.lat === null ||
+        !isLocalUxMode &&
         resolved.lon === null ||
+        !isLocalUxMode &&
         resolved.tzone === null
       ) {
         throw new Error(
-          'Latitude, longitude, and timezone offset are required. Use autofill or enter them manually.'
+          'We could not resolve this birth location from Google. Check the API key or choose a clearer place.'
         );
       }
 
-      const profile = birthTimeUnknown
-        ? await relationshipUsersApi.createProfileUnknownTime({
-            firebaseUid: currentUser.uid,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            gender,
-            placeOfBirth: resolved.placeOfBirth,
+      const profile = isLocalUxMode
+        ? createLocalRelationshipProfile({
+            firstName,
+            lastName,
             dateOfBirth,
-            email: firebaseEmail ?? '',
-            lat: resolved.lat,
-            lon: resolved.lon,
-            tzone: resolved.tzone,
+            placeOfBirth: resolved.placeOfBirth,
+            time: birthTimeUnknown ? undefined : timeOfBirth,
+            birthTimeUnknown,
           })
-        : await relationshipUsersApi.createProfile({
-            firebaseUid: currentUser.uid,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            dateOfBirth,
-            placeOfBirth: resolved.placeOfBirth,
-            time: timeOfBirth,
-            lat: resolved.lat,
-            lon: resolved.lon,
-            tzone: resolved.tzone,
-            gender,
-            unknownTime: false,
-          });
+        : birthTimeUnknown
+          ? await relationshipUsersApi.createProfileUnknownTime({
+              firebaseUid: currentUser?.uid ?? 'unknown',
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+              gender,
+              placeOfBirth: resolved.placeOfBirth,
+              dateOfBirth,
+              email: firebaseEmail ?? '',
+              lat: resolved.lat,
+              lon: resolved.lon,
+              tzone: resolved.tzone,
+            })
+          : await relationshipUsersApi.createProfile({
+              firebaseUid: currentUser?.uid ?? 'unknown',
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+              dateOfBirth,
+              placeOfBirth: resolved.placeOfBirth,
+              time: timeOfBirth,
+              lat: resolved.lat,
+              lon: resolved.lon,
+              tzone: resolved.tzone,
+              gender,
+              unknownTime: false,
+            });
 
       setProfile(profile);
       navigation.replace('ChooseTargetType');
@@ -288,52 +310,27 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Birth location</Text>
-          <TextInput
+          <PlaceAutocompleteInput
             value={placeOfBirth}
             onChangeText={setPlaceOfBirth}
-            placeholder="City, state, country"
-            placeholderTextColor={colors.textMuted}
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+            onSelectSuggestion={async (selection) => {
+              await handlePlaceSelected(selection);
+            }}
+            onBlur={() => {
+              handlePlaceResolved().catch(() => undefined);
+            }}
+            canUseSuggestions={canUseGoogleServices}
+            helperText={
+              canUseGoogleServices
+                ? 'Type at least 3 characters to see place suggestions. Selecting one will resolve the formatted location and timezone automatically.'
+                : isLocalUxMode
+                  ? 'Suggestions are unavailable without a valid Google key, but local UX mode can still continue with the typed place.'
+                  : 'Suggestions are unavailable until GOOGLE_API_KEY is configured for RelationshipApp.'
+            }
           />
-          <TouchableOpacity
-            style={[styles.utilityButton, { borderColor: colors.border }]}
-            onPress={handleAutofillLocation}
-            disabled={isAutofillingLocation}
-          >
-            <Text style={[styles.utilityButtonText, { color: colors.text }]}>
-              {isAutofillingLocation ? 'Resolving Location...' : 'Autofill Coordinates + Timezone'}
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.helper, { color: colors.textMuted }]}>
-            {canUseGoogleServices
-              ? 'If the Google API key is configured, this will geocode the location and derive timezone automatically.'
-              : 'GOOGLE_API_KEY is not configured for RelationshipApp yet, so enter latitude, longitude, and timezone manually.'}
-          </Text>
-
-          <TextInput
-            value={latitude}
-            onChangeText={setLatitude}
-            placeholder="Latitude"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="decimal-pad"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-          <TextInput
-            value={longitude}
-            onChangeText={setLongitude}
-            placeholder="Longitude"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="decimal-pad"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-          <TextInput
-            value={timezoneOffset}
-            onChangeText={setTimezoneOffset}
-            placeholder="Timezone offset hours, ex: -5"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="decimal-pad"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
+          {isAutofillingLocation ? (
+            <Text style={[styles.helper, { color: colors.textMuted }]}>Resolving location...</Text>
+          ) : null}
         </View>
 
         {submitError ? (

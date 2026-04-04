@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import auth from '@react-native-firebase/auth';
 import { ApiError, relationshipUsersApi } from '../api';
+import { relationshipAppEnv } from '../config/env';
 import { useRelationshipAppStore } from '../store';
 
 function isNotFoundError(error: unknown): boolean {
@@ -31,6 +32,17 @@ export function useBootstrapSession() {
   const setProfile = useRelationshipAppStore((state) => state.setProfile);
 
   useEffect(() => {
+    if (relationshipAppEnv.enableLocalUxMode) {
+      setAuthState({
+        authStatus: 'signedOut',
+        firebaseUid: null,
+        firebaseEmail: null,
+      });
+      setProfile(null);
+      setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
+      return;
+    }
+
     setBootstrapState({ bootstrapStatus: 'loading', bootstrapError: null });
 
     const unsubscribe = auth().onAuthStateChanged(async (user) => {

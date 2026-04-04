@@ -11,9 +11,15 @@ import {
   View,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
+import { PlaceAutocompleteInput } from '../components/PlaceAutocompleteInput';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
-import { externalApi, relationshipsApi, usersApi } from '../api';
+import { externalApi, PlaceDetails, relationshipsApi, usersApi } from '../api';
 import { relationshipAppEnv } from '../config/env';
+import {
+  createLocalHistoryEntry,
+  createLocalPartnerSubject,
+  createLocalPreviewAnalysis,
+} from '../mocks/demoData';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import {
@@ -31,6 +37,9 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
   const setActiveTargetSubject = useRelationshipAppStore((state) => state.setActiveTargetSubject);
   const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
   const setActiveRelationshipId = useRelationshipAppStore((state) => state.setActiveRelationshipId);
+  const relationshipHistory = useRelationshipAppStore((state) => state.relationshipHistory);
+  const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
+  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -41,7 +50,6 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
   const [placeOfBirth, setPlaceOfBirth] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
-  const [timezoneOffset, setTimezoneOffset] = useState('');
   const [isAutofillingLocation, setIsAutofillingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -57,7 +65,7 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
     placeOfBirth,
     latitude,
     longitude,
-    timezoneOffset,
+    timezoneOffset: '',
   };
 
   const resolveLocationFields = async () => {
@@ -76,7 +84,7 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     if (resolved.tzone !== null) {
-      setTimezoneOffset(String(resolved.tzone));
+      // Timezone is resolved for backend submission but not exposed in the UI.
     }
 
     if (resolved.placeOfBirth) {
@@ -86,33 +94,35 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
     return resolved;
   };
 
-  const handleAutofillLocation = async () => {
-    if (!placeOfBirth.trim()) {
-      Alert.alert('Location required', 'Enter a city or place name first.');
-      return;
+  const handlePlaceResolved = async (nextPlace?: string) => {
+    if (nextPlace && nextPlace !== placeOfBirth) {
+      setPlaceOfBirth(nextPlace);
     }
 
-    if (!canUseGoogleServices) {
-      Alert.alert(
-        'Google API key missing',
-        'Manual latitude, longitude, and timezone entry is required until the relationship app environment includes GOOGLE_API_KEY.'
-      );
+    const targetPlace = (nextPlace ?? placeOfBirth).trim();
+    if (!targetPlace || isAutofillingLocation || !canUseGoogleServices) {
       return;
     }
 
     try {
       setIsAutofillingLocation(true);
-      const resolved = await resolveLocationFields();
-      if (resolved.lat === null || resolved.lon === null || resolved.tzone === null) {
-        throw new Error('Could not resolve the full location payload.');
-      }
+      await resolveLocationFields();
     } catch (error) {
-      Alert.alert(
-        'Location lookup failed',
-        error instanceof Error ? error.message : 'Could not resolve this location.'
-      );
+      if (!isLocalUxMode) {
+        setSubmitError(error instanceof Error ? error.message : 'Could not resolve this location.');
+      }
     } finally {
       setIsAutofillingLocation(false);
+    }
+  };
+
+  const handlePlaceSelected = async (selection: PlaceDetails) => {
+    setPlaceOfBirth(selection.formattedAddress || selection.displayName || placeOfBirth);
+    if (selection.lat !== null) {
+      setLatitude(String(selection.lat));
+    }
+    if (selection.lng !== null) {
+      setLongitude(String(selection.lng));
     }
   };
 
@@ -132,27 +142,82 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
     setIsSubmitting(true);
 
     try {
-      const { partner, preview, resolvedLocation } = await submitPartnerPreview(
-        draft,
-        { id: selfProfileId as string, firebaseUid: selfProfile?.firebaseUid ?? null },
-        {
-          canUseGoogleServices,
-          geocodeLocation: externalApi.geocodeLocation,
-          fetchTimeZone: externalApi.fetchTimeZone,
-          createGuestSubject: usersApi.createGuestSubject,
-          createGuestSubjectUnknownTime: usersApi.createGuestSubjectUnknownTime,
-          enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
-        }
-      );
+      const resolvedLocation = isLocalUxMode
+        ? {
+            placeOfBirth: placeOfBirth.trim(),
+            lat: null,
+            lon: null,
+            tzone: null,
+          }
+        : await resolveLocationFields();
+
+      if (
+        !isLocalUxMode &&
+        (resolvedLocation.lat === null ||
+          resolvedLocation.lon === null ||
+          resolvedLocation.tzone === null)
+      ) {
+        throw new Error(
+          'We could not resolve this birth location from Google. Check the API key or choose a clearer place.'
+        );
+      }
+
+      const localPartner = isLocalUxMode && selfProfile
+        ? createLocalPartnerSubject({
+            firstName,
+            lastName,
+            dateOfBirth,
+            placeOfBirth: resolvedLocation.placeOfBirth,
+            time: birthTimeUnknown ? undefined : timeOfBirth,
+            birthTimeUnknown,
+            ownerUserId: selfProfile.id,
+          })
+        : null;
+
+      const localPreview = isLocalUxMode && selfProfile && localPartner
+        ? createLocalPreviewAnalysis({
+            selfProfile,
+            partner: localPartner,
+          })
+        : null;
+
+      const { partner, preview } = localPartner && localPreview
+        ? {
+            partner: localPartner,
+            preview: localPreview,
+          }
+        : await submitPartnerPreview(
+            draft,
+            { id: selfProfileId as string, firebaseUid: selfProfile?.firebaseUid ?? null },
+            {
+              canUseGoogleServices,
+              geocodeLocation: externalApi.geocodeLocation,
+              fetchTimeZone: externalApi.fetchTimeZone,
+              createGuestSubject: usersApi.createGuestSubject,
+              createGuestSubjectUnknownTime: usersApi.createGuestSubjectUnknownTime,
+              enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
+            }
+          );
 
       setPlaceOfBirth(resolvedLocation.placeOfBirth);
-      setLatitude(String(resolvedLocation.lat));
-      setLongitude(String(resolvedLocation.lon));
-      setTimezoneOffset(String(resolvedLocation.tzone));
+      if (resolvedLocation.lat !== null) {
+        setLatitude(String(resolvedLocation.lat));
+      }
+      if (resolvedLocation.lon !== null) {
+        setLongitude(String(resolvedLocation.lon));
+      }
 
       setActiveTargetSubject(partner);
       setPreviewAnalysis(preview);
       setActiveRelationshipId(preview.compositeChartId);
+      if (isLocalUxMode) {
+        setRelationshipHistory({
+          relationshipHistory: [
+            createLocalHistoryEntry({ preview }),
+            ...relationshipHistory.filter((item) => item._id !== preview.compositeChartId),
+          ],
+        });
+      }
       navigation.replace('RelationshipPreview');
     } catch (error) {
       const message =
@@ -243,52 +308,27 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Birth location</Text>
-          <TextInput
+          <PlaceAutocompleteInput
             value={placeOfBirth}
             onChangeText={setPlaceOfBirth}
-            placeholder="City, state, country"
-            placeholderTextColor={colors.textMuted}
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+            onSelectSuggestion={async (selection) => {
+              await handlePlaceSelected(selection);
+            }}
+            onBlur={() => {
+              handlePlaceResolved().catch(() => undefined);
+            }}
+            canUseSuggestions={canUseGoogleServices}
+            helperText={
+              canUseGoogleServices
+                ? 'Type at least 3 characters to see place suggestions. Selecting one will resolve the formatted location and timezone automatically.'
+                : isLocalUxMode
+                  ? 'Suggestions are unavailable without a valid Google key, but local UX mode can still continue with the typed place.'
+                  : 'Suggestions are unavailable until GOOGLE_API_KEY is configured for RelationshipApp.'
+            }
           />
-          <TouchableOpacity
-            style={[styles.utilityButton, { borderColor: colors.border }]}
-            onPress={handleAutofillLocation}
-            disabled={isAutofillingLocation}
-          >
-            <Text style={[styles.utilityButtonText, { color: colors.text }]}>
-              {isAutofillingLocation ? 'Resolving Location...' : 'Autofill Coordinates + Timezone'}
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.helper, { color: colors.textMuted }]}>
-            {canUseGoogleServices
-              ? 'If the Google API key is configured, this will geocode the location and derive timezone automatically.'
-              : 'GOOGLE_API_KEY is not configured for RelationshipApp yet, so enter latitude, longitude, and timezone manually.'}
-          </Text>
-
-          <TextInput
-            value={latitude}
-            onChangeText={setLatitude}
-            placeholder="Latitude"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="decimal-pad"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-          <TextInput
-            value={longitude}
-            onChangeText={setLongitude}
-            placeholder="Longitude"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="decimal-pad"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-          <TextInput
-            value={timezoneOffset}
-            onChangeText={setTimezoneOffset}
-            placeholder="Timezone offset hours, ex: -5"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="decimal-pad"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
+          {isAutofillingLocation ? (
+            <Text style={[styles.helper, { color: colors.textMuted }]}>Resolving location...</Text>
+          ) : null}
         </View>
 
         {submitError ? (
