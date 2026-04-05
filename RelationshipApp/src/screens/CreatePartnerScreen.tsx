@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { StackScreenProps } from '@react-navigation/stack';
 import { PlaceAutocompleteInput } from '../components/PlaceAutocompleteInput';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
@@ -28,6 +28,18 @@ import {
 } from './createPartnerFlow';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreatePartner'>;
+
+function parseDateString(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year || 1995, (month || 1) - 1, day || 1);
+}
+
+function parseTimeString(value: string): Date {
+  const [hours, minutes] = value.split(':').map(Number);
+  const date = new Date(2000, 0, 1);
+  date.setHours(hours || 12, minutes || 0, 0, 0);
+  return date;
+}
 
 export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
@@ -54,6 +66,8 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
+  const currentDate = useMemo(() => parseDateString(dateOfBirth), [dateOfBirth]);
+  const currentTime = useMemo(() => parseTimeString(timeOfBirth), [timeOfBirth]);
   const draft = {
     firstName,
     lastName,
@@ -123,6 +137,27 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
     if (selection.lng !== null) {
       setLongitude(String(selection.lng));
     }
+  };
+
+  const handleDateChange = (_event: unknown, selectedDate?: Date) => {
+    if (!selectedDate) {
+      return;
+    }
+
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    setDateOfBirth(`${year}-${month}-${day}`);
+  };
+
+  const handleTimeChange = (_event: unknown, selectedTime?: Date) => {
+    if (!selectedTime) {
+      return;
+    }
+
+    const hours = String(selectedTime.getHours()).padStart(2, '0');
+    const minutes = String(selectedTime.getMinutes()).padStart(2, '0');
+    setTimeOfBirth(`${hours}:${minutes}`);
   };
 
   const handleSubmit = async () => {
@@ -289,41 +324,90 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Birth data</Text>
-          <TextInput
-            value={dateOfBirth}
-            onChangeText={setDateOfBirth}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="none"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-
-          <View style={styles.switchRow}>
-            <View style={styles.switchCopy}>
-              <Text style={[styles.switchLabel, { color: colors.text }]}>Birth time unknown</Text>
-              <Text style={[styles.helper, { color: colors.textMuted }]}>
-                If enabled, the guest profile is created through the unknown-time path.
-              </Text>
-            </View>
-            <Switch
-              value={birthTimeUnknown}
-              onValueChange={setBirthTimeUnknown}
-              thumbColor={colors.surface}
-              trackColor={{ false: colors.surfaceMuted, true: colors.primaryMuted }}
+          <View style={styles.formGroup}>
+            <Text style={[styles.fieldLabel, { color: colors.text }]}>Birth date</Text>
+            <DateTimePicker
+              value={currentDate}
+              mode="date"
+              display="spinner"
+              onChange={handleDateChange}
+              maximumDate={new Date()}
+              minimumDate={new Date(1900, 0, 1)}
             />
           </View>
 
-          {!birthTimeUnknown ? (
-            <TextInput
-              value={timeOfBirth}
-              onChangeText={setTimeOfBirth}
-              placeholder="HH:MM"
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="none"
-              style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-            />
-          ) : null}
+          <View style={styles.formGroup}>
+            <View style={styles.timeHeaderRow}>
+              <Text style={[styles.fieldLabel, { color: colors.text }]}>Birth time</Text>
+              <View style={styles.timeToggleRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.togglePill,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: !birthTimeUnknown ? colors.primary : colors.surface,
+                    },
+                  ]}
+                  onPress={() => setBirthTimeUnknown(false)}
+                >
+                  <Text
+                    style={[
+                      styles.togglePillText,
+                      !birthTimeUnknown
+                        ? styles.togglePillTextActive
+                        : styles.togglePillTextInactive,
+                    ]}
+                  >
+                    Known
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.togglePill,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: birthTimeUnknown ? colors.primary : colors.surface,
+                    },
+                  ]}
+                  onPress={() => setBirthTimeUnknown(true)}
+                >
+                  <Text
+                    style={[
+                      styles.togglePillText,
+                      birthTimeUnknown
+                        ? styles.togglePillTextActive
+                        : styles.togglePillTextInactive,
+                    ]}
+                  >
+                    Unknown
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {!birthTimeUnknown ? (
+              <View style={styles.timePickerContainer}>
+                <DateTimePicker
+                  value={currentTime}
+                  mode="time"
+                  display="spinner"
+                  onChange={handleTimeChange}
+                  is24Hour={false}
+                />
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.infoContainer,
+                  { backgroundColor: colors.surfaceMuted },
+                ]}
+              >
+                <Text style={[styles.helper, { color: colors.textMuted }]}>
+                  We&apos;ll use the unknown-time guest-subject path and remove house-dependent birth data.
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -346,6 +430,26 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
                   : 'Suggestions are unavailable until GOOGLE_API_KEY is configured for RelationshipApp.'
             }
           />
+          {placeOfBirth ? (
+            <View
+              style={[
+                styles.selectedLocationContainer,
+                { backgroundColor: colors.surfaceMuted },
+              ]}
+            >
+              <View style={[styles.checkmarkContainer, { backgroundColor: colors.primary }]}>
+                <Text style={styles.checkmark}>✓</Text>
+              </View>
+              <View style={styles.selectedTextContainer}>
+                <Text style={[styles.selectedLocationLabel, { color: colors.textMuted }]}>
+                  Selected location
+                </Text>
+                <Text style={[styles.selectedLocationText, { color: colors.text }]}>
+                  {placeOfBirth}
+                </Text>
+              </View>
+            </View>
+          ) : null}
           {isAutofillingLocation ? (
             <Text style={[styles.helper, { color: colors.textMuted }]}>Resolving location...</Text>
           ) : null}
@@ -417,6 +521,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  formGroup: {
+    gap: 10,
+  },
+  fieldLabel: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
   input: {
     borderWidth: 1,
     borderRadius: 12,
@@ -425,34 +536,75 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: 'transparent',
   },
-  switchRow: {
+  timeHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
   },
-  switchCopy: {
-    flex: 1,
-    gap: 4,
+  timeToggleRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  switchLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+  togglePill: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  togglePillText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  togglePillTextActive: {
+    color: '#FFF9F0',
+  },
+  togglePillTextInactive: {
+    color: '#2B211C',
+  },
+  timePickerContainer: {
+    height: 180,
+  },
+  infoContainer: {
+    borderRadius: 14,
+    padding: 16,
   },
   helper: {
     fontSize: 13,
     lineHeight: 18,
   },
-  utilityButton: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+  selectedLocationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    padding: 16,
+    gap: 14,
   },
-  utilityButtonText: {
-    fontSize: 14,
+  checkmarkContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkmark: {
+    color: '#FFF9F0',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  selectedTextContainer: {
+    flex: 1,
+  },
+  selectedLocationLabel: {
+    fontSize: 12,
     fontWeight: '600',
-    textAlign: 'center',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  selectedLocationText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   errorText: {
     fontSize: 14,
