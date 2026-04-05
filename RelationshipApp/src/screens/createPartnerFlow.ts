@@ -1,5 +1,4 @@
 import { SubjectDocument } from '../../../shared/types/subject';
-import { EnhancedRelationshipAnalysisResponse } from '../../../shared/api/relationships';
 import {
   getEpochSeconds,
   isValidDate,
@@ -68,12 +67,6 @@ interface SubmitPartnerPreviewDeps extends LocationResolverDeps {
     tzone: number;
     ownerUserId: string;
   }) => Promise<SubjectDocument>;
-  enhancedRelationshipAnalysis: (
-    userIdA: string,
-    userIdB: string,
-    ownerUserId?: string,
-    celebRelationship?: boolean
-  ) => Promise<EnhancedRelationshipAnalysisResponse>;
 }
 
 export function validatePartnerDraft(
@@ -148,7 +141,6 @@ export async function submitPartnerPreview(
   deps: SubmitPartnerPreviewDeps
 ): Promise<{
   partner: SubjectDocument;
-  preview: EnhancedRelationshipAnalysisResponse;
   resolvedLocation: ResolvedLocationFields;
 }> {
   const validationError = validatePartnerDraft(draft, selfProfile);
@@ -195,16 +187,8 @@ export async function submitPartnerPreview(
         ownerUserId: selfProfile.id,
       });
 
-  const preview = await deps.enhancedRelationshipAnalysis(
-    selfProfile.id,
-    partner._id,
-    selfProfile.id,
-    false
-  );
-
   return {
     partner,
-    preview,
     resolvedLocation,
   };
 }

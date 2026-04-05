@@ -103,6 +103,7 @@ export function createLocalPartnerSubject(input: {
 export function createLocalPreviewAnalysis(params: {
   selfProfile: RelationshipAppProfile;
   partner: SubjectDocument;
+  isCelebrityRelationship?: boolean;
 }): EnhancedRelationshipAnalysisResponse {
   const compositeChartId = `local-relationship-${Date.now()}`;
 
@@ -219,7 +220,7 @@ export function createLocalPreviewAnalysis(params: {
       totalScoredItems: 12,
       workflowType: 'direct-cluster-scoring',
       version: 'local-demo',
-      isCelebrityRelationship: false,
+      isCelebrityRelationship: params.isCelebrityRelationship ?? false,
       initialOverviewGenerated: true,
     },
   };

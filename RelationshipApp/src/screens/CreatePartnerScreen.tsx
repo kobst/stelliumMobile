@@ -16,12 +16,11 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { externalApi, PlaceDetails, relationshipsApi, usersApi } from '../api';
 import { relationshipAppEnv } from '../config/env';
 import {
-  createLocalHistoryEntry,
   createLocalPartnerSubject,
-  createLocalPreviewAnalysis,
 } from '../mocks/demoData';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
+import { startRelationshipPreview } from './previewFlow';
 import {
   resolvePartnerLocationFields,
   submitPartnerPreview,
@@ -174,17 +173,21 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
           })
         : null;
 
-      const localPreview = isLocalUxMode && selfProfile && localPartner
-        ? createLocalPreviewAnalysis({
-            selfProfile,
-            partner: localPartner,
-          })
-        : null;
-
-      const { partner, preview } = localPartner && localPreview
+      const { partner, preview, updatedHistory } = localPartner
         ? {
             partner: localPartner,
-            preview: localPreview,
+            ...(await startRelationshipPreview(
+              {
+                selfProfile,
+                targetSubject: localPartner,
+                targetType: 'person',
+                isLocalUxMode,
+                relationshipHistory,
+              },
+              {
+                enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
+              }
+            )),
           }
         : await submitPartnerPreview(
             draft,
@@ -197,7 +200,27 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
               createGuestSubjectUnknownTime: usersApi.createGuestSubjectUnknownTime,
               enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
             }
-          );
+          ).then(async ({ partner: createdPartner, resolvedLocation: createdPartnerLocation }) => {
+            const previewResult = await startRelationshipPreview(
+              {
+                selfProfile: selfProfile as NonNullable<typeof selfProfile>,
+                targetSubject: createdPartner,
+                targetType: 'person',
+                isLocalUxMode,
+                relationshipHistory,
+              },
+              {
+                enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
+              }
+            );
+
+            return {
+              partner: createdPartner,
+              resolvedLocation: createdPartnerLocation,
+              preview: previewResult.preview,
+              updatedHistory: previewResult.updatedHistory,
+            };
+          });
 
       setPlaceOfBirth(resolvedLocation.placeOfBirth);
       if (resolvedLocation.lat !== null) {
@@ -212,10 +235,7 @@ export const CreatePartnerScreen: React.FC<Props> = ({ navigation }) => {
       setActiveRelationshipId(preview.compositeChartId);
       if (isLocalUxMode) {
         setRelationshipHistory({
-          relationshipHistory: [
-            createLocalHistoryEntry({ preview }),
-            ...relationshipHistory.filter((item) => item._id !== preview.compositeChartId),
-          ],
+          relationshipHistory: updatedHistory,
         });
       }
       navigation.replace('RelationshipPreview');

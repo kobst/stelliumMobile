@@ -4,5 +4,7 @@ export { relationshipApiClient } from '../../../shared/api/relationshipClient';
 export { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
 export { usersApi } from '../../../shared/api/users';
 export { relationshipsApi } from '../../../shared/api/relationships';
+export { celebritiesApi } from '../../../shared/api/celebrities';
 export { externalApi } from '../../../shared/api/external';
+export type { Celebrity } from '../../../shared/api/celebrities';
 export type { PlaceSuggestion } from '../../../shared/api/external';

@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Alert,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -8,7 +9,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { relationshipsApi } from '../api';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
+import { startRelationshipPreview } from './previewFlow';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { DevSessionPanel } from '../components/DevSessionPanel';
@@ -19,10 +22,53 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<RootNavigation>();
   const { colors } = useTheme();
   const profile = useRelationshipAppStore((state) => state.profile);
+  const activeTargetType = useRelationshipAppStore((state) => state.activeTargetType);
+  const activeTargetSubject = useRelationshipAppStore((state) => state.activeTargetSubject);
   const previewAnalysis = useRelationshipAppStore((state) => state.previewAnalysis);
+  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
+  const relationshipHistory = useRelationshipAppStore((state) => state.relationshipHistory);
+  const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
+  const setActiveRelationshipId = useRelationshipAppStore((state) => state.setActiveRelationshipId);
+  const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
   const clearActiveRelationshipFlow = useRelationshipAppStore(
     (state) => state.clearActiveRelationshipFlow
   );
+  const [isStartingCelebrityPreview, setIsStartingCelebrityPreview] = React.useState(false);
+
+  const handleStartCelebrityPreview = async () => {
+    if (!profile || !activeTargetSubject || activeTargetType !== 'celebrity') {
+      return;
+    }
+
+    try {
+      setIsStartingCelebrityPreview(true);
+      const { preview, updatedHistory } = await startRelationshipPreview(
+        {
+          selfProfile: profile,
+          targetSubject: activeTargetSubject,
+          targetType: 'celebrity',
+          isLocalUxMode,
+          relationshipHistory,
+        },
+        {
+          enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
+        }
+      );
+
+      setPreviewAnalysis(preview);
+      setActiveRelationshipId(preview.compositeChartId);
+      if (isLocalUxMode) {
+        setRelationshipHistory({ relationshipHistory: updatedHistory });
+      }
+      navigation.navigate('RelationshipPreview');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Could not start celebrity preview.';
+      Alert.alert('Celebrity preview failed', message);
+    } finally {
+      setIsStartingCelebrityPreview(false);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -54,6 +100,37 @@ export const HomeScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {activeTargetType === 'celebrity' && activeTargetSubject ? (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Selected celebrity</Text>
+            <Text style={[styles.cardBody, { color: colors.textMuted }]}>
+              {activeTargetSubject.firstName} {activeTargetSubject.lastName}
+            </Text>
+            <Text style={[styles.cardBody, { color: colors.textMuted }]}>
+              {activeTargetSubject.placeOfBirth}
+            </Text>
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+              onPress={() => {
+                handleStartCelebrityPreview().catch(() => undefined);
+              }}
+              disabled={isStartingCelebrityPreview}
+            >
+              <Text style={styles.primaryButtonText}>
+                {isStartingCelebrityPreview ? 'Starting Preview...' : 'Start Celebrity Preview'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.secondaryButton, { borderColor: colors.border }]}
+              onPress={() => navigation.navigate('SelectCelebrity')}
+            >
+              <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+                Change Celebrity
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {previewAnalysis ? (
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>

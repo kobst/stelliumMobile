@@ -21,47 +21,6 @@ function makeDraft(overrides: Partial<PartnerDraft> = {}): PartnerDraft {
   };
 }
 
-function makePreview() {
-  return {
-    success: true,
-    compositeChartId: 'rel_123',
-    userA: { id: 'self_1', name: 'Alex Rivera' },
-    userB: { id: 'guest_1', name: 'Taylor Smith' },
-    clusters: {
-      Harmony: { score: 81, quadrant: 'Easy-going' },
-      Passion: { score: 74, quadrant: 'Dynamic' },
-      Connection: { score: 79, quadrant: 'Easy-going' },
-      Stability: { score: 68, quadrant: 'Dynamic' },
-      Growth: { score: 72, quadrant: 'Dynamic' },
-    },
-    overall: {
-      score: 75,
-      profile: 'Strong connection',
-      tier: 'Flourishing',
-      dominantCluster: 'Harmony',
-      challengeCluster: 'Stability',
-      strengthClusters: ['Harmony', 'Connection'],
-      growthClusters: ['Stability'],
-    },
-    scoredItems: [],
-    initialOverview: 'Solid chemistry.',
-    tensionFlowAnalysis: {},
-    compositeChart: {},
-    synastryAspects: [],
-    synastryHousePlacements: { AinB: [], BinA: [] },
-    status: 'scores_calculated',
-    metadata: {
-      processingTime: '2s',
-      clustersAnalyzed: 5,
-      totalScoredItems: 12,
-      workflowType: 'direct-cluster-scoring',
-      version: 'test',
-      isCelebrityRelationship: false,
-      initialOverviewGenerated: true,
-    },
-  } as any;
-}
-
 describe('relationship app partner preview flow', () => {
   test('validates required self profile before preview creation', () => {
     const error = validatePartnerDraft(makeDraft(), null);
@@ -160,10 +119,9 @@ describe('relationship app partner preview flow', () => {
     });
   });
 
-  test('creates a known-time guest subject and requests a preview', async () => {
+  test('creates a known-time guest subject', async () => {
     const createGuestSubject = jest.fn().mockResolvedValue({ _id: 'guest_1' });
     const createGuestSubjectUnknownTime = jest.fn();
-    const enhancedRelationshipAnalysis = jest.fn().mockResolvedValue(makePreview());
 
     const result = await submitPartnerPreview(
       makeDraft({
@@ -180,7 +138,6 @@ describe('relationship app partner preview flow', () => {
         fetchTimeZone: jest.fn(),
         createGuestSubject,
         createGuestSubjectUnknownTime,
-        enhancedRelationshipAnalysis,
       }
     );
 
@@ -199,16 +156,12 @@ describe('relationship app partner preview flow', () => {
       ownerUserId: 'self_1',
     });
     expect(createGuestSubjectUnknownTime).not.toHaveBeenCalled();
-    expect(enhancedRelationshipAnalysis).toHaveBeenCalledWith('self_1', 'guest_1', 'self_1', false);
     expect(result.partner).toEqual({ _id: 'guest_1' });
-    expect(result.preview.compositeChartId).toBe('rel_123');
   });
 
   test('creates an unknown-time guest subject through the unknown-time path', async () => {
     const createGuestSubject = jest.fn();
     const createGuestSubjectUnknownTime = jest.fn().mockResolvedValue({ _id: 'guest_2' });
-    const enhancedRelationshipAnalysis = jest.fn().mockResolvedValue(makePreview());
-
     await submitPartnerPreview(
       makeDraft({
         birthTimeUnknown: true,
@@ -223,7 +176,6 @@ describe('relationship app partner preview flow', () => {
         fetchTimeZone: jest.fn(),
         createGuestSubject,
         createGuestSubjectUnknownTime,
-        enhancedRelationshipAnalysis,
       }
     );
 
@@ -252,7 +204,6 @@ describe('relationship app partner preview flow', () => {
           fetchTimeZone: jest.fn(),
           createGuestSubject: jest.fn(),
           createGuestSubjectUnknownTime: jest.fn(),
-          enhancedRelationshipAnalysis: jest.fn(),
         }
       )
     ).rejects.toThrow(
