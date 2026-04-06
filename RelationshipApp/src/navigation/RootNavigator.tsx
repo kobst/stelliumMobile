@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { CreateSelfProfileScreen } from '../screens/CreateSelfProfileScreen';
+import { SelfProfileSuccessScreen } from '../screens/SelfProfileSuccessScreen';
 import { ChooseTargetTypeScreen } from '../screens/ChooseTargetTypeScreen';
 import { CreatePartnerScreen } from '../screens/CreatePartnerScreen';
 import { SelectCelebrityScreen } from '../screens/SelectCelebrityScreen';
@@ -16,6 +17,7 @@ import { useRelationshipAppStore } from '../store';
 export type RelationshipRootParamList = {
   Welcome: undefined;
   CreateSelfProfile: undefined;
+  SelfProfileSuccess: undefined;
   ChooseTargetType: undefined;
   CreatePartner: undefined;
   SelectCelebrity: undefined;
@@ -71,6 +73,7 @@ export const RootNavigator: React.FC = () => {
       >
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="CreateSelfProfile" component={CreateSelfProfileScreen} />
+        <Stack.Screen name="SelfProfileSuccess" component={SelfProfileSuccessScreen} />
         <Stack.Screen name="ChooseTargetType" component={ChooseTargetTypeScreen} />
         <Stack.Screen name="CreatePartner" component={CreatePartnerScreen} />
         <Stack.Screen name="SelectCelebrity" component={SelectCelebrityScreen} />

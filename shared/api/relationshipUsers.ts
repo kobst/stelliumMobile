@@ -8,7 +8,13 @@ import {
   RELATIONSHIP_APP_DOMAIN,
 } from '../domain/relationshipUser';
 
-type SubjectResponse = SubjectDocument | { user: SubjectDocument };
+type SubjectResponse =
+  | SubjectDocument
+  | {
+      user: SubjectDocument;
+      overview?: string;
+      status?: string;
+    };
 
 function unwrapSubjectDocument(response: SubjectResponse): SubjectDocument {
   if ('user' in response && response.user) {
@@ -23,6 +29,14 @@ function normalizeRelationshipAppProfile(
   firebaseUid: string | null
 ): RelationshipAppProfile {
   const subject = unwrapSubjectDocument(response);
+  const romanticOverview =
+    'overview' in response && typeof response.overview === 'string'
+      ? response.overview
+      : undefined;
+  const romanticOverviewStatus =
+    'status' in response && typeof response.status === 'string'
+      ? response.status
+      : undefined;
 
   if (subject.kind !== 'accountSelf') {
     throw new Error(
@@ -60,6 +74,8 @@ function normalizeRelationshipAppProfile(
     subject,
     backendAppDomain,
     isDomainExplicit: backendAppDomain === RELATIONSHIP_APP_DOMAIN,
+    romanticOverview,
+    romanticOverviewStatus,
   };
 }
 

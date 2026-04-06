@@ -248,7 +248,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             });
 
       setProfile(profile);
-      navigation.replace('ChooseTargetType');
+      navigation.replace('SelfProfileSuccess');
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Could not create the relationship profile.';

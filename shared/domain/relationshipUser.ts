@@ -51,6 +51,8 @@ export interface RelationshipAppProfile {
   subject: SubjectDocument;
   backendAppDomain: string | null;
   isDomainExplicit: boolean;
+  romanticOverview?: string;
+  romanticOverviewStatus?: string;
 }
 
 export function getRelationshipAppRequestMetadata(): RelationshipAppUserRequestMetadata {

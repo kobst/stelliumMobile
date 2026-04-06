@@ -27,6 +27,7 @@ interface RelationshipFlowState {
   hasCompletedSelfProfile: boolean;
   selfProfileId: string | null;
   selfProfileDomain: typeof RELATIONSHIP_APP_DOMAIN;
+  selfProfileOverview: string | null;
   activeTargetType: TargetType;
   activeTargetSubject: SubjectDocument | null;
   activeRelationshipId: string | null;
@@ -55,6 +56,7 @@ interface RelationshipAppStore extends RelationshipSessionState, RelationshipFlo
   resetSession: () => void;
   setCompletedSelfProfile: (value: boolean) => void;
   setSelfProfileId: (value: string | null) => void;
+  setSelfProfileOverview: (value: string | null) => void;
   setActiveTargetType: (value: TargetType) => void;
   setActiveTargetSubject: (value: SubjectDocument | null) => void;
   setActiveRelationshipId: (value: string | null) => void;
@@ -87,6 +89,7 @@ const initialFlowState: RelationshipFlowState = {
   hasCompletedSelfProfile: false,
   selfProfileId: null,
   selfProfileDomain: RELATIONSHIP_APP_DOMAIN,
+  selfProfileOverview: null,
   activeTargetType: null,
   activeTargetSubject: null,
   activeRelationshipId: null,
@@ -120,6 +123,7 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       profile,
       hasCompletedSelfProfile: Boolean(profile),
       selfProfileId: profile?.id ?? null,
+      selfProfileOverview: profile?.romanticOverview ?? null,
     }),
   resetSession: () =>
     set({
@@ -130,6 +134,7 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
     }),
   setCompletedSelfProfile: (value) => set({ hasCompletedSelfProfile: value }),
   setSelfProfileId: (value) => set({ selfProfileId: value }),
+  setSelfProfileOverview: (value) => set({ selfProfileOverview: value }),
   setActiveTargetType: (value) => set({ activeTargetType: value }),
   setActiveTargetSubject: (value) => set({ activeTargetSubject: value }),
   setActiveRelationshipId: (value) => set({ activeRelationshipId: value }),
@@ -160,6 +165,7 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       activeTargetType: null,
       activeTargetSubject: null,
       activeRelationshipId: null,
+      selfProfileOverview: null,
       previewAnalysis: null,
       fullAnalysis: null,
       workflowStatus: null,

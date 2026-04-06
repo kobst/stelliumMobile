@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   SafeAreaView,
   StyleSheet,
@@ -10,11 +11,12 @@ import {
   View,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
-import { celebritiesApi, Celebrity } from '../api';
+import { celebritiesApi, Celebrity, relationshipsApi } from '../api';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { SubjectDocument } from '../../../shared/types/subject';
+import { startRelationshipPreview } from './previewFlow';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'SelectCelebrity'>;
 
@@ -43,10 +45,15 @@ function celebrityToSubject(celebrity: Celebrity): SubjectDocument {
 
 export const SelectCelebrityScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
+  const profile = useRelationshipAppStore((state) => state.profile);
   const activeTargetSubject = useRelationshipAppStore((state) => state.activeTargetSubject);
+  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
+  const relationshipHistory = useRelationshipAppStore((state) => state.relationshipHistory);
   const setActiveTargetType = useRelationshipAppStore((state) => state.setActiveTargetType);
   const setActiveTargetSubject = useRelationshipAppStore((state) => state.setActiveTargetSubject);
   const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
+  const setActiveRelationshipId = useRelationshipAppStore((state) => state.setActiveRelationshipId);
+  const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const [celebrities, setCelebrities] = React.useState<Celebrity[]>([]);
@@ -73,6 +80,7 @@ export const SelectCelebrityScreen: React.FC<Props> = ({ navigation }) => {
   const [error, setError] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
   const [hasMore, setHasMore] = React.useState(true);
+  const [isStartingPreview, setIsStartingPreview] = React.useState(false);
 
   const loadCelebrities = React.useCallback(
     async (targetPage: number, search: string, append: boolean) => {
@@ -127,15 +135,48 @@ export const SelectCelebrityScreen: React.FC<Props> = ({ navigation }) => {
     setSelectedCelebrity(celebrity);
   };
 
-  const handleConfirmSelection = () => {
-    if (!selectedCelebrity) {
+  const handleConfirmSelection = async () => {
+    if (!selectedCelebrity || !profile) {
       return;
     }
 
-    setActiveTargetType('celebrity');
-    setActiveTargetSubject(celebrityToSubject(selectedCelebrity));
-    setPreviewAnalysis(null);
-    navigation.navigate('Main');
+    const targetSubject = celebrityToSubject(selectedCelebrity);
+
+    try {
+      setIsStartingPreview(true);
+      setError(null);
+
+      const { preview, updatedHistory } = await startRelationshipPreview(
+        {
+          selfProfile: profile,
+          targetSubject,
+          targetType: 'celebrity',
+          isLocalUxMode,
+          relationshipHistory,
+        },
+        {
+          enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
+        }
+      );
+
+      setActiveTargetType('celebrity');
+      setActiveTargetSubject(targetSubject);
+      setPreviewAnalysis(preview);
+      setActiveRelationshipId(preview.compositeChartId);
+      if (isLocalUxMode) {
+        setRelationshipHistory({ relationshipHistory: updatedHistory });
+      }
+      navigation.replace('RelationshipPreview');
+    } catch (selectionError) {
+      const message =
+        selectionError instanceof Error
+          ? selectionError.message
+          : 'Could not start celebrity preview.';
+      setError(message);
+      Alert.alert('Celebrity preview failed', message);
+    } finally {
+      setIsStartingPreview(false);
+    }
   };
 
   const renderCelebrityItem = ({ item }: { item: Celebrity }) => {
@@ -165,6 +206,31 @@ export const SelectCelebrityScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
+  if (!profile) {
+    return (
+      <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+        <View style={styles.content}>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>Celebrity</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Create your profile first.
+          </Text>
+          <Text style={[styles.body, { color: colors.textMuted }]}>
+            Celebrity previews depend on your saved self profile before selection can start analysis.
+          </Text>
+        </View>
+
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+            onPress={() => navigation.replace('CreateSelfProfile')}
+          >
+            <Text style={styles.primaryButtonText}>Create Profile</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
@@ -173,8 +239,7 @@ export const SelectCelebrityScreen: React.FC<Props> = ({ navigation }) => {
           Choose from the shared celebrity dataset.
         </Text>
         <Text style={[styles.body, { color: colors.textMuted }]}>
-          This uses the same read-only celebrity APIs as the classic app. Selection is saved in
-          the relationship-app flow so the celebrity branch can be completed next.
+          This uses the same read-only celebrity APIs as the classic app, then starts the shared preview flow immediately.
         </Text>
 
         <TextInput
@@ -238,12 +303,19 @@ export const SelectCelebrityScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.primaryButton,
-              { backgroundColor: selectedCelebrity ? colors.primary : colors.primaryMuted },
+              {
+                backgroundColor:
+                  selectedCelebrity && !isStartingPreview ? colors.primary : colors.primaryMuted,
+              },
             ]}
-            onPress={handleConfirmSelection}
-            disabled={!selectedCelebrity}
+            onPress={() => {
+              handleConfirmSelection().catch(() => undefined);
+            }}
+            disabled={!selectedCelebrity || isStartingPreview}
           >
-            <Text style={styles.primaryButtonText}>Use This Celebrity</Text>
+            <Text style={styles.primaryButtonText}>
+              {isStartingPreview ? 'Starting Preview...' : 'Use This Celebrity'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
