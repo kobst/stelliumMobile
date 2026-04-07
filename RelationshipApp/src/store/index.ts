@@ -7,11 +7,36 @@ import {
   RelationshipWorkflowStatusResponse,
   UserCompositeChart,
 } from '../../../shared/api/relationships';
+import type { OnboardingPreviewResponse, TopAspect } from '../../../shared/api/onboarding';
 
 export type TargetType = 'person' | 'celebrity' | null;
 export type RelationshipAuthStatus = 'booting' | 'signedOut' | 'signedIn';
 export type RelationshipBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type RelationshipWorkflowPhase = 'idle' | 'starting' | 'polling' | 'completed' | 'error';
+
+export interface GuestProfileDraft {
+  firstName: string;
+  lastName: string;
+  gender: string;
+  dateOfBirth: string;
+  timeOfBirth: string;
+  birthTimeUnknown: boolean;
+  placeOfBirth: string;
+  latitude: number | null;
+  longitude: number | null;
+  totalOffsetHours: number | null;
+}
+
+export interface ProfileRevealData {
+  previewId: string;
+  claimToken: string;
+  overview: string;
+  topAspects: TopAspect[];
+  birthChart: Record<string, unknown>;
+  fullResponse: OnboardingPreviewResponse;
+}
+
+export type { TopAspect };
 
 interface RelationshipSessionState {
   authStatus: RelationshipAuthStatus;
@@ -21,6 +46,11 @@ interface RelationshipSessionState {
   bootstrapError: string | null;
   profile: RelationshipAppProfile | null;
   isLocalUxMode: boolean;
+}
+
+interface OnboardingFlowState {
+  guestProfileDraft: GuestProfileDraft | null;
+  profileReveal: ProfileRevealData | null;
 }
 
 interface RelationshipFlowState {
@@ -41,7 +71,7 @@ interface RelationshipFlowState {
   historyError: string | null;
 }
 
-interface RelationshipAppStore extends RelationshipSessionState, RelationshipFlowState {
+interface RelationshipAppStore extends RelationshipSessionState, OnboardingFlowState, RelationshipFlowState {
   setAuthState: (payload: {
     authStatus: RelationshipAuthStatus;
     firebaseUid: string | null;
@@ -57,6 +87,9 @@ interface RelationshipAppStore extends RelationshipSessionState, RelationshipFlo
   setCompletedSelfProfile: (value: boolean) => void;
   setSelfProfileId: (value: string | null) => void;
   setSelfProfileOverview: (value: string | null) => void;
+  setGuestProfileDraft: (value: GuestProfileDraft | null) => void;
+  setProfileReveal: (value: ProfileRevealData | null) => void;
+  clearOnboardingFlow: () => void;
   setActiveTargetType: (value: TargetType) => void;
   setActiveTargetSubject: (value: SubjectDocument | null) => void;
   setActiveRelationshipId: (value: string | null) => void;
@@ -85,6 +118,11 @@ const initialSessionState: RelationshipSessionState = {
   isLocalUxMode: false,
 };
 
+const initialOnboardingState: OnboardingFlowState = {
+  guestProfileDraft: null,
+  profileReveal: null,
+};
+
 const initialFlowState: RelationshipFlowState = {
   hasCompletedSelfProfile: false,
   selfProfileId: null,
@@ -105,6 +143,7 @@ const initialFlowState: RelationshipFlowState = {
 
 export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
   ...initialSessionState,
+  ...initialOnboardingState,
   ...initialFlowState,
   setAuthState: ({ authStatus, firebaseUid, firebaseEmail }) =>
     set({
@@ -128,6 +167,7 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
   resetSession: () =>
     set({
       ...initialSessionState,
+      ...initialOnboardingState,
       ...initialFlowState,
       authStatus: 'signedOut',
       bootstrapStatus: 'ready',
@@ -135,6 +175,12 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
   setCompletedSelfProfile: (value) => set({ hasCompletedSelfProfile: value }),
   setSelfProfileId: (value) => set({ selfProfileId: value }),
   setSelfProfileOverview: (value) => set({ selfProfileOverview: value }),
+  setGuestProfileDraft: (value) => set({ guestProfileDraft: value }),
+  setProfileReveal: (value) => set({ profileReveal: value }),
+  clearOnboardingFlow: () =>
+    set({
+      ...initialOnboardingState,
+    }),
   setActiveTargetType: (value) => set({ activeTargetType: value }),
   setActiveTargetSubject: (value) => set({ activeTargetSubject: value }),
   setActiveRelationshipId: (value) => set({ activeRelationshipId: value }),

@@ -3,11 +3,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { CreateSelfProfileScreen } from '../screens/CreateSelfProfileScreen';
-import { SelfProfileSuccessScreen } from '../screens/SelfProfileSuccessScreen';
-import { ChooseTargetTypeScreen } from '../screens/ChooseTargetTypeScreen';
-import { CreatePartnerScreen } from '../screens/CreatePartnerScreen';
-import { SelectCelebrityScreen } from '../screens/SelectCelebrityScreen';
-import { RelationshipPreviewScreen } from '../screens/RelationshipPreviewScreen';
+import { ProfileRevealScreen } from '../screens/ProfileRevealScreen';
+import { SaveProfileScreen } from '../screens/SaveProfileScreen';
+import { CreateAccountScreen } from '../screens/CreateAccountScreen';
 import { UnlockScreen } from '../screens/UnlockScreen';
 import { FullRelationshipAnalysisScreen } from '../screens/FullRelationshipAnalysisScreen';
 import { MainTabs } from './MainTabs';
@@ -17,11 +15,9 @@ import { useRelationshipAppStore } from '../store';
 export type RelationshipRootParamList = {
   Welcome: undefined;
   CreateSelfProfile: undefined;
-  SelfProfileSuccess: undefined;
-  ChooseTargetType: undefined;
-  CreatePartner: undefined;
-  SelectCelebrity: undefined;
-  RelationshipPreview: undefined;
+  ProfileReveal: undefined;
+  SaveProfile: undefined;
+  CreateAccount: undefined;
   Unlock: undefined;
   FullRelationshipAnalysis: undefined;
   Main: undefined;
@@ -30,18 +26,19 @@ export type RelationshipRootParamList = {
 const Stack = createStackNavigator<RelationshipRootParamList>();
 
 export const RootNavigator: React.FC = () => {
-  const authStatus = useRelationshipAppStore((state) => state.authStatus);
   const bootstrapStatus = useRelationshipAppStore((state) => state.bootstrapStatus);
   const bootstrapError = useRelationshipAppStore((state) => state.bootstrapError);
   const hasCompletedSelfProfile = useRelationshipAppStore(
     (state) => state.hasCompletedSelfProfile
   );
+  const guestProfileDraft = useRelationshipAppStore((state) => state.guestProfileDraft);
+  const profileReveal = useRelationshipAppStore((state) => state.profileReveal);
 
-  if (bootstrapStatus === 'loading' || authStatus === 'booting') {
+  if (bootstrapStatus === 'loading') {
     return (
       <BootstrapStatusScreen
-        title="Connecting your relationship account."
-        body="Checking Firebase session state and loading the relationship-app profile if one already exists."
+        title="Setting things up."
+        body="Loading your profile if one already exists."
         showSpinner
       />
     );
@@ -56,11 +53,14 @@ export const RootNavigator: React.FC = () => {
     );
   }
 
-  const initialRouteName = hasCompletedSelfProfile
-    ? 'Main'
-    : authStatus === 'signedIn'
-      ? 'CreateSelfProfile'
-      : 'Welcome';
+  let initialRouteName: keyof RelationshipRootParamList = 'Welcome';
+  if (hasCompletedSelfProfile) {
+    initialRouteName = 'Main';
+  } else if (profileReveal && guestProfileDraft) {
+    initialRouteName = 'ProfileReveal';
+  } else if (guestProfileDraft) {
+    initialRouteName = 'CreateSelfProfile';
+  }
 
   return (
     <NavigationContainer>
@@ -73,11 +73,9 @@ export const RootNavigator: React.FC = () => {
       >
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="CreateSelfProfile" component={CreateSelfProfileScreen} />
-        <Stack.Screen name="SelfProfileSuccess" component={SelfProfileSuccessScreen} />
-        <Stack.Screen name="ChooseTargetType" component={ChooseTargetTypeScreen} />
-        <Stack.Screen name="CreatePartner" component={CreatePartnerScreen} />
-        <Stack.Screen name="SelectCelebrity" component={SelectCelebrityScreen} />
-        <Stack.Screen name="RelationshipPreview" component={RelationshipPreviewScreen} />
+        <Stack.Screen name="ProfileReveal" component={ProfileRevealScreen} />
+        <Stack.Screen name="SaveProfile" component={SaveProfileScreen} />
+        <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
         <Stack.Screen name="Unlock" component={UnlockScreen} />
         <Stack.Screen name="FullRelationshipAnalysis" component={FullRelationshipAnalysisScreen} />
         <Stack.Screen name="Main" component={MainTabs} />

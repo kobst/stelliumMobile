@@ -10,16 +10,14 @@ import {
   View,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import auth from '@react-native-firebase/auth';
 import { StackScreenProps } from '@react-navigation/stack';
 import { PlaceAutocompleteInput } from '../components/PlaceAutocompleteInput';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
-import { useRelationshipAppStore } from '../store';
+import { useRelationshipAppStore, GuestProfileDraft } from '../store';
 import { useTheme } from '../theme';
 import { RELATIONSHIP_APP_DOMAIN } from '../../../shared/domain/relationshipUser';
-import { externalApi, PlaceDetails, relationshipUsersApi } from '../api';
+import { externalApi, onboardingApi, PlaceDetails, OnboardingPreviewResponse } from '../api';
 import { relationshipAppEnv } from '../config/env';
-import { createLocalRelationshipProfile } from '../mocks/demoData';
 import {
   getEpochSeconds,
   isValidDate,
@@ -43,21 +41,11 @@ function parseTimeString(value: string): Date {
 
 export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
-  const setProfile = useRelationshipAppStore((state) => state.setProfile);
-  const authStatus = useRelationshipAppStore((state) => state.authStatus);
-  const firebaseEmail = useRelationshipAppStore((state) => state.firebaseEmail);
+  const setGuestProfileDraft = useRelationshipAppStore((state) => state.setGuestProfileDraft);
+  const setProfileReveal = useRelationshipAppStore((state) => state.setProfileReveal);
   const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
 
-  const currentUser = isLocalUxMode ? null : auth().currentUser;
-  const initialNames = useMemo(() => {
-    const displayName = currentUser?.displayName || '';
-    const parts = displayName.trim().split(/\s+/).filter(Boolean);
-
-    return {
-      firstName: parts[0] ?? '',
-      lastName: parts.slice(1).join(' '),
-    };
-  }, [currentUser?.displayName]);
+  const initialNames = useMemo(() => ({ firstName: '', lastName: '' }), []);
 
   const [firstName, setFirstName] = useState(initialNames.firstName);
   const [lastName, setLastName] = useState(initialNames.lastName);
@@ -160,11 +148,6 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
-    if (!isLocalUxMode && (authStatus !== 'signedIn' || !currentUser)) {
-      setSubmitError('A Firebase session is required before creating the relationship profile.');
-      return;
-    }
-
     if (!firstName.trim() || !lastName.trim()) {
       setSubmitError('First and last name are required.');
       return;
@@ -200,58 +183,86 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       if (
         !isLocalUxMode &&
-        resolved.lat === null ||
-        !isLocalUxMode &&
+        (resolved.lat === null ||
         resolved.lon === null ||
-        !isLocalUxMode &&
-        resolved.tzone === null
+        resolved.tzone === null)
       ) {
         throw new Error(
           'We could not resolve this birth location from Google. Check the API key or choose a clearer place.'
         );
       }
 
-      const profile = isLocalUxMode
-        ? createLocalRelationshipProfile({
-            firstName,
-            lastName,
-            dateOfBirth,
-            placeOfBirth: resolved.placeOfBirth,
-            time: birthTimeUnknown ? undefined : timeOfBirth,
-            birthTimeUnknown,
-          })
-        : birthTimeUnknown
-          ? await relationshipUsersApi.createProfileUnknownTime({
-              firebaseUid: currentUser?.uid ?? 'unknown',
-              firstName: firstName.trim(),
-              lastName: lastName.trim(),
-              gender,
-              placeOfBirth: resolved.placeOfBirth,
-              dateOfBirth,
-              email: firebaseEmail ?? '',
-              lat: resolved.lat,
-              lon: resolved.lon,
-              tzone: resolved.tzone,
-            })
-          : await relationshipUsersApi.createProfile({
-              firebaseUid: currentUser?.uid ?? 'unknown',
-              firstName: firstName.trim(),
-              lastName: lastName.trim(),
-              dateOfBirth,
-              placeOfBirth: resolved.placeOfBirth,
-              time: timeOfBirth,
-              lat: resolved.lat,
-              lon: resolved.lon,
-              tzone: resolved.tzone,
-              gender,
-              unknownTime: false,
-            });
+      const draft: GuestProfileDraft = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        gender,
+        dateOfBirth,
+        timeOfBirth: birthTimeUnknown ? '12:00' : timeOfBirth,
+        birthTimeUnknown,
+        placeOfBirth: resolved.placeOfBirth,
+        latitude: resolved.lat,
+        longitude: resolved.lon,
+        totalOffsetHours: resolved.tzone,
+      };
 
-      setProfile(profile);
-      navigation.replace('SelfProfileSuccess');
+      setGuestProfileDraft(draft);
+
+      if (isLocalUxMode) {
+        setProfileReveal({
+          previewId: 'local-preview-id',
+          claimToken: 'local-claim-token',
+          overview:
+            `${draft.firstName}, your chart reveals a deeply magnetic romantic nature. ` +
+            'You lead with emotional intensity and crave partnerships that challenge you intellectually.',
+          topAspects: [
+            {
+              aspectType: 'venus_mars_conjunction',
+              label: 'Venus-Mars conjunction',
+              primaryCluster: 'Passion',
+              clusterThemes: ['Passion', 'Connection'],
+              matches: [{ celebId: 'demo-1', celebName: 'Timothée Chalamet', orb: 2.1 }],
+            },
+            {
+              aspectType: 'moon_venus_trine',
+              label: 'Moon-Venus trine',
+              primaryCluster: 'Harmony',
+              clusterThemes: ['Harmony', 'Connection'],
+              matches: [{ celebId: 'demo-2', celebName: 'Zendaya', orb: 3.5 }],
+            },
+          ],
+          birthChart: {},
+          fullResponse: {} as OnboardingPreviewResponse,
+        });
+        navigation.replace('ProfileReveal');
+        return;
+      }
+
+      const previewResponse = await onboardingApi.submitPreview({
+        firstName: draft.firstName,
+        lastName: draft.lastName,
+        gender: draft.gender,
+        dateOfBirth: draft.dateOfBirth,
+        time: draft.birthTimeUnknown ? undefined : draft.timeOfBirth,
+        placeOfBirth: draft.placeOfBirth,
+        lat: String(draft.latitude ?? 0),
+        lon: String(draft.longitude ?? 0),
+        tzone: String(draft.totalOffsetHours ?? 0),
+        totalOffsetHours: draft.totalOffsetHours ?? 0,
+      });
+
+      setProfileReveal({
+        previewId: previewResponse.previewId,
+        claimToken: previewResponse.claimToken,
+        overview: previewResponse.overview,
+        topAspects: previewResponse.topAspects,
+        birthChart: previewResponse.birthChart,
+        fullResponse: previewResponse,
+      });
+
+      navigation.replace('ProfileReveal');
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Could not create the relationship profile.';
+        error instanceof Error ? error.message : 'Could not create your profile.';
       setSubmitError(message);
       Alert.alert('Profile creation failed', message);
     } finally {
@@ -266,14 +277,13 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.headerBlock}>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>You</Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>Your birth profile</Text>
           <Text style={[styles.title, { color: colors.text }]}>
-            Create the one profile this app will reuse.
+            Tell us when and where you were born.
           </Text>
           <Text style={[styles.body, { color: colors.textMuted }]}>
-            This is intentionally plain. The goal is to make the relationship-app
-            account flow real before we commit to final onboarding design. Data
-            is submitted into the dedicated {RELATIONSHIP_APP_DOMAIN} user domain.
+            We use your birth data to calculate your chart positions and generate
+            your romantic profile with celebrity aspect matches.
           </Text>
         </View>
 
@@ -300,9 +310,6 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             placeholderTextColor={colors.textMuted}
             style={[styles.input, { color: colors.text, borderColor: colors.border }]}
           />
-          <Text style={[styles.helper, { color: colors.textMuted }]}>
-            Firebase email: {firebaseEmail ?? 'not available on this session'}
-          </Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -448,7 +455,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             disabled={isSubmitting}
           >
             <Text style={styles.primaryButtonText}>
-              {isSubmitting ? 'Saving Profile...' : 'Save Profile'}
+              {isSubmitting ? 'Generating Profile...' : 'Generate My Profile'}
             </Text>
           </TouchableOpacity>
 

@@ -43,7 +43,20 @@ export function useBootstrapSession() {
       return;
     }
 
-    setBootstrapState({ bootstrapStatus: 'loading', bootstrapError: null });
+    // Check current auth state without blocking on it.
+    // Guest users proceed without Firebase auth; signed-in users get their profile loaded.
+    const currentUser = auth().currentUser;
+    if (!currentUser) {
+      setAuthState({
+        authStatus: 'signedOut',
+        firebaseUid: null,
+        firebaseEmail: null,
+      });
+      setProfile(null);
+      setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
+    } else {
+      setBootstrapState({ bootstrapStatus: 'loading', bootstrapError: null });
+    }
 
     const unsubscribe = auth().onAuthStateChanged(async (user) => {
       if (!user) {

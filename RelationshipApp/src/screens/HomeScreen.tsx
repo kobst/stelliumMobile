@@ -46,7 +46,7 @@ export const HomeScreen: React.FC = () => {
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
             onPress={() => {
               clearActiveRelationshipFlow();
-              navigation.navigate(profile ? 'ChooseTargetType' : 'CreateSelfProfile');
+              navigation.navigate(profile ? 'ProfileReveal' : 'CreateSelfProfile');
             }}
           >
             <Text style={styles.primaryButtonText}>
@@ -64,7 +64,7 @@ export const HomeScreen: React.FC = () => {
             </Text>
             <TouchableOpacity
               style={[styles.secondaryButton, { borderColor: colors.border }]}
-              onPress={() => navigation.navigate('RelationshipPreview')}
+              onPress={() => navigation.navigate('ProfileReveal')}
             >
               <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
                 Open Preview

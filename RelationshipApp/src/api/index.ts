@@ -6,5 +6,14 @@ export { usersApi } from '../../../shared/api/users';
 export { relationshipsApi } from '../../../shared/api/relationships';
 export { celebritiesApi } from '../../../shared/api/celebrities';
 export { externalApi } from '../../../shared/api/external';
+export { onboardingApi } from '../../../shared/api/onboarding';
+export type {
+  OnboardingPreviewRequest,
+  OnboardingPreviewResponse,
+  OnboardingClaimRequest,
+  OnboardingClaimResponse,
+  TopAspect,
+  CelebAspectMatch,
+} from '../../../shared/api/onboarding';
 export type { Celebrity } from '../../../shared/api/celebrities';
-export type { PlaceSuggestion } from '../../../shared/api/external';
+export type { PlaceSuggestion, PlaceDetails } from '../../../shared/api/external';
