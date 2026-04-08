@@ -127,7 +127,7 @@ export const PlaceAutocompleteInput: React.FC<PlaceAutocompleteInputProps> = ({
           editable={!disabled}
           autoCorrect={false}
           autoCapitalize="words"
-          style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBackground }]}
         />
         {isLoading ? (
           <ActivityIndicator

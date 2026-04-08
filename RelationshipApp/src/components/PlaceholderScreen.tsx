@@ -35,7 +35,7 @@ export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         {eyebrow ? (
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>{eyebrow}</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>{eyebrow}</Text>
         ) : null}
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
         <Text style={[styles.body, { color: colors.textMuted }]}>{body}</Text>
@@ -47,6 +47,7 @@ export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
             onPress={onPrimaryPress}
+            activeOpacity={0.8}
           >
             <Text style={styles.primaryButtonText}>{primaryLabel}</Text>
           </TouchableOpacity>
@@ -56,8 +57,9 @@ export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({
           <TouchableOpacity
             style={[styles.secondaryButton, { borderColor: colors.border }]}
             onPress={onSecondaryPress}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+            <Text style={[styles.secondaryButtonText, { color: colors.textMuted }]}>
               {secondaryLabel}
             </Text>
           </TouchableOpacity>
@@ -80,16 +82,16 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '700',
     lineHeight: 40,
   },
   body: {
-    fontSize: 17,
+    fontSize: 16,
     lineHeight: 26,
   },
   actions: {
@@ -102,7 +104,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   primaryButtonText: {
-    color: '#FFF9F0',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',

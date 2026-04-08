@@ -96,12 +96,14 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
 
-        <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.profileText, { color: colors.text }]}>
-            {profileReveal.overview}
-          </Text>
-          <View style={[styles.teaseFade, { backgroundColor: colors.surface }]} />
-        </View>
+        {profileReveal.overview ? (
+          <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.profileText, { color: colors.text }]}>
+              {profileReveal.overview}
+            </Text>
+            <View style={[styles.teaseFade, { backgroundColor: colors.surface }]} />
+          </View>
+        ) : null}
 
         {profileReveal.topAspects.length > 0 ? (
           <View style={styles.celebSection}>
@@ -239,7 +241,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   scoreButtonText: {
-    color: '#FFF9F0',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -254,7 +256,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   primaryButtonText: {
-    color: '#FFF9F0',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',

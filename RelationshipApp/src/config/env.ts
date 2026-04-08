@@ -9,5 +9,5 @@ export const relationshipAppEnv = {
   env: Config.ENV || 'development',
   googleApiKey: sanitizeKey(Config.GOOGLE_API_KEY || ''),
   appVariant: Config.APP_VARIANT || '',
-  enableLocalUxMode: __DEV__,
+  enableLocalUxMode: false,
 };

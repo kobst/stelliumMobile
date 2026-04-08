@@ -13,6 +13,7 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { onboardingApi } from '../api';
+import { relationshipAppEnv } from '../config/env';
 import { createLocalRelationshipProfile } from '../mocks/demoData';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'SaveProfile'>;
@@ -21,7 +22,7 @@ export const SaveProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
   const guestProfileDraft = useRelationshipAppStore((state) => state.guestProfileDraft);
   const profileReveal = useRelationshipAppStore((state) => state.profileReveal);
-  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
+  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode) || relationshipAppEnv.enableLocalUxMode;
   const setProfile = useRelationshipAppStore((state) => state.setProfile);
   const setAuthState = useRelationshipAppStore((state) => state.setAuthState);
   const setBootstrapState = useRelationshipAppStore((state) => state.setBootstrapState);
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   primaryButtonText: {
-    color: '#FFF9F0',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
