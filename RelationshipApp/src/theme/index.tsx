@@ -2,41 +2,65 @@ import React, { createContext, useContext } from 'react';
 
 export interface RelationshipTheme {
   colors: {
-    background: string;
+    // Surface hierarchy
     surface: string;
-    surfaceMuted: string;
-    border: string;
+    surfaceLow: string;
+    surfaceHigh: string;
+    surfaceHighest: string;
+    // Primary tones
     primary: string;
     primaryMuted: string;
+    primaryContainer: string;
+    // Accent tones
     accent: string;
     accentMuted: string;
+    // Tertiary
+    tertiary: string;
+    // Text hierarchy
     text: string;
     textMuted: string;
     textSubtle: string;
+    onPrimary: string;
+    // Semantic
     success: string;
     error: string;
-    inputBackground: string;
-    cardBackground: string;
+    // Ghost border (15% opacity outline)
+    ghostBorder: string;
+    // Legacy aliases (used by screens not yet migrated)
+    background: string;
+    border: string;
   };
 }
 
 const theme: RelationshipTheme = {
   colors: {
-    background: '#0B0A14',
-    surface: '#141322',
-    surfaceMuted: '#1A1930',
-    border: '#2A2845',
-    primary: '#9B8ADB',
-    primaryMuted: '#6B5CA5',
-    accent: '#D4A853',
-    accentMuted: '#A8863F',
-    text: '#E8E4F0',
-    textMuted: '#8A849E',
-    textSubtle: '#5C5775',
+    // Surface hierarchy (No-Line Rule: use these for tonal boundaries)
+    surface: '#13131b',
+    surfaceLow: '#1b1b23',
+    surfaceHigh: '#252530',
+    surfaceHighest: '#34343d',
+    // Primary (Cosmic Lilac)
+    primary: '#cabeff',
+    primaryMuted: '#8a7cb8',
+    primaryContainer: '#3d3560',
+    // Accent (Antique Gold)
+    accent: '#e9c349',
+    accentMuted: '#a8863f',
+    // Tertiary (Supernova Cyan)
+    tertiary: '#00dce5',
+    // Text
+    text: '#e8e4f0',
+    textMuted: '#8a849e',
+    textSubtle: '#5c5775',
+    onPrimary: '#1a1530',
+    // Semantic
     success: '#4CAF7D',
-    error: '#D35F5F',
-    inputBackground: '#161528',
-    cardBackground: '#111020',
+    error: '#ffb4ab',
+    // Ghost border for accessibility fallback (outline_variant at 15%)
+    ghostBorder: 'rgba(202, 190, 255, 0.15)',
+    // Legacy aliases (used by screens not yet migrated to design system)
+    background: '#13131b',
+    border: '#252530',
   },
 };
 

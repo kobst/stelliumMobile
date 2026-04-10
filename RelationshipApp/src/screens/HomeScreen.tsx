@@ -25,7 +25,7 @@ export const HomeScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
       <View style={styles.content}>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>Home</Text>
         <Text style={[styles.title, { color: colors.text }]}>
@@ -37,7 +37,7 @@ export const HomeScreen: React.FC = () => {
             : 'Create your self profile first. The relationship app depends on a persistent "You" profile before starting previews.'}
         </Text>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.card, { backgroundColor: colors.surfaceLow }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>Analyze a real person</Text>
           <Text style={[styles.cardBody, { color: colors.textMuted }]}>
             Start the live guest-subject to compatibility-preview flow.
@@ -56,14 +56,14 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         {previewAnalysis ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.card, { backgroundColor: colors.surfaceLow }]}>
             <Text style={[styles.cardTitle, { color: colors.text }]}>Latest preview</Text>
             <Text style={[styles.cardBody, { color: colors.textMuted }]}>
               {previewAnalysis.userA.name} and {previewAnalysis.userB.name} scored{' '}
               {Math.round(previewAnalysis.overall.score)}%.
             </Text>
             <TouchableOpacity
-              style={[styles.secondaryButton, { borderColor: colors.border }]}
+              style={[styles.secondaryButton, { backgroundColor: colors.surfaceHigh }]}
               onPress={() => navigation.navigate('ProfileReveal')}
             >
               <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
@@ -103,8 +103,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
   },
   card: {
-    borderRadius: 18,
-    borderWidth: 1,
+    borderRadius: 24,
     padding: 18,
     gap: 12,
   },
@@ -128,8 +127,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   secondaryButton: {
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 18,
   },

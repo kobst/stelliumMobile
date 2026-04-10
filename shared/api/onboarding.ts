@@ -17,7 +17,8 @@ export interface OnboardingPreviewRequest {
 
 export interface CelebAspectMatch {
   celebId: string;
-  celebName: string;
+  celebName: string | null;
+  profilePhotoUrl: string | null;
   orb: number;
 }
 
@@ -26,6 +27,11 @@ export interface TopAspect {
   label: string;
   primaryCluster: string;
   clusterThemes: string[];
+  weight?: number;
+  maxOrb?: number;
+  score?: number;
+  matchCount?: number;
+  averageOrb?: number;
   matches: CelebAspectMatch[];
 }
 

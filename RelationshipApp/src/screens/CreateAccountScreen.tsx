@@ -210,7 +210,7 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.headerBlock}>
           <Text style={[styles.eyebrow, { color: colors.primary }]}>Create account</Text>
@@ -225,11 +225,11 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.socialButtons}>
           {Platform.OS === 'ios' && appleAuth ? (
             <TouchableOpacity
-              style={[styles.socialButton, { backgroundColor: '#000', borderColor: '#333' }]}
+              style={[styles.socialButton, { backgroundColor: colors.surfaceHighest }]}
               onPress={handleAppleSignIn}
               disabled={isLoading}
             >
-              <Text style={[styles.socialButtonText, { color: '#FFF' }]}>
+              <Text style={[styles.socialButtonText, { color: colors.text }]}>
                 Continue with Apple
               </Text>
             </TouchableOpacity>
@@ -237,7 +237,7 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
 
           {GoogleSignin ? (
             <TouchableOpacity
-              style={[styles.socialButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              style={[styles.socialButton, { backgroundColor: colors.surfaceHigh }]}
               onPress={handleGoogleSignIn}
               disabled={isLoading}
             >
@@ -249,37 +249,37 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={styles.dividerRow}>
-          <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          <View style={[styles.dividerLine, { backgroundColor: colors.surfaceHigh }]} />
           <Text style={[styles.dividerText, { color: colors.textMuted }]}>or</Text>
-          <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          <View style={[styles.dividerLine, { backgroundColor: colors.surfaceHigh }]} />
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.card, { backgroundColor: colors.surfaceLow }]}>
           <TextInput
             value={email}
             onChangeText={setEmail}
             placeholder="Email address"
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.textSubtle}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+            style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
           />
           <TextInput
             value={password}
             onChangeText={setPassword}
             placeholder="Password"
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.textSubtle}
             secureTextEntry
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+            style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
           />
           <TextInput
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="Confirm password"
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.textSubtle}
             secureTextEntry
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+            style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
           />
 
           <TouchableOpacity
@@ -287,7 +287,7 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleEmailSignUp}
             disabled={isLoading}
           >
-            <Text style={styles.primaryButtonText}>
+            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </Text>
           </TouchableOpacity>
@@ -296,11 +296,11 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.secondaryButton, { borderColor: colors.border }]}
+          style={styles.secondaryButton}
           onPress={() => navigation.goBack()}
           disabled={isLoading}
         >
-          <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Back</Text>
+          <Text style={[styles.secondaryButtonText, { color: colors.accent }]}>Back</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -339,8 +339,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   socialButton: {
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 16,
   },
@@ -363,27 +362,23 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   card: {
-    borderRadius: 18,
-    borderWidth: 1,
+    borderRadius: 24,
     padding: 16,
     gap: 12,
   },
   input: {
-    borderWidth: 1,
     borderRadius: 12,
     fontSize: 16,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    backgroundColor: 'transparent',
   },
   primaryButton: {
-    borderRadius: 14,
+    borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 18,
     marginTop: 4,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
@@ -393,8 +388,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   secondaryButton: {
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 18,
   },

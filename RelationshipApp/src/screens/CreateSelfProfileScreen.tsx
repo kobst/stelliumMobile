@@ -79,8 +79,9 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [timeSet, setTimeSet] = useState(false);
 
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
-  const currentDate = useMemo(() => parseDateString(dateOfBirth), [dateOfBirth]);
-  const currentTime = useMemo(() => parseTimeString(timeOfBirth), [timeOfBirth]);
+
+  const pickerDate = useMemo(() => parseDateString(dateOfBirth), [dateOfBirth]);
+  const pickerTime = useMemo(() => parseTimeString(timeOfBirth), [timeOfBirth]);
 
   const genderLabel = GENDER_OPTIONS.find((o) => o.value === gender)?.label;
   const partnerGenderLabel = PARTNER_GENDER_OPTIONS.find((o) => o.value === preferredPartnerGender)?.label;
@@ -255,14 +256,14 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               label: 'Venus-Mars conjunction',
               primaryCluster: 'Passion',
               clusterThemes: ['Passion', 'Connection'],
-              matches: [{ celebId: 'demo-1', celebName: 'Timothée Chalamet', orb: 2.1 }],
+              matches: [{ celebId: 'demo-1', celebName: 'Timothée Chalamet', profilePhotoUrl: null, orb: 2.1 }],
             },
             {
               aspectType: 'moon_venus_trine',
               label: 'Moon-Venus trine',
               primaryCluster: 'Harmony',
               clusterThemes: ['Harmony', 'Connection'],
-              matches: [{ celebId: 'demo-2', celebName: 'Zendaya', orb: 3.5 }],
+              matches: [{ celebId: 'demo-2', celebName: 'Zendaya', profilePhotoUrl: null, orb: 3.5 }],
             },
           ],
           birthChart: {},
@@ -316,9 +317,9 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   if (isSubmitting) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
         <View style={styles.loadingContainer}>
-          <View style={[styles.heroIcon, { backgroundColor: colors.surfaceMuted }]}>
+          <View style={[styles.heroIcon, { backgroundColor: colors.surfaceHigh }]}>
             <Text style={[styles.heroIconText, { color: colors.accent }]}>✦✦</Text>
           </View>
           <Text style={[styles.loadingTitle, { color: colors.text }]}>
@@ -334,14 +335,15 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        scrollEnabled={!showDatePicker && !showTimePicker}
       >
         {/* Hero header */}
         <View style={styles.heroBlock}>
-          <View style={[styles.heroIcon, { backgroundColor: colors.surfaceMuted }]}>
+          <View style={[styles.heroIcon, { backgroundColor: colors.surfaceHigh }]}>
             <Text style={[styles.heroIconText, { color: colors.accent }]}>✦✦</Text>
           </View>
           <Text style={[styles.heroTitle, { color: colors.text }]}>
@@ -357,7 +359,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Form card */}
-        <View style={[styles.formCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+        <View style={[styles.formCard, { backgroundColor: colors.surfaceLow }]}>
 
           {/* Full Name */}
           <View style={styles.fieldGroup}>
@@ -367,14 +369,14 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               onChangeText={setFirstName}
               placeholder="First name"
               placeholderTextColor={colors.textSubtle}
-              style={[styles.input, { color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.border }]}
+              style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
             />
             <TextInput
               value={lastName}
               onChangeText={setLastName}
               placeholder="Last name"
               placeholderTextColor={colors.textSubtle}
-              style={[styles.input, { color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.border }]}
+              style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
             />
           </View>
 
@@ -382,7 +384,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.fieldGroup}>
             <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Essence</Text>
             <TouchableOpacity
-              style={[styles.selectInput, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}
+              style={[styles.selectInput, { backgroundColor: colors.surfaceHigh }]}
               onPress={() => setShowGenderDropdown(!showGenderDropdown)}
             >
               <Text style={[styles.selectInputText, { color: gender ? colors.text : colors.textSubtle }]}>
@@ -391,13 +393,13 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.selectChevron, { color: colors.textSubtle }]}>&#709;</Text>
             </TouchableOpacity>
             {showGenderDropdown ? (
-              <View style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.dropdown, { backgroundColor: colors.surface }]}>
                 {GENDER_OPTIONS.map((option) => (
                   <TouchableOpacity
                     key={option.value}
                     style={[
                       styles.dropdownOption,
-                      gender === option.value && { backgroundColor: colors.surfaceMuted },
+                      gender === option.value && { backgroundColor: colors.surfaceHigh },
                     ]}
                     onPress={() => {
                       setGender(option.value);
@@ -417,7 +419,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.fieldGroup}>
             <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Date of Alignment</Text>
             <TouchableOpacity
-              style={[styles.selectInput, { backgroundColor: colors.inputBackground, borderColor: showDatePicker ? colors.primary : colors.border }]}
+              style={[styles.selectInput, { backgroundColor: colors.surfaceHigh }]}
               onPress={() => setShowDatePicker(!showDatePicker)}
             >
               <Text style={[styles.selectInputText, { color: dateSet ? colors.text : colors.textSubtle }]}>
@@ -426,9 +428,9 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.selectIcon, { color: colors.textSubtle }]}>&#x1F4C5;</Text>
             </TouchableOpacity>
             {showDatePicker ? (
-              <View style={[styles.inlinePicker, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+              <View style={[styles.inlinePicker, { backgroundColor: colors.surfaceHigh }]}>
                 <DateTimePicker
-                  value={currentDate}
+                  value={pickerDate}
                   mode="date"
                   display="spinner"
                   onChange={handleDateChange}
@@ -444,7 +446,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
                     setDateSet(true);
                   }}
                 >
-                  <Text style={styles.confirmButtonText}>CONFIRM ALIGNMENT</Text>
+                  <Text style={[styles.confirmButtonText, { color: colors.onPrimary }]}>CONFIRM ALIGNMENT</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -463,7 +465,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             {!birthTimeUnknown ? (
               <>
                 <TouchableOpacity
-                  style={[styles.selectInput, { backgroundColor: colors.inputBackground, borderColor: showTimePicker ? colors.primary : colors.border }]}
+                  style={[styles.selectInput, { backgroundColor: colors.surfaceHigh }]}
                   onPress={() => setShowTimePicker(!showTimePicker)}
                 >
                   <Text style={[styles.selectInputText, { color: timeSet ? colors.text : colors.textSubtle }]}>
@@ -472,9 +474,9 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={[styles.selectIcon, { color: colors.textSubtle }]}>&#x1F552;</Text>
                 </TouchableOpacity>
                 {showTimePicker ? (
-                  <View style={[styles.inlinePicker, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+                  <View style={[styles.inlinePicker, { backgroundColor: colors.surfaceHigh }]}>
                     <DateTimePicker
-                      value={currentTime}
+                      value={pickerTime}
                       mode="time"
                       display="spinner"
                       onChange={handleTimeChange}
@@ -489,13 +491,13 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
                         setTimeSet(true);
                       }}
                     >
-                      <Text style={styles.confirmButtonText}>CONFIRM MOMENT</Text>
+                      <Text style={[styles.confirmButtonText, { color: colors.onPrimary }]}>CONFIRM MOMENT</Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
               </>
             ) : (
-              <View style={[styles.infoBox, { backgroundColor: colors.surfaceMuted }]}>
+              <View style={[styles.infoBox, { backgroundColor: colors.surfaceHigh }]}>
                 <Text style={[styles.infoText, { color: colors.textMuted }]}>
                   We'll calculate without house placements.
                 </Text>
@@ -519,7 +521,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               canUseSuggestions={canUseGoogleServices}
             />
             {placeOfBirth ? (
-              <View style={[styles.selectedLocation, { backgroundColor: colors.surfaceMuted }]}>
+              <View style={[styles.selectedLocation, { backgroundColor: colors.surfaceHigh }]}>
                 <View style={[styles.locationDot, { backgroundColor: colors.success }]} />
                 <Text style={[styles.selectedLocationText, { color: colors.text }]} numberOfLines={1}>
                   {placeOfBirth}
@@ -535,7 +537,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.fieldGroup}>
             <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Preferred Partner Gender</Text>
             <TouchableOpacity
-              style={[styles.selectInput, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}
+              style={[styles.selectInput, { backgroundColor: colors.surfaceHigh }]}
               onPress={() => setShowPartnerGenderDropdown(!showPartnerGenderDropdown)}
             >
               <Text style={[styles.selectInputText, { color: preferredPartnerGender ? colors.text : colors.textSubtle }]}>
@@ -544,13 +546,13 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.selectChevron, { color: colors.textSubtle }]}>&#709;</Text>
             </TouchableOpacity>
             {showPartnerGenderDropdown ? (
-              <View style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.dropdown, { backgroundColor: colors.surface }]}>
                 {PARTNER_GENDER_OPTIONS.map((option) => (
                   <TouchableOpacity
                     key={option.value}
                     style={[
                       styles.dropdownOption,
-                      preferredPartnerGender === option.value && { backgroundColor: colors.surfaceMuted },
+                      preferredPartnerGender === option.value && { backgroundColor: colors.surfaceHigh },
                     ]}
                     onPress={() => {
                       setPreferredPartnerGender(option.value);
@@ -578,7 +580,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
           disabled={isSubmitting}
           activeOpacity={0.8}
         >
-          <Text style={styles.ctaButtonText}>
+          <Text style={[styles.ctaButtonText, { color: colors.onPrimary }]}>
             {isSubmitting ? 'GENERATING...' : 'GENERATE PROFILE'}
           </Text>
         </TouchableOpacity>
@@ -656,8 +658,7 @@ const styles = StyleSheet.create({
 
   // Form card
   formCard: {
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: 24,
     padding: 20,
     gap: 20,
   },
@@ -676,7 +677,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   input: {
-    borderWidth: 1,
     borderRadius: 12,
     fontSize: 16,
     paddingHorizontal: 16,
@@ -685,7 +685,6 @@ const styles = StyleSheet.create({
 
   // Select / dropdown inputs
   selectInput: {
-    borderWidth: 1,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -703,7 +702,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   dropdown: {
-    borderWidth: 1,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -721,14 +719,13 @@ const styles = StyleSheet.create({
 
   // Inline picker
   inlinePicker: {
-    borderWidth: 1,
     borderRadius: 16,
     padding: 8,
     paddingBottom: 16,
     alignItems: 'center',
   },
   inlinePickerWheel: {
-    height: 160,
+    height: 216,
     width: '100%',
   },
   confirmButton: {
@@ -740,7 +737,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   confirmButtonText: {
-    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
     letterSpacing: 1.6,
@@ -792,7 +788,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ctaButtonText: {
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 2,

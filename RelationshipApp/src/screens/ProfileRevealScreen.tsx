@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  Dimensions,
+  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -11,40 +13,83 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore, TopAspect } from '../store';
 import { useTheme } from '../theme';
+import type { CelebAspectMatch } from '../../../shared/api/onboarding';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'ProfileReveal'>;
 
-interface AspectCardProps {
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const CARD_PADDING = 24;
+const PHOTO_WIDTH = SCREEN_WIDTH - CARD_PADDING * 2;
+const PHOTO_HEIGHT = PHOTO_WIDTH * 1.2;
+
+interface CelebCardProps {
+  match: CelebAspectMatch;
   aspect: TopAspect;
   onTapScore: (celebId: string) => void;
 }
 
-const AspectCard: React.FC<AspectCardProps> = ({ aspect, onTapScore }) => {
+function getInitials(name: string | null): string {
+  if (!name) {
+    return '?';
+  }
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+function formatScore(score: number | undefined): string {
+  if (score === undefined || score === null) {
+    return '--';
+  }
+  return String(Math.round(score * 100));
+}
+
+const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onTapScore }) => {
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.aspectCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <View style={styles.aspectHeader}>
-        <View style={styles.aspectLabelRow}>
-          <Text style={[styles.aspectLabel, { color: colors.primary }]}>{aspect.label}</Text>
-          <Text style={[styles.clusterBadge, { color: colors.textMuted }]}>
-            {aspect.primaryCluster}
+    <TouchableOpacity
+      style={[styles.celebCard, { backgroundColor: colors.surfaceLow }]}
+      onPress={() => onTapScore(match.celebId)}
+      activeOpacity={0.85}
+    >
+      {match.profilePhotoUrl ? (
+        <Image
+          source={{ uri: match.profilePhotoUrl }}
+          style={styles.celebPhoto}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.celebPhotoPlaceholder, { backgroundColor: colors.surfaceHigh }]}>
+          <Text style={[styles.celebInitials, { color: colors.textMuted }]}>
+            {getInitials(match.celebName)}
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.celebCardFooter}>
+        <View style={styles.celebCardInfo}>
+          <Text style={[styles.celebAspectLabel, { color: colors.accent }]}>
+            {aspect.label}
+          </Text>
+          <Text style={[styles.celebCardName, { color: colors.text }]}>
+            {match.celebName ?? 'Unknown'}
+          </Text>
+        </View>
+        <View style={styles.celebScoreBlock}>
+          <Text style={[styles.celebScoreLabel, { color: colors.textMuted }]}>
+            TEASER SCORE
+          </Text>
+          <Text style={[styles.celebScoreValue, { color: colors.accent }]}>
+            {formatScore(aspect.score)}
           </Text>
         </View>
       </View>
-
-      {aspect.matches.map((match) => (
-        <View key={match.celebId} style={styles.celebRow}>
-          <Text style={[styles.celebName, { color: colors.text }]}>{match.celebName}</Text>
-          <TouchableOpacity
-            style={[styles.scoreButton, { backgroundColor: colors.primary }]}
-            onPress={() => onTapScore(match.celebId)}
-          >
-            <Text style={styles.scoreButtonText}>Score</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -56,22 +101,22 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
 
   if (!profileReveal || !guestProfileDraft) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
         <View style={styles.emptyState}>
           <Text style={[styles.eyebrow, { color: colors.primary }]}>Profile</Text>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text style={[styles.heroTitle, { color: colors.text }]}>
             No profile generated yet.
           </Text>
           <Text style={[styles.body, { color: colors.textMuted }]}>
             Complete your birth profile to see your romantic profile and celebrity matches.
           </Text>
         </View>
-        <View style={styles.actions}>
+        <View style={styles.bottomActions}>
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
             onPress={() => navigation.replace('CreateSelfProfile')}
           >
-            <Text style={styles.primaryButtonText}>Create Profile</Text>
+            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Create Profile</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -80,58 +125,80 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleTapCelebScore = (_celebId: string) => {
     if (authStatus === 'signedIn') {
-      // TODO: Navigate to credits check / celeb scoring flow
       return;
     }
     navigation.navigate('SaveProfile');
   };
 
+  const celebCards: Array<{ match: CelebAspectMatch; aspect: TopAspect }> = [];
+  for (const aspect of profileReveal.topAspects) {
+    for (const match of aspect.matches) {
+      celebCards.push({ match, aspect });
+    }
+  }
+
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
       <ScrollView contentContainerStyle={styles.content}>
+
         <View style={styles.headerBlock}>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>Your romantic profile</Text>
-          <Text style={[styles.title, { color: colors.text }]}>
-            {guestProfileDraft.firstName}, here's what the stars say.
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>
+            Romantic Profile Revealed
+          </Text>
+          <Text style={[styles.heroTitle, { color: colors.text }]}>
+            Your Celestial{'\n'}Blueprint
           </Text>
         </View>
 
         {profileReveal.overview ? (
-          <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.profileText, { color: colors.text }]}>
-              {profileReveal.overview}
+          <View style={[styles.quoteCard, { backgroundColor: colors.surfaceLow }]}>
+            <Text style={[styles.quoteText, { color: colors.text }]}>
+              "{profileReveal.overview}"
             </Text>
-            <View style={[styles.teaseFade, { backgroundColor: colors.surface }]} />
           </View>
         ) : null}
 
-        {profileReveal.topAspects.length > 0 ? (
-          <View style={styles.celebSection}>
+        {celebCards.length > 0 ? (
+          <View style={styles.matchesSection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Your top celebrity matches
+              Your Celestial{'\n'}Matches
             </Text>
-            <Text style={[styles.sectionSubtitle, { color: colors.textMuted }]}>
-              Based on your strongest shared aspects
-            </Text>
-            {profileReveal.topAspects.map((aspect) => (
-              <AspectCard
-                key={aspect.aspectType}
+
+            {celebCards.map(({ match, aspect }) => (
+              <CelebCard
+                key={`${aspect.aspectType}-${match.celebId}`}
+                match={match}
                 aspect={aspect}
                 onTapScore={handleTapCelebScore}
               />
             ))}
           </View>
         ) : null}
-      </ScrollView>
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-          onPress={() => navigation.navigate('SaveProfile')}
-        >
-          <Text style={styles.primaryButtonText}>Save Your Profile</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={[styles.claimCard, { backgroundColor: colors.surfaceLow }]}>
+          <Text style={[styles.claimIcon, { color: colors.textSubtle }]}>&#x1F512;</Text>
+          <Text style={[styles.claimTitle, { color: colors.text }]}>
+            Claim Your Destiny
+          </Text>
+          <Text style={[styles.claimBody, { color: colors.textMuted }]}>
+            Save your celestial blueprint and unlock full synastry reports for all matches.
+          </Text>
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+            onPress={() => navigation.navigate('SaveProfile')}
+          >
+            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Save Your Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('SaveProfile')}
+          >
+            <Text style={[styles.guestLink, { color: colors.textMuted }]}>
+              CONTINUE AS GUEST
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -141,9 +208,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 20,
-    paddingBottom: 32,
-    gap: 20,
+    paddingHorizontal: CARD_PADDING,
+    paddingBottom: 48,
+    gap: 28,
   },
   emptyState: {
     flex: 1,
@@ -151,112 +218,137 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
   },
+  bottomActions: {
+    padding: 20,
+    paddingBottom: 12,
+  },
+
   headerBlock: {
     gap: 10,
-    paddingTop: 12,
+    paddingTop: 20,
   },
   eyebrow: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1.4,
+    letterSpacing: 2,
     textTransform: 'uppercase',
   },
-  title: {
-    fontSize: 28,
+  heroTitle: {
+    fontSize: 34,
     fontWeight: '700',
-    lineHeight: 34,
+    lineHeight: 40,
   },
   body: {
     fontSize: 15,
     lineHeight: 23,
   },
-  profileCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 20,
-    overflow: 'hidden',
+
+  quoteCard: {
+    borderRadius: 24,
+    padding: 24,
   },
-  profileText: {
+  quoteText: {
     fontSize: 16,
     lineHeight: 26,
+    fontStyle: 'italic',
   },
-  teaseFade: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 40,
-    opacity: 0.8,
-  },
-  celebSection: {
-    gap: 12,
+
+  matchesSection: {
+    gap: 20,
   },
   sectionTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 34,
+  },
+
+  celebCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  celebPhoto: {
+    width: PHOTO_WIDTH,
+    height: PHOTO_HEIGHT,
+  },
+  celebPhotoPlaceholder: {
+    width: PHOTO_WIDTH,
+    height: PHOTO_HEIGHT * 0.7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  celebInitials: {
+    fontSize: 48,
+    fontWeight: '700',
+  },
+  celebCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    padding: 16,
+    paddingTop: 14,
+  },
+  celebCardInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  celebAspectLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  celebCardName: {
     fontSize: 20,
     fontWeight: '700',
   },
-  sectionSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+  celebScoreBlock: {
+    alignItems: 'flex-end',
+    gap: 2,
   },
-  aspectCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    gap: 10,
-  },
-  aspectHeader: {
-    gap: 4,
-  },
-  aspectLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  aspectLabel: {
-    fontSize: 15,
+  celebScoreLabel: {
+    fontSize: 10,
     fontWeight: '700',
-    flex: 1,
-  },
-  clusterBadge: {
-    fontSize: 12,
-    fontWeight: '600',
+    letterSpacing: 1,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
   },
-  celebRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  celebScoreValue: {
+    fontSize: 32,
+    fontWeight: '800',
+  },
+
+  claimCard: {
+    borderRadius: 24,
+    padding: 28,
     alignItems: 'center',
-    paddingTop: 4,
+    gap: 14,
   },
-  celebName: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
+  claimIcon: {
+    fontSize: 24,
+    marginBottom: 4,
   },
-  scoreButton: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  scoreButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+  claimTitle: {
+    fontSize: 22,
     fontWeight: '700',
   },
-  actions: {
-    gap: 12,
-    padding: 20,
-    paddingTop: 12,
+  claimBody: {
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
   },
+  guestLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+    marginTop: 4,
+  },
+
   primaryButton: {
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    borderRadius: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    alignSelf: 'stretch',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',

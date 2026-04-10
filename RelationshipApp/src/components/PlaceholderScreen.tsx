@@ -32,7 +32,7 @@ export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({
   const { colors } = useTheme();
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
       <View style={styles.content}>
         {eyebrow ? (
           <Text style={[styles.eyebrow, { color: colors.accent }]}>{eyebrow}</Text>
@@ -49,17 +49,17 @@ export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({
             onPress={onPrimaryPress}
             activeOpacity={0.8}
           >
-            <Text style={styles.primaryButtonText}>{primaryLabel}</Text>
+            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>{primaryLabel}</Text>
           </TouchableOpacity>
         ) : null}
 
         {secondaryLabel ? (
           <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: colors.border }]}
+            style={styles.secondaryButton}
             onPress={onSecondaryPress}
             activeOpacity={0.8}
           >
-            <Text style={[styles.secondaryButtonText, { color: colors.textMuted }]}>
+            <Text style={[styles.secondaryButtonText, { color: colors.accent }]}>
               {secondaryLabel}
             </Text>
           </TouchableOpacity>
@@ -104,14 +104,12 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
   },
   secondaryButton: {
     borderRadius: 16,
-    borderWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 18,
   },

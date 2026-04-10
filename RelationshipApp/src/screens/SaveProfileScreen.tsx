@@ -59,7 +59,6 @@ export const SaveProfileScreen: React.FC<Props> = ({ navigation }) => {
         return;
       }
 
-      // Sign in anonymously, then claim the preview
       const userCredential = await auth().signInAnonymously();
       const firebaseUid = userCredential.user.uid;
 
@@ -104,9 +103,9 @@ export const SaveProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
       <View style={styles.content}>
-        <Text style={[styles.eyebrow, { color: colors.primary }]}>Save your profile</Text>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>Save your profile</Text>
         <Text style={[styles.title, { color: colors.text }]}>
           Create an account to keep your profile and unlock full analysis.
         </Text>
@@ -122,15 +121,15 @@ export const SaveProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => navigation.navigate('CreateAccount')}
           disabled={isSubmitting}
         >
-          <Text style={styles.primaryButtonText}>Create Account</Text>
+          <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Create Account</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.secondaryButton, { borderColor: colors.border }]}
+          style={styles.secondaryButton}
           onPress={handleContinueAsGuest}
           disabled={isSubmitting}
         >
-          <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+          <Text style={[styles.secondaryButtonText, { color: colors.accent }]}>
             {isSubmitting ? 'Setting up...' : 'Continue as Guest'}
           </Text>
         </TouchableOpacity>
@@ -152,7 +151,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
     textTransform: 'uppercase',
   },
   title: {
@@ -174,14 +173,12 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
   },
   secondaryButton: {
     borderRadius: 16,
-    borderWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 18,
   },

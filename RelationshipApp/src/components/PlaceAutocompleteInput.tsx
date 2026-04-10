@@ -123,11 +123,11 @@ export const PlaceAutocompleteInput: React.FC<PlaceAutocompleteInputProps> = ({
             onBlur?.();
           }}
           placeholder={placeholder}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.textSubtle}
           editable={!disabled}
           autoCorrect={false}
           autoCapitalize="words"
-          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBackground }]}
+          style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
         />
         {isLoading ? (
           <ActivityIndicator
@@ -139,7 +139,7 @@ export const PlaceAutocompleteInput: React.FC<PlaceAutocompleteInputProps> = ({
       </View>
 
       {canUseSuggestions && isFocused && suggestions.length > 0 ? (
-        <View style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.dropdown, { backgroundColor: colors.surfaceHighest }]}>
           {suggestions.map((suggestion) => (
             <TouchableOpacity
               key={suggestion.placeId}
@@ -172,9 +172,9 @@ export const PlaceAutocompleteInput: React.FC<PlaceAutocompleteInputProps> = ({
       ) : null}
 
       {errorText ? (
-        <Text style={[styles.error, { color: colors.primary }]}>{errorText}</Text>
+        <Text style={[styles.error, { color: colors.error }]}>{errorText}</Text>
       ) : lookupError ? (
-        <Text style={[styles.error, { color: colors.primary }]}>{lookupError}</Text>
+        <Text style={[styles.error, { color: colors.error }]}>{lookupError}</Text>
       ) : null}
     </View>
   );
@@ -185,13 +185,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   input: {
-    borderWidth: 1,
     borderRadius: 12,
     fontSize: 16,
     paddingHorizontal: 14,
     paddingVertical: 14,
     paddingRight: 44,
-    backgroundColor: 'transparent',
   },
   loader: {
     position: 'absolute',
@@ -199,7 +197,6 @@ const styles = StyleSheet.create({
     top: 14,
   },
   dropdown: {
-    borderWidth: 1,
     borderRadius: 12,
     overflow: 'hidden',
   },
