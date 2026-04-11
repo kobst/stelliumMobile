@@ -11,6 +11,13 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { StackScreenProps } from '@react-navigation/stack';
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Path,
+  Stop,
+} from 'react-native-svg';
 import { PlaceAutocompleteInput } from '../components/PlaceAutocompleteInput';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore, GuestProfileDraft } from '../store';
@@ -679,28 +686,52 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
       <View style={styles.content}>
-        <View style={styles.heroBlock}>
-          <View style={[styles.heroIcon, { backgroundColor: colors.surfaceHigh }]}>
-            <Text style={[styles.heroIconText, { color: colors.accent }]}>✦✦</Text>
+        <View style={styles.topHeader}>
+          <View style={styles.topHeaderRow}>
+            {currentStep > 0 ? (
+              <TouchableOpacity
+                style={styles.topHeaderBack}
+                onPress={goBack}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Text style={[styles.topHeaderBackArrow, { color: colors.text }]}>←</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.topHeaderBack} />
+            )}
+            <Text style={[styles.topHeaderTitle, { color: colors.text }]}>Iris</Text>
+            <View style={styles.topHeaderBack} />
           </View>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>{step.eyebrow}</Text>
-          <Text style={[styles.heroTitle, { color: colors.text }]}>{step.title}</Text>
-          <Text style={[styles.heroSubtitle, { color: colors.textMuted }]}>{step.subtitle}</Text>
+
+          <View style={styles.progressDashRow}>
+            {STEPS.map((_, index) => {
+              const isActive = index === currentStep;
+              return (
+                <View
+                  key={index}
+                  style={[
+                    styles.progressDash,
+                    { backgroundColor: colors.surfaceHigh },
+                    isActive && {
+                      backgroundColor: colors.primary,
+                      shadowColor: colors.primary,
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.9,
+                      shadowRadius: 6,
+                      elevation: 6,
+                    },
+                  ]}
+                />
+              );
+            })}
+          </View>
+
+          <Text style={[styles.stepCounter, { color: colors.accent }]}>{step.eyebrow.toUpperCase()}</Text>
         </View>
 
-        <View style={styles.progressRow}>
-          {STEPS.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.progressDot,
-                {
-                  backgroundColor:
-                    index <= currentStep ? colors.primary : colors.surfaceHigh,
-                },
-              ]}
-            />
-          ))}
+        <View style={styles.heroBlock}>
+          <Text style={[styles.heroTitle, { color: colors.text }]}>{step.title}</Text>
+          <Text style={[styles.heroSubtitle, { color: colors.textMuted }]}>{step.subtitle}</Text>
         </View>
 
         <View style={[styles.formCard, { backgroundColor: colors.surfaceLow }]}>
@@ -714,32 +745,40 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.actionsRow}>
           {currentStep > 0 ? (
             <TouchableOpacity
-              style={[styles.secondaryButton, { backgroundColor: colors.surfaceHigh }]}
+              style={styles.backIconButton}
               onPress={goBack}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              activeOpacity={0.6}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Back</Text>
+              <Text style={[styles.backIconText, { color: colors.textMuted }]}>✕</Text>
             </TouchableOpacity>
           ) : (
-            <View style={styles.actionSpacer} />
+            <View style={styles.backIconButton} />
           )}
 
           <TouchableOpacity
-            style={[
-              styles.primaryButton,
-              { backgroundColor: canContinue ? colors.primary : colors.surfaceHigh },
-            ]}
+            style={[styles.arrowButton, !canContinue && styles.arrowButtonDisabled]}
             onPress={isLastStep ? handleSubmit : goNext}
             disabled={!canContinue}
             activeOpacity={0.85}
           >
-            <Text
-              style={[
-                styles.primaryButtonText,
-                { color: canContinue ? colors.onPrimary : colors.textSubtle },
-              ]}
-            >
-              {isLastStep ? 'Generate Profile' : 'Continue'}
-            </Text>
+            <Svg width={64} height={64} style={StyleSheet.absoluteFill}>
+              <Defs>
+                <SvgLinearGradient id="arrowGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+                  <Stop offset="0" stopColor="#9FE4FF" />
+                  <Stop offset="1" stopColor="#A78BFA" />
+                </SvgLinearGradient>
+              </Defs>
+              <Circle cx={32} cy={32} r={30} fill="url(#arrowGrad)" />
+              <Path
+                d="M22 32 H42 M34 24 L42 32 L34 40"
+                stroke="#0B1228"
+                strokeWidth={3.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </Svg>
           </TouchableOpacity>
         </View>
 
@@ -782,11 +821,58 @@ const styles = StyleSheet.create({
   loadingSpinner: {
     marginTop: 12,
   },
+  topHeader: {
+    alignItems: 'center',
+    paddingTop: 4,
+    paddingBottom: 14,
+  },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 14,
+  },
+  topHeaderBack: {
+    width: 36,
+    height: 32,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  topHeaderBackArrow: {
+    fontSize: 24,
+    fontWeight: '300',
+  },
+  topHeaderTitle: {
+    flex: 1,
+    fontSize: 22,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    letterSpacing: 3,
+  },
+  progressDashRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  progressDash: {
+    width: 28,
+    height: 3,
+    borderRadius: 2,
+    marginHorizontal: 4,
+  },
+  stepCounter: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+  },
   heroBlock: {
     alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 16,
-    gap: 12,
+    paddingTop: 6,
+    paddingBottom: 14,
+    gap: 10,
   },
   heroIcon: {
     width: 80,
@@ -798,33 +884,17 @@ const styles = StyleSheet.create({
   heroIconText: {
     fontSize: 28,
   },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-  },
   heroTitle: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '700',
-    lineHeight: 36,
+    lineHeight: 34,
     textAlign: 'center',
   },
   heroSubtitle: {
-    fontSize: 15,
-    lineHeight: 23,
+    fontSize: 14,
+    lineHeight: 21,
     textAlign: 'center',
     paddingHorizontal: 8,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
-  },
-  progressDot: {
-    flex: 1,
-    height: 6,
-    borderRadius: 999,
   },
   formCard: {
     flex: 1,
@@ -935,33 +1005,36 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 20,
+    justifyContent: 'space-between',
+    marginTop: 24,
+    paddingHorizontal: 12,
   },
-  actionSpacer: {
-    flex: 1,
-  },
-  secondaryButton: {
-    flex: 1,
-    borderRadius: 16,
-    paddingVertical: 18,
+  backIconButton: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
+  backIconText: {
+    fontSize: 24,
+    fontWeight: '400',
   },
-  primaryButton: {
-    flex: 1.4,
-    borderRadius: 16,
-    paddingVertical: 18,
+  arrowButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#9FE4FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 14,
+    elevation: 10,
   },
-  primaryButtonText: {
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+  arrowButtonDisabled: {
+    opacity: 0.4,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   privacyText: {
     fontSize: 11,

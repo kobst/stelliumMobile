@@ -190,35 +190,6 @@ export const BirthTimePicker: React.FC<BirthTimePickerProps> = ({ value, onChang
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.ring,
-          { borderColor: colors.ghostBorder },
-          styles.ringOuter,
-        ]}
-      />
-      <View
-        style={[
-          styles.ring,
-          { borderColor: colors.ghostBorder },
-          styles.ringMid,
-        ]}
-      />
-      <View
-        style={[
-          styles.ring,
-          { borderColor: colors.ghostBorder },
-          styles.ringInner,
-        ]}
-      />
-
-      <View style={styles.starLeft}>
-        <View style={[styles.starDot, { backgroundColor: colors.tertiary }]} />
-      </View>
-      <View style={styles.starRight}>
-        <View style={[styles.starDot, { backgroundColor: colors.accent }]} />
-      </View>
-
       <View style={[styles.selectionBand, { backgroundColor: colors.surfaceLow, borderColor: colors.ghostBorder }]} />
 
       <View style={styles.content}>
@@ -261,41 +232,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     marginVertical: 4,
-  },
-  ring: {
-    position: 'absolute',
-    borderWidth: 1,
-    borderRadius: 999,
-  },
-  ringOuter: {
-    width: 280,
-    height: 280,
-  },
-  ringMid: {
-    width: 236,
-    height: 236,
-  },
-  ringInner: {
-    width: 192,
-    height: 192,
-  },
-  starLeft: {
-    position: 'absolute',
-    left: 8,
-    top: 176,
-  },
-  starRight: {
-    position: 'absolute',
-    right: 28,
-    top: 120,
-  },
-  starDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
   },
   selectionBand: {
     position: 'absolute',

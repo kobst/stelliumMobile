@@ -25,13 +25,18 @@ type Props = StackScreenProps<RelationshipRootParamList, 'ProfileReveal'>;
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_PADDING = 24;
-const PHOTO_WIDTH = SCREEN_WIDTH - CARD_PADDING * 2;
-const PHOTO_HEIGHT = PHOTO_WIDTH * 1.2;
+const CAROUSEL_CARD_WIDTH = Math.round(SCREEN_WIDTH * 0.72);
+const CAROUSEL_CARD_GAP = 14;
+const CAROUSEL_SNAP_INTERVAL = CAROUSEL_CARD_WIDTH + CAROUSEL_CARD_GAP;
+const PHOTO_WIDTH = CAROUSEL_CARD_WIDTH;
+const PHOTO_HEIGHT = Math.round(CAROUSEL_CARD_WIDTH * 0.95);
+const MAX_CAROUSEL_MATCHES = 3;
 
 interface CelebCardProps {
   match: CelebAspectMatch;
   aspect: TopAspect;
   onPress: (celebId: string) => void;
+  annotationLoading?: boolean;
 }
 
 function getInitials(name: string | null): string {
@@ -57,7 +62,7 @@ function getPlacementText(
   return placement.compactDisplay ?? placement.display ?? null;
 }
 
-const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress }) => {
+const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress, annotationLoading }) => {
   const { colors } = useTheme();
   const userPlacement = getPlacementText(match.userPlacement);
   const celebPlacement = getPlacementText(match.celebPlacement);
@@ -65,6 +70,7 @@ const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress }) => {
     userPlacement && celebPlacement
       ? `${userPlacement} • ${celebPlacement}`
       : userPlacement ?? celebPlacement;
+  const hasAnnotation = Boolean(match.annotation);
   const aspectTitle = match.annotation?.title ?? [aspect.label, aspect.shortMeaning].filter(Boolean).join(' · ');
   const aspectSentence = match.annotation?.sentence;
 
@@ -90,27 +96,34 @@ const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress }) => {
 
       <View style={styles.celebCardFooter}>
         <View style={styles.celebCardHeader}>
-          <Text style={[styles.celebAspectLabel, { color: colors.accent }]}>
+          <Text style={[styles.celebAspectLabel, { color: colors.accent }]} numberOfLines={1}>
             {aspect.label}
           </Text>
-          <Text style={[styles.celebCardName, { color: colors.text }]}>
+          <Text style={[styles.celebCardName, { color: colors.text }]} numberOfLines={1}>
             {match.celebName ?? 'Unknown'}
           </Text>
         </View>
         {aspectTitle ? (
-          <Text style={[styles.annotationTitle, { color: colors.text }]}>
+          <Text style={[styles.annotationTitle, { color: colors.text }]} numberOfLines={2}>
             {aspectTitle}
           </Text>
         ) : null}
         {placementSummary ? (
-          <Text style={[styles.placementSummary, { color: colors.textSubtle }]}>
+          <Text style={[styles.placementSummary, { color: colors.textSubtle }]} numberOfLines={1}>
             {placementSummary}
           </Text>
         ) : null}
         {aspectSentence ? (
-          <Text style={[styles.annotationSentence, { color: colors.textMuted }]}>
+          <Text style={[styles.annotationSentence, { color: colors.textMuted }]} numberOfLines={4}>
             {aspectSentence}
           </Text>
+        ) : annotationLoading && !hasAnnotation ? (
+          <View style={styles.annotationLoadingRow}>
+            <ActivityIndicator size="small" color={colors.textSubtle} />
+            <Text style={[styles.annotationLoadingText, { color: colors.textSubtle }]}>
+              Writing annotation...
+            </Text>
+          </View>
         ) : null}
       </View>
     </TouchableOpacity>
@@ -298,12 +311,13 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [profileReveal, updateProfileReveal]);
 
-  const celebCards: Array<{ match: CelebAspectMatch; aspect: TopAspect }> = [];
+  const allCelebCards: Array<{ match: CelebAspectMatch; aspect: TopAspect }> = [];
   for (const aspect of profileReveal.topAspects) {
     for (const match of aspect.matches) {
-      celebCards.push({ match, aspect });
+      allCelebCards.push({ match, aspect });
     }
   }
+  const celebCards = allCelebCards.slice(0, MAX_CAROUSEL_MATCHES);
 
   const matchesStatus = profileReveal.celebMatchesStatus?.status ?? 'pending';
   const annotationsStatus = profileReveal.celebAnnotationsStatus?.status ?? 'pending';
@@ -372,14 +386,32 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             ) : null}
 
-            {celebCards.map(({ match, aspect }) => (
-              <CelebCard
-                key={`${aspect.aspectType}-${match.celebId}`}
-                match={match}
-                aspect={aspect}
-                onPress={handlePressCelebCard}
-              />
-            ))}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              snapToInterval={CAROUSEL_SNAP_INTERVAL}
+              snapToAlignment="start"
+              style={styles.carouselScroll}
+              contentContainerStyle={styles.carouselContent}
+            >
+              {celebCards.map(({ match, aspect }, index) => (
+                <View
+                  key={`${aspect.aspectType}-${match.celebId}`}
+                  style={[
+                    styles.carouselItem,
+                    index === celebCards.length - 1 && styles.carouselItemLast,
+                  ]}
+                >
+                  <CelebCard
+                    match={match}
+                    aspect={aspect}
+                    onPress={handlePressCelebCard}
+                    annotationLoading={isAnnotationsLoading}
+                  />
+                </View>
+              ))}
+            </ScrollView>
           </View>
         ) : null}
 
@@ -499,9 +531,23 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
+  carouselScroll: {
+    marginHorizontal: -CARD_PADDING,
+  },
+  carouselContent: {
+    paddingHorizontal: CARD_PADDING,
+  },
+  carouselItem: {
+    width: CAROUSEL_CARD_WIDTH,
+    marginRight: CAROUSEL_CARD_GAP,
+  },
+  carouselItemLast: {
+    marginRight: 0,
+  },
   celebCard: {
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
+    width: CAROUSEL_CARD_WIDTH,
   },
   celebPhoto: {
     width: PHOTO_WIDTH,
@@ -509,44 +555,54 @@ const styles = StyleSheet.create({
   },
   celebPhotoPlaceholder: {
     width: PHOTO_WIDTH,
-    height: PHOTO_HEIGHT * 0.7,
+    height: PHOTO_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
   },
   celebInitials: {
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: '700',
   },
   celebCardFooter: {
-    padding: 16,
-    paddingTop: 14,
-    gap: 8,
+    padding: 14,
+    paddingTop: 12,
+    gap: 6,
   },
   celebCardHeader: {
-    gap: 4,
+    gap: 2,
   },
   celebAspectLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   celebCardName: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '700',
   },
   annotationTitle: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
-    lineHeight: 21,
+    lineHeight: 18,
   },
   placementSummary: {
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  annotationSentence: {
     fontSize: 12,
     lineHeight: 18,
   },
-  annotationSentence: {
-    fontSize: 14,
-    lineHeight: 22,
+  annotationLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 2,
+  },
+  annotationLoadingText: {
+    fontSize: 12,
+    fontStyle: 'italic',
   },
 
   claimCard: {
