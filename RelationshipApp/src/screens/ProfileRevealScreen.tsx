@@ -37,7 +37,7 @@ const MATCHES_SKELETON_MIN_MS = 1200;
 interface CelebCardProps {
   match: CelebAspectMatch;
   aspect: TopAspect;
-  onPress: (celebId: string) => void;
+  onPress?: (celebId: string) => void;
   annotationLoading?: boolean;
 }
 
@@ -76,12 +76,8 @@ const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress, annotatio
   const aspectTitle = match.annotation?.title ?? [aspect.label, aspect.shortMeaning].filter(Boolean).join(' · ');
   const aspectSentence = match.annotation?.sentence;
 
-  return (
-    <TouchableOpacity
-      style={[styles.celebCard, { backgroundColor: colors.surfaceLow }]}
-      onPress={() => onPress(match.celebId)}
-      activeOpacity={0.85}
-    >
+  const cardBody = (
+    <>
       {match.profilePhotoUrl ? (
         <Image
           source={{ uri: match.profilePhotoUrl }}
@@ -128,6 +124,24 @@ const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress, annotatio
           </View>
         ) : null}
       </View>
+    </>
+  );
+
+  if (!onPress) {
+    return (
+      <View style={[styles.celebCard, { backgroundColor: colors.surfaceLow }]}>
+        {cardBody}
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      style={[styles.celebCard, { backgroundColor: colors.surfaceLow }]}
+      onPress={() => onPress(match.celebId)}
+      activeOpacity={0.85}
+    >
+      {cardBody}
     </TouchableOpacity>
   );
 };
@@ -136,7 +150,6 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
   const profileReveal = useRelationshipAppStore((state) => state.profileReveal);
   const guestProfileDraft = useRelationshipAppStore((state) => state.guestProfileDraft);
-  const authStatus = useRelationshipAppStore((state) => state.authStatus);
   const updateProfileReveal = useRelationshipAppStore((state) => state.updateProfileReveal);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const matchesStartedRef = useRef<string | null>(null);
@@ -171,13 +184,6 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
       </SafeAreaView>
     );
   }
-
-  const handlePressCelebCard = (_celebId: string) => {
-    if (authStatus === 'signedIn') {
-      return;
-    }
-    navigation.navigate('SaveProfile');
-  };
 
   const applyCelebResponse = (
     response: OnboardingPreviewCelebResponse,
@@ -374,9 +380,14 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
 
         {showMatchesSkeleton || showMatchesCards ? (
           <View style={styles.matchesSection}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Your Celestial{'\n'}Matches
-            </Text>
+            <View style={styles.matchesHeader}>
+              <Text style={[styles.matchesEyebrow, { color: colors.accent }]}>
+                Your Chart Connections
+              </Text>
+              <Text style={[styles.matchesHeading, { color: colors.text }]}>
+                How your chart{'\n'}meets others
+              </Text>
+            </View>
 
             {showMatchesSkeleton ? (
               <>
@@ -422,7 +433,6 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
                     <CelebCard
                       match={match}
                       aspect={aspect}
-                      onPress={handlePressCelebCard}
                       annotationLoading={isAnnotationsLoading}
                     />
                   </View>
@@ -433,12 +443,11 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
 
         <View style={[styles.claimCard, { backgroundColor: colors.surfaceLow }]}>
-          <Text style={[styles.claimIcon, { color: colors.textSubtle }]}>&#x1F512;</Text>
           <Text style={[styles.claimTitle, { color: colors.text }]}>
-            Claim Your Destiny
+            Save your blueprint
           </Text>
           <Text style={[styles.claimBody, { color: colors.textMuted }]}>
-            Save your celestial blueprint and unlock full synastry reports for all matches.
+            Create an account to keep this reading and run full synastry and composite reports on anyone in your life.
           </Text>
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
@@ -450,7 +459,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => navigation.navigate('SaveProfile')}
           >
             <Text style={[styles.guestLink, { color: colors.textMuted }]}>
-              CONTINUE AS GUEST
+              Explore as guest
             </Text>
           </TouchableOpacity>
         </View>
@@ -502,7 +511,9 @@ const styles = StyleSheet.create({
 
   quoteCard: {
     borderRadius: 24,
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
   quoteText: {
     fontSize: 16,
@@ -517,7 +528,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: -8,
   },
-  sectionTitle: {
+  matchesHeader: {
+    gap: 10,
+  },
+  matchesEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  matchesHeading: {
     fontSize: 28,
     fontWeight: '700',
     lineHeight: 34,
@@ -616,10 +636,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
-  claimIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
   claimTitle: {
     fontSize: 22,
     fontWeight: '700',
@@ -630,9 +646,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   guestLink: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.4,
+    fontSize: 14,
+    fontWeight: '600',
     marginTop: 4,
   },
 
