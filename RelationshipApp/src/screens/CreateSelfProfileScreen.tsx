@@ -51,12 +51,47 @@ const PARTNER_GENDER_OPTIONS = [
   { label: 'All', value: 'all' },
 ] as const;
 
+const STEPS = [
+  {
+    eyebrow: 'Step 1 of 6',
+    title: 'What should we call you?',
+    subtitle: 'Start with your name so we can personalize your romantic profile.',
+  },
+  {
+    eyebrow: 'Step 2 of 6',
+    title: 'How do you identify?',
+    subtitle: 'Choose the essence that best fits you.',
+  },
+  {
+    eyebrow: 'Step 3 of 6',
+    title: 'Who are you drawn to?',
+    subtitle: 'This helps us filter the first celebrity match set.',
+  },
+  {
+    eyebrow: 'Step 4 of 6',
+    title: 'When were you born?',
+    subtitle: 'We need your birth date to calculate your chart.',
+  },
+  {
+    eyebrow: 'Step 5 of 6',
+    title: 'What time were you born?',
+    subtitle: 'Birth time sharpens house placements, but you can skip it.',
+  },
+  {
+    eyebrow: 'Step 6 of 6',
+    title: 'Where were you born?',
+    subtitle: 'Enter a city and country so we can resolve coordinates and timezone.',
+  },
+] as const;
+
 export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
   const setGuestProfileDraft = useRelationshipAppStore((state) => state.setGuestProfileDraft);
   const setProfileReveal = useRelationshipAppStore((state) => state.setProfileReveal);
-  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode) || relationshipAppEnv.enableLocalUxMode;
+  const isLocalUxMode =
+    useRelationshipAppStore((state) => state.isLocalUxMode) || relationshipAppEnv.enableLocalUxMode;
 
+  const [currentStep, setCurrentStep] = useState(0);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [gender, setGender] = useState('');
@@ -73,30 +108,58 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const [showPartnerGenderDropdown, setShowPartnerGenderDropdown] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(true);
+  const [showTimePicker, setShowTimePicker] = useState(true);
   const [dateSet, setDateSet] = useState(false);
   const [timeSet, setTimeSet] = useState(false);
 
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
-
   const pickerDate = useMemo(() => parseDateString(dateOfBirth), [dateOfBirth]);
   const pickerTime = useMemo(() => parseTimeString(timeOfBirth), [timeOfBirth]);
 
-  const genderLabel = GENDER_OPTIONS.find((o) => o.value === gender)?.label;
-  const partnerGenderLabel = PARTNER_GENDER_OPTIONS.find((o) => o.value === preferredPartnerGender)?.label;
+  const genderLabel = GENDER_OPTIONS.find((option) => option.value === gender)?.label;
+  const partnerGenderLabel = PARTNER_GENDER_OPTIONS.find(
+    (option) => option.value === preferredPartnerGender
+  )?.label;
 
   const formatDisplayDate = (iso: string): string => {
-    const [y, m, d] = iso.split('-');
-    return `${m}/${d}/${y}`;
+    const [year, month, day] = iso.split('-');
+    return `${month}/${day}/${year}`;
   };
 
-  const formatDisplayTime = (t: string): string => {
-    const [h, min] = t.split(':').map(Number);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12;
-    return `${h12}:${String(min).padStart(2, '0')} ${ampm}`;
+  const formatDisplayTime = (time: string): string => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, '0')} ${ampm}`;
   };
+
+  const closeTransientUi = () => {
+    setShowGenderDropdown(false);
+    setShowPartnerGenderDropdown(false);
+  };
+
+  const getStepError = (step: number): string | null => {
+    switch (step) {
+      case 0:
+        return firstName.trim() && lastName.trim() ? null : 'Enter your first and last name.';
+      case 1:
+        return gender ? null : 'Select your gender.';
+      case 2:
+        return preferredPartnerGender ? null : 'Select a partner preference.';
+      case 3:
+        return isValidDate(dateOfBirth) ? null : 'Enter a valid date of birth.';
+      case 4:
+        return birthTimeUnknown || isValidTime(timeOfBirth) ? null : 'Enter a valid birth time.';
+      case 5:
+        return placeOfBirth.trim() ? null : 'Birth location is required.';
+      default:
+        return null;
+    }
+  };
+
+  const canContinue = !getStepError(currentStep);
+  const isLastStep = currentStep === STEPS.length - 1;
 
   const resolveLocationFields = async () => {
     let resolvedPlace = placeOfBirth.trim();
@@ -114,10 +177,19 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       setPlaceOfBirth(geocoded.formattedAddress);
     }
 
-    if (resolvedTzone === null && resolvedLat !== null && resolvedLon !== null && canUseGoogleServices) {
+    if (
+      resolvedTzone === null &&
+      resolvedLat !== null &&
+      resolvedLon !== null &&
+      canUseGoogleServices
+    ) {
       const timeForTimezone = birthTimeUnknown ? '12:00' : timeOfBirth;
       const epochTimeSeconds = getEpochSeconds(dateOfBirth, timeForTimezone);
-      resolvedTzone = await externalApi.fetchTimeZone(resolvedLat, resolvedLon, epochTimeSeconds);
+      resolvedTzone = await externalApi.fetchTimeZone(
+        resolvedLat,
+        resolvedLon,
+        epochTimeSeconds
+      );
     }
 
     return {
@@ -143,7 +215,9 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       await resolveLocationFields();
     } catch (error) {
       if (!isLocalUxMode) {
-        setSubmitError(error instanceof Error ? error.message : 'Could not resolve this location.');
+        setSubmitError(
+          error instanceof Error ? error.message : 'Could not resolve this location.'
+        );
       }
     } finally {
       setIsAutofillingLocation(false);
@@ -183,10 +257,38 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     setTimeSet(true);
   };
 
+  const goBack = () => {
+    closeTransientUi();
+    setSubmitError(null);
+    setCurrentStep((step) => Math.max(0, step - 1));
+  };
+
+  const goNext = () => {
+    const stepError = getStepError(currentStep);
+    if (stepError) {
+      setSubmitError(stepError);
+      return;
+    }
+
+    closeTransientUi();
+    setSubmitError(null);
+    setCurrentStep((step) => Math.min(STEPS.length - 1, step + 1));
+  };
+
   const handleSubmit = async () => {
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
     if (!fullName) {
       setSubmitError('Name is required.');
+      return;
+    }
+
+    if (!gender) {
+      setSubmitError('Select your gender.');
+      return;
+    }
+
+    if (!preferredPartnerGender) {
+      setSubmitError('Select a partner preference.');
       return;
     }
 
@@ -218,15 +320,8 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
           }
         : await resolveLocationFields();
 
-      if (
-        !isLocalUxMode &&
-        (resolved.lat === null ||
-        resolved.lon === null ||
-        resolved.tzone === null)
-      ) {
-        throw new Error(
-          'We could not resolve this birth location. Please choose a clearer place.'
-        );
+      if (!isLocalUxMode && (resolved.lat === null || resolved.lon === null || resolved.tzone === null)) {
+        throw new Error('We could not resolve this birth location. Please choose a clearer place.');
       }
 
       const draft: GuestProfileDraft = {
@@ -254,20 +349,73 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             {
               aspectType: 'venus_mars_conjunction',
               label: 'Venus-Mars conjunction',
+              shortMeaning: 'magnetic chemistry',
               primaryCluster: 'Passion',
               clusterThemes: ['Passion', 'Connection'],
-              matches: [{ celebId: 'demo-1', celebName: 'Timothée Chalamet', profilePhotoUrl: null, orb: 2.1 }],
+              matches: [
+                {
+                  celebId: 'demo-1',
+                  celebName: 'Timothee Chalamet',
+                  profilePhotoUrl: null,
+                  orb: 2.1,
+                  annotation: {
+                    title: 'Venus-Mars conjunction · magnetic chemistry',
+                    sentence:
+                      'Your romantic style meets his drive head-on, which makes the first spark immediate and difficult to ignore.',
+                  },
+                },
+              ],
             },
             {
               aspectType: 'moon_venus_trine',
               label: 'Moon-Venus trine',
+              shortMeaning: 'easy affection',
               primaryCluster: 'Harmony',
               clusterThemes: ['Harmony', 'Connection'],
-              matches: [{ celebId: 'demo-2', celebName: 'Zendaya', profilePhotoUrl: null, orb: 3.5 }],
+              matches: [
+                {
+                  celebId: 'demo-2',
+                  celebName: 'Zendaya',
+                  profilePhotoUrl: null,
+                  orb: 3.5,
+                  annotation: {
+                    title: 'Moon-Venus trine · easy affection',
+                    sentence:
+                      'There is softness here from the start, the kind of emotional ease that makes closeness feel natural.',
+                  },
+                },
+              ],
             },
           ],
+          celebAspectBank: null,
+          celebMatchesStatus: { status: 'completed' },
+          celebAnnotationsStatus: { status: 'completed' },
           birthChart: {},
-          fullResponse: {} as OnboardingPreviewResponse,
+          fullResponse: {
+            success: true,
+            previewId: 'local-preview-id',
+            claimToken: 'local-claim-token',
+            user: {
+              _id: 'local-preview-id',
+              firstName: draft.firstName,
+              lastName: draft.lastName,
+              gender: draft.gender,
+              preferredPartnerGender,
+              kind: 'accountSelf',
+              appDomain: 'relationship-app',
+            },
+            birthChart: {},
+            overview:
+              `${draft.firstName}, your chart reveals a deeply magnetic romantic nature. ` +
+              'You lead with emotional intensity and crave partnerships that challenge you intellectually.',
+            referencedCodes: [],
+            celebMatchesStatus: { status: 'completed' },
+            celebAnnotationsStatus: { status: 'completed' },
+            celebAspectBank: null,
+            topAspects: [],
+            overviewMode: 'romantic',
+            status: 'onboarding_preview_created',
+          } as OnboardingPreviewResponse,
         });
         navigation.replace('ProfileReveal');
         return;
@@ -286,28 +434,27 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         tzone: String(draft.totalOffsetHours ?? 0),
         totalOffsetHours: draft.totalOffsetHours ?? 0,
       };
-      // TODO: Remove debug log after API integration is confirmed working
+
       console.log('[onboarding-preview] request:', JSON.stringify(requestPayload, null, 2));
-
       const previewResponse = await onboardingApi.submitPreview(requestPayload);
-
       console.log('[onboarding-preview] response:', JSON.stringify(previewResponse, null, 2));
 
-      // Set both at once to avoid navigator key change mid-flight
       setGuestProfileDraft(draft);
       setProfileReveal({
         previewId: previewResponse.previewId,
         claimToken: previewResponse.claimToken,
         overview: previewResponse.overview,
         topAspects: previewResponse.topAspects,
+        celebAspectBank: previewResponse.celebAspectBank,
+        celebMatchesStatus: previewResponse.celebMatchesStatus,
+        celebAnnotationsStatus: previewResponse.celebAnnotationsStatus,
         birthChart: previewResponse.birthChart,
         fullResponse: previewResponse,
       });
 
       navigation.replace('ProfileReveal');
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Could not generate your profile.';
+      const message = error instanceof Error ? error.message : 'Could not generate your profile.';
       setSubmitError(message);
       Alert.alert('Profile generation failed', message);
     } finally {
@@ -315,62 +462,21 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  if (isSubmitting) {
-    return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
-        <View style={styles.loadingContainer}>
-          <View style={[styles.heroIcon, { backgroundColor: colors.surfaceHigh }]}>
-            <Text style={[styles.heroIconText, { color: colors.accent }]}>✦✦</Text>
-          </View>
-          <Text style={[styles.loadingTitle, { color: colors.text }]}>
-            Reading the stars...
-          </Text>
-          <Text style={[styles.loadingSubtitle, { color: colors.textMuted }]}>
-            Calculating your chart positions and finding your celebrity matches.
-          </Text>
-          <ActivityIndicator size="large" color={colors.primary} style={styles.loadingSpinner} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        scrollEnabled={!showDatePicker && !showTimePicker}
-      >
-        {/* Hero header */}
-        <View style={styles.heroBlock}>
-          <View style={[styles.heroIcon, { backgroundColor: colors.surfaceHigh }]}>
-            <Text style={[styles.heroIconText, { color: colors.accent }]}>✦✦</Text>
-          </View>
-          <Text style={[styles.heroTitle, { color: colors.text }]}>
-            Discover your{'\n'}
-            <Text style={{ color: colors.accent, fontStyle: 'italic' }}>
-              celestial resonance
-            </Text>
-          </Text>
-          <Text style={[styles.heroSubtitle, { color: colors.textMuted }]}>
-            Align your earthly journey with the celestial bodies. Enter your
-            birth details to reveal your unique cosmic blueprint.
-          </Text>
-        </View>
-
-        {/* Form card */}
-        <View style={[styles.formCard, { backgroundColor: colors.surfaceLow }]}>
-
-          {/* Full Name */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Full Name</Text>
+  const renderStep = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <View style={styles.stepGroup}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>First Name</Text>
             <TextInput
               value={firstName}
               onChangeText={setFirstName}
               placeholder="First name"
               placeholderTextColor={colors.textSubtle}
               style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
+              autoFocus
             />
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Last Name</Text>
             <TextInput
               value={lastName}
               onChangeText={setLastName}
@@ -379,13 +485,14 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
             />
           </View>
-
-          {/* Gender */}
-          <View style={styles.fieldGroup}>
+        );
+      case 1:
+        return (
+          <View style={styles.stepGroup}>
             <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Essence</Text>
             <TouchableOpacity
               style={[styles.selectInput, { backgroundColor: colors.surfaceHigh }]}
-              onPress={() => setShowGenderDropdown(!showGenderDropdown)}
+              onPress={() => setShowGenderDropdown((value) => !value)}
             >
               <Text style={[styles.selectInputText, { color: gender ? colors.text : colors.textSubtle }]}>
                 {genderLabel ?? 'Select gender'}
@@ -414,19 +521,59 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             ) : null}
           </View>
-
-          {/* Date of Birth */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Date of Alignment</Text>
+        );
+      case 2:
+        return (
+          <View style={styles.stepGroup}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Preferred Partner Gender</Text>
             <TouchableOpacity
               style={[styles.selectInput, { backgroundColor: colors.surfaceHigh }]}
-              onPress={() => setShowDatePicker(!showDatePicker)}
+              onPress={() => setShowPartnerGenderDropdown((value) => !value)}
             >
-              <Text style={[styles.selectInputText, { color: dateSet ? colors.text : colors.textSubtle }]}>
-                {dateSet ? formatDisplayDate(dateOfBirth) : 'mm/dd/yyyy'}
+              <Text
+                style={[
+                  styles.selectInputText,
+                  { color: preferredPartnerGender ? colors.text : colors.textSubtle },
+                ]}
+              >
+                {partnerGenderLabel ?? 'Select preference'}
               </Text>
-              <Text style={[styles.selectIcon, { color: colors.textSubtle }]}>&#x1F4C5;</Text>
+              <Text style={[styles.selectChevron, { color: colors.textSubtle }]}>&#709;</Text>
             </TouchableOpacity>
+            {showPartnerGenderDropdown ? (
+              <View style={[styles.dropdown, { backgroundColor: colors.surface }]}>
+                {PARTNER_GENDER_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.dropdownOption,
+                      preferredPartnerGender === option.value && {
+                        backgroundColor: colors.surfaceHigh,
+                      },
+                    ]}
+                    onPress={() => {
+                      setPreferredPartnerGender(option.value);
+                      setShowPartnerGenderDropdown(false);
+                    }}
+                  >
+                    <Text style={[styles.dropdownOptionText, { color: colors.text }]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        );
+      case 3:
+        return (
+          <View style={styles.stepGroup}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Date of Alignment</Text>
+            <View style={[styles.valueChip, { backgroundColor: colors.surfaceHigh }]}>
+              <Text style={[styles.valueChipText, { color: colors.text }]}>
+                {dateSet ? formatDisplayDate(dateOfBirth) : formatDisplayDate(dateOfBirth)}
+              </Text>
+            </View>
             {showDatePicker ? (
               <View style={[styles.inlinePicker, { backgroundColor: colors.surfaceHigh }]}>
                 <DateTimePicker
@@ -439,40 +586,38 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
                   textColor={colors.text}
                   style={styles.inlinePickerWheel}
                 />
-                <TouchableOpacity
-                  style={[styles.confirmButton, { backgroundColor: colors.primary }]}
-                  onPress={() => {
-                    setShowDatePicker(false);
-                    setDateSet(true);
-                  }}
-                >
-                  <Text style={[styles.confirmButtonText, { color: colors.onPrimary }]}>CONFIRM ALIGNMENT</Text>
-                </TouchableOpacity>
               </View>
             ) : null}
           </View>
-
-          {/* Birth Time */}
-          <View style={styles.fieldGroup}>
+        );
+      case 4:
+        return (
+          <View style={styles.stepGroup}>
             <View style={styles.fieldLabelRow}>
               <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Moment of Breath</Text>
-              <TouchableOpacity onPress={() => setBirthTimeUnknown(!birthTimeUnknown)}>
-                <Text style={[styles.unknownToggleText, { color: birthTimeUnknown ? colors.primary : colors.textSubtle }]}>
-                  {birthTimeUnknown ? 'Unknown' : 'I don\'t know'}
+              <TouchableOpacity
+                onPress={() => {
+                  setBirthTimeUnknown((value) => !value);
+                  setTimeSet(true);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.unknownToggleText,
+                    { color: birthTimeUnknown ? colors.primary : colors.textSubtle },
+                  ]}
+                >
+                  {birthTimeUnknown ? 'Unknown' : "I don't know"}
                 </Text>
               </TouchableOpacity>
             </View>
             {!birthTimeUnknown ? (
               <>
-                <TouchableOpacity
-                  style={[styles.selectInput, { backgroundColor: colors.surfaceHigh }]}
-                  onPress={() => setShowTimePicker(!showTimePicker)}
-                >
-                  <Text style={[styles.selectInputText, { color: timeSet ? colors.text : colors.textSubtle }]}>
-                    {timeSet ? formatDisplayTime(timeOfBirth) : '- - : - -'}
+                <View style={[styles.valueChip, { backgroundColor: colors.surfaceHigh }]}>
+                  <Text style={[styles.valueChipText, { color: colors.text }]}>
+                    {timeSet ? formatDisplayTime(timeOfBirth) : formatDisplayTime(timeOfBirth)}
                   </Text>
-                  <Text style={[styles.selectIcon, { color: colors.textSubtle }]}>&#x1F552;</Text>
-                </TouchableOpacity>
+                </View>
                 {showTimePicker ? (
                   <View style={[styles.inlinePicker, { backgroundColor: colors.surfaceHigh }]}>
                     <DateTimePicker
@@ -484,29 +629,21 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
                       textColor={colors.text}
                       style={styles.inlinePickerWheel}
                     />
-                    <TouchableOpacity
-                      style={[styles.confirmButton, { backgroundColor: colors.primary }]}
-                      onPress={() => {
-                        setShowTimePicker(false);
-                        setTimeSet(true);
-                      }}
-                    >
-                      <Text style={[styles.confirmButtonText, { color: colors.onPrimary }]}>CONFIRM MOMENT</Text>
-                    </TouchableOpacity>
                   </View>
                 ) : null}
               </>
             ) : (
               <View style={[styles.infoBox, { backgroundColor: colors.surfaceHigh }]}>
                 <Text style={[styles.infoText, { color: colors.textMuted }]}>
-                  We'll calculate without house placements.
+                  We&apos;ll calculate without house placements.
                 </Text>
               </View>
             )}
           </View>
-
-          {/* Birth Location */}
-          <View style={styles.fieldGroup}>
+        );
+      case 5:
+        return (
+          <View style={styles.stepGroup}>
             <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Terrestrial Coordinates</Text>
             <PlaceAutocompleteInput
               value={placeOfBirth}
@@ -523,7 +660,10 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             {placeOfBirth ? (
               <View style={[styles.selectedLocation, { backgroundColor: colors.surfaceHigh }]}>
                 <View style={[styles.locationDot, { backgroundColor: colors.success }]} />
-                <Text style={[styles.selectedLocationText, { color: colors.text }]} numberOfLines={1}>
+                <Text
+                  style={[styles.selectedLocationText, { color: colors.text }]}
+                  numberOfLines={2}
+                >
                   {placeOfBirth}
                 </Text>
               </View>
@@ -532,64 +672,102 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.infoText, { color: colors.textMuted }]}>Resolving...</Text>
             ) : null}
           </View>
+        );
+      default:
+        return null;
+    }
+  };
 
-          {/* Preferred Partner Gender */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Preferred Partner Gender</Text>
-            <TouchableOpacity
-              style={[styles.selectInput, { backgroundColor: colors.surfaceHigh }]}
-              onPress={() => setShowPartnerGenderDropdown(!showPartnerGenderDropdown)}
-            >
-              <Text style={[styles.selectInputText, { color: preferredPartnerGender ? colors.text : colors.textSubtle }]}>
-                {partnerGenderLabel ?? 'Select preference'}
-              </Text>
-              <Text style={[styles.selectChevron, { color: colors.textSubtle }]}>&#709;</Text>
-            </TouchableOpacity>
-            {showPartnerGenderDropdown ? (
-              <View style={[styles.dropdown, { backgroundColor: colors.surface }]}>
-                {PARTNER_GENDER_OPTIONS.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.dropdownOption,
-                      preferredPartnerGender === option.value && { backgroundColor: colors.surfaceHigh },
-                    ]}
-                    onPress={() => {
-                      setPreferredPartnerGender(option.value);
-                      setShowPartnerGenderDropdown(false);
-                    }}
-                  >
-                    <Text style={[styles.dropdownOptionText, { color: colors.text }]}>
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : null}
+  if (isSubmitting) {
+    return (
+      <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+        <View style={styles.loadingContainer}>
+          <View style={[styles.heroIcon, { backgroundColor: colors.surfaceHigh }]}>
+            <Text style={[styles.heroIconText, { color: colors.accent }]}>✦✦</Text>
           </View>
+          <Text style={[styles.loadingTitle, { color: colors.text }]}>Reading the stars...</Text>
+          <Text style={[styles.loadingSubtitle, { color: colors.textMuted }]}>
+            Calculating your chart positions and finding your celebrity matches.
+          </Text>
+          <ActivityIndicator size="large" color={colors.primary} style={styles.loadingSpinner} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const step = STEPS[currentStep];
+
+  return (
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.heroBlock}>
+          <View style={[styles.heroIcon, { backgroundColor: colors.surfaceHigh }]}>
+            <Text style={[styles.heroIconText, { color: colors.accent }]}>✦✦</Text>
+          </View>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>{step.eyebrow}</Text>
+          <Text style={[styles.heroTitle, { color: colors.text }]}>{step.title}</Text>
+          <Text style={[styles.heroSubtitle, { color: colors.textMuted }]}>{step.subtitle}</Text>
+        </View>
+
+        <View style={styles.progressRow}>
+          {STEPS.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.progressDot,
+                {
+                  backgroundColor:
+                    index <= currentStep ? colors.primary : colors.surfaceHigh,
+                },
+              ]}
+            />
+          ))}
+        </View>
+
+        <View style={[styles.formCard, { backgroundColor: colors.surfaceLow }]}>
+          {renderStep()}
         </View>
 
         {submitError ? (
           <Text style={[styles.errorText, { color: colors.error }]}>{submitError}</Text>
         ) : null}
 
-        {/* CTA */}
-        <TouchableOpacity
-          style={[styles.ctaButton, { backgroundColor: colors.primary }]}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.ctaButtonText, { color: colors.onPrimary }]}>
-            {isSubmitting ? 'GENERATING...' : 'GENERATE PROFILE'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.actionsRow}>
+          {currentStep > 0 ? (
+            <TouchableOpacity
+              style={[styles.secondaryButton, { backgroundColor: colors.surfaceHigh }]}
+              onPress={goBack}
+            >
+              <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Back</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.actionSpacer} />
+          )}
+
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              { backgroundColor: canContinue ? colors.primary : colors.surfaceHigh },
+            ]}
+            onPress={isLastStep ? handleSubmit : goNext}
+            disabled={!canContinue}
+            activeOpacity={0.85}
+          >
+            <Text
+              style={[
+                styles.primaryButtonText,
+                { color: canContinue ? colors.onPrimary : colors.textSubtle },
+              ]}
+            >
+              {isLastStep ? 'Generate Profile' : 'Continue'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <Text style={[styles.privacyText, { color: colors.textSubtle }]}>
           Privacy secured by encrypted celestial channels
         </Text>
       </ScrollView>
-
     </SafeAreaView>
   );
 };
@@ -602,8 +780,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
   },
-
-  // Loading
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
@@ -625,13 +801,11 @@ const styles = StyleSheet.create({
   loadingSpinner: {
     marginTop: 12,
   },
-
-  // Hero
   heroBlock: {
     alignItems: 'center',
-    paddingTop: 32,
-    paddingBottom: 28,
-    gap: 16,
+    paddingTop: 28,
+    paddingBottom: 24,
+    gap: 12,
   },
   heroIcon: {
     width: 80,
@@ -643,10 +817,16 @@ const styles = StyleSheet.create({
   heroIconText: {
     fontSize: 28,
   },
-  heroTitle: {
-    fontSize: 32,
+  eyebrow: {
+    fontSize: 11,
     fontWeight: '700',
-    lineHeight: 40,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    fontSize: 30,
+    fontWeight: '700',
+    lineHeight: 36,
     textAlign: 'center',
   },
   heroSubtitle: {
@@ -655,15 +835,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 8,
   },
-
-  // Form card
+  progressRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 20,
+  },
+  progressDot: {
+    flex: 1,
+    height: 6,
+    borderRadius: 999,
+  },
   formCard: {
     borderRadius: 24,
     padding: 20,
-    gap: 20,
+    minHeight: 300,
   },
-  fieldGroup: {
-    gap: 8,
+  stepGroup: {
+    gap: 12,
   },
   fieldLabel: {
     fontSize: 11,
@@ -682,8 +870,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-
-  // Select / dropdown inputs
   selectInput: {
     borderRadius: 12,
     flexDirection: 'row',
@@ -696,9 +882,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   selectChevron: {
-    fontSize: 18,
-  },
-  selectIcon: {
     fontSize: 18,
   },
   dropdown: {
@@ -716,31 +899,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-
-  // Inline picker
+  valueChip: {
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  valueChipText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   inlinePicker: {
     borderRadius: 16,
     padding: 8,
-    paddingBottom: 16,
     alignItems: 'center',
   },
   inlinePickerWheel: {
     height: 216,
     width: '100%',
-  },
-  confirmButton: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    alignSelf: 'stretch',
-    marginHorizontal: 8,
-    marginTop: 8,
-  },
-  confirmButtonText: {
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 1.6,
-    textAlign: 'center',
   },
   infoBox: {
     borderRadius: 12,
@@ -750,8 +925,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-
-  // Location
   selectedLocation: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -770,27 +943,43 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
-
-  // Error
   errorText: {
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '600',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 16,
   },
-
-  // CTA
-  ctaButton: {
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 20,
+  },
+  actionSpacer: {
+    flex: 1,
+  },
+  secondaryButton: {
+    flex: 1,
     borderRadius: 16,
     paddingVertical: 18,
-    marginTop: 20,
     alignItems: 'center',
   },
-  ctaButtonText: {
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  primaryButton: {
+    flex: 1.4,
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
     fontSize: 15,
     fontWeight: '800',
-    letterSpacing: 2,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   privacyText: {
     fontSize: 11,

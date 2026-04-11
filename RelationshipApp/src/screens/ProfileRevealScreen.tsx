@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   SafeAreaView,
@@ -13,7 +14,12 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore, TopAspect } from '../store';
 import { useTheme } from '../theme';
-import type { CelebAspectMatch } from '../../../shared/api/onboarding';
+import { onboardingApi } from '../api';
+import type {
+  CelebAspectMatch,
+  OnboardingPreviewCelebResponse,
+  OnboardingPreviewResponse,
+} from '../../../shared/api/onboarding';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'ProfileReveal'>;
 
@@ -25,7 +31,7 @@ const PHOTO_HEIGHT = PHOTO_WIDTH * 1.2;
 interface CelebCardProps {
   match: CelebAspectMatch;
   aspect: TopAspect;
-  onTapScore: (celebId: string) => void;
+  onPress: (celebId: string) => void;
 }
 
 function getInitials(name: string | null): string {
@@ -41,20 +47,31 @@ function getInitials(name: string | null): string {
     .toUpperCase();
 }
 
-function formatScore(score: number | undefined): string {
-  if (score === undefined || score === null) {
-    return '--';
+function getPlacementText(
+  placement?: { compactDisplay?: string; display?: string } | null
+): string | null {
+  if (!placement) {
+    return null;
   }
-  return String(Math.round(score * 100));
+
+  return placement.compactDisplay ?? placement.display ?? null;
 }
 
-const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onTapScore }) => {
+const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress }) => {
   const { colors } = useTheme();
+  const userPlacement = getPlacementText(match.userPlacement);
+  const celebPlacement = getPlacementText(match.celebPlacement);
+  const placementSummary =
+    userPlacement && celebPlacement
+      ? `${userPlacement} • ${celebPlacement}`
+      : userPlacement ?? celebPlacement;
+  const aspectTitle = match.annotation?.title ?? [aspect.label, aspect.shortMeaning].filter(Boolean).join(' · ');
+  const aspectSentence = match.annotation?.sentence;
 
   return (
     <TouchableOpacity
       style={[styles.celebCard, { backgroundColor: colors.surfaceLow }]}
-      onPress={() => onTapScore(match.celebId)}
+      onPress={() => onPress(match.celebId)}
       activeOpacity={0.85}
     >
       {match.profilePhotoUrl ? (
@@ -72,7 +89,7 @@ const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onTapScore }) => {
       )}
 
       <View style={styles.celebCardFooter}>
-        <View style={styles.celebCardInfo}>
+        <View style={styles.celebCardHeader}>
           <Text style={[styles.celebAspectLabel, { color: colors.accent }]}>
             {aspect.label}
           </Text>
@@ -80,14 +97,21 @@ const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onTapScore }) => {
             {match.celebName ?? 'Unknown'}
           </Text>
         </View>
-        <View style={styles.celebScoreBlock}>
-          <Text style={[styles.celebScoreLabel, { color: colors.textMuted }]}>
-            TEASER SCORE
+        {aspectTitle ? (
+          <Text style={[styles.annotationTitle, { color: colors.text }]}>
+            {aspectTitle}
           </Text>
-          <Text style={[styles.celebScoreValue, { color: colors.accent }]}>
-            {formatScore(aspect.score)}
+        ) : null}
+        {placementSummary ? (
+          <Text style={[styles.placementSummary, { color: colors.textSubtle }]}>
+            {placementSummary}
           </Text>
-        </View>
+        ) : null}
+        {aspectSentence ? (
+          <Text style={[styles.annotationSentence, { color: colors.textMuted }]}>
+            {aspectSentence}
+          </Text>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -98,6 +122,10 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
   const profileReveal = useRelationshipAppStore((state) => state.profileReveal);
   const guestProfileDraft = useRelationshipAppStore((state) => state.guestProfileDraft);
   const authStatus = useRelationshipAppStore((state) => state.authStatus);
+  const updateProfileReveal = useRelationshipAppStore((state) => state.updateProfileReveal);
+  const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const matchesStartedRef = useRef<string | null>(null);
+  const annotationsStartedRef = useRef<string | null>(null);
 
   if (!profileReveal || !guestProfileDraft) {
     return (
@@ -123,12 +151,152 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  const handleTapCelebScore = (_celebId: string) => {
+  const handlePressCelebCard = (_celebId: string) => {
     if (authStatus === 'signedIn') {
       return;
     }
     navigation.navigate('SaveProfile');
   };
+
+  const applyCelebResponse = (
+    response: OnboardingPreviewCelebResponse,
+    baseFullResponse: OnboardingPreviewResponse
+  ) => {
+    const nextFullResponse: OnboardingPreviewResponse = {
+      ...baseFullResponse,
+      celebMatchesStatus: response.celebMatchesStatus,
+      celebAnnotationsStatus: response.celebAnnotationsStatus,
+      celebAspectBank: response.celebAspectBank,
+      topAspects: response.topAspects,
+      status: baseFullResponse.status,
+    };
+
+    updateProfileReveal({
+      previewId: response.previewId,
+      value: {
+        topAspects: response.topAspects,
+        celebAspectBank: response.celebAspectBank,
+        celebMatchesStatus: response.celebMatchesStatus,
+        celebAnnotationsStatus: response.celebAnnotationsStatus,
+        fullResponse: nextFullResponse,
+      },
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!profileReveal) {
+      matchesStartedRef.current = null;
+      annotationsStartedRef.current = null;
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+      }
+      return;
+    }
+
+    if (matchesStartedRef.current !== profileReveal.previewId) {
+      matchesStartedRef.current = null;
+      annotationsStartedRef.current = null;
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+      }
+    }
+  }, [profileReveal?.previewId]);
+
+  useEffect(() => {
+    if (!profileReveal) {
+      return;
+    }
+
+    const { previewId, claimToken, celebMatchesStatus, celebAnnotationsStatus } = profileReveal;
+    const isLocalCompleted =
+      celebMatchesStatus?.status === 'completed' && celebAnnotationsStatus?.status === 'completed';
+
+    if (previewId === 'local-preview-id' || isLocalCompleted) {
+      return;
+    }
+
+    const startMatches = async () => {
+      matchesStartedRef.current = previewId;
+      try {
+        const response = await onboardingApi.startCelebMatches(previewId, claimToken);
+        applyCelebResponse(response, profileReveal.fullResponse);
+      } catch (error) {
+        if (matchesStartedRef.current === previewId) {
+          matchesStartedRef.current = null;
+        }
+        console.error('Failed to start celeb matches:', error);
+      }
+    };
+
+    const startAnnotations = async () => {
+      annotationsStartedRef.current = previewId;
+      try {
+        const response = await onboardingApi.startCelebAnnotations(previewId, claimToken);
+        applyCelebResponse(response, profileReveal.fullResponse);
+      } catch (error) {
+        if (annotationsStartedRef.current === previewId) {
+          annotationsStartedRef.current = null;
+        }
+        console.error('Failed to start celeb annotations:', error);
+      }
+    };
+
+    const schedulePoll = () => {
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+      }
+
+      pollTimeoutRef.current = setTimeout(async () => {
+        try {
+          const latest = await onboardingApi.getCelebMatches(previewId, claimToken);
+          applyCelebResponse(latest, profileReveal.fullResponse);
+        } catch (error) {
+          console.error('Failed to poll celeb matches:', error);
+        }
+      }, 2500);
+    };
+
+    if (
+      (!celebMatchesStatus || celebMatchesStatus.status === 'pending') &&
+      matchesStartedRef.current !== previewId
+    ) {
+      void startMatches();
+      return;
+    }
+
+    if (celebMatchesStatus?.status === 'running') {
+      schedulePoll();
+      return;
+    }
+
+    if (
+      celebMatchesStatus?.status === 'completed' &&
+      (!celebAnnotationsStatus || celebAnnotationsStatus.status === 'pending') &&
+      annotationsStartedRef.current !== previewId
+    ) {
+      void startAnnotations();
+      return;
+    }
+
+    if (celebAnnotationsStatus?.status === 'running') {
+      schedulePoll();
+      return;
+    }
+
+    if (celebAnnotationsStatus?.status === 'completed' || celebAnnotationsStatus?.status === 'failed') {
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+      }
+    }
+  }, [profileReveal, updateProfileReveal]);
 
   const celebCards: Array<{ match: CelebAspectMatch; aspect: TopAspect }> = [];
   for (const aspect of profileReveal.topAspects) {
@@ -136,6 +304,12 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
       celebCards.push({ match, aspect });
     }
   }
+
+  const matchesStatus = profileReveal.celebMatchesStatus?.status ?? 'pending';
+  const annotationsStatus = profileReveal.celebAnnotationsStatus?.status ?? 'pending';
+  const isMatchesLoading = matchesStatus === 'pending' || matchesStatus === 'running';
+  const isAnnotationsLoading = annotationsStatus === 'pending' || annotationsStatus === 'running';
+  const annotationsFailed = annotationsStatus === 'failed';
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
@@ -158,18 +332,52 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         ) : null}
 
+        {isMatchesLoading ? (
+          <View style={[styles.loadingCard, { backgroundColor: colors.surfaceLow }]}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.loadingCardTitle, { color: colors.text }]}>
+              Finding your celebrity matches
+            </Text>
+            <Text style={[styles.loadingCardBody, { color: colors.textMuted }]}>
+              We&apos;re calculating your strongest aspect overlaps now.
+            </Text>
+          </View>
+        ) : null}
+
         {celebCards.length > 0 ? (
           <View style={styles.matchesSection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Your Celestial{'\n'}Matches
             </Text>
 
+            {isAnnotationsLoading ? (
+              <View style={[styles.inlineStatusCard, { backgroundColor: colors.surfaceLow }]}>
+                <Text style={[styles.inlineStatusTitle, { color: colors.text }]}>
+                  Writing the match annotations
+                </Text>
+                <Text style={[styles.inlineStatusBody, { color: colors.textMuted }]}>
+                  The match cards are ready. The detailed annotation copy will appear as soon as it finishes loading.
+                </Text>
+              </View>
+            ) : null}
+
+            {annotationsFailed ? (
+              <View style={[styles.inlineStatusCard, { backgroundColor: colors.surfaceLow }]}>
+                <Text style={[styles.inlineStatusTitle, { color: colors.text }]}>
+                  Match annotations unavailable
+                </Text>
+                <Text style={[styles.inlineStatusBody, { color: colors.textMuted }]}>
+                  Your matches are still usable, but the extra annotation copy could not be loaded right now.
+                </Text>
+              </View>
+            ) : null}
+
             {celebCards.map(({ match, aspect }) => (
               <CelebCard
                 key={`${aspect.aspectType}-${match.celebId}`}
                 match={match}
                 aspect={aspect}
-                onTapScore={handleTapCelebScore}
+                onPress={handlePressCelebCard}
               />
             ))}
           </View>
@@ -252,6 +460,22 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontStyle: 'italic',
   },
+  loadingCard: {
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  loadingCardBody: {
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
 
   matchesSection: {
     gap: 20,
@@ -260,6 +484,19 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     lineHeight: 34,
+  },
+  inlineStatusCard: {
+    borderRadius: 20,
+    padding: 18,
+    gap: 6,
+  },
+  inlineStatusTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  inlineStatusBody: {
+    fontSize: 13,
+    lineHeight: 20,
   },
 
   celebCard: {
@@ -281,14 +518,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   celebCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
     padding: 16,
     paddingTop: 14,
+    gap: 8,
   },
-  celebCardInfo: {
-    flex: 1,
+  celebCardHeader: {
     gap: 4,
   },
   celebAspectLabel: {
@@ -301,19 +535,18 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
   },
-  celebScoreBlock: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  celebScoreLabel: {
-    fontSize: 10,
+  annotationTitle: {
+    fontSize: 15,
     fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    lineHeight: 21,
   },
-  celebScoreValue: {
-    fontSize: 32,
-    fontWeight: '800',
+  placementSummary: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  annotationSentence: {
+    fontSize: 14,
+    lineHeight: 22,
   },
 
   claimCard: {

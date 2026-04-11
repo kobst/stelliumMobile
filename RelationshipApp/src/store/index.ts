@@ -7,7 +7,12 @@ import {
   RelationshipWorkflowStatusResponse,
   UserCompositeChart,
 } from '../../../shared/api/relationships';
-import type { OnboardingPreviewResponse, TopAspect } from '../../../shared/api/onboarding';
+import type {
+  AsyncStatus,
+  CelebAspectBank,
+  OnboardingPreviewResponse,
+  TopAspect,
+} from '../../../shared/api/onboarding';
 
 export type TargetType = 'person' | 'celebrity' | null;
 export type RelationshipAuthStatus = 'booting' | 'signedOut' | 'signedIn';
@@ -30,8 +35,11 @@ export interface GuestProfileDraft {
 export interface ProfileRevealData {
   previewId: string;
   claimToken: string;
-  overview: string;
+  overview: string | null;
   topAspects: TopAspect[];
+  celebAspectBank: CelebAspectBank | null;
+  celebMatchesStatus: AsyncStatus | null;
+  celebAnnotationsStatus: AsyncStatus | null;
   birthChart: Record<string, unknown>;
   fullResponse: OnboardingPreviewResponse;
 }
@@ -89,6 +97,10 @@ interface RelationshipAppStore extends RelationshipSessionState, OnboardingFlowS
   setSelfProfileOverview: (value: string | null) => void;
   setGuestProfileDraft: (value: GuestProfileDraft | null) => void;
   setProfileReveal: (value: ProfileRevealData | null) => void;
+  updateProfileReveal: (payload: {
+    previewId: string;
+    value: Partial<ProfileRevealData>;
+  }) => void;
   clearOnboardingFlow: () => void;
   setActiveTargetType: (value: TargetType) => void;
   setActiveTargetSubject: (value: SubjectDocument | null) => void;
@@ -177,6 +189,15 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
   setSelfProfileOverview: (value) => set({ selfProfileOverview: value }),
   setGuestProfileDraft: (value) => set({ guestProfileDraft: value }),
   setProfileReveal: (value) => set({ profileReveal: value }),
+  updateProfileReveal: ({ previewId, value }) =>
+    set((state) => ({
+      profileReveal: state.profileReveal && state.profileReveal.previewId === previewId
+        ? {
+            ...state.profileReveal,
+            ...value,
+          }
+        : state.profileReveal,
+    })),
   clearOnboardingFlow: () =>
     set({
       ...initialOnboardingState,
