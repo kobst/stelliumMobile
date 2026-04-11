@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   SafeAreaView,
   StyleSheet,
@@ -31,6 +30,7 @@ import {
   parseNumberInput,
 } from '../utils/birthData';
 import { BirthTimePicker } from '../components/BirthTimePicker';
+import { PulsingHeroIcon } from '../components/PulsingHeroIcon';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
 
@@ -668,14 +668,17 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
         <View style={styles.loadingContainer}>
-          <View style={[styles.heroIcon, { backgroundColor: colors.surfaceHigh }]}>
-            <Text style={[styles.heroIconText, { color: colors.accent }]}>✦✦</Text>
-          </View>
-          <Text style={[styles.loadingTitle, { color: colors.text }]}>Reading the stars...</Text>
-          <Text style={[styles.loadingSubtitle, { color: colors.textMuted }]}>
-            Calculating your chart positions and finding your celebrity matches.
+          <PulsingHeroIcon
+            backgroundColor={colors.surfaceHigh}
+            glyphColor={colors.accent}
+            haloColor={colors.accent}
+          />
+          <Text style={[styles.loadingTitle, { color: colors.text }]}>
+            Iris is reading your chart
           </Text>
-          <ActivityIndicator size="large" color={colors.primary} style={styles.loadingSpinner} />
+          <Text style={[styles.loadingSubtitle, { color: colors.textMuted }]}>
+            Mapping your planetary placements and the aspects that shape how you love.
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -817,9 +820,6 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     textAlign: 'center',
     paddingHorizontal: 16,
-  },
-  loadingSpinner: {
-    marginTop: 12,
   },
   topHeader: {
     alignItems: 'center',

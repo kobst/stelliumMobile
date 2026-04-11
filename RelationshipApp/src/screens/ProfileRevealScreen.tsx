@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -15,6 +15,7 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore, TopAspect } from '../store';
 import { useTheme } from '../theme';
 import { onboardingApi } from '../api';
+import { CelebMatchSkeleton } from '../components/CelebMatchSkeleton';
 import type {
   CelebAspectMatch,
   OnboardingPreviewCelebResponse,
@@ -31,6 +32,7 @@ const CAROUSEL_SNAP_INTERVAL = CAROUSEL_CARD_WIDTH + CAROUSEL_CARD_GAP;
 const PHOTO_WIDTH = CAROUSEL_CARD_WIDTH;
 const PHOTO_HEIGHT = Math.round(CAROUSEL_CARD_WIDTH * 0.95);
 const MAX_CAROUSEL_MATCHES = 3;
+const MATCHES_SKELETON_MIN_MS = 1200;
 
 interface CelebCardProps {
   match: CelebAspectMatch;
@@ -139,6 +141,12 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const matchesStartedRef = useRef<string | null>(null);
   const annotationsStartedRef = useRef<string | null>(null);
+  const [canRevealMatches, setCanRevealMatches] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCanRevealMatches(true), MATCHES_SKELETON_MIN_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!profileReveal || !guestProfileDraft) {
     return (
@@ -238,8 +246,10 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
 
     const startMatches = async () => {
       matchesStartedRef.current = previewId;
+      console.log('[celeb-matches] startCelebMatches request:', { previewId });
       try {
         const response = await onboardingApi.startCelebMatches(previewId, claimToken);
+        console.log('[celeb-matches] startCelebMatches response:', JSON.stringify(response, null, 2));
         applyCelebResponse(response, profileReveal.fullResponse);
       } catch (error) {
         if (matchesStartedRef.current === previewId) {
@@ -251,8 +261,13 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
 
     const startAnnotations = async () => {
       annotationsStartedRef.current = previewId;
+      console.log('[celeb-annotations] startCelebAnnotations request:', { previewId });
       try {
         const response = await onboardingApi.startCelebAnnotations(previewId, claimToken);
+        console.log(
+          '[celeb-annotations] startCelebAnnotations response:',
+          JSON.stringify(response, null, 2),
+        );
         applyCelebResponse(response, profileReveal.fullResponse);
       } catch (error) {
         if (annotationsStartedRef.current === previewId) {
@@ -268,8 +283,13 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
       }
 
       pollTimeoutRef.current = setTimeout(async () => {
+        console.log('[celeb-matches] getCelebMatches poll request:', { previewId });
         try {
           const latest = await onboardingApi.getCelebMatches(previewId, claimToken);
+          console.log(
+            '[celeb-matches] getCelebMatches poll response:',
+            JSON.stringify(latest, null, 2),
+          );
           applyCelebResponse(latest, profileReveal.fullResponse);
         } catch (error) {
           console.error('Failed to poll celeb matches:', error);
@@ -311,19 +331,25 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [profileReveal, updateProfileReveal]);
 
-  const allCelebCards: Array<{ match: CelebAspectMatch; aspect: TopAspect }> = [];
+  const celebCards: Array<{ match: CelebAspectMatch; aspect: TopAspect }> = [];
   for (const aspect of profileReveal.topAspects) {
-    for (const match of aspect.matches) {
-      allCelebCards.push({ match, aspect });
+    const topMatch = aspect.matches[0];
+    if (!topMatch) {
+      continue;
+    }
+    celebCards.push({ match: topMatch, aspect });
+    if (celebCards.length >= MAX_CAROUSEL_MATCHES) {
+      break;
     }
   }
-  const celebCards = allCelebCards.slice(0, MAX_CAROUSEL_MATCHES);
 
   const matchesStatus = profileReveal.celebMatchesStatus?.status ?? 'pending';
   const annotationsStatus = profileReveal.celebAnnotationsStatus?.status ?? 'pending';
   const isMatchesLoading = matchesStatus === 'pending' || matchesStatus === 'running';
   const isAnnotationsLoading = annotationsStatus === 'pending' || annotationsStatus === 'running';
   const annotationsFailed = annotationsStatus === 'failed';
+  const showMatchesSkeleton = isMatchesLoading || !canRevealMatches;
+  const showMatchesCards = !showMatchesSkeleton && celebCards.length > 0;
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
@@ -346,36 +372,25 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         ) : null}
 
-        {isMatchesLoading ? (
-          <View style={[styles.loadingCard, { backgroundColor: colors.surfaceLow }]}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.loadingCardTitle, { color: colors.text }]}>
-              Finding your celebrity matches
-            </Text>
-            <Text style={[styles.loadingCardBody, { color: colors.textMuted }]}>
-              We&apos;re calculating your strongest aspect overlaps now.
-            </Text>
-          </View>
-        ) : null}
-
-        {celebCards.length > 0 ? (
+        {showMatchesSkeleton || showMatchesCards ? (
           <View style={styles.matchesSection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Your Celestial{'\n'}Matches
             </Text>
 
-            {isAnnotationsLoading ? (
-              <View style={[styles.inlineStatusCard, { backgroundColor: colors.surfaceLow }]}>
-                <Text style={[styles.inlineStatusTitle, { color: colors.text }]}>
-                  Writing the match annotations
+            {showMatchesSkeleton ? (
+              <>
+                <Text style={[styles.matchesLoadingCaption, { color: colors.textMuted }]}>
+                  Finding your strongest aspect overlaps...
                 </Text>
-                <Text style={[styles.inlineStatusBody, { color: colors.textMuted }]}>
-                  The match cards are ready. The detailed annotation copy will appear as soon as it finishes loading.
-                </Text>
-              </View>
+                <CelebMatchSkeleton
+                  baseColor={colors.surfaceHigh}
+                  highlightColor={colors.surfaceHighest}
+                />
+              </>
             ) : null}
 
-            {annotationsFailed ? (
+            {showMatchesCards && annotationsFailed ? (
               <View style={[styles.inlineStatusCard, { backgroundColor: colors.surfaceLow }]}>
                 <Text style={[styles.inlineStatusTitle, { color: colors.text }]}>
                   Match annotations unavailable
@@ -386,32 +401,34 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             ) : null}
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              decelerationRate="fast"
-              snapToInterval={CAROUSEL_SNAP_INTERVAL}
-              snapToAlignment="start"
-              style={styles.carouselScroll}
-              contentContainerStyle={styles.carouselContent}
-            >
-              {celebCards.map(({ match, aspect }, index) => (
-                <View
-                  key={`${aspect.aspectType}-${match.celebId}`}
-                  style={[
-                    styles.carouselItem,
-                    index === celebCards.length - 1 && styles.carouselItemLast,
-                  ]}
-                >
-                  <CelebCard
-                    match={match}
-                    aspect={aspect}
-                    onPress={handlePressCelebCard}
-                    annotationLoading={isAnnotationsLoading}
-                  />
-                </View>
-              ))}
-            </ScrollView>
+            {showMatchesCards ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                snapToInterval={CAROUSEL_SNAP_INTERVAL}
+                snapToAlignment="start"
+                style={styles.carouselScroll}
+                contentContainerStyle={styles.carouselContent}
+              >
+                {celebCards.map(({ match, aspect }, index) => (
+                  <View
+                    key={`${aspect.aspectType}-${match.celebId}`}
+                    style={[
+                      styles.carouselItem,
+                      index === celebCards.length - 1 && styles.carouselItemLast,
+                    ]}
+                  >
+                    <CelebCard
+                      match={match}
+                      aspect={aspect}
+                      onPress={handlePressCelebCard}
+                      annotationLoading={isAnnotationsLoading}
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
           </View>
         ) : null}
 
@@ -492,25 +509,13 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontStyle: 'italic',
   },
-  loadingCard: {
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingCardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  loadingCardBody: {
-    fontSize: 14,
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-
   matchesSection: {
     gap: 20,
+  },
+  matchesLoadingCaption: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: -8,
   },
   sectionTitle: {
     fontSize: 28,
