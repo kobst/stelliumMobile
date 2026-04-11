@@ -345,6 +345,8 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
           overview:
             `${draft.firstName}, your chart reveals a deeply magnetic romantic nature. ` +
             'You lead with emotional intensity and crave partnerships that challenge you intellectually.',
+          romanticProfileBlurb:
+            `${draft.firstName}, you love with intensity, curiosity, and a taste for people who keep your heart awake.`,
           topAspects: [
             {
               aspectType: 'venus_mars_conjunction',
@@ -408,6 +410,8 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             overview:
               `${draft.firstName}, your chart reveals a deeply magnetic romantic nature. ` +
               'You lead with emotional intensity and crave partnerships that challenge you intellectually.',
+            romanticProfileBlurb:
+              `${draft.firstName}, you love with intensity, curiosity, and a taste for people who keep your heart awake.`,
             referencedCodes: [],
             celebMatchesStatus: { status: 'completed' },
             celebAnnotationsStatus: { status: 'completed' },
@@ -444,6 +448,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         previewId: previewResponse.previewId,
         claimToken: previewResponse.claimToken,
         overview: previewResponse.overview,
+        romanticProfileBlurb: previewResponse.romanticProfileBlurb,
         topAspects: previewResponse.topAspects,
         celebAspectBank: previewResponse.celebAspectBank,
         celebMatchesStatus: previewResponse.celebMatchesStatus,

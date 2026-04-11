@@ -96,6 +96,7 @@ export interface OnboardingPreviewResponse {
   user: OnboardingPreviewUser;
   birthChart: Record<string, unknown>;
   overview: string | null;
+  romanticProfileBlurb: string | null;
   referencedCodes: string[];
   celebMatchesStatus: AsyncStatus;
   celebAnnotationsStatus: AsyncStatus;
@@ -132,6 +133,7 @@ export interface OnboardingClaimResponse {
   userId: string;
   birthChart: Record<string, unknown>;
   overview: string | null;
+  romanticProfileBlurb: string | null;
   referencedCodes: string[];
   celebMatchesStatus: AsyncStatus;
   celebAnnotationsStatus: AsyncStatus;

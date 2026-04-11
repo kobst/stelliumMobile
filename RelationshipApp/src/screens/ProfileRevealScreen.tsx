@@ -324,10 +324,10 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
 
-        {profileReveal.overview ? (
+        {profileReveal.romanticProfileBlurb ? (
           <View style={[styles.quoteCard, { backgroundColor: colors.surfaceLow }]}>
             <Text style={[styles.quoteText, { color: colors.text }]}>
-              "{profileReveal.overview}"
+              {profileReveal.romanticProfileBlurb}
             </Text>
           </View>
         ) : null}

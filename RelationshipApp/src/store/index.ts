@@ -36,6 +36,7 @@ export interface ProfileRevealData {
   previewId: string;
   claimToken: string;
   overview: string | null;
+  romanticProfileBlurb: string | null;
   topAspects: TopAspect[];
   celebAspectBank: CelebAspectBank | null;
   celebMatchesStatus: AsyncStatus | null;
