@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -24,19 +23,13 @@ import {
   isValidTime,
   parseNumberInput,
 } from '../utils/birthData';
+import { BirthTimePicker } from '../components/BirthTimePicker';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
 
 function parseDateString(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year || 1995, (month || 1) - 1, day || 1);
-}
-
-function parseTimeString(value: string): Date {
-  const [hours, minutes] = value.split(':').map(Number);
-  const date = new Date(2000, 0, 1);
-  date.setHours(hours || 12, minutes || 0, 0, 0);
-  return date;
 }
 
 const GENDER_OPTIONS = [
@@ -109,13 +102,11 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const [showPartnerGenderDropdown, setShowPartnerGenderDropdown] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(true);
-  const [showTimePicker, setShowTimePicker] = useState(true);
   const [dateSet, setDateSet] = useState(false);
   const [timeSet, setTimeSet] = useState(false);
 
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
   const pickerDate = useMemo(() => parseDateString(dateOfBirth), [dateOfBirth]);
-  const pickerTime = useMemo(() => parseTimeString(timeOfBirth), [timeOfBirth]);
 
   const genderLabel = GENDER_OPTIONS.find((option) => option.value === gender)?.label;
   const partnerGenderLabel = PARTNER_GENDER_OPTIONS.find(
@@ -244,17 +235,6 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     const day = String(selectedDate.getDate()).padStart(2, '0');
     setDateOfBirth(`${year}-${month}-${day}`);
     setDateSet(true);
-  };
-
-  const handleTimeChange = (_event: unknown, selectedTime?: Date) => {
-    if (!selectedTime) {
-      return;
-    }
-
-    const hours = String(selectedTime.getHours()).padStart(2, '0');
-    const minutes = String(selectedTime.getMinutes()).padStart(2, '0');
-    setTimeOfBirth(`${hours}:${minutes}`);
-    setTimeSet(true);
   };
 
   const goBack = () => {
@@ -623,19 +603,13 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
                     {timeSet ? formatDisplayTime(timeOfBirth) : formatDisplayTime(timeOfBirth)}
                   </Text>
                 </View>
-                {showTimePicker ? (
-                  <View style={[styles.inlinePicker, { backgroundColor: colors.surfaceHigh }]}>
-                    <DateTimePicker
-                      value={pickerTime}
-                      mode="time"
-                      display="spinner"
-                      onChange={handleTimeChange}
-                      is24Hour={false}
-                      textColor={colors.text}
-                      style={styles.inlinePickerWheel}
-                    />
-                  </View>
-                ) : null}
+                <BirthTimePicker
+                  value={timeOfBirth}
+                  onChange={(nextValue) => {
+                    setTimeOfBirth(nextValue);
+                    setTimeSet(true);
+                  }}
+                />
               </>
             ) : (
               <View style={[styles.infoBox, { backgroundColor: colors.surfaceHigh }]}>
@@ -704,7 +678,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <View style={styles.content}>
         <View style={styles.heroBlock}>
           <View style={[styles.heroIcon, { backgroundColor: colors.surfaceHigh }]}>
             <Text style={[styles.heroIconText, { color: colors.accent }]}>✦✦</Text>
@@ -772,7 +746,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={[styles.privacyText, { color: colors.textSubtle }]}>
           Privacy secured by encrypted celestial channels
         </Text>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -782,8 +756,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    flex: 1,
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingTop: 4,
+    paddingBottom: 24,
   },
   loadingContainer: {
     flex: 1,
@@ -808,8 +784,8 @@ const styles = StyleSheet.create({
   },
   heroBlock: {
     alignItems: 'center',
-    paddingTop: 28,
-    paddingBottom: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
     gap: 12,
   },
   heroIcon: {
@@ -851,6 +827,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   formCard: {
+    flex: 1,
     borderRadius: 24,
     padding: 20,
     minHeight: 300,
@@ -993,5 +970,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     textAlign: 'center',
     marginTop: 16,
+    marginBottom: 8,
   },
 });
