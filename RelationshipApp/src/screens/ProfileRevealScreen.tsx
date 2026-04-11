@@ -16,6 +16,7 @@ import { useRelationshipAppStore, TopAspect } from '../store';
 import { useTheme } from '../theme';
 import { onboardingApi } from '../api';
 import { CelebMatchSkeleton } from '../components/CelebMatchSkeleton';
+import { FeaturesPreview } from '../components/FeaturesPreview';
 import type {
   CelebAspectMatch,
   OnboardingPreviewCelebResponse,
@@ -441,6 +442,8 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
             ) : null}
           </View>
         ) : null}
+
+        <FeaturesPreview />
 
         <View style={[styles.claimCard, { backgroundColor: colors.surfaceLow }]}>
           <Text style={[styles.claimTitle, { color: colors.text }]}>
