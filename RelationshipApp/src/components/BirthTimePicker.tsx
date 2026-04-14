@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
   PanResponder,
@@ -19,6 +19,7 @@ const ITEM_HEIGHT = 56;
 const VISIBLE_ROWS = 5;
 const PICKER_HEIGHT = ITEM_HEIGHT * VISIBLE_ROWS;
 const CENTER_OFFSET = (PICKER_HEIGHT - ITEM_HEIGHT) / 2;
+const WRAP_REPETITIONS = 5;
 const HOURS = Array.from({ length: 12 }, (_, index) => String(index + 1));
 const MINUTES = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
 const MERIDIEMS: Meridiem[] = ['AM', 'PM'];
@@ -63,6 +64,7 @@ interface WheelColumnProps {
   onSelect: (value: string) => void;
   flex?: number;
   emphasis?: 'number' | 'meridiem';
+  wrap?: boolean;
 }
 
 const WheelColumn: React.FC<WheelColumnProps> = ({
@@ -71,14 +73,25 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
   onSelect,
   flex = 1,
   emphasis = 'number',
+  wrap = false,
 }) => {
   const { colors } = useTheme();
+  const displayItems = useMemo(
+    () =>
+      wrap
+        ? Array.from({ length: WRAP_REPETITIONS }).flatMap(() => items as string[])
+        : (items as string[]),
+    [items, wrap],
+  );
+  const middleOffset = wrap ? Math.floor(WRAP_REPETITIONS / 2) * items.length : 0;
+  const logicalSelectedIndex = Math.max(items.indexOf(selectedValue), 0);
+  const centeredIndex = logicalSelectedIndex + middleOffset;
+
   const translateY = useRef(new Animated.Value(0)).current;
-  const selectedIndex = Math.max(items.indexOf(selectedValue), 0);
-  const startTranslateRef = useRef(getTranslateForIndex(selectedIndex));
+  const startTranslateRef = useRef(getTranslateForIndex(centeredIndex));
 
   useEffect(() => {
-    const nextTranslate = getTranslateForIndex(selectedIndex);
+    const nextTranslate = getTranslateForIndex(centeredIndex);
     startTranslateRef.current = nextTranslate;
     Animated.spring(translateY, {
       toValue: nextTranslate,
@@ -86,15 +99,31 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
       tension: 110,
       friction: 14,
     }).start();
-  }, [selectedIndex, translateY]);
+  }, [centeredIndex, translateY]);
 
-  const commitToNearestIndex = (rawTranslate: number) => {
-    const nextIndex = clamp(
-      Math.round((CENTER_OFFSET - rawTranslate) / ITEM_HEIGHT),
-      0,
-      items.length - 1
-    );
-    const snappedTranslate = getTranslateForIndex(nextIndex);
+  const commitToNearestIndex = useCallback((rawTranslate: number) => {
+    const rawNearestIndex = Math.round((CENTER_OFFSET - rawTranslate) / ITEM_HEIGHT);
+
+    if (!wrap) {
+      const nextIndex = clamp(rawNearestIndex, 0, items.length - 1);
+      const snappedTranslate = getTranslateForIndex(nextIndex);
+      startTranslateRef.current = snappedTranslate;
+
+      Animated.spring(translateY, {
+        toValue: snappedTranslate,
+        useNativeDriver: true,
+        tension: 110,
+        friction: 14,
+      }).start();
+
+      const nextValue = items[nextIndex];
+      if (nextValue && nextValue !== selectedValue) {
+        onSelect(nextValue);
+      }
+      return;
+    }
+
+    const snappedTranslate = getTranslateForIndex(rawNearestIndex);
     startTranslateRef.current = snappedTranslate;
 
     Animated.spring(translateY, {
@@ -102,13 +131,21 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
       useNativeDriver: true,
       tension: 110,
       friction: 14,
-    }).start();
-
-    const nextValue = items[nextIndex];
-    if (nextValue && nextValue !== selectedValue) {
-      onSelect(nextValue);
-    }
-  };
+    }).start(({ finished }) => {
+      if (!finished) {
+        return;
+      }
+      const logicalIndex =
+        ((rawNearestIndex % items.length) + items.length) % items.length;
+      const middleTranslate = getTranslateForIndex(logicalIndex + middleOffset);
+      startTranslateRef.current = middleTranslate;
+      translateY.setValue(middleTranslate);
+      const nextValue = items[logicalIndex];
+      if (nextValue && nextValue !== selectedValue) {
+        onSelect(nextValue);
+      }
+    });
+  }, [items, middleOffset, onSelect, selectedValue, translateY, wrap]);
 
   const panResponder = useMemo(
     () =>
@@ -132,7 +169,7 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
           commitToNearestIndex(startTranslateRef.current + gestureState.dy);
         },
       }),
-    [items, onSelect, selectedValue, translateY]
+    [commitToNearestIndex, translateY]
   );
 
   return (
@@ -147,9 +184,9 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
           },
         ]}
       >
-        {items.map((item, index) => {
-          const distance = Math.abs(index - selectedIndex);
-          const isSelected = item === selectedValue;
+        {displayItems.map((item, index) => {
+          const distance = Math.abs(index - centeredIndex);
+          const isSelected = index === centeredIndex;
           const textColor =
             distance === 0
               ? colors.text
@@ -158,7 +195,7 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
                 : colors.textSubtle;
 
           return (
-            <View key={item} style={styles.itemRow}>
+            <View key={`${index}-${item}`} style={styles.itemRow}>
               <Text
                 style={[
                   emphasis === 'meridiem' ? styles.meridiemText : styles.numberText,
@@ -200,6 +237,7 @@ export const BirthTimePicker: React.FC<BirthTimePickerProps> = ({ value, onChang
             items={HOURS}
             selectedValue={hour12}
             onSelect={(nextHour12) => updateTime(nextHour12, minute, meridiem)}
+            wrap
           />
 
           <View style={styles.colonWrap}>
@@ -210,6 +248,7 @@ export const BirthTimePicker: React.FC<BirthTimePickerProps> = ({ value, onChang
             items={MINUTES}
             selectedValue={minute}
             onSelect={(nextMinute) => updateTime(hour12, nextMinute, meridiem)}
+            wrap
           />
 
           <WheelColumn

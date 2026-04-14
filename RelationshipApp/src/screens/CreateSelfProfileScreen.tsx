@@ -492,7 +492,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.selectChevron, { color: colors.textSubtle }]}>&#709;</Text>
             </TouchableOpacity>
             {showGenderDropdown ? (
-              <View style={[styles.dropdown, { backgroundColor: colors.surface }]}>
+              <View style={[styles.dropdown, { backgroundColor: colors.surfaceLow }]}>
                 {GENDER_OPTIONS.map((option) => (
                   <TouchableOpacity
                     key={option.value}
@@ -533,7 +533,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={[styles.selectChevron, { color: colors.textSubtle }]}>&#709;</Text>
             </TouchableOpacity>
             {showPartnerGenderDropdown ? (
-              <View style={[styles.dropdown, { backgroundColor: colors.surface }]}>
+              <View style={[styles.dropdown, { backgroundColor: colors.surfaceLow }]}>
                 {PARTNER_GENDER_OPTIONS.map((option) => (
                   <TouchableOpacity
                     key={option.value}
@@ -737,7 +737,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.heroSubtitle, { color: colors.textMuted }]}>{step.subtitle}</Text>
         </View>
 
-        <View style={[styles.formCard, { backgroundColor: colors.surfaceLow }]}>
+        <View style={styles.formCard}>
           {renderStep()}
         </View>
 
@@ -746,19 +746,6 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
 
         <View style={styles.actionsRow}>
-          {currentStep > 0 ? (
-            <TouchableOpacity
-              style={styles.backIconButton}
-              onPress={goBack}
-              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-              activeOpacity={0.6}
-            >
-              <Text style={[styles.backIconText, { color: colors.textMuted }]}>✕</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.backIconButton} />
-          )}
-
           <TouchableOpacity
             style={[styles.arrowButton, !canContinue && styles.arrowButtonDisabled]}
             onPress={isLastStep ? handleSubmit : goNext}
@@ -898,8 +885,6 @@ const styles = StyleSheet.create({
   },
   formCard: {
     flex: 1,
-    borderRadius: 24,
-    padding: 20,
     minHeight: 300,
   },
   stepGroup: {
@@ -1008,16 +993,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 24,
     paddingHorizontal: 12,
-  },
-  backIconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIconText: {
-    fontSize: 24,
-    fontWeight: '400',
   },
   arrowButton: {
     width: 64,

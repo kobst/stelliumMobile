@@ -103,7 +103,7 @@ export function FeaturesPreview(): React.ReactElement {
       <View style={styles.divider}>
         <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
         <Text style={[styles.dividerLabel, { color: colors.textMuted }]}>
-          Unlock Your Full Reading
+          There&apos;s more to your story
         </Text>
         <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
       </View>

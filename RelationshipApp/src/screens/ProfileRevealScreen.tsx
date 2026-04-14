@@ -363,11 +363,8 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.content}>
 
         <View style={styles.headerBlock}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>
-            Romantic Profile Revealed
-          </Text>
           <Text style={[styles.heroTitle, { color: colors.text }]}>
-            Your Celestial{'\n'}Blueprint
+            A First Glance{'\n'}at You in Love
           </Text>
         </View>
 
@@ -382,11 +379,8 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
         {showMatchesSkeleton || showMatchesCards ? (
           <View style={styles.matchesSection}>
             <View style={styles.matchesHeader}>
-              <Text style={[styles.matchesEyebrow, { color: colors.accent }]}>
-                Your Chart Connections
-              </Text>
               <Text style={[styles.matchesHeading, { color: colors.text }]}>
-                How your chart{'\n'}meets others
+                Your Chart{'\n'}in the Wild
               </Text>
             </View>
 
@@ -450,7 +444,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
             Save your blueprint
           </Text>
           <Text style={[styles.claimBody, { color: colors.textMuted }]}>
-            Create an account to keep this reading and run full synastry and composite reports on anyone in your life.
+            Keep your profile. Run full reports on anyone.
           </Text>
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
@@ -533,12 +527,6 @@ const styles = StyleSheet.create({
   },
   matchesHeader: {
     gap: 10,
-  },
-  matchesEyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
   },
   matchesHeading: {
     fontSize: 28,
