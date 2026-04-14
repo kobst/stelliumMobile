@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   SafeAreaView,
@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { BirthDatePicker } from '../components/BirthDatePicker';
 import { StackScreenProps } from '@react-navigation/stack';
 import Svg, {
   Circle,
@@ -33,11 +33,6 @@ import { BirthTimePicker } from '../components/BirthTimePicker';
 import { PulsingHeroIcon } from '../components/PulsingHeroIcon';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
-
-function parseDateString(value: string): Date {
-  const [year, month, day] = value.split('-').map(Number);
-  return new Date(year || 1995, (month || 1) - 1, day || 1);
-}
 
 const GENDER_OPTIONS = [
   { label: 'Male', value: 'male' },
@@ -108,12 +103,9 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const [showPartnerGenderDropdown, setShowPartnerGenderDropdown] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(true);
-  const [dateSet, setDateSet] = useState(false);
   const [timeSet, setTimeSet] = useState(false);
 
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
-  const pickerDate = useMemo(() => parseDateString(dateOfBirth), [dateOfBirth]);
 
   const genderLabel = GENDER_OPTIONS.find((option) => option.value === gender)?.label;
   const partnerGenderLabel = PARTNER_GENDER_OPTIONS.find(
@@ -230,18 +222,6 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (selection.lng !== null) {
       setLongitude(String(selection.lng));
     }
-  };
-
-  const handleDateChange = (_event: unknown, selectedDate?: Date) => {
-    if (!selectedDate) {
-      return;
-    }
-
-    const year = selectedDate.getFullYear();
-    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-    const day = String(selectedDate.getDate()).padStart(2, '0');
-    setDateOfBirth(`${year}-${month}-${day}`);
-    setDateSet(true);
   };
 
   const goBack = () => {
@@ -563,23 +543,13 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Date of Alignment</Text>
             <View style={[styles.valueChip, { backgroundColor: colors.surfaceHigh }]}>
               <Text style={[styles.valueChipText, { color: colors.text }]}>
-                {dateSet ? formatDisplayDate(dateOfBirth) : formatDisplayDate(dateOfBirth)}
+                {formatDisplayDate(dateOfBirth)}
               </Text>
             </View>
-            {showDatePicker ? (
-              <View style={[styles.inlinePicker, { backgroundColor: colors.surfaceHigh }]}>
-                <DateTimePicker
-                  value={pickerDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={handleDateChange}
-                  maximumDate={new Date()}
-                  minimumDate={new Date(1900, 0, 1)}
-                  textColor={colors.text}
-                  style={styles.inlinePickerWheel}
-                />
-              </View>
-            ) : null}
+            <BirthDatePicker
+              value={dateOfBirth}
+              onChange={setDateOfBirth}
+            />
           </View>
         );
       case 4:
@@ -945,15 +915,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  inlinePicker: {
-    borderRadius: 16,
-    padding: 8,
-    alignItems: 'center',
-  },
-  inlinePickerWheel: {
-    height: 216,
-    width: '100%',
-  },
   infoBox: {
     borderRadius: 12,
     padding: 14,
@@ -990,7 +951,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     marginTop: 24,
     paddingHorizontal: 12,
   },
