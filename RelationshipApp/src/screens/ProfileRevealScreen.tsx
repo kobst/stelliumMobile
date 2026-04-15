@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -11,16 +11,18 @@ import {
   View,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
-import { useRelationshipAppStore, TopAspect } from '../store';
+import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { onboardingApi } from '../api';
 import { CelebMatchSkeleton } from '../components/CelebMatchSkeleton';
 import { FeaturesPreview } from '../components/FeaturesPreview';
 import type {
-  CelebAspectMatch,
+  ClusterScores,
   OnboardingPreviewCelebResponse,
   OnboardingPreviewResponse,
+  TopCelebMatch,
 } from '../../../shared/api/onboarding';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'ProfileReveal'>;
@@ -36,11 +38,28 @@ const MAX_CAROUSEL_MATCHES = 3;
 const MATCHES_SKELETON_MIN_MS = 1200;
 
 interface CelebCardProps {
-  match: CelebAspectMatch;
-  aspect: TopAspect;
+  match: TopCelebMatch;
   onPress?: (celebId: string) => void;
   annotationLoading?: boolean;
 }
+
+const CLUSTER_NAMES: Array<keyof Omit<ClusterScores, 'overall'>> = [
+  'Harmony',
+  'Passion',
+  'Connection',
+  'Stability',
+  'Growth',
+];
+
+const HIDDEN_SCORE_BLUR_LAYERS = [
+  { dx: -2.2, dy: 0, opacity: 0.18 },
+  { dx: 2.2, dy: 0, opacity: 0.18 },
+  { dx: 0, dy: -1.4, opacity: 0.16 },
+  { dx: 0, dy: 1.4, opacity: 0.16 },
+  { dx: -1.2, dy: -0.8, opacity: 0.14 },
+  { dx: 1.2, dy: 0.8, opacity: 0.14 },
+  { dx: 0, dy: 0, opacity: 0.16 },
+];
 
 function getInitials(name: string | null): string {
   if (!name) {
@@ -65,17 +84,113 @@ function getPlacementText(
   return placement.compactDisplay ?? placement.display ?? null;
 }
 
-const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress, annotationLoading }) => {
+function hashString(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = Math.trunc(hash * 31 + input.charCodeAt(i)) % 2147483647;
+  }
+  return Math.abs(hash);
+}
+
+function pickRevealedCluster(
+  celebId: string,
+  scores: ClusterScores | null,
+): { name: string; value: number } | null {
+  if (!scores) {
+    return null;
+  }
+  const index = hashString(celebId) % CLUSTER_NAMES.length;
+  const name = CLUSTER_NAMES[index];
+  return { name, value: scores[name] };
+}
+
+function roundScore(value: number | null | undefined): number | null {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return null;
+  }
+  return Math.round(value);
+}
+
+interface ScorePillProps {
+  label: string;
+  value: number | null;
+  revealed: boolean;
+}
+
+const ScorePill: React.FC<ScorePillProps> = ({ label, value, revealed }) => {
   const { colors } = useTheme();
-  const userPlacement = getPlacementText(match.userPlacement);
-  const celebPlacement = getPlacementText(match.celebPlacement);
+  const valueText = value ?? '--';
+  const hiddenValueColorStyle = { color: colors.text };
+
+  return (
+    <View style={styles.scorePill}>
+      <View style={styles.scorePillContent}>
+        <View style={styles.scorePillValueWrap}>
+          {revealed ? (
+            <Text
+              style={[styles.scorePillValue, { color: colors.primary }]}
+              numberOfLines={1}
+            >
+              {valueText}
+            </Text>
+          ) : (
+            <View style={styles.scorePillBlurStack}>
+              {HIDDEN_SCORE_BLUR_LAYERS.map((layer, index) => (
+                <Text
+                  key={`${label}-blur-${index}`}
+                  style={[
+                    styles.scorePillValue,
+                    styles.scorePillValueBlurLayer,
+                    hiddenValueColorStyle,
+                    {
+                      opacity: layer.opacity,
+                      transform: [{ translateX: layer.dx }, { translateY: layer.dy }],
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {valueText}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+        <Text
+          style={[
+            styles.scorePillLabel,
+            { color: revealed ? colors.textMuted : colors.textSubtle },
+          ]}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const CelebCard: React.FC<CelebCardProps> = ({ match, onPress, annotationLoading }) => {
+  const { colors } = useTheme();
+  const aspect = match.selectedAspect;
+  const userPlacement = getPlacementText(aspect.userPlacement);
+  const celebPlacement = getPlacementText(aspect.celebPlacement);
   const placementSummary =
     userPlacement && celebPlacement
       ? `${userPlacement} • ${celebPlacement}`
       : userPlacement ?? celebPlacement;
-  const hasAnnotation = Boolean(match.annotation);
-  const aspectTitle = match.annotation?.title ?? [aspect.label, aspect.shortMeaning].filter(Boolean).join(' · ');
-  const aspectSentence = match.annotation?.sentence;
+  const annotation = match.annotation ?? aspect.annotation;
+  const hasAnnotation = Boolean(annotation);
+  const aspectTitle =
+    annotation?.title ?? [aspect.label, aspect.shortMeaning].filter(Boolean).join(' · ');
+  const aspectSentence = annotation?.sentence;
+
+  const archetype = match.archetype;
+  const revealedCluster = pickRevealedCluster(match.celebId, match.clusterScores);
+  const roundedScores = CLUSTER_NAMES.map((name) => ({
+    name,
+    value: roundScore(match.clusterScores?.[name]),
+    revealed: revealedCluster?.name === name,
+  }));
 
   const cardBody = (
     <>
@@ -95,12 +210,25 @@ const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress, annotatio
 
       <View style={styles.celebCardFooter}>
         <View style={styles.celebCardHeader}>
-          <Text style={[styles.celebAspectLabel, { color: colors.accent }]} numberOfLines={1}>
-            {aspect.label}
-          </Text>
+          <View style={styles.celebCardHeaderRow}>
+            <Text
+              style={[styles.celebAspectLabel, { color: colors.accent }]}
+              numberOfLines={1}
+            >
+              {aspect.label}
+            </Text>
+          </View>
           <Text style={[styles.celebCardName, { color: colors.text }]} numberOfLines={1}>
             {match.celebName ?? 'Unknown'}
           </Text>
+          {archetype ? (
+            <Text
+              style={[styles.archetypeLabel, { color: colors.primary }]}
+              numberOfLines={1}
+            >
+              {archetype.label}
+            </Text>
+          ) : null}
         </View>
         {aspectTitle ? (
           <Text style={[styles.annotationTitle, { color: colors.text }]} numberOfLines={2}>
@@ -113,9 +241,22 @@ const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress, annotatio
           </Text>
         ) : null}
         {aspectSentence ? (
-          <Text style={[styles.annotationSentence, { color: colors.textMuted }]} numberOfLines={4}>
-            {aspectSentence}
-          </Text>
+          <View style={styles.annotationSentenceWrap}>
+            <Text style={[styles.annotationSentence, { color: colors.textMuted }]}>
+              {aspectSentence}
+            </Text>
+            <View pointerEvents="none" style={styles.annotationFade}>
+              <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <Defs>
+                  <SvgLinearGradient id="annotationFade" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0" stopColor={colors.surfaceLow} stopOpacity="0" />
+                    <Stop offset="1" stopColor={colors.surfaceLow} stopOpacity="1" />
+                  </SvgLinearGradient>
+                </Defs>
+                <Rect x="0" y="0" width="100" height="100" fill="url(#annotationFade)" />
+              </Svg>
+            </View>
+          </View>
         ) : annotationLoading && !hasAnnotation ? (
           <View style={styles.annotationLoadingRow}>
             <ActivityIndicator size="small" color={colors.textSubtle} />
@@ -124,6 +265,31 @@ const CelebCard: React.FC<CelebCardProps> = ({ match, aspect, onPress, annotatio
             </Text>
           </View>
         ) : null}
+        <View
+          style={[
+            styles.scorePillsRow,
+            { backgroundColor: colors.surfaceHigh, borderColor: colors.ghostBorder },
+          ]}
+        >
+          {roundedScores.map((score, index) => (
+            <View
+              key={score.name}
+              style={[
+                styles.scorePillColumn,
+                index < roundedScores.length - 1 && {
+                  borderRightWidth: StyleSheet.hairlineWidth,
+                  borderRightColor: colors.ghostBorder,
+                },
+              ]}
+            >
+              <ScorePill
+                label={score.name}
+                value={score.value}
+                revealed={score.revealed}
+              />
+            </View>
+          ))}
+        </View>
       </View>
     </>
   );
@@ -162,31 +328,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
     return () => clearTimeout(timer);
   }, []);
 
-  if (!profileReveal || !guestProfileDraft) {
-    return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
-        <View style={styles.emptyState}>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>Profile</Text>
-          <Text style={[styles.heroTitle, { color: colors.text }]}>
-            No profile generated yet.
-          </Text>
-          <Text style={[styles.body, { color: colors.textMuted }]}>
-            Complete your birth profile to see your romantic profile and celebrity matches.
-          </Text>
-        </View>
-        <View style={styles.bottomActions}>
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.replace('CreateSelfProfile')}
-          >
-            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Create Profile</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const applyCelebResponse = (
+  const applyCelebResponse = useCallback((
     response: OnboardingPreviewCelebResponse,
     baseFullResponse: OnboardingPreviewResponse
   ) => {
@@ -196,6 +338,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
       celebAnnotationsStatus: response.celebAnnotationsStatus,
       celebAspectBank: response.celebAspectBank,
       topAspects: response.topAspects,
+      topCelebMatches: response.topCelebMatches,
       status: baseFullResponse.status,
     };
 
@@ -203,13 +346,14 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
       previewId: response.previewId,
       value: {
         topAspects: response.topAspects,
+        topCelebMatches: response.topCelebMatches ?? [],
         celebAspectBank: response.celebAspectBank,
         celebMatchesStatus: response.celebMatchesStatus,
         celebAnnotationsStatus: response.celebAnnotationsStatus,
         fullResponse: nextFullResponse,
       },
     });
-  };
+  }, [updateProfileReveal]);
 
   useEffect(() => {
     return () => {
@@ -236,7 +380,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
         clearTimeout(pollTimeoutRef.current);
       }
     }
-  }, [profileReveal?.previewId]);
+  }, [profileReveal]);
 
   useEffect(() => {
     if (!profileReveal) {
@@ -308,7 +452,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
       (!celebMatchesStatus || celebMatchesStatus.status === 'pending') &&
       matchesStartedRef.current !== previewId
     ) {
-      void startMatches();
+      startMatches();
       return;
     }
 
@@ -322,7 +466,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
       (!celebAnnotationsStatus || celebAnnotationsStatus.status === 'pending') &&
       annotationsStartedRef.current !== previewId
     ) {
-      void startAnnotations();
+      startAnnotations();
       return;
     }
 
@@ -336,27 +480,44 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
         clearTimeout(pollTimeoutRef.current);
       }
     }
-  }, [profileReveal, updateProfileReveal]);
+  }, [applyCelebResponse, profileReveal]);
 
-  const celebCards: Array<{ match: CelebAspectMatch; aspect: TopAspect }> = [];
-  for (const aspect of profileReveal.topAspects) {
-    const topMatch = aspect.matches[0];
-    if (!topMatch) {
-      continue;
-    }
-    celebCards.push({ match: topMatch, aspect });
-    if (celebCards.length >= MAX_CAROUSEL_MATCHES) {
-      break;
-    }
-  }
+  const celebCards: TopCelebMatch[] = (profileReveal?.topCelebMatches ?? []).slice(
+    0,
+    MAX_CAROUSEL_MATCHES,
+  );
 
-  const matchesStatus = profileReveal.celebMatchesStatus?.status ?? 'pending';
-  const annotationsStatus = profileReveal.celebAnnotationsStatus?.status ?? 'pending';
+  const matchesStatus = profileReveal?.celebMatchesStatus?.status ?? 'pending';
+  const annotationsStatus = profileReveal?.celebAnnotationsStatus?.status ?? 'pending';
   const isMatchesLoading = matchesStatus === 'pending' || matchesStatus === 'running';
   const isAnnotationsLoading = annotationsStatus === 'pending' || annotationsStatus === 'running';
   const annotationsFailed = annotationsStatus === 'failed';
   const showMatchesSkeleton = isMatchesLoading || !canRevealMatches;
   const showMatchesCards = !showMatchesSkeleton && celebCards.length > 0;
+
+  if (!profileReveal || !guestProfileDraft) {
+    return (
+      <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+        <View style={styles.emptyState}>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>Profile</Text>
+          <Text style={[styles.heroTitle, { color: colors.text }]}>
+            No profile generated yet.
+          </Text>
+          <Text style={[styles.body, { color: colors.textMuted }]}>
+            Complete your birth profile to see your romantic profile and celebrity matches.
+          </Text>
+        </View>
+        <View style={styles.bottomActions}>
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+            onPress={() => navigation.replace('CreateSelfProfile')}
+          >
+            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Create Profile</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
@@ -417,9 +578,9 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.carouselScroll}
                 contentContainerStyle={styles.carouselContent}
               >
-                {celebCards.map(({ match, aspect }, index) => (
+                {celebCards.map((match, index) => (
                   <View
-                    key={`${aspect.aspectType}-${match.celebId}`}
+                    key={match.key}
                     style={[
                       styles.carouselItem,
                       index === celebCards.length - 1 && styles.carouselItemLast,
@@ -427,7 +588,6 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
                   >
                     <CelebCard
                       match={match}
-                      aspect={aspect}
                       annotationLoading={isAnnotationsLoading}
                     />
                   </View>
@@ -587,6 +747,11 @@ const styles = StyleSheet.create({
   celebCardHeader: {
     gap: 2,
   },
+  celebCardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   celebAspectLabel: {
     fontSize: 10,
     fontWeight: '700',
@@ -597,18 +762,87 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
   },
+  archetypeLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    marginTop: 2,
+  },
   annotationTitle: {
     fontSize: 13,
     fontWeight: '700',
     lineHeight: 18,
   },
+  scorePillsRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginTop: 2,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  scorePillColumn: {
+    flex: 1,
+  },
+  scorePill: {
+    flex: 1,
+    minWidth: 0,
+  },
+  scorePillContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  scorePillLabel: {
+    fontSize: 7,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+  },
+  scorePillValueWrap: {
+    position: 'relative',
+    minWidth: 26,
+    minHeight: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scorePillValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 14,
+  },
+  scorePillBlurStack: {
+    position: 'relative',
+    width: '100%',
+    minHeight: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scorePillValueBlurLayer: {
+    position: 'absolute',
+  },
   placementSummary: {
     fontSize: 11,
     lineHeight: 16,
   },
+  annotationSentenceWrap: {
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 36,
+    maxHeight: 42,
+  },
   annotationSentence: {
     fontSize: 12,
     lineHeight: 18,
+  },
+  annotationFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 22,
   },
   annotationLoadingRow: {
     flexDirection: 'row',
