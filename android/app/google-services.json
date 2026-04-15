@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "63614597334",
-    "project_id": "stellium-70a2a",
-    "storage_bucket": "stellium-70a2a.firebasestorage.app"
+    "project_number": "825305986047",
+    "project_id": "stellium-relationship-prod",
+    "storage_bucket": "stellium-relationship-prod.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:63614597334:android:06f2b783faf6a292357177",
+        "mobilesdk_app_id": "1:825305986047:android:b154e33b20d5a091576dca",
         "android_client_info": {
-          "package_name": "com.stelliumapp"
+          "package_name": "com.irisapp"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBnSYzpgghCC3c-0vdP1mvPeoy2vAz8I4E"
+          "current_key": "AIzaSyBYSptYJtUuCF1i9Z8oBVF8HWCj548HenM"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

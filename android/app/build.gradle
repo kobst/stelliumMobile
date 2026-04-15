@@ -88,9 +88,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.stelliumapp"
+    namespace "com.irisapp"
     defaultConfig {
-        applicationId "com.stelliumapp"
+        applicationId "com.irisapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -102,11 +102,11 @@ android {
         dev {
             dimension "environment"
             applicationIdSuffix ".dev"
-            resValue "string", "app_name", "Stellium Dev"
+            resValue "string", "app_name", "Iris Dev"
         }
         prod {
             dimension "environment"
-            resValue "string", "app_name", "Stellium"
+            resValue "string", "app_name", "Iris"
         }
     }
     signingConfigs {

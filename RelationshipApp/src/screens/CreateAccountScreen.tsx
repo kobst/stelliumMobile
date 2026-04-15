@@ -10,7 +10,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import auth from '@react-native-firebase/auth';
+import {
+  AppleAuthProvider,
+  createUserWithEmailAndPassword,
+  getAuth,
+  GoogleAuthProvider,
+  signInWithCredential,
+  signOut,
+} from '@react-native-firebase/auth';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
@@ -38,6 +45,7 @@ if (Platform.OS === 'ios') {
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateAccount'>;
 
 export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
+  const firebaseAuth = getAuth();
   const { colors } = useTheme();
   const guestProfileDraft = useRelationshipAppStore((state) => state.guestProfileDraft);
   const profileReveal = useRelationshipAppStore((state) => state.profileReveal);
@@ -64,43 +72,84 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, []);
 
+  const resetPartialAuthState = async () => {
+    try {
+      if (firebaseAuth.currentUser) {
+        await signOut(firebaseAuth);
+      }
+    } catch {
+      // Best-effort cleanup only.
+    }
+
+    setAuthState({
+      authStatus: 'signedOut',
+      firebaseUid: null,
+      firebaseEmail: null,
+    });
+    setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
+  };
+
+  const getDisplayErrorMessage = (error: unknown, fallback: string) => {
+    if (error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string') {
+      const message = (error as { message: string }).message.trim();
+      if (message.length > 0) {
+        return message;
+      }
+    }
+
+    return fallback;
+  };
+
   const finalizeAuth = async (firebaseUid: string, firebaseEmail: string | null) => {
     if (!profileReveal || !guestProfileDraft) {
       throw new Error('No profile data found. Please restart onboarding.');
     }
 
-    setAuthState({
-      authStatus: 'signedIn',
-      firebaseUid,
-      firebaseEmail,
-    });
-    setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
+    setBootstrapState({ bootstrapStatus: 'loading', bootstrapError: null });
 
-    const claimResponse = await onboardingApi.claimPreview({
-      previewId: profileReveal.previewId,
-      claimToken: profileReveal.claimToken,
-    });
+    const currentUser = firebaseAuth.currentUser;
+    if (!currentUser) {
+      throw new Error('Authentication session was not ready. Please try again.');
+    }
 
-    setProfile({
-      id: claimResponse.userId,
-      appDomain: 'relationship-app',
-      firebaseUid,
-      firstName: claimResponse.user.firstName,
-      lastName: claimResponse.user.lastName,
-      displayName: `${claimResponse.user.firstName} ${claimResponse.user.lastName}`.trim(),
-      dateOfBirth: guestProfileDraft.dateOfBirth,
-      placeOfBirth: guestProfileDraft.placeOfBirth,
-      time: guestProfileDraft.birthTimeUnknown ? undefined : guestProfileDraft.timeOfBirth,
-      birthTimeUnknown: guestProfileDraft.birthTimeUnknown,
-      totalOffsetHours: guestProfileDraft.totalOffsetHours ?? 0,
-      subject: claimResponse.user as any,
-      backendAppDomain: claimResponse.user.appDomain,
-      isDomainExplicit: true,
-      romanticOverview: claimResponse.overview,
-    });
+    await currentUser.getIdToken(true);
 
-    clearOnboardingFlow();
-    navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+    try {
+      const claimResponse = await onboardingApi.claimPreview({
+        previewId: profileReveal.previewId,
+        claimToken: profileReveal.claimToken,
+      });
+
+      setAuthState({
+        authStatus: 'signedIn',
+        firebaseUid,
+        firebaseEmail,
+      });
+      setProfile({
+        id: claimResponse.userId,
+        appDomain: 'relationship-app',
+        firebaseUid,
+        firstName: claimResponse.user.firstName,
+        lastName: claimResponse.user.lastName,
+        displayName: `${claimResponse.user.firstName} ${claimResponse.user.lastName}`.trim(),
+        dateOfBirth: guestProfileDraft.dateOfBirth,
+        placeOfBirth: guestProfileDraft.placeOfBirth,
+        time: guestProfileDraft.birthTimeUnknown ? undefined : guestProfileDraft.timeOfBirth,
+        birthTimeUnknown: guestProfileDraft.birthTimeUnknown,
+        totalOffsetHours: guestProfileDraft.totalOffsetHours ?? 0,
+        subject: claimResponse.user as any,
+        backendAppDomain: claimResponse.user.appDomain,
+        isDomainExplicit: true,
+        romanticOverview: claimResponse.overview,
+      });
+
+      setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
+      clearOnboardingFlow();
+      navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+    } catch (error) {
+      await resetPartialAuthState();
+      throw error;
+    }
   };
 
   const handleEmailSignUp = async () => {
@@ -121,7 +170,7 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
 
     setIsLoading(true);
     try {
-      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
       await finalizeAuth(userCredential.user.uid, userCredential.user.email);
     } catch (error: unknown) {
       const firebaseError = error as { code?: string };
@@ -152,14 +201,14 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
       if (userInfo.data?.idToken) {
-        const googleCredential = auth.GoogleAuthProvider.credential(userInfo.data.idToken);
-        const userCredential = await auth().signInWithCredential(googleCredential);
+        const googleCredential = GoogleAuthProvider.credential(userInfo.data.idToken);
+        const userCredential = await signInWithCredential(firebaseAuth, googleCredential);
         await finalizeAuth(userCredential.user.uid, userCredential.user.email);
       }
     } catch (error: unknown) {
       const googleError = error as { code?: string };
       if (googleError.code !== 'SIGN_IN_CANCELLED') {
-        Alert.alert('Error', 'Google Sign-In failed. Please try again.');
+        Alert.alert('Error', getDisplayErrorMessage(error, 'Google Sign-In failed. Please try again.'));
       }
     } finally {
       setIsLoading(false);
@@ -184,8 +233,8 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
       }
 
       const { identityToken, nonce } = appleAuthRequestResponse;
-      const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
-      const credResult = await auth().signInWithCredential(appleCredential);
+      const appleCredential = AppleAuthProvider.credential(identityToken, nonce);
+      const credResult = await signInWithCredential(firebaseAuth, appleCredential);
 
       try {
         const given = appleAuthRequestResponse.fullName?.givenName || '';
@@ -202,7 +251,7 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
     } catch (error: unknown) {
       const appleError = error as { code?: string };
       if (appleError.code !== 'ERR_CANCELED') {
-        Alert.alert('Error', 'Apple Sign-In failed. Please try again.');
+        Alert.alert('Error', getDisplayErrorMessage(error, 'Apple Sign-In failed. Please try again.'));
       }
     } finally {
       setIsLoading(false);

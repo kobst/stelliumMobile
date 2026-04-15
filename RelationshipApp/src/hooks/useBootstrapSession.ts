@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import auth from '@react-native-firebase/auth';
+import { getAuth, onAuthStateChanged, signOut } from '@react-native-firebase/auth';
 import { ApiError, relationshipUsersApi } from '../api';
 import { relationshipAppEnv } from '../config/env';
 import { useRelationshipAppStore } from '../store';
@@ -27,9 +27,12 @@ function isMissingFirebaseUserError(error: unknown): boolean {
 }
 
 export function useBootstrapSession() {
+  const firebaseAuth = getAuth();
   const setAuthState = useRelationshipAppStore((state) => state.setAuthState);
   const setBootstrapState = useRelationshipAppStore((state) => state.setBootstrapState);
   const setProfile = useRelationshipAppStore((state) => state.setProfile);
+  const guestProfileDraft = useRelationshipAppStore((state) => state.guestProfileDraft);
+  const profileReveal = useRelationshipAppStore((state) => state.profileReveal);
 
   useEffect(() => {
     if (relationshipAppEnv.enableLocalUxMode) {
@@ -45,7 +48,7 @@ export function useBootstrapSession() {
 
     // Check current auth state without blocking on it.
     // Guest users proceed without Firebase auth; signed-in users get their profile loaded.
-    const currentUser = auth().currentUser;
+    const currentUser = firebaseAuth.currentUser;
     if (!currentUser) {
       setAuthState({
         authStatus: 'signedOut',
@@ -58,7 +61,7 @@ export function useBootstrapSession() {
       setBootstrapState({ bootstrapStatus: 'loading', bootstrapError: null });
     }
 
-    const unsubscribe = auth().onAuthStateChanged(async (user) => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
       if (!user) {
         setAuthState({
           authStatus: 'signedOut',
@@ -66,6 +69,16 @@ export function useBootstrapSession() {
           firebaseEmail: null,
         });
         setProfile(null);
+        setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
+        return;
+      }
+
+      if (guestProfileDraft && profileReveal) {
+        setAuthState({
+          authStatus: 'signedIn',
+          firebaseUid: user.uid,
+          firebaseEmail: user.email ?? null,
+        });
         setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
         return;
       }
@@ -84,7 +97,7 @@ export function useBootstrapSession() {
       } catch (error) {
         if (isMissingFirebaseUserError(error)) {
           try {
-            await auth().signOut();
+            await signOut(firebaseAuth);
           } catch (signOutError) {
             console.error('Failed to clear stale Firebase session:', signOutError);
           }
@@ -114,5 +127,5 @@ export function useBootstrapSession() {
     });
 
     return unsubscribe;
-  }, [setAuthState, setBootstrapState, setProfile]);
+  }, [firebaseAuth, guestProfileDraft, profileReveal, setAuthState, setBootstrapState, setProfile]);
 }

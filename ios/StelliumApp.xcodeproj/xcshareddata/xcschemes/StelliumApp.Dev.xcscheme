@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "StelliumApp.app"
+               BuildableName = "IrisApp.app"
                BlueprintName = "StelliumApp"
                ReferencedContainer = "container:StelliumApp.xcodeproj">
             </BuildableReference>
@@ -55,7 +55,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "StelliumApp.app"
+            BuildableName = "IrisApp.app"
             BlueprintName = "StelliumApp"
             ReferencedContainer = "container:StelliumApp.xcodeproj">
          </BuildableReference>
@@ -67,9 +67,6 @@
             isEnabled = "NO">
          </EnvironmentVariable>
       </EnvironmentVariables>
-      <StoreKitConfigurationFileReference
-         identifier = "../StoreKitConfiguration.storekit">
-      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Debug"
@@ -82,7 +79,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "StelliumApp.app"
+            BuildableName = "IrisApp.app"
             BlueprintName = "StelliumApp"
             ReferencedContainer = "container:StelliumApp.xcodeproj">
          </BuildableReference>

@@ -608,16 +608,9 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('SaveProfile')}
+            onPress={() => navigation.navigate('CreateAccount')}
           >
             <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Save Your Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('SaveProfile')}
-          >
-            <Text style={[styles.guestLink, { color: colors.textMuted }]}>
-              Explore as guest
-            </Text>
           </TouchableOpacity>
         </View>
 
@@ -870,12 +863,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
   },
-  guestLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-
   primaryButton: {
     borderRadius: 16,
     paddingHorizontal: 24,

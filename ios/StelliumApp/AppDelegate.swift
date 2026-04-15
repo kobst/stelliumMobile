@@ -34,7 +34,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     window = UIWindow(frame: UIScreen.main.bounds)
 
     factory.startReactNative(
-      withModuleName: "StelliumApp",
+      withModuleName: "IrisApp",
       in: window,
       launchOptions: launchOptions
     )

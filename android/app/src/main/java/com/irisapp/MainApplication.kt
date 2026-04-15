@@ -1,4 +1,4 @@
-package com.stelliumapp
+package com.irisapp
 
 import android.app.Application
 import com.facebook.react.PackageList

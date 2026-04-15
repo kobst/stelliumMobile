@@ -3,21 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>763187884820-8ujnq2ivctmsd4onsu8hal4t390n6ntv.apps.googleusercontent.com</string>
+	<string>825305986047-32hn3ljip3hr5bk6ibn565t56135ptmv.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.763187884820-8ujnq2ivctmsd4onsu8hal4t390n6ntv</string>
+	<string>com.googleusercontent.apps.825305986047-32hn3ljip3hr5bk6ibn565t56135ptmv</string>
 	<key>API_KEY</key>
-	<string>AIzaSyC8p2Hd-5HmM9f4ilxwNtNBv56stBCjSlY</string>
+	<string>AIzaSyC9JBoX54zurKPXKKmq_zf8xqdu0BpDN3U</string>
 	<key>GCM_SENDER_ID</key>
-	<string>763187884820</string>
+	<string>825305986047</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.irisapp.dev</string>
+	<string>com.irisapp</string>
 	<key>PROJECT_ID</key>
-	<string>stellium-relationship-dev</string>
+	<string>stellium-relationship-prod</string>
 	<key>STORAGE_BUCKET</key>
-	<string>stellium-relationship-dev.firebasestorage.app</string>
+	<string>stellium-relationship-prod.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:763187884820:ios:e95756d6041a27c68d0801</string>
+	<string>1:825305986047:ios:34870b01beda5701576dca</string>
 </dict>
 </plist>

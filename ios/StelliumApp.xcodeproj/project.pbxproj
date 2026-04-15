@@ -338,8 +338,8 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.stelliumapp.dev;
-				PRODUCT_NAME = StelliumApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.irisapp.dev;
+				PRODUCT_NAME = IrisApp;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -370,9 +370,9 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.stelliumapp;
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=*]" = com.stelliumapp;
-				PRODUCT_NAME = StelliumApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.irisapp;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=*]" = com.irisapp;
+				PRODUCT_NAME = IrisApp;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";

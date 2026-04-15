@@ -1,5 +1,5 @@
 import React from 'react';
-import auth from '@react-native-firebase/auth';
+import { getAuth, signOut } from '@react-native-firebase/auth';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -16,6 +16,7 @@ interface DevSessionPanelProps {
 }
 
 export const DevSessionPanel: React.FC<DevSessionPanelProps> = ({ onAfterReset }) => {
+  const firebaseAuth = getAuth();
   const { colors } = useTheme();
   const authStatus = useRelationshipAppStore((state) => state.authStatus);
   const firebaseUid = useRelationshipAppStore((state) => state.firebaseUid);
@@ -34,8 +35,8 @@ export const DevSessionPanel: React.FC<DevSessionPanelProps> = ({ onAfterReset }
     try {
       setIsResetting(true);
       setResetError(null);
-      if (auth().currentUser) {
-        await auth().signOut();
+      if (firebaseAuth.currentUser) {
+        await signOut(firebaseAuth);
       }
       resetSession();
       onAfterReset?.();
