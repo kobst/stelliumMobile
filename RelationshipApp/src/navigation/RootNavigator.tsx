@@ -5,6 +5,7 @@ import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { CreateSelfProfileScreen } from '../screens/CreateSelfProfileScreen';
 import { ProfileRevealScreen } from '../screens/ProfileRevealScreen';
 import { CreateAccountScreen } from '../screens/CreateAccountScreen';
+import { SignInScreen } from '../screens/SignInScreen';
 import { UnlockScreen } from '../screens/UnlockScreen';
 import { FullRelationshipAnalysisScreen } from '../screens/FullRelationshipAnalysisScreen';
 import { MainTabs } from './MainTabs';
@@ -16,6 +17,7 @@ export type RelationshipRootParamList = {
   CreateSelfProfile: undefined;
   ProfileReveal: undefined;
   CreateAccount: undefined;
+  SignIn: undefined;
   Unlock: undefined;
   FullRelationshipAnalysis: undefined;
   Main: undefined;
@@ -73,6 +75,7 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="CreateSelfProfile" component={CreateSelfProfileScreen} />
         <Stack.Screen name="ProfileReveal" component={ProfileRevealScreen} />
         <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
+        <Stack.Screen name="SignIn" component={SignInScreen} />
         <Stack.Screen name="Unlock" component={UnlockScreen} />
         <Stack.Screen name="FullRelationshipAnalysis" component={FullRelationshipAnalysisScreen} />
         <Stack.Screen name="Main" component={MainTabs} />

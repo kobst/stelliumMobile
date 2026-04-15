@@ -12,17 +12,17 @@ import {
 } from 'react-native';
 import {
   AppleAuthProvider,
-  createUserWithEmailAndPassword,
   getAuth,
   GoogleAuthProvider,
   signInWithCredential,
+  signInWithEmailAndPassword,
   signOut,
 } from '@react-native-firebase/auth';
 import { StackScreenProps } from '@react-navigation/stack';
+import { ApiError, relationshipUsersApi } from '../api';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
-import { onboardingApi } from '../api';
 import { GOOGLE_WEB_CLIENT_ID, IOS_GOOGLE_CLIENT_ID } from '../../../src/config/firebase';
 
 let GoogleSignin: ReturnType<typeof require> | null = null;
@@ -42,21 +42,17 @@ if (Platform.OS === 'ios') {
   }
 }
 
-type Props = StackScreenProps<RelationshipRootParamList, 'CreateAccount'>;
+type Props = StackScreenProps<RelationshipRootParamList, 'SignIn'>;
 
-export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
+export const SignInScreen: React.FC<Props> = ({ navigation }) => {
   const firebaseAuth = getAuth();
   const { colors } = useTheme();
-  const guestProfileDraft = useRelationshipAppStore((state) => state.guestProfileDraft);
-  const profileReveal = useRelationshipAppStore((state) => state.profileReveal);
   const setProfile = useRelationshipAppStore((state) => state.setProfile);
   const setAuthState = useRelationshipAppStore((state) => state.setAuthState);
   const setBootstrapState = useRelationshipAppStore((state) => state.setBootstrapState);
   const clearOnboardingFlow = useRelationshipAppStore((state) => state.clearOnboardingFlow);
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -72,7 +68,7 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, []);
 
-  const resetPartialAuthState = async () => {
+  const resetAuthState = async () => {
     try {
       if (firebaseAuth.currentUser) {
         await signOut(firebaseAuth);
@@ -86,11 +82,16 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
       firebaseUid: null,
       firebaseEmail: null,
     });
+    setProfile(null);
     setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
   };
 
   const getDisplayErrorMessage = (error: unknown, fallback: string) => {
-    if (error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string') {
+    if (
+      error &&
+      typeof error === 'object' &&
+      typeof (error as { message?: unknown }).message === 'string'
+    ) {
       const message = (error as { message: string }).message.trim();
       if (message.length > 0) {
         return message;
@@ -100,91 +101,58 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
     return fallback;
   };
 
-  const finalizeAuth = async (firebaseUid: string, firebaseEmail: string | null) => {
-    if (!profileReveal || !guestProfileDraft) {
-      throw new Error('No profile data found. Please restart onboarding.');
-    }
-
+  const completeSignIn = async (firebaseUid: string, firebaseEmail: string | null) => {
     setBootstrapState({ bootstrapStatus: 'loading', bootstrapError: null });
 
-    const currentUser = firebaseAuth.currentUser;
-    if (!currentUser) {
-      throw new Error('Authentication session was not ready. Please try again.');
-    }
-
-    await currentUser.getIdToken(true);
-
     try {
-      const claimResponse = await onboardingApi.claimPreview({
-        previewId: profileReveal.previewId,
-        claimToken: profileReveal.claimToken,
-      });
-
+      const profile = await relationshipUsersApi.getProfileByFirebaseUid(firebaseUid);
       setAuthState({
         authStatus: 'signedIn',
         firebaseUid,
         firebaseEmail,
       });
-      setProfile({
-        id: claimResponse.userId,
-        appDomain: 'relationship-app',
-        firebaseUid,
-        firstName: claimResponse.user.firstName,
-        lastName: claimResponse.user.lastName,
-        displayName: `${claimResponse.user.firstName} ${claimResponse.user.lastName}`.trim(),
-        dateOfBirth: guestProfileDraft.dateOfBirth,
-        placeOfBirth: guestProfileDraft.placeOfBirth,
-        time: guestProfileDraft.birthTimeUnknown ? undefined : guestProfileDraft.timeOfBirth,
-        birthTimeUnknown: guestProfileDraft.birthTimeUnknown,
-        totalOffsetHours: guestProfileDraft.totalOffsetHours ?? 0,
-        subject: claimResponse.user as any,
-        backendAppDomain: claimResponse.user.appDomain,
-        isDomainExplicit: true,
-        romanticOverview: claimResponse.overview,
-      });
-
+      setProfile(profile);
       setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
       clearOnboardingFlow();
       navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
     } catch (error) {
-      await resetPartialAuthState();
+      await resetAuthState();
+
+      if (error instanceof ApiError && error.status === 404) {
+        throw new Error(
+          'No relationship profile was found for this account. Start onboarding to create one.'
+        );
+      }
+
       throw error;
     }
   };
 
-  const handleEmailSignUp = async () => {
-    if (!email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match.');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters.');
+  const handleEmailSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Enter your email and password.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-      await finalizeAuth(userCredential.user.uid, userCredential.user.email);
+      const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+      await completeSignIn(userCredential.user.uid, userCredential.user.email);
     } catch (error: unknown) {
       const firebaseError = error as { code?: string };
-      let message = 'Sign-up failed. Please try again.';
+      let message = getDisplayErrorMessage(error, 'Sign-in failed. Please try again.');
 
-      if (firebaseError.code === 'auth/email-already-in-use') {
-        message = 'An account already exists with this email. Try signing in instead.';
+      if (firebaseError.code === 'auth/invalid-credential') {
+        message = 'Incorrect email or password.';
+      } else if (firebaseError.code === 'auth/user-not-found') {
+        message = 'No account was found for this email.';
+      } else if (firebaseError.code === 'auth/wrong-password') {
+        message = 'Incorrect email or password.';
       } else if (firebaseError.code === 'auth/invalid-email') {
         message = 'Invalid email address.';
-      } else if (firebaseError.code === 'auth/weak-password') {
-        message = 'Password is too weak. Please choose a stronger password.';
       }
 
-      Alert.alert('Sign-Up Error', message);
+      Alert.alert('Sign-In Error', message);
     } finally {
       setIsLoading(false);
     }
@@ -203,7 +171,7 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
       if (userInfo.data?.idToken) {
         const googleCredential = GoogleAuthProvider.credential(userInfo.data.idToken);
         const userCredential = await signInWithCredential(firebaseAuth, googleCredential);
-        await finalizeAuth(userCredential.user.uid, userCredential.user.email);
+        await completeSignIn(userCredential.user.uid, userCredential.user.email);
       }
     } catch (error: unknown) {
       const googleError = error as { code?: string };
@@ -235,19 +203,7 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
       const { identityToken, nonce } = appleAuthRequestResponse;
       const appleCredential = AppleAuthProvider.credential(identityToken, nonce);
       const credResult = await signInWithCredential(firebaseAuth, appleCredential);
-
-      try {
-        const given = appleAuthRequestResponse.fullName?.givenName || '';
-        const family = appleAuthRequestResponse.fullName?.familyName || '';
-        const displayName = `${given} ${family}`.trim();
-        if (displayName && credResult?.user) {
-          await credResult.user.updateProfile({ displayName });
-        }
-      } catch {
-        // Non-fatal if we fail to set display name
-      }
-
-      await finalizeAuth(credResult.user.uid, credResult.user.email);
+      await completeSignIn(credResult.user.uid, credResult.user.email);
     } catch (error: unknown) {
       const appleError = error as { code?: string };
       if (appleError.code !== 'ERR_CANCELED') {
@@ -262,12 +218,12 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.headerBlock}>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>Create account</Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>Sign in</Text>
           <Text style={[styles.title, { color: colors.text }]}>
-            Save your profile and unlock the full experience.
+            Return to your relationship profile.
           </Text>
           <Text style={[styles.body, { color: colors.textMuted }]}>
-            Your birth data and romantic profile will transfer to your new account.
+            Existing accounts can sign in directly and skip onboarding.
           </Text>
         </View>
 
@@ -314,39 +270,27 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
             autoCorrect={false}
             style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
           />
+
           <TextInput
             value={password}
             onChangeText={setPassword}
             placeholder="Password"
             placeholderTextColor={colors.textSubtle}
             secureTextEntry
-            style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
-          />
-          <TextInput
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            placeholder="Confirm password"
-            placeholderTextColor={colors.textSubtle}
-            secureTextEntry
+            autoCapitalize="none"
             style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
           />
 
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={handleEmailSignUp}
+            onPress={handleEmailSignIn}
             disabled={isLoading}
           >
             <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-              {isLoading ? 'Creating Account...' : 'Create Account'}
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity onPress={() => navigation.navigate('SignIn')} disabled={isLoading}>
-          <Text style={[styles.switchLink, { color: colors.textMuted }]}>
-            Already have an account? Sign in.
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -425,7 +369,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     fontSize: 16,
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 15,
   },
   primaryButton: {
     borderRadius: 16,
@@ -438,14 +382,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
-  switchLink: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
   footer: {
-    padding: 20,
-    paddingTop: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
   },
   secondaryButton: {
     borderRadius: 16,

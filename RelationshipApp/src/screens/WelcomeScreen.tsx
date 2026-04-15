@@ -12,9 +12,9 @@ export const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
       title="Understand your chemistry before you invest your heart."
       body="Start with your own profile, then explore attraction, communication, conflict patterns, and long-term compatibility in one focused relationship experience."
       primaryLabel="Get Started"
-      secondaryLabel="Preview The App"
+      secondaryLabel="Sign In"
       onPrimaryPress={() => navigation.navigate('CreateSelfProfile')}
-      onSecondaryPress={() => navigation.navigate('Main')}
+      onSecondaryPress={() => navigation.navigate('SignIn')}
     />
   );
 };
