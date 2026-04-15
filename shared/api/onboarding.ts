@@ -65,6 +65,49 @@ export interface AsyncStatus {
   lastRequestedAt?: string | null;
 }
 
+export interface ClusterScores {
+  Harmony: number;
+  Passion: number;
+  Connection: number;
+  Stability: number;
+  Growth: number;
+  overall: number;
+}
+
+export interface Archetype {
+  version: string;
+  archetypeKey: string;
+  label: string;
+  blurb: string;
+  dominantClusters: string[];
+  supportClusters: string[];
+  tensionClusters: string[];
+  shape: 'balanced' | 'polarized' | 'concentrated' | 'flat' | 'conflicted';
+  tone: 'steady' | 'easy' | 'magnetic' | 'growth-heavy' | 'volatile' | 'mixed';
+  confidence: number;
+}
+
+export interface TopCelebMatch {
+  key: string;
+  celebId: string;
+  celebName: string | null;
+  profilePhotoUrl: string | null;
+  selectedAspect: {
+    aspectType: string;
+    label: string;
+    shortMeaning?: string;
+    primaryCluster: string;
+    clusterThemes: string[];
+    orb: number;
+    userPlacement?: CelebAspectMatch['userPlacement'];
+    celebPlacement?: CelebAspectMatch['celebPlacement'];
+    annotation?: CelebAspectMatch['annotation'];
+  };
+  annotation?: CelebAspectMatch['annotation'];
+  clusterScores: ClusterScores | null;
+  archetype: Archetype | null;
+}
+
 export interface CelebAspectBank {
   version?: string;
   configVersion?: string;
@@ -77,6 +120,7 @@ export interface CelebAspectBank {
   annotationRefreshNeeded?: boolean;
   topAspects: TopAspect[];
   fullBank: TopAspect[];
+  topCelebMatches?: TopCelebMatch[];
 }
 
 export interface OnboardingPreviewUser {
@@ -102,6 +146,7 @@ export interface OnboardingPreviewResponse {
   celebAnnotationsStatus: AsyncStatus;
   celebAspectBank: CelebAspectBank | null;
   topAspects: TopAspect[];
+  topCelebMatches?: TopCelebMatch[];
   overviewMode: string;
   status: string;
 }
@@ -113,6 +158,7 @@ export interface OnboardingPreviewCelebResponse {
   celebAnnotationsStatus: AsyncStatus;
   celebAspectBank: CelebAspectBank | null;
   topAspects: TopAspect[];
+  topCelebMatches?: TopCelebMatch[];
   status:
     | 'celeb_matches_pending'
     | 'celeb_matches_running'

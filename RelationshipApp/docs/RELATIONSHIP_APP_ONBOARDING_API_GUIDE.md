@@ -5,6 +5,7 @@ This guide documents the staged onboarding flow for the relationship app.
 It covers:
 - The purpose of each onboarding endpoint
 - Exact request and response shapes
+- Which fields the mobile app should render directly
 - Status transitions
 - Recommended frontend orchestration
 - Failure and retry behavior
@@ -32,6 +33,33 @@ The split exists for performance:
 - Step 2 computes the celebrity aspect bank without waiting on LLM copy
 - Step 3 starts annotation generation asynchronously and returns immediately
 - The frontend polls the `GET` endpoint until annotations are ready
+
+## Frontend Contract
+
+For mobile, the backend now exposes two parallel views of the same onboarding celebrity data:
+
+- `topAspects`
+- `topCelebMatches`
+
+The frontend should treat them differently:
+
+- `topCelebMatches` is the primary UI payload for the 3 surfaced onboarding celebrity cards
+- `topAspects` is the source-compatible aspect-bucket payload that remains available for analytics, debugging, and backward compatibility
+
+In other words:
+
+- Render celeb cards from `topCelebMatches`
+- Do not try to reconstruct the 3 cards by walking `topAspects[].matches[0]`
+- Use `topAspects` only if you explicitly need the bucketed aspect-bank representation
+
+Each `topCelebMatches[]` item represents:
+
+- the same already-selected surfaced celebrity
+- the selected onboarding aspect used for copy
+- the annotation generated from that selected aspect
+- the 5 cluster scores plus `overall`
+
+This field is additive. It does not change selection behavior, ranking behavior, or annotation behavior.
 
 ## Data Model Summary
 
@@ -141,6 +169,46 @@ type CelebAspectBank = {
   annotationRefreshNeeded: boolean;
   topAspects: CelebAspectBucket[];
   fullBank: CelebAspectBucket[];
+  topCelebMatches: TopCelebMatch[];
+};
+
+type TopCelebMatch = {
+  key: string;
+  celebId: string;
+  celebName: string | null;
+  profilePhotoUrl: string | null;
+  selectedAspect: {
+    aspectType: string;
+    label: string;
+    shortMeaning: string;
+    primaryCluster: string;
+    clusterThemes: string[];
+    orb: number;
+    userPlacement: PlacementSummary;
+    celebPlacement: PlacementSummary;
+    annotation?: MatchAnnotation;
+  };
+  annotation?: MatchAnnotation;
+  clusterScores: {
+    Harmony: number;
+    Passion: number;
+    Connection: number;
+    Stability: number;
+    Growth: number;
+    overall: number;
+  } | null;
+  archetype: {
+    version: string;
+    archetypeKey: string;
+    label: string;
+    blurb: string;
+    dominantClusters: string[];
+    supportClusters: string[];
+    tensionClusters: string[];
+    shape: 'balanced' | 'polarized' | 'concentrated' | 'flat' | 'conflicted';
+    tone: 'steady' | 'easy' | 'magnetic' | 'growth-heavy' | 'volatile' | 'mixed';
+    confidence: number;
+  } | null;
 };
 ```
 
@@ -150,6 +218,10 @@ Important:
 - Only match-level `annotation` uses `title`
 - `celebAspectBank` is nullable during early onboarding states
 - `topAspects` is always present and is an empty array until matches exist
+- `topCelebMatches` is a normalized 3-card view of the currently surfaced matches
+- `topCelebMatches` preserves the existing aspect-based selection and annotation behavior while adding 5-cluster scores per surfaced celebrity
+- `topCelebMatches` now also includes the derived relationship archetype for each surfaced celebrity match
+- For the mobile reveal UI, `topCelebMatches` should be treated as the canonical field
 
 ## High-Level Flow
 
@@ -158,7 +230,7 @@ Recommended frontend sequence:
 1. Submit onboarding form to `POST /relationship-app/onboarding-preview`
 2. Render the returned `overview` immediately
 3. Start `POST /relationship-app/onboarding-preview/:previewId/celeb-matches`
-4. When matches are ready, render `topAspects`
+4. When matches are ready, render `topCelebMatches`
 5. Start `POST /relationship-app/onboarding-preview/:previewId/celeb-annotations`
 6. Poll `GET /relationship-app/onboarding-preview/:previewId/celeb-matches?claimToken=...`
 7. Replace the loading state in the celeb section when `celebAnnotationsStatus.status === "completed"`
@@ -262,6 +334,7 @@ This call does not compute celebrity matches and does not generate annotations.
   },
   "celebAspectBank": null,
   "topAspects": [],
+  "topCelebMatches": [],
   "overviewMode": "romantic",
   "status": "onboarding_preview_created"
 }
@@ -373,11 +446,66 @@ This call does not wait on LLM annotations.
       {
         "...": "all ranked aspect buckets"
       }
+    ],
+    "topCelebMatches": [
+      {
+        "key": "moon_venus_trine:celebrity-subject-id",
+        "celebId": "celebrity-subject-id",
+        "celebName": "Ariana Grande",
+        "profilePhotoUrl": "https://example.com/ariana.jpg",
+        "selectedAspect": {
+          "aspectType": "moon_venus_trine",
+          "label": "Moon-Venus trine",
+          "shortMeaning": "sweet affection",
+          "primaryCluster": "Harmony",
+          "clusterThemes": ["Harmony"],
+          "orb": 0.42,
+          "userPlacement": {
+            "planet": "Moon",
+            "sign": "Virgo",
+            "house": 4,
+            "display": "Moon in Virgo in the 4th house",
+            "compactDisplay": "Moon in Virgo"
+          },
+          "celebPlacement": {
+            "planet": "Venus",
+            "sign": "Taurus",
+            "house": 8,
+            "display": "Venus in Taurus in the 8th house",
+            "compactDisplay": "Venus in Taurus"
+          }
+        },
+        "clusterScores": {
+          "Harmony": 78,
+          "Passion": 61,
+          "Connection": 54,
+          "Stability": 69,
+          "Growth": 47,
+          "overall": 64
+        },
+        "archetype": {
+          "version": "archetype-summary-v3",
+          "archetypeKey": "steady_hearth",
+          "label": "Steady Hearth",
+          "blurb": "This connection is shaped most by Harmony and Stability, creating a bond defined by emotional ease and reliability. What keeps it from feeling more complete is that shared evolution may feel slower or less activating. Overall, this has the feel of Steady Hearth.",
+          "dominantClusters": ["Harmony", "Stability"],
+          "supportClusters": ["Harmony", "Stability"],
+          "tensionClusters": ["Growth"],
+          "shape": "balanced",
+          "tone": "steady",
+          "confidence": 0.82
+        }
+      }
     ]
   },
   "topAspects": [
     {
       "...": "same entries as celebAspectBank.topAspects"
+    }
+  ],
+  "topCelebMatches": [
+    {
+      "...": "same entries as celebAspectBank.topCelebMatches"
     }
   ],
   "status": "celeb_matches_ready"
@@ -387,9 +515,13 @@ This call does not wait on LLM annotations.
 ### Important Notes
 
 - Match generation currently returns the top 3 aspects in `topAspects`
+- Match generation also returns the same 3 surfaced celeb cards in `topCelebMatches`
 - Matches do not include template annotations
 - Before annotation generation completes, the `annotation` field is absent from matches
-- The full bank is stored, but the frontend should treat `topAspects` as the primary onboarding payload
+- The full bank is stored, but the frontend should treat `topCelebMatches` as the primary onboarding payload
+- `selectedAspect` is the exact aspect used to pick the surfaced celeb and later generate annotation copy
+- `clusterScores` are already computed at match-generation time; the frontend does not need to wait for annotations to read scores
+- `archetype` is already computed at match-generation time; the frontend does not need to wait for annotations to read the archetype label or blurb
 
 ## 3. Start Celebrity Annotation Generation
 
@@ -456,6 +588,11 @@ This endpoint is asynchronous. It does not wait for Gemini to finish.
       "...": "same entries as celebAspectBank.topAspects"
     }
   ],
+  "topCelebMatches": [
+    {
+      "...": "same entries as celebAspectBank.topCelebMatches"
+    }
+  ],
   "status": "celeb_annotations_running"
 }
 ```
@@ -505,6 +642,7 @@ The frontend should use this endpoint to poll while annotations are being genera
   },
   "celebAspectBank": null,
   "topAspects": [],
+  "topCelebMatches": [],
   "status": "celeb_matches_pending"
 }
 ```
@@ -529,6 +667,11 @@ The frontend should use this endpoint to poll while annotations are being genera
       "...": "top aspects"
     }
   ],
+  "topCelebMatches": [
+      {
+        "...": "top surfaced celeb cards without annotation"
+      }
+  ],
   "status": "celeb_matches_ready"
 }
 ```
@@ -552,6 +695,11 @@ The frontend should use this endpoint to poll while annotations are being genera
     {
       "...": "top aspects"
     }
+  ],
+  "topCelebMatches": [
+      {
+        "...": "top surfaced celeb cards, cluster scores and archetype present, annotation may still be absent"
+      }
   ],
   "status": "celeb_annotations_running"
 }
@@ -595,6 +743,60 @@ The frontend should use this endpoint to poll while annotations are being genera
           }
         ]
       }
+    ],
+    "topCelebMatches": [
+      {
+        "key": "moon_venus_trine:celebrity-subject-id",
+        "celebId": "celebrity-subject-id",
+        "celebName": "Ariana Grande",
+        "profilePhotoUrl": "https://example.com/ariana.jpg",
+        "selectedAspect": {
+          "aspectType": "moon_venus_trine",
+          "label": "Moon-Venus trine",
+          "shortMeaning": "sweet affection",
+          "primaryCluster": "Harmony",
+          "clusterThemes": ["Harmony"],
+          "orb": 0.42,
+          "userPlacement": {
+            "compactDisplay": "Moon in Virgo"
+          },
+          "celebPlacement": {
+            "compactDisplay": "Venus in Taurus"
+          },
+          "annotation": {
+            "title": "Moon-Venus trine · sweet affection",
+            "sentence": "Your Moon in Virgo trades the urge to fix everything for the stubborn physical ease of Ariana's Venus in Taurus, leaving a profound stillness that demands total surrender.",
+            "generatedBy": "llm",
+            "version": "v1"
+          }
+        },
+        "annotation": {
+          "title": "Moon-Venus trine · sweet affection",
+          "sentence": "Your Moon in Virgo trades the urge to fix everything for the stubborn physical ease of Ariana's Venus in Taurus, leaving a profound stillness that demands total surrender.",
+          "generatedBy": "llm",
+          "version": "v1"
+        },
+        "clusterScores": {
+          "Harmony": 78,
+          "Passion": 61,
+          "Connection": 54,
+          "Stability": 69,
+          "Growth": 47,
+          "overall": 64
+        },
+        "archetype": {
+          "version": "archetype-summary-v3",
+          "archetypeKey": "steady_hearth",
+          "label": "Steady Hearth",
+          "blurb": "This connection is shaped most by Harmony and Stability, creating a bond defined by emotional ease and reliability. What keeps it from feeling more complete is that shared evolution may feel slower or less activating. Overall, this has the feel of Steady Hearth.",
+          "dominantClusters": ["Harmony", "Stability"],
+          "supportClusters": ["Harmony", "Stability"],
+          "tensionClusters": ["Growth"],
+          "shape": "balanced",
+          "tone": "steady",
+          "confidence": 0.82
+        }
+      }
     ]
   },
   "topAspects": [
@@ -602,9 +804,24 @@ The frontend should use this endpoint to poll while annotations are being genera
       "...": "same entries as celebAspectBank.topAspects"
     }
   ],
+  "topCelebMatches": [
+    {
+      "...": "same entries as celebAspectBank.topCelebMatches"
+    }
+  ],
   "status": "celeb_annotations_ready"
 }
 ```
+
+### Frontend Rendering Rules
+
+- Render the 3 celebrity onboarding cards from `topCelebMatches`
+- Read the compatibility bars, pills, or score chips from `topCelebMatches[i].clusterScores`
+- Read the archetype label and blurb from `topCelebMatches[i].archetype`
+- Read the surfaced copy from `topCelebMatches[i].annotation` when present
+- If `annotation` is absent, use `selectedAspect.label`, `selectedAspect.shortMeaning`, and placements to render loading or fallback UI
+- If you need the exact aspect metadata that drove the card, use `topCelebMatches[i].selectedAspect`
+- Do not assume `topAspects[i]` and `topCelebMatches[i]` must be joined client-side
 
 ### Frontend Polling Recommendation
 
@@ -676,6 +893,11 @@ This keeps the same subject document and attaches:
       "...": "same entries as celebAspectBank.topAspects"
     }
   ],
+  "topCelebMatches": [
+    {
+      "...": "same entries as celebAspectBank.topCelebMatches"
+    }
+  ],
   "overviewMode": "romantic",
   "status": "onboarding_preview_claimed"
 }
@@ -725,6 +947,84 @@ Notes:
 - `generatedBy` is always `llm` for onboarding annotations
 - There is no template fallback in the current flow
 
+## TopCelebMatch Object Shape
+
+Each surfaced onboarding celebrity card inside `topCelebMatches[]` uses this structure:
+
+```json
+{
+  "key": "moon_venus_trine:celebrity-subject-id",
+  "celebId": "celebrity-subject-id",
+  "celebName": "Ariana Grande",
+  "profilePhotoUrl": "https://example.com/ariana.jpg",
+  "selectedAspect": {
+    "aspectType": "moon_venus_trine",
+    "label": "Moon-Venus trine",
+    "shortMeaning": "sweet affection",
+    "primaryCluster": "Harmony",
+    "clusterThemes": ["Harmony"],
+    "orb": 0.42,
+    "userPlacement": {
+      "planet": "Moon",
+      "sign": "Virgo",
+      "house": 4,
+      "display": "Moon in Virgo in the 4th house",
+      "compactDisplay": "Moon in Virgo"
+    },
+    "celebPlacement": {
+      "planet": "Venus",
+      "sign": "Taurus",
+      "house": 8,
+      "display": "Venus in Taurus in the 8th house",
+      "compactDisplay": "Venus in Taurus"
+    },
+    "annotation": {
+      "title": "Moon-Venus trine · sweet affection",
+      "sentence": "Your Moon in Virgo trades the urge to fix everything for the stubborn physical ease of Ariana's Venus in Taurus, leaving a profound stillness that demands total surrender.",
+      "generatedBy": "llm",
+      "version": "v1"
+    }
+  },
+  "annotation": {
+    "title": "Moon-Venus trine · sweet affection",
+    "sentence": "Your Moon in Virgo trades the urge to fix everything for the stubborn physical ease of Ariana's Venus in Taurus, leaving a profound stillness that demands total surrender.",
+    "generatedBy": "llm",
+    "version": "v1"
+  },
+  "clusterScores": {
+    "Harmony": 78,
+    "Passion": 61,
+    "Connection": 54,
+    "Stability": 69,
+    "Growth": 47,
+    "overall": 64
+  },
+  "archetype": {
+    "version": "archetype-summary-v3",
+    "archetypeKey": "steady_hearth",
+    "label": "Steady Hearth",
+    "blurb": "This connection is shaped most by Harmony and Stability, creating a bond defined by emotional ease and reliability. What keeps it from feeling more complete is that shared evolution may feel slower or less activating. Overall, this has the feel of Steady Hearth.",
+    "dominantClusters": ["Harmony", "Stability"],
+    "supportClusters": ["Harmony", "Stability"],
+    "tensionClusters": ["Growth"],
+    "shape": "balanced",
+    "tone": "steady",
+    "confidence": 0.82
+  }
+}
+```
+
+Notes:
+
+- `selectedAspect` is the canonical aspect object for the surfaced card
+- `annotation` at the top level is duplicated for convenience
+- `selectedAspect.annotation` and top-level `annotation` should be treated as the same content
+- `clusterScores` is present as soon as celeb matches are ready
+- `archetype` is present as soon as celeb matches are ready
+- `annotation` is only present after the annotation worker completes
+- `clusterScores` may be `null` only if scoring failed unexpectedly; the frontend should tolerate that case
+- `archetype` may be `null` only if scoring failed unexpectedly; the frontend should tolerate that case
+
 ## Preview-Specific Type Notes
 
 For staged onboarding, the frontend should model the preview responses like this:
@@ -750,6 +1050,7 @@ type OnboardingPreviewResponse = {
   celebAnnotationsStatus: AsyncStatus;
   celebAspectBank: CelebAspectBank | null;
   topAspects: CelebAspectBucket[];
+  topCelebMatches: TopCelebMatch[];
   overviewMode: 'romantic';
   status: 'onboarding_preview_created';
 };
@@ -761,6 +1062,7 @@ type OnboardingPreviewCelebResponse = {
   celebAnnotationsStatus: AsyncStatus;
   celebAspectBank: CelebAspectBank | null;
   topAspects: CelebAspectBucket[];
+  topCelebMatches: TopCelebMatch[];
   status:
     | 'celeb_matches_pending'
     | 'celeb_matches_running'
@@ -772,6 +1074,22 @@ type OnboardingPreviewCelebResponse = {
 ```
 
 This is the schema the frontend should implement against for the staged flow.
+
+## Mobile Integration Guidance
+
+Use this order of precedence in the app:
+
+1. `topCelebMatches`
+2. `celebAspectBank.topCelebMatches`
+3. `topAspects` only as a legacy fallback
+
+Recommended rendering behavior:
+
+- On preview creation: show overview immediately; celeb section is loading
+- On matches ready: render 3 cards from `topCelebMatches`
+- On annotations pending/running: show scores and archetype immediately, show annotation skeleton or placeholder copy
+- On annotations completed: hydrate each card’s annotation from `topCelebMatches[i].annotation`
+- On claim: keep using the returned `topCelebMatches` payload as-is; do not refetch unless needed
 
 ## Status Transition Rules
 
@@ -893,7 +1211,10 @@ Returned when backend processing fails.
 
 - The annotation worker is asynchronous and runs out of band from API Gateway
 - This is specifically to avoid the 30-second API Gateway timeout
-- Annotation generation currently uses Gemini intentionally for this copy style
+- Annotation generation is currently pinned to `claude-haiku-4-5`
+- Romantic summary generation is currently pinned to `claude-haiku-4-5`
+- Romantic profile blurb generation is currently pinned to `claude-haiku-4-5`
+- If the blurb fails validation, the backend retries it with `claude-haiku-4-5`
 - The onboarding flow currently generates annotations only for the top 3 onboarding slots
 
 ## Related Docs

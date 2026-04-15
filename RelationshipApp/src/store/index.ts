@@ -12,6 +12,7 @@ import type {
   CelebAspectBank,
   OnboardingPreviewResponse,
   TopAspect,
+  TopCelebMatch,
 } from '../../../shared/api/onboarding';
 
 export type TargetType = 'person' | 'celebrity' | null;
@@ -38,6 +39,7 @@ export interface ProfileRevealData {
   overview: string | null;
   romanticProfileBlurb: string | null;
   topAspects: TopAspect[];
+  topCelebMatches: TopCelebMatch[];
   celebAspectBank: CelebAspectBank | null;
   celebMatchesStatus: AsyncStatus | null;
   celebAnnotationsStatus: AsyncStatus | null;
@@ -45,7 +47,7 @@ export interface ProfileRevealData {
   fullResponse: OnboardingPreviewResponse;
 }
 
-export type { TopAspect };
+export type { TopAspect, TopCelebMatch };
 
 interface RelationshipSessionState {
   authStatus: RelationshipAuthStatus;
