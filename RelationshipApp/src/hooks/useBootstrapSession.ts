@@ -91,7 +91,7 @@ export function useBootstrapSession() {
       setBootstrapState({ bootstrapStatus: 'loading', bootstrapError: null });
 
       try {
-        const profile = await relationshipUsersApi.getProfileByFirebaseUid(user.uid);
+        const profile = await relationshipUsersApi.getMe();
         setProfile(profile);
         setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
       } catch (error) {

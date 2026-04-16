@@ -97,7 +97,7 @@ export const SelectCelebrityScreen: React.FC<Props> = ({ navigation }) => {
           page: targetPage,
           limit: 20,
           search: search.trim() || undefined,
-          sortBy: 'firstName',
+          sortBy: 'name',
           sortOrder: 'asc',
         });
 

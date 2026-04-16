@@ -6,6 +6,12 @@ import { CreateSelfProfileScreen } from '../screens/CreateSelfProfileScreen';
 import { ProfileRevealScreen } from '../screens/ProfileRevealScreen';
 import { CreateAccountScreen } from '../screens/CreateAccountScreen';
 import { SignInScreen } from '../screens/SignInScreen';
+import { SelfProfileSuccessScreen } from '../screens/SelfProfileSuccessScreen';
+import { ChooseTargetTypeScreen } from '../screens/ChooseTargetTypeScreen';
+import { CreatePartnerScreen } from '../screens/CreatePartnerScreen';
+import { SelectCelebrityScreen } from '../screens/SelectCelebrityScreen';
+import { RelationshipPreviewScreen } from '../screens/RelationshipPreviewScreen';
+import { AskScreen } from '../screens/AskScreen';
 import { UnlockScreen } from '../screens/UnlockScreen';
 import { FullRelationshipAnalysisScreen } from '../screens/FullRelationshipAnalysisScreen';
 import { MainTabs } from './MainTabs';
@@ -18,6 +24,17 @@ export type RelationshipRootParamList = {
   ProfileReveal: undefined;
   CreateAccount: undefined;
   SignIn: undefined;
+  SelfProfileSuccess: undefined;
+  ChooseTargetType: undefined;
+  CreatePartner: undefined;
+  SelectCelebrity: undefined;
+  RelationshipPreview: undefined;
+  AskIris:
+    | {
+        context: 'home' | 'profile' | 'relationship';
+        relationshipLabel?: string;
+      }
+    | undefined;
   Unlock: undefined;
   FullRelationshipAnalysis: undefined;
   Main: undefined;
@@ -76,6 +93,12 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="ProfileReveal" component={ProfileRevealScreen} />
         <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
         <Stack.Screen name="SignIn" component={SignInScreen} />
+        <Stack.Screen name="SelfProfileSuccess" component={SelfProfileSuccessScreen} />
+        <Stack.Screen name="ChooseTargetType" component={ChooseTargetTypeScreen} />
+        <Stack.Screen name="CreatePartner" component={CreatePartnerScreen} />
+        <Stack.Screen name="SelectCelebrity" component={SelectCelebrityScreen} />
+        <Stack.Screen name="RelationshipPreview" component={RelationshipPreviewScreen} />
+        <Stack.Screen name="AskIris" component={AskScreen} />
         <Stack.Screen name="Unlock" component={UnlockScreen} />
         <Stack.Screen name="FullRelationshipAnalysis" component={FullRelationshipAnalysisScreen} />
         <Stack.Screen name="Main" component={MainTabs} />

@@ -141,6 +141,11 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
         backendAppDomain: claimResponse.user.appDomain,
         isDomainExplicit: true,
         romanticOverview: claimResponse.overview,
+        romanticProfileBlurb: claimResponse.romanticProfileBlurb,
+        referencedCodes: claimResponse.referencedCodes ?? [],
+        celebAspectBank: claimResponse.celebAspectBank ?? null,
+        topAspects: claimResponse.topAspects ?? [],
+        topCelebMatches: claimResponse.topCelebMatches ?? [],
       });
 
       setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });

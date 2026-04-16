@@ -1,5 +1,6 @@
 import { SubjectDocument } from '../types/subject';
 import { APP_DOMAINS } from './appDomains';
+import type { CelebAspectBank, TopAspect, TopCelebMatch } from '../api/onboarding';
 
 export const RELATIONSHIP_APP_DOMAIN = APP_DOMAINS.relationshipApp;
 
@@ -53,6 +54,11 @@ export interface RelationshipAppProfile {
   isDomainExplicit: boolean;
   romanticOverview?: string;
   romanticOverviewStatus?: string;
+  romanticProfileBlurb?: string | null;
+  referencedCodes?: string[];
+  celebAspectBank?: CelebAspectBank | null;
+  topAspects?: TopAspect[];
+  topCelebMatches?: TopCelebMatch[];
 }
 
 export function getRelationshipAppRequestMetadata(): RelationshipAppUserRequestMetadata {

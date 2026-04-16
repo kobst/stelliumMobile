@@ -104,6 +104,23 @@ export const UnlockScreen: React.FC<Props> = ({ navigation }) => {
         >
           <Text style={styles.primaryButtonText}>{primaryLabel}</Text>
         </TouchableOpacity>
+        {hasRelationshipContext ? (
+          <TouchableOpacity
+            style={[styles.secondaryButton, { borderColor: colors.border }]}
+            onPress={() =>
+              navigation.navigate('AskIris', {
+                context: 'relationship',
+                relationshipLabel: previewAnalysis
+                  ? `${previewAnalysis.userA.name} + ${previewAnalysis.userB.name}`
+                  : undefined,
+              })
+            }
+          >
+            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+              Ask Iris About This Relationship
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity
           style={[styles.secondaryButton, { borderColor: colors.border }]}

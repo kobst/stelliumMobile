@@ -185,6 +185,7 @@ export interface OnboardingClaimResponse {
   celebAnnotationsStatus: AsyncStatus;
   celebAspectBank: CelebAspectBank | null;
   topAspects: TopAspect[];
+  topCelebMatches?: TopCelebMatch[];
   overviewMode: string;
   status: string;
 }

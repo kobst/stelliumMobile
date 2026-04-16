@@ -162,6 +162,19 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.secondaryButton, { borderColor: colors.border }]}
+          onPress={() =>
+            navigation.navigate('AskIris', {
+              context: 'relationship',
+              relationshipLabel: `${previewAnalysis.userA.name} + ${previewAnalysis.userB.name}`,
+            })
+          }
+        >
+          <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
+            Ask Iris About This Relationship
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.secondaryButton, { borderColor: colors.border }]}
           onPress={() => {
             clearActiveRelationshipFlow();
             navigation.replace('ChooseTargetType');

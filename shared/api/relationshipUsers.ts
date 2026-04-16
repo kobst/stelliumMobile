@@ -100,6 +100,41 @@ export const relationshipUsersApi = {
     return normalizeRelationshipAppProfile(response, request.firebaseUid);
   },
 
+  async getMe(): Promise<RelationshipAppProfile> {
+    const response = await relationshipApiClient.get<{
+      user: SubjectDocument;
+      userId: string;
+      birthChart?: Record<string, unknown>;
+      overview?: string | null;
+      romanticProfileBlurb?: string | null;
+      referencedCodes?: string[];
+      celebAspectBank?: import('./onboarding').CelebAspectBank | null;
+      topAspects?: import('./onboarding').TopAspect[];
+      topCelebMatches?: import('./onboarding').TopCelebMatch[];
+    }>('/relationship-app/me');
+
+    const normalized = normalizeRelationshipAppProfile(
+      {
+        user: {
+          ...response.user,
+          _id: response.userId || response.user._id,
+          birthChart: response.birthChart ?? response.user.birthChart,
+        },
+        overview: response.overview ?? undefined,
+      },
+      response.user.firebaseUid ?? null
+    );
+
+    return {
+      ...normalized,
+      romanticProfileBlurb: response.romanticProfileBlurb ?? null,
+      referencedCodes: response.referencedCodes ?? [],
+      celebAspectBank: response.celebAspectBank ?? null,
+      topAspects: response.topAspects ?? [],
+      topCelebMatches: response.topCelebMatches ?? [],
+    };
+  },
+
   async createProfileUnknownTime(
     request: Omit<RelationshipAppCreateUserUnknownTimeRequest, 'appDomain' | 'clientProduct'>
   ): Promise<RelationshipAppProfile> {
