@@ -20,6 +20,35 @@ export type RelationshipAuthStatus = 'booting' | 'signedOut' | 'signedIn';
 export type RelationshipBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type RelationshipWorkflowPhase = 'idle' | 'starting' | 'polling' | 'completed' | 'error';
 
+export type SubscriptionTier = 'free' | 'monthly' | 'annual';
+
+export interface CreditsState {
+  balance: number;
+  fromPlan: number;
+  purchased: number;
+  planRenewsAt: string | null;
+  planName: string | null;
+  planPriceLabel: string | null;
+  planCreditsPerCycle: number | null;
+}
+
+export interface SubscriptionState {
+  tier: SubscriptionTier;
+  renewsAt: string | null;
+  label: string;
+}
+
+export type AskRole = 'user' | 'iris';
+
+export interface AskMessage {
+  id: string;
+  role: AskRole;
+  text: string;
+  createdAt: string;
+}
+
+export type AskThreadKey = 'profile' | 'home' | `relationship:${string}`;
+
 export interface GuestProfileDraft {
   firstName: string;
   lastName: string;
@@ -82,7 +111,17 @@ interface RelationshipFlowState {
   historyError: string | null;
 }
 
-interface RelationshipAppStore extends RelationshipSessionState, OnboardingFlowState, RelationshipFlowState {
+interface CreditsFlowState {
+  credits: CreditsState | null;
+  subscription: SubscriptionState | null;
+  askThreads: Record<string, AskMessage[]>;
+}
+
+interface RelationshipAppStore
+  extends RelationshipSessionState,
+    OnboardingFlowState,
+    RelationshipFlowState,
+    CreditsFlowState {
   setAuthState: (payload: {
     authStatus: RelationshipAuthStatus;
     firebaseUid: string | null;
@@ -121,6 +160,11 @@ interface RelationshipAppStore extends RelationshipSessionState, OnboardingFlowS
     historyError?: string | null;
   }) => void;
   clearActiveRelationshipFlow: () => void;
+  setCredits: (value: CreditsState | null) => void;
+  spendCredits: (amount: number) => void;
+  setSubscription: (value: SubscriptionState | null) => void;
+  appendAskMessage: (threadKey: AskThreadKey, message: AskMessage) => void;
+  clearAskThread: (threadKey: AskThreadKey) => void;
 }
 
 const initialSessionState: RelationshipSessionState = {
@@ -136,6 +180,12 @@ const initialSessionState: RelationshipSessionState = {
 const initialOnboardingState: OnboardingFlowState = {
   guestProfileDraft: null,
   profileReveal: null,
+};
+
+const initialCreditsState: CreditsFlowState = {
+  credits: null,
+  subscription: null,
+  askThreads: {},
 };
 
 const initialFlowState: RelationshipFlowState = {
@@ -160,6 +210,7 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
   ...initialSessionState,
   ...initialOnboardingState,
   ...initialFlowState,
+  ...initialCreditsState,
   setAuthState: ({ authStatus, firebaseUid, firebaseEmail }) =>
     set({
       authStatus,
@@ -184,6 +235,7 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       ...initialSessionState,
       ...initialOnboardingState,
       ...initialFlowState,
+      ...initialCreditsState,
       authStatus: 'signedOut',
       bootstrapStatus: 'ready',
     }),
@@ -241,5 +293,42 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       workflowStatus: null,
       workflowPhase: 'idle',
       workflowError: null,
+    }),
+  setCredits: (value) => set({ credits: value }),
+  spendCredits: (amount) =>
+    set((state) => {
+      if (!state.credits) {
+        return {};
+      }
+      const purchasedSpend = Math.min(state.credits.purchased, amount);
+      const remainder = amount - purchasedSpend;
+      const planSpend = Math.min(state.credits.fromPlan, remainder);
+      const nextPurchased = state.credits.purchased - purchasedSpend;
+      const nextFromPlan = state.credits.fromPlan - planSpend;
+      return {
+        credits: {
+          ...state.credits,
+          purchased: nextPurchased,
+          fromPlan: nextFromPlan,
+          balance: nextPurchased + nextFromPlan,
+        },
+      };
+    }),
+  setSubscription: (value) => set({ subscription: value }),
+  appendAskMessage: (threadKey, message) =>
+    set((state) => ({
+      askThreads: {
+        ...state.askThreads,
+        [threadKey]: [...(state.askThreads[threadKey] ?? []), message],
+      },
+    })),
+  clearAskThread: (threadKey) =>
+    set((state) => {
+      if (!(threadKey in state.askThreads)) {
+        return {};
+      }
+      const next = { ...state.askThreads };
+      delete next[threadKey];
+      return { askThreads: next };
     }),
 }));

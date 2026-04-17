@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
 
 interface PlaceholderScreenProps {
@@ -17,6 +18,8 @@ interface PlaceholderScreenProps {
   secondaryLabel?: string;
   onPrimaryPress?: () => void;
   onSecondaryPress?: () => void;
+  backLabel?: string;
+  showBack?: boolean;
 }
 
 export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({
@@ -28,12 +31,28 @@ export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({
   secondaryLabel,
   onPrimaryPress,
   onSecondaryPress,
+  backLabel = 'Back',
+  showBack,
 }) => {
   const { colors } = useTheme();
+  const navigation = useNavigation();
+  const canGoBack = navigation.canGoBack();
+  const shouldShowBack = showBack ?? canGoBack;
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
       <View style={styles.content}>
+        {shouldShowBack ? (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.goBack()}
+            style={styles.backLink}
+            accessibilityRole="button"
+            accessibilityLabel="Back to previous screen"
+          >
+            <Text style={[styles.backText, { color: colors.textMuted }]}>← {backLabel}</Text>
+          </TouchableOpacity>
+        ) : null}
         {eyebrow ? (
           <Text style={[styles.eyebrow, { color: colors.accent }]}>{eyebrow}</Text>
         ) : null}
@@ -77,7 +96,16 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: 16,
-    paddingTop: 32,
+    paddingTop: 12,
+  },
+  backLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    marginBottom: 4,
+  },
+  backText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   eyebrow: {
     fontSize: 12,
