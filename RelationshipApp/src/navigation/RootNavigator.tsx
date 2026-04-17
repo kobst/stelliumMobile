@@ -15,6 +15,7 @@ import { AskScreen } from '../screens/AskScreen';
 import { UnlockScreen } from '../screens/UnlockScreen';
 import { FullRelationshipAnalysisScreen } from '../screens/FullRelationshipAnalysisScreen';
 import { RomanticProfileFullScreen } from '../screens/RomanticProfileFullScreen';
+import { AddConnectionScreen } from '../screens/AddConnectionScreen';
 import { MainTabs } from './MainTabs';
 import { BootstrapStatusScreen } from '../screens/BootstrapStatusScreen';
 import { PlaceholderScreen } from '../components/PlaceholderScreen';
@@ -41,6 +42,7 @@ export type RelationshipRootParamList = {
   Unlock: undefined;
   FullRelationshipAnalysis: undefined;
   RomanticProfileFull: undefined;
+  AddConnection: undefined;
   EditBirthDetails: undefined;
   Notifications: undefined;
   Privacy: undefined;
@@ -110,6 +112,7 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="Unlock" component={UnlockScreen} />
         <Stack.Screen name="FullRelationshipAnalysis" component={FullRelationshipAnalysisScreen} />
         <Stack.Screen name="RomanticProfileFull" component={RomanticProfileFullScreen} />
+        <Stack.Screen name="AddConnection" component={AddConnectionScreen} />
         <Stack.Screen
           name="EditBirthDetails"
           component={EditBirthDetailsPlaceholder}

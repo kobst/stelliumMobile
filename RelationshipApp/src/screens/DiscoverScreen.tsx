@@ -16,6 +16,7 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { celebrityToSubject, getBigThree, getCelebritySunSign } from '../utils/mainShell';
+import { TopCelebMatchesRail } from '../components/TopCelebMatchesRail';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
@@ -188,6 +189,12 @@ export const DiscoverScreen: React.FC = () => {
             connection the moment something catches.
           </Text>
         </View>
+
+        <TopCelebMatchesRail
+          title="Your Chart in the Wild"
+          subtitle="Celeb overlaps from your saved relationship-app profile."
+          matches={(profile?.topCelebMatches ?? []).slice(0, 5)}
+        />
 
         <View style={[styles.articleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.articleEyebrow, { color: colors.accent }]}>This Week</Text>

@@ -62,9 +62,37 @@ export const relationshipsApi = {
   },
 
   getUserCompositeCharts: async (ownerUserId: string): Promise<UserCompositeChart[]> => {
-    return relationshipApiClient.post<UserCompositeChart[]>('/getUserCompositeCharts', {
-      ownerUserId,
-    });
+    const startedAt = Date.now();
+    if (__DEV__) {
+      console.log('[relationshipsApi.getUserCompositeCharts] request', { ownerUserId });
+    }
+    try {
+      const result = await relationshipApiClient.post<UserCompositeChart[]>(
+        '/getUserCompositeCharts',
+        { ownerUserId }
+      );
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[relationshipsApi.getUserCompositeCharts] response', {
+          ownerUserId,
+          durationMs: Date.now() - startedAt,
+          isArray: Array.isArray(result),
+          count: Array.isArray(result) ? result.length : null,
+        });
+      }
+      return result;
+    } catch (error) {
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[relationshipsApi.getUserCompositeCharts] error', {
+          ownerUserId,
+          durationMs: Date.now() - startedAt,
+          message: error instanceof Error ? error.message : String(error),
+          error,
+        });
+      }
+      throw error;
+    }
   },
 
   chatForUserRelationship: async (

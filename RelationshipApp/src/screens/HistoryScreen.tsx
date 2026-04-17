@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
+  Alert,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -13,16 +15,59 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
-import { TopCelebMatchesRail } from '../components/TopCelebMatchesRail';
 import { buildHistorySelectionState } from './historySelection';
 import {
   getRelationshipArchetypeLabel,
-  getRelationshipOverviewExcerpt,
-  getRelationshipPairLabel,
-  getRelationshipTopCluster,
+  getInitials,
 } from '../utils/mainShell';
+import { CreditPill } from '../components/CreditPill';
+import { CountedFilterPills, type CountedPillOption } from '../components/CountedFilterPills';
+import {
+  RelationshipCard,
+  type RelationshipTier,
+} from '../components/RelationshipCard';
+import { RelationshipEmptyState } from '../components/RelationshipEmptyState';
+import type { UserCompositeChart } from '../../../shared/api/relationships';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
+
+type Filter = 'all' | 'people' | 'celebs';
+
+function resolveTier(relationship: UserCompositeChart): RelationshipTier {
+  if (relationship.completeAnalysis && Object.keys(relationship.completeAnalysis).length > 0) {
+    return 'full';
+  }
+  if (relationship.clusterScoring) {
+    return 'overview';
+  }
+  return 'blurb';
+}
+
+function resolveOtherSide(
+  relationship: UserCompositeChart,
+  selfProfileId: string | null
+): { name: string; initial: string } {
+  const selfIsA = Boolean(selfProfileId) && relationship.userA_id === selfProfileId;
+  const otherName = selfIsA ? relationship.userB_name : relationship.userA_name;
+  const fallbackName = selfIsA ? relationship.userA_name : relationship.userB_name;
+  const name = otherName || fallbackName || 'Connection';
+  return {
+    name,
+    initial: getInitials(name) || name.charAt(0).toUpperCase() || '·',
+  };
+}
+
+function resolveAspectLine(relationship: UserCompositeChart): string | null {
+  const first = relationship.synastryAspects?.[0];
+  if (!first) {
+    return null;
+  }
+  const { planet1, planet2, aspectType } = first;
+  if (!planet1 || !planet2 || !aspectType) {
+    return null;
+  }
+  return `${planet1}-${planet2} ${aspectType}`;
+}
 
 export const HistoryScreen: React.FC = () => {
   const navigation = useNavigation<RootNavigation>();
@@ -37,160 +82,220 @@ export const HistoryScreen: React.FC = () => {
     (state) => state.clearActiveRelationshipFlow
   );
   const profile = useRelationshipAppStore((state) => state.profile);
-  const [filter, setFilter] = React.useState<'all' | 'people' | 'celebs'>('all');
+  const credits = useRelationshipAppStore((state) => state.credits);
 
-  const filteredRelationships = relationshipHistory.filter((relationship) => {
-    if (filter === 'all') {
-      return true;
-    }
+  const [filter, setFilter] = useState<Filter>('all');
 
-    return filter === 'celebs'
-      ? Boolean(relationship.isCelebrityRelationship)
-      : !relationship.isCelebrityRelationship;
-  });
+  const selfProfileId = profile?.id ?? null;
+  const userInitial = getInitials(profile?.displayName ?? '') || '·';
+
+  const counts = useMemo(() => {
+    const celebs = relationshipHistory.filter((rel) => Boolean(rel.isCelebrityRelationship)).length;
+    const people = relationshipHistory.length - celebs;
+    return {
+      all: relationshipHistory.length,
+      people,
+      celebs,
+    };
+  }, [relationshipHistory]);
+
+  const filteredRelationships = useMemo(
+    () =>
+      relationshipHistory.filter((relationship) => {
+        if (filter === 'all') {
+          return true;
+        }
+        return filter === 'celebs'
+          ? Boolean(relationship.isCelebrityRelationship)
+          : !relationship.isCelebrityRelationship;
+      }),
+    [filter, relationshipHistory]
+  );
+
+  const filterOptions = useMemo<readonly CountedPillOption<Filter>[]>(
+    () => [
+      { key: 'all', label: 'All', count: counts.all },
+      { key: 'people', label: 'People', count: counts.people },
+      { key: 'celebs', label: 'Celebrities', count: counts.celebs },
+    ],
+    [counts]
+  );
+
+  const openAddConnection = useCallback(() => {
+    clearActiveRelationshipFlow();
+    navigation.navigate('AddConnection');
+  }, [clearActiveRelationshipFlow, navigation]);
+
+  const openRelationship = useCallback(
+    (relationship: UserCompositeChart) => {
+      const selectionState = buildHistorySelectionState(relationship);
+      setPreviewAnalysis(null);
+      setActiveRelationshipId(relationship._id);
+      setFullAnalysis(selectionState.fullAnalysis);
+      setWorkflowState({
+        workflowStatus: null,
+        workflowPhase: selectionState.workflowPhase,
+        workflowError: null,
+      });
+      navigation.navigate('Unlock');
+    },
+    [navigation, setActiveRelationshipId, setFullAnalysis, setPreviewAnalysis, setWorkflowState]
+  );
+
+  const showEmptyState =
+    !isHistoryLoading && !historyError && relationshipHistory.length === 0;
+  const showFilteredEmpty =
+    !isHistoryLoading && !historyError && relationshipHistory.length > 0 && filteredRelationships.length === 0;
+
+  const handlePullToRefresh = useCallback(() => {
+    refreshHistory(true).catch(() => undefined);
+  }, [refreshHistory]);
+
+  if (__DEV__) {
+    console.log('[HistoryScreen] render', {
+      isHistoryLoading,
+      historyError,
+      historyLength: relationshipHistory.length,
+      selfProfileId,
+      showEmptyState:
+        !isHistoryLoading && !historyError && relationshipHistory.length === 0,
+    });
+  }
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.eyebrow, { color: colors.primary }]}>Relationships</Text>
-        <Text style={[styles.title, { color: colors.text }]}>
-          Every connection you have created.
-        </Text>
-        <Text style={[styles.body, { color: colors.textMuted }]}>
-          This is the structured layer beneath Home: a full list, quick filters, and a direct path
-          into the gated relationship detail flow.
-        </Text>
-
-        <TouchableOpacity
-          style={[styles.refreshLink, { borderColor: colors.border }]}
-          onPress={() => refreshHistory(true).catch(() => undefined)}
-        >
-          <Text style={[styles.refreshLinkText, { color: colors.textMuted }]}>Refresh list</Text>
-        </TouchableOpacity>
-
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.primaryAction, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              clearActiveRelationshipFlow();
-              navigation.navigate('CreatePartner');
-            }}
-          >
-            <Text style={[styles.primaryActionText, { color: colors.onPrimary }]}>Add person</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.secondaryAction, { borderColor: colors.border }]}
-            onPress={() => {
-              clearActiveRelationshipFlow();
-              navigation.navigate('SelectCelebrity');
-            }}
-          >
-            <Text style={[styles.secondaryActionText, { color: colors.text }]}>Add celeb</Text>
-          </TouchableOpacity>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isHistoryLoading}
+            onRefresh={handlePullToRefresh}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        <View style={styles.topBar}>
+          <Text style={[styles.pageTitle, { color: colors.text }]}>Iris</Text>
+          <CreditPill
+            balance={credits?.balance ?? null}
+            onPress={() =>
+              Alert.alert(
+                'Buy credits',
+                'Open the Profile tab to purchase credits. Global purchase sheet coming soon.'
+              )
+            }
+          />
         </View>
 
-        <View style={styles.filterRow}>
-          {(['all', 'people', 'celebs'] as const).map((value) => {
-            const isActive = filter === value;
-            return (
-              <TouchableOpacity
-                key={value}
+        <View style={styles.headerBlock}>
+          <Text style={[styles.title, { color: colors.text }]}>Relationships</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+            Your connections and how your charts interact.
+          </Text>
+        </View>
+
+        {showEmptyState ? (
+          <RelationshipEmptyState onAddFirstConnection={openAddConnection} />
+        ) : (
+          <>
+            {relationshipHistory.length > 0 ? (
+              <CountedFilterPills
+                options={filterOptions}
+                selected={filter}
+                onSelect={setFilter}
+              />
+            ) : null}
+
+            {isHistoryLoading && relationshipHistory.length === 0 ? (
+              <View
                 style={[
-                  styles.filterChip,
-                  {
-                    backgroundColor: isActive ? colors.primaryContainer : colors.surface,
-                    borderColor: colors.border,
-                  },
+                  styles.statusCard,
+                  { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
                 ]}
-                onPress={() => setFilter(value)}
               >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    { color: isActive ? colors.primary : colors.textMuted },
-                  ]}
+                <Text style={[styles.statusText, { color: colors.textMuted }]}>
+                  Loading relationships…
+                </Text>
+                <TouchableOpacity
+                  style={[styles.refreshBtn, { borderColor: colors.ghostBorder }]}
+                  onPress={() => refreshHistory(true).catch(() => undefined)}
+                  activeOpacity={0.7}
                 >
-                  {value === 'all' ? 'All' : value === 'people' ? 'People' : 'Celebs'}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                  <Text style={[styles.refreshBtnText, { color: colors.textMuted }]}>
+                    Retry
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
-        <TopCelebMatchesRail
-          title="Your Chart in the Wild"
-          subtitle="Celeb overlaps from your saved relationship-app profile."
-          matches={(profile?.topCelebMatches ?? []).slice(0, 5)}
-        />
-
-        {isHistoryLoading ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardBody, { color: colors.textMuted }]}>Loading history...</Text>
-          </View>
-        ) : null}
-
-        {historyError ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardBody, { color: colors.textMuted }]}>{historyError}</Text>
-          </View>
-        ) : null}
-
-        {!isHistoryLoading && !historyError && filteredRelationships.length === 0 ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardBody, { color: colors.textMuted }]}>
-              No relationships match this filter yet.
-            </Text>
-          </View>
-        ) : null}
-
-        {filteredRelationships.map((relationship) => {
-          const topCluster = getRelationshipTopCluster(relationship);
-          const excerpt = getRelationshipOverviewExcerpt(relationship);
-
-          return (
-            <View
-              key={relationship._id}
-              style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            >
-              <Text style={[styles.cardTitle, { color: colors.text }]}>
-                {getRelationshipPairLabel(relationship)}
-              </Text>
-              <Text style={[styles.cardBody, { color: colors.textMuted }]}>
-                {getRelationshipArchetypeLabel(relationship)}
-              </Text>
-              <Text style={[styles.cardBody, { color: colors.textMuted }]}>
-                Top score: {topCluster ? `${topCluster.label} ${topCluster.score}` : 'Pending'}
-              </Text>
-              <Text style={[styles.cardBody, { color: colors.textMuted }]}>
-                Created: {new Date(relationship.createdAt).toLocaleDateString()}
-              </Text>
-              {excerpt ? (
-                <Text style={[styles.cardExcerpt, { color: colors.textMuted }]} numberOfLines={3}>
-                  {excerpt}
-                </Text>
-              ) : null}
-              <TouchableOpacity
-                style={[styles.secondaryButton, { borderColor: colors.border }]}
-                onPress={() => {
-                  const selectionState = buildHistorySelectionState(relationship);
-                  setPreviewAnalysis(null);
-                  setActiveRelationshipId(relationship._id);
-                  setFullAnalysis(selectionState.fullAnalysis);
-                  setWorkflowState({
-                    workflowStatus: null,
-                    workflowPhase: selectionState.workflowPhase,
-                    workflowError: null,
-                  });
-                  navigation.navigate('Unlock');
-                }}
+            {historyError ? (
+              <View
+                style={[
+                  styles.statusCard,
+                  { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                ]}
               >
-                <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
-                  Open Relationship
+                <Text style={[styles.statusText, { color: colors.error }]}>{historyError}</Text>
+                <TouchableOpacity
+                  style={[styles.refreshBtn, { borderColor: colors.ghostBorder }]}
+                  onPress={() => refreshHistory(true).catch(() => undefined)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.refreshBtnText, { color: colors.textMuted }]}>
+                    Refresh
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {filteredRelationships.map((relationship) => {
+              const kind = relationship.isCelebrityRelationship ? 'celeb' : 'person';
+              const other = resolveOtherSide(relationship, selfProfileId);
+              return (
+                <RelationshipCard
+                  key={relationship._id}
+                  kind={kind}
+                  name={other.name}
+                  archetype={getRelationshipArchetypeLabel(relationship)}
+                  aspect={resolveAspectLine(relationship)}
+                  tier={resolveTier(relationship)}
+                  userInitial={userInitial}
+                  otherInitial={other.initial}
+                  onPress={() => openRelationship(relationship)}
+                />
+              );
+            })}
+
+            {showFilteredEmpty ? (
+              <View
+                style={[
+                  styles.statusCard,
+                  { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                ]}
+              >
+                <Text style={[styles.statusText, { color: colors.textMuted }]}>
+                  No {filter === 'celebs' ? 'celebrity' : 'personal'} connections yet.
+                </Text>
+              </View>
+            ) : null}
+
+            {relationshipHistory.length > 0 ? (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={openAddConnection}
+                style={[styles.addFooter, { borderColor: colors.ghostBorder }]}
+              >
+                <View style={styles.addIcon}>
+                  <Text style={[styles.addIconGlyph, { color: colors.primary }]}>+</Text>
+                </View>
+                <Text style={[styles.addLabel, { color: colors.textMuted }]}>
+                  Add a connection
                 </Text>
               </TouchableOpacity>
-            </View>
-          );
-        })}
+            ) : null}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -199,106 +304,81 @@ export const HistoryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 48,
     gap: 16,
   },
-  eyebrow: {
-    fontSize: 12,
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pageTitle: {
+    fontSize: 22,
     fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
+    fontStyle: 'italic',
+  },
+  headerBlock: {
+    gap: 6,
   },
   title: {
     fontSize: 30,
     fontWeight: '700',
-    lineHeight: 36,
+    letterSpacing: -0.4,
   },
-  body: {
-    fontSize: 15,
-    lineHeight: 23,
+  subtitle: {
+    fontSize: 13.5,
+    lineHeight: 20,
   },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  primaryAction: {
-    flex: 1,
+  statusCard: {
+    borderWidth: 1,
     borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    padding: 16,
+    gap: 10,
+    alignItems: 'center',
   },
-  primaryActionText: {
-    fontSize: 15,
-    fontWeight: '700',
+  statusText: {
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
   },
-  secondaryAction: {
-    flex: 1,
-    borderRadius: 16,
+  refreshBtn: {
     borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    borderRadius: 100,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
   },
-  secondaryActionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  refreshLink: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  refreshLinkText: {
+  refreshBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
-  filterChip: {
-    borderRadius: 999,
+  addFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    paddingVertical: 20,
+    marginTop: 4,
   },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '700',
+  addIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(202, 190, 255, 0.12)',
   },
-  card: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 18,
-    gap: 8,
-  },
-  cardTitle: {
+  addIconGlyph: {
     fontSize: 18,
     fontWeight: '700',
   },
-  cardBody: {
+  addLabel: {
     fontSize: 14,
-    lineHeight: 20,
-  },
-  cardExcerpt: {
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  secondaryButton: {
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    marginTop: 8,
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'center',
   },
 });

@@ -109,6 +109,7 @@ interface RelationshipFlowState {
   relationshipHistory: UserCompositeChart[];
   isHistoryLoading: boolean;
   historyError: string | null;
+  hasFetchedHistory: boolean;
 }
 
 interface CreditsFlowState {
@@ -158,6 +159,7 @@ interface RelationshipAppStore
     relationshipHistory: UserCompositeChart[];
     isHistoryLoading?: boolean;
     historyError?: string | null;
+    hasFetchedHistory?: boolean;
   }) => void;
   clearActiveRelationshipFlow: () => void;
   setCredits: (value: CreditsState | null) => void;
@@ -204,6 +206,7 @@ const initialFlowState: RelationshipFlowState = {
   relationshipHistory: [],
   isHistoryLoading: false,
   historyError: null,
+  hasFetchedHistory: false,
 };
 
 export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
@@ -276,12 +279,19 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       workflowPhase: workflowPhase ?? state.workflowPhase,
       workflowError: workflowError === undefined ? state.workflowError : workflowError,
     })),
-  setRelationshipHistory: ({ relationshipHistory, isHistoryLoading = false, historyError = null }) =>
-    set({
+  setRelationshipHistory: ({
+    relationshipHistory,
+    isHistoryLoading = false,
+    historyError = null,
+    hasFetchedHistory,
+  }) =>
+    set((state) => ({
       relationshipHistory,
       isHistoryLoading,
       historyError,
-    }),
+      hasFetchedHistory:
+        hasFetchedHistory !== undefined ? hasFetchedHistory : state.hasFetchedHistory,
+    })),
   clearActiveRelationshipFlow: () =>
     set({
       activeTargetType: null,
