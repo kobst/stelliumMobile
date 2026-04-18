@@ -30,14 +30,14 @@ import {
   parseNumberInput,
 } from '../utils/birthData';
 import { BirthTimePicker } from '../components/BirthTimePicker';
-import { PulsingHeroIcon } from '../components/PulsingHeroIcon';
+import { SubmittingOverlay } from '../components/SubmittingOverlay';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
 
 const GENDER_OPTIONS = [
-  { label: 'Male', value: 'male' },
   { label: 'Female', value: 'female' },
-  { label: 'Non-binary', value: 'non-binary' },
+  { label: 'Male', value: 'male' },
+  { label: 'Other', value: 'other' },
 ] as const;
 
 const PARTNER_GENDER_OPTIONS = [
@@ -55,7 +55,7 @@ const STEPS = [
   {
     eyebrow: 'Step 2 of 6',
     title: 'How do you identify?',
-    subtitle: 'Choose the essence that best fits you.',
+    subtitle: 'Choose what fits you best.',
   },
   {
     eyebrow: 'Step 3 of 6',
@@ -101,16 +101,9 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const [showGenderDropdown, setShowGenderDropdown] = useState(false);
-  const [showPartnerGenderDropdown, setShowPartnerGenderDropdown] = useState(false);
   const [timeSet, setTimeSet] = useState(false);
 
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
-
-  const genderLabel = GENDER_OPTIONS.find((option) => option.value === gender)?.label;
-  const partnerGenderLabel = PARTNER_GENDER_OPTIONS.find(
-    (option) => option.value === preferredPartnerGender
-  )?.label;
 
   const formatDisplayDate = (iso: string): string => {
     const [year, month, day] = iso.split('-');
@@ -124,17 +117,12 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     return `${hours12}:${String(minutes).padStart(2, '0')} ${ampm}`;
   };
 
-  const closeTransientUi = () => {
-    setShowGenderDropdown(false);
-    setShowPartnerGenderDropdown(false);
-  };
-
   const getStepError = (step: number): string | null => {
     switch (step) {
       case 0:
-        return firstName.trim() && lastName.trim() ? null : 'Enter your first and last name.';
+        return firstName.trim() ? null : 'Enter your first name.';
       case 1:
-        return gender ? null : 'Select your gender.';
+        return gender ? null : 'Select how you identify.';
       case 2:
         return preferredPartnerGender ? null : 'Select a partner preference.';
       case 3:
@@ -225,7 +213,6 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const goBack = () => {
-    closeTransientUi();
     setSubmitError(null);
     setCurrentStep((step) => Math.max(0, step - 1));
   };
@@ -237,7 +224,6 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    closeTransientUi();
     setSubmitError(null);
     setCurrentStep((step) => Math.min(STEPS.length - 1, step + 1));
   };
@@ -250,7 +236,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     if (!gender) {
-      setSubmitError('Select your gender.');
+      setSubmitError('Select how you identify.');
       return;
     }
 
@@ -454,7 +440,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             <TextInput
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Last name"
+              placeholder="Last name (optional)"
               placeholderTextColor={colors.textSubtle}
               style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
             />
@@ -463,86 +449,80 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       case 1:
         return (
           <View style={styles.stepGroup}>
-            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Essence</Text>
-            <TouchableOpacity
-              style={[styles.selectInput, { backgroundColor: colors.surfaceHigh }]}
-              onPress={() => setShowGenderDropdown((value) => !value)}
-            >
-              <Text style={[styles.selectInputText, { color: gender ? colors.text : colors.textSubtle }]}>
-                {genderLabel ?? 'Select gender'}
-              </Text>
-              <Text style={[styles.selectChevron, { color: colors.textSubtle }]}>&#709;</Text>
-            </TouchableOpacity>
-            {showGenderDropdown ? (
-              <View style={[styles.dropdown, { backgroundColor: colors.surfaceLow }]}>
-                {GENDER_OPTIONS.map((option) => (
+            <View style={styles.chipRow}>
+              {GENDER_OPTIONS.map((option) => {
+                const active = option.value === gender;
+                return (
                   <TouchableOpacity
                     key={option.value}
+                    activeOpacity={0.85}
+                    onPress={() => setGender(option.value)}
                     style={[
-                      styles.dropdownOption,
-                      gender === option.value && { backgroundColor: colors.surfaceHigh },
+                      styles.chip,
+                      {
+                        backgroundColor: active
+                          ? 'rgba(202, 190, 255, 0.14)'
+                          : colors.surfaceHigh,
+                        borderColor: active
+                          ? 'rgba(202, 190, 255, 0.35)'
+                          : 'transparent',
+                      },
                     ]}
-                    onPress={() => {
-                      setGender(option.value);
-                      setShowGenderDropdown(false);
-                    }}
                   >
-                    <Text style={[styles.dropdownOptionText, { color: colors.text }]}>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: active ? colors.primary : colors.text },
+                      ]}
+                    >
                       {option.label}
                     </Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-            ) : null}
+                );
+              })}
+            </View>
           </View>
         );
       case 2:
         return (
           <View style={styles.stepGroup}>
-            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Preferred Partner Gender</Text>
-            <TouchableOpacity
-              style={[styles.selectInput, { backgroundColor: colors.surfaceHigh }]}
-              onPress={() => setShowPartnerGenderDropdown((value) => !value)}
-            >
-              <Text
-                style={[
-                  styles.selectInputText,
-                  { color: preferredPartnerGender ? colors.text : colors.textSubtle },
-                ]}
-              >
-                {partnerGenderLabel ?? 'Select preference'}
-              </Text>
-              <Text style={[styles.selectChevron, { color: colors.textSubtle }]}>&#709;</Text>
-            </TouchableOpacity>
-            {showPartnerGenderDropdown ? (
-              <View style={[styles.dropdown, { backgroundColor: colors.surfaceLow }]}>
-                {PARTNER_GENDER_OPTIONS.map((option) => (
+            <View style={styles.chipRow}>
+              {PARTNER_GENDER_OPTIONS.map((option) => {
+                const active = option.value === preferredPartnerGender;
+                return (
                   <TouchableOpacity
                     key={option.value}
+                    activeOpacity={0.85}
+                    onPress={() => setPreferredPartnerGender(option.value)}
                     style={[
-                      styles.dropdownOption,
-                      preferredPartnerGender === option.value && {
-                        backgroundColor: colors.surfaceHigh,
+                      styles.chip,
+                      {
+                        backgroundColor: active
+                          ? 'rgba(202, 190, 255, 0.14)'
+                          : colors.surfaceHigh,
+                        borderColor: active
+                          ? 'rgba(202, 190, 255, 0.35)'
+                          : 'transparent',
                       },
                     ]}
-                    onPress={() => {
-                      setPreferredPartnerGender(option.value);
-                      setShowPartnerGenderDropdown(false);
-                    }}
                   >
-                    <Text style={[styles.dropdownOptionText, { color: colors.text }]}>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: active ? colors.primary : colors.text },
+                      ]}
+                    >
                       {option.label}
                     </Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-            ) : null}
+                );
+              })}
+            </View>
           </View>
         );
       case 3:
         return (
           <View style={styles.stepGroup}>
-            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Date of Alignment</Text>
             <View style={[styles.valueChip, { backgroundColor: colors.surfaceHigh }]}>
               <Text style={[styles.valueChipText, { color: colors.text }]}>
                 {formatDisplayDate(dateOfBirth)}
@@ -557,8 +537,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       case 4:
         return (
           <View style={styles.stepGroup}>
-            <View style={styles.fieldLabelRow}>
-              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Moment of Breath</Text>
+            <View style={styles.unknownToggleRow}>
               <TouchableOpacity
                 onPress={() => {
                   setBirthTimeUnknown((value) => !value);
@@ -602,7 +581,6 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       case 5:
         return (
           <View style={styles.stepGroup}>
-            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Terrestrial Coordinates</Text>
             <PlaceAutocompleteInput
               value={placeOfBirth}
               onChangeText={setPlaceOfBirth}
@@ -612,7 +590,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               onBlur={() => {
                 handlePlaceResolved().catch(() => undefined);
               }}
-              placeholder="Search City, Country"
+              placeholder="City, Country"
               canUseSuggestions={canUseGoogleServices}
             />
             {placeOfBirth ? (
@@ -638,21 +616,10 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   if (isSubmitting) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
-        <View style={styles.loadingContainer}>
-          <PulsingHeroIcon
-            backgroundColor={colors.surfaceHigh}
-            glyphColor={colors.accent}
-            haloColor={colors.accent}
-          />
-          <Text style={[styles.loadingTitle, { color: colors.text }]}>
-            Iris is reading your chart
-          </Text>
-          <Text style={[styles.loadingSubtitle, { color: colors.textMuted }]}>
-            Mapping your planetary placements and the aspects that shape how you love.
-          </Text>
-        </View>
-      </SafeAreaView>
+      <SubmittingOverlay
+        title="Iris is reading your chart"
+        subtitle="Mapping your planetary placements and the aspects that shape how you love."
+      />
     );
   }
 
@@ -762,24 +729,6 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 24,
   },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    gap: 20,
-  },
-  loadingTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  loadingSubtitle: {
-    fontSize: 15,
-    lineHeight: 23,
-    textAlign: 'center',
-    paddingHorizontal: 16,
-  },
   topHeader: {
     alignItems: 'center',
     paddingTop: 4,
@@ -868,41 +817,32 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
     textTransform: 'uppercase',
   },
-  fieldLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   input: {
     borderRadius: 12,
     fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  selectInput: {
-    borderRadius: 12,
+  chipRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  chip: {
+    flexGrow: 1,
+    flexBasis: '30%',
+    borderWidth: 1,
+    borderRadius: 100,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
   },
-  selectInputText: {
-    fontSize: 16,
+  chipText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
-  selectChevron: {
-    fontSize: 18,
-  },
-  dropdown: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  dropdownOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  dropdownOptionText: {
-    fontSize: 16,
+  unknownToggleRow: {
+    alignItems: 'flex-end',
   },
   unknownToggleText: {
     fontSize: 13,
