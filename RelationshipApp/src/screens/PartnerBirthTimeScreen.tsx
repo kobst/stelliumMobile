@@ -40,8 +40,9 @@ export function PartnerBirthTimeScreen() {
       onToggleUnknown={handleToggleUnknown}
       onChange={handleChange}
       onContinue={handleContinue}
-      continueLabel="Continue"
+      continueVariant="arrow"
       backLabel="Back"
+      progress={{ current: 2, total: 5 }}
     />
   );
 }

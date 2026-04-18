@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -16,7 +15,9 @@ import { useRelationshipAppStore, type PartnerDraft } from '../store';
 import { SettingsNavBar } from '../components/SettingsNavBar';
 import { Avatar } from '../components/Avatar';
 import { SubmittingOverlay } from '../components/SubmittingOverlay';
-import { externalApi, relationshipsApi, usersApi } from '../api';
+import { ProgressDashes } from '../components/ProgressDashes';
+import { WizardArrowButton } from '../components/WizardArrowButton';
+import { externalApi, relationshipsApi, relationshipUsersApi } from '../api';
 import { submitPartnerPreview } from './createPartnerFlow';
 import { startRelationshipPreview } from './previewFlow';
 import { relationshipAppEnv } from '../config/env';
@@ -149,8 +150,8 @@ export function PartnerConfirmScreen() {
             canUseGoogleServices,
             geocodeLocation: externalApi.geocodeLocation,
             fetchTimeZone: externalApi.fetchTimeZone,
-            createGuestSubject: usersApi.createGuestSubject,
-            createGuestSubjectUnknownTime: usersApi.createGuestSubjectUnknownTime,
+            createGuestSubject: relationshipUsersApi.createGuestSubject,
+            createGuestSubjectUnknownTime: relationshipUsersApi.createGuestSubjectUnknownTime,
           }
         );
         const { preview, updatedHistory } = await startRelationshipPreview(
@@ -235,6 +236,9 @@ export function PartnerConfirmScreen() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
       <SettingsNavBar title="Confirm" backLabel="Back" />
+      <View style={styles.progressWrap}>
+        <ProgressDashes current={4} total={5} />
+      </View>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -316,25 +320,16 @@ export function PartnerConfirmScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          onPress={handleCreate}
-          disabled={!canSubmit || isSubmitting}
-          activeOpacity={0.85}
-          style={[
-            styles.primaryButton,
-            {
-              backgroundColor: colors.primary,
-              opacity: !canSubmit || isSubmitting ? 0.5 : 1,
-            },
-          ]}
-        >
-          <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-            {isSubmitting ? 'Creating…' : 'Create Connection'}
-          </Text>
-        </TouchableOpacity>
         <Text style={[styles.caption, { color: colors.textSubtle }]}>
           Short blurb and archetype are free
         </Text>
+        <View style={styles.footerActions}>
+          <WizardArrowButton
+            onPress={handleCreate}
+            disabled={!canSubmit || isSubmitting}
+            accessibilityLabel="Create Connection"
+          />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -420,20 +415,18 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     lineHeight: 19,
   },
+  progressWrap: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
   footer: {
     paddingHorizontal: 20,
     paddingBottom: 12,
     paddingTop: 8,
-    gap: 8,
+    gap: 10,
   },
-  primaryButton: {
-    borderRadius: 14,
-    paddingVertical: 16,
-  },
-  primaryButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
+  footerActions: {
+    alignItems: 'flex-end',
   },
   caption: {
     fontSize: 12,

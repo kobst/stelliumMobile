@@ -9,6 +9,8 @@ import {
 import { useTheme } from '../theme';
 import { BirthDatePicker } from './BirthDatePicker';
 import { SettingsNavBar } from './SettingsNavBar';
+import { ProgressDashes } from './ProgressDashes';
+import { WizardArrowButton } from './WizardArrowButton';
 
 interface BirthDateStepProps {
   title: string;
@@ -17,7 +19,9 @@ interface BirthDateStepProps {
   onChange: (next: string) => void;
   onContinue: () => void;
   continueLabel?: string;
+  continueVariant?: 'arrow' | 'pill';
   backLabel?: string;
+  progress?: { current: number; total: number };
 }
 
 function formatDisplay(iso: string): string {
@@ -36,13 +40,21 @@ export function BirthDateStep({
   onChange,
   onContinue,
   continueLabel = 'Continue',
+  continueVariant = 'pill',
   backLabel = 'Back',
+  progress,
 }: BirthDateStepProps) {
   const { colors } = useTheme();
+  const isWizard = continueVariant === 'arrow';
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
       <SettingsNavBar title="Birth Date" backLabel={backLabel} />
+      {progress ? (
+        <View style={styles.progressWrap}>
+          <ProgressDashes current={progress.current} total={progress.total} />
+        </View>
+      ) : null}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
         {subtitle ? (
@@ -57,16 +69,20 @@ export function BirthDateStep({
       <View style={styles.pickerWrap}>
         <BirthDatePicker value={value} onChange={onChange} />
       </View>
-      <View style={styles.footer}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={onContinue}
-          style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-        >
-          <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-            {continueLabel}
-          </Text>
-        </TouchableOpacity>
+      <View style={[styles.footer, isWizard ? styles.footerWizard : null]}>
+        {isWizard ? (
+          <WizardArrowButton onPress={onContinue} />
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={onContinue}
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+          >
+            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
+              {continueLabel}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -74,6 +90,10 @@ export function BirthDateStep({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  progressWrap: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
   header: {
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -91,23 +111,28 @@ const styles = StyleSheet.create({
   },
   valueChip: {
     alignSelf: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 100,
-    marginTop: 12,
+    marginTop: 14,
   },
   valueChipText: {
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: '600',
+    letterSpacing: 0.3,
   },
   pickerWrap: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
   },
   footer: {
     paddingHorizontal: 20,
     paddingBottom: 12,
     paddingTop: 8,
+  },
+  footerWizard: {
+    alignItems: 'flex-end',
   },
   primaryButton: {
     borderRadius: 14,

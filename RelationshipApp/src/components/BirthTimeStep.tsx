@@ -9,6 +9,8 @@ import {
 import { useTheme } from '../theme';
 import { BirthTimePicker } from './BirthTimePicker';
 import { SettingsNavBar } from './SettingsNavBar';
+import { ProgressDashes } from './ProgressDashes';
+import { WizardArrowButton } from './WizardArrowButton';
 
 interface BirthTimeStepProps {
   title: string;
@@ -19,7 +21,9 @@ interface BirthTimeStepProps {
   onToggleUnknown: () => void;
   onContinue: () => void;
   continueLabel?: string;
+  continueVariant?: 'arrow' | 'pill';
   backLabel?: string;
+  progress?: { current: number; total: number };
 }
 
 function formatDisplay(time: string): string {
@@ -41,13 +45,21 @@ export function BirthTimeStep({
   onToggleUnknown,
   onContinue,
   continueLabel = 'Continue',
+  continueVariant = 'pill',
   backLabel = 'Back',
+  progress,
 }: BirthTimeStepProps) {
   const { colors } = useTheme();
+  const isWizard = continueVariant === 'arrow';
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
       <SettingsNavBar title="Birth Time" backLabel={backLabel} />
+      {progress ? (
+        <View style={styles.progressWrap}>
+          <ProgressDashes current={progress.current} total={progress.total} />
+        </View>
+      ) : null}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
         {subtitle ? (
@@ -55,14 +67,32 @@ export function BirthTimeStep({
         ) : null}
       </View>
       <View style={styles.toggleRow}>
-        <TouchableOpacity onPress={onToggleUnknown} activeOpacity={0.7}>
-          <Text
+        <TouchableOpacity
+          onPress={onToggleUnknown}
+          activeOpacity={0.7}
+          style={styles.checkboxRow}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <View
             style={[
-              styles.unknownToggleText,
-              { color: birthTimeUnknown ? colors.primary : colors.textSubtle },
+              styles.checkboxBox,
+              {
+                backgroundColor: birthTimeUnknown ? colors.primary : 'transparent',
+                borderColor: birthTimeUnknown ? colors.primary : colors.ghostBorder,
+              },
             ]}
           >
-            {birthTimeUnknown ? 'Unknown' : "I don't know"}
+            {birthTimeUnknown ? (
+              <Text style={[styles.checkboxMark, { color: colors.onPrimary }]}>✓</Text>
+            ) : null}
+          </View>
+          <Text
+            style={[
+              styles.checkboxLabel,
+              { color: birthTimeUnknown ? colors.text : colors.textMuted },
+            ]}
+          >
+            {birthTimeUnknown ? 'Birth time unknown' : "I don't know the birth time"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -91,16 +121,20 @@ export function BirthTimeStep({
           </View>
         </View>
       )}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={onContinue}
-          style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-        >
-          <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-            {continueLabel}
-          </Text>
-        </TouchableOpacity>
+      <View style={[styles.footer, isWizard ? styles.footerWizard : null]}>
+        {isWizard ? (
+          <WizardArrowButton onPress={onContinue} />
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={onContinue}
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+          >
+            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
+              {continueLabel}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -108,6 +142,10 @@ export function BirthTimeStep({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  progressWrap: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
   header: {
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -124,28 +162,49 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   toggleRow: {
-    alignItems: 'flex-end',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    marginTop: 12,
+    marginTop: 14,
   },
-  unknownToggleText: {
-    fontSize: 13,
-    fontWeight: '600',
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  checkboxBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxMark: {
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   valueChip: {
     alignSelf: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 100,
-    marginTop: 12,
+    marginTop: 14,
   },
   valueChipText: {
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: '600',
+    letterSpacing: 0.3,
   },
   pickerWrap: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
   },
   helperCard: {
     borderWidth: 1,
@@ -162,6 +221,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     paddingTop: 8,
+  },
+  footerWizard: {
+    alignItems: 'flex-end',
   },
   primaryButton: {
     borderRadius: 14,

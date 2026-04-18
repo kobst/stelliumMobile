@@ -21,6 +21,8 @@ import {
 } from '../store';
 import { SettingsNavBar } from '../components/SettingsNavBar';
 import { Avatar } from '../components/Avatar';
+import { ProgressDashes } from '../components/ProgressDashes';
+import { WizardArrowButton } from '../components/WizardArrowButton';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
@@ -68,6 +70,9 @@ export function PartnerIdentityScreen() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
       <SettingsNavBar title="Add Connection" backLabel="Cancel" />
+      <View style={styles.progressWrap}>
+        <ProgressDashes current={0} total={5} />
+      </View>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -205,19 +210,7 @@ export function PartnerIdentityScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity
-            onPress={handleContinue}
-            disabled={!canContinue}
-            activeOpacity={0.85}
-            style={[
-              styles.primaryButton,
-              { backgroundColor: colors.primary, opacity: canContinue ? 1 : 0.4 },
-            ]}
-          >
-            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-              Continue
-            </Text>
-          </TouchableOpacity>
+          <WizardArrowButton onPress={handleContinue} disabled={!canContinue} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -318,14 +311,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     paddingTop: 8,
+    alignItems: 'flex-end',
   },
-  primaryButton: {
-    borderRadius: 14,
-    paddingVertical: 16,
-  },
-  primaryButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
+  progressWrap: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
   },
 });

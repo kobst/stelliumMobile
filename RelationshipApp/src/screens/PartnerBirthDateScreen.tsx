@@ -33,8 +33,9 @@ export function PartnerBirthDateScreen() {
       value={value}
       onChange={handleChange}
       onContinue={handleContinue}
-      continueLabel="Continue"
+      continueVariant="arrow"
       backLabel="Back"
+      progress={{ current: 1, total: 5 }}
     />
   );
 }

@@ -10,13 +10,6 @@ import {
 } from 'react-native';
 import { BirthDatePicker } from '../components/BirthDatePicker';
 import { StackScreenProps } from '@react-navigation/stack';
-import Svg, {
-  Circle,
-  Defs,
-  LinearGradient as SvgLinearGradient,
-  Path,
-  Stop,
-} from 'react-native-svg';
 import { PlaceAutocompleteInput } from '../components/PlaceAutocompleteInput';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore, GuestProfileDraft } from '../store';
@@ -31,6 +24,9 @@ import {
 } from '../utils/birthData';
 import { BirthTimePicker } from '../components/BirthTimePicker';
 import { SubmittingOverlay } from '../components/SubmittingOverlay';
+import { ProgressDashes } from '../components/ProgressDashes';
+import { WizardArrowButton } from '../components/WizardArrowButton';
+import { Avatar } from '../components/Avatar';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
 
@@ -48,34 +44,44 @@ const PARTNER_GENDER_OPTIONS = [
 
 const STEPS = [
   {
-    eyebrow: 'Step 1 of 6',
+    eyebrow: 'Step 1 of 8',
     title: 'What should we call you?',
     subtitle: 'Start with your name so we can personalize your romantic profile.',
   },
   {
-    eyebrow: 'Step 2 of 6',
+    eyebrow: 'Step 2 of 8',
+    title: 'Add a photo',
+    subtitle: 'Optional — helps your connections feel real when your relationship list grows.',
+  },
+  {
+    eyebrow: 'Step 3 of 8',
     title: 'How do you identify?',
     subtitle: 'Choose what fits you best.',
   },
   {
-    eyebrow: 'Step 3 of 6',
+    eyebrow: 'Step 4 of 8',
     title: 'Who are you drawn to?',
     subtitle: 'This helps us filter the first celebrity match set.',
   },
   {
-    eyebrow: 'Step 4 of 6',
+    eyebrow: 'Step 5 of 8',
     title: 'When were you born?',
     subtitle: 'We need your birth date to calculate your chart.',
   },
   {
-    eyebrow: 'Step 5 of 6',
+    eyebrow: 'Step 6 of 8',
     title: 'What time were you born?',
     subtitle: 'Birth time sharpens house placements, but you can skip it.',
   },
   {
-    eyebrow: 'Step 6 of 6',
+    eyebrow: 'Step 7 of 8',
     title: 'Where were you born?',
     subtitle: 'Enter a city and country so we can resolve coordinates and timezone.',
+  },
+  {
+    eyebrow: 'Step 8 of 8',
+    title: 'Does this look right?',
+    subtitle: 'Review your details before we generate your profile.',
   },
 ] as const;
 
@@ -102,6 +108,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [timeSet, setTimeSet] = useState(false);
+  const [photoAdded, setPhotoAdded] = useState(false);
 
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
 
@@ -122,15 +129,19 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       case 0:
         return firstName.trim() ? null : 'Enter your first name.';
       case 1:
-        return gender ? null : 'Select how you identify.';
+        return null; // Photo step is always optional.
       case 2:
-        return preferredPartnerGender ? null : 'Select a partner preference.';
+        return gender ? null : 'Select how you identify.';
       case 3:
-        return isValidDate(dateOfBirth) ? null : 'Enter a valid date of birth.';
+        return preferredPartnerGender ? null : 'Select a partner preference.';
       case 4:
-        return birthTimeUnknown || isValidTime(timeOfBirth) ? null : 'Enter a valid birth time.';
+        return isValidDate(dateOfBirth) ? null : 'Enter a valid date of birth.';
       case 5:
+        return birthTimeUnknown || isValidTime(timeOfBirth) ? null : 'Enter a valid birth time.';
+      case 6:
         return placeOfBirth.trim() ? null : 'Birth location is required.';
+      case 7:
+        return null; // Confirm step has no extra validation.
       default:
         return null;
     }
@@ -214,6 +225,14 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const goBack = () => {
     setSubmitError(null);
+    if (currentStep === 0) {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.replace('Welcome');
+      }
+      return;
+    }
     setCurrentStep((step) => Math.max(0, step - 1));
   };
 
@@ -288,6 +307,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         latitude: resolved.lat,
         longitude: resolved.lon,
         totalOffsetHours: resolved.tzone,
+        photoUri: photoAdded ? 'local://photo-stub' : null,
       };
 
       if (isLocalUxMode) {
@@ -448,6 +468,49 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         );
       case 1:
         return (
+          <View style={[styles.stepGroup, styles.photoStepGroup]}>
+            <TouchableOpacity
+              onPress={() => setPhotoAdded((value) => !value)}
+              activeOpacity={0.85}
+              style={styles.photoWrap}
+            >
+              {photoAdded ? (
+                <Avatar
+                  size={112}
+                  gradient="lavender"
+                  fallbackInitial={firstName.charAt(0) || 'A'}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.photoPlaceholder,
+                    {
+                      backgroundColor: colors.surfaceHigh,
+                      borderColor: colors.ghostBorder,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.photoIcon, { color: colors.textSubtle }]}>📷</Text>
+                </View>
+              )}
+              <View
+                style={[
+                  styles.photoBadge,
+                  { backgroundColor: colors.primary, borderColor: colors.surface },
+                ]}
+              >
+                <Text style={[styles.photoBadgeText, { color: colors.onPrimary }]}>
+                  {photoAdded ? '✓' : '+'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <Text style={[styles.photoHelper, { color: colors.textSubtle }]}>
+              Tap to add — or skip for now.
+            </Text>
+          </View>
+        );
+      case 2:
+        return (
           <View style={styles.stepGroup}>
             <View style={styles.chipRow}>
               {GENDER_OPTIONS.map((option) => {
@@ -483,7 +546,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
         );
-      case 2:
+      case 3:
         return (
           <View style={styles.stepGroup}>
             <View style={styles.chipRow}>
@@ -520,7 +583,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
         );
-      case 3:
+      case 4:
         return (
           <View style={styles.stepGroup}>
             <View style={[styles.valueChip, { backgroundColor: colors.surfaceHigh }]}>
@@ -534,7 +597,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             />
           </View>
         );
-      case 4:
+      case 5:
         return (
           <View style={styles.stepGroup}>
             <View style={styles.unknownToggleRow}>
@@ -543,14 +606,30 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
                   setBirthTimeUnknown((value) => !value);
                   setTimeSet(true);
                 }}
+                activeOpacity={0.7}
+                style={styles.checkboxRow}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text
+                <View
                   style={[
-                    styles.unknownToggleText,
-                    { color: birthTimeUnknown ? colors.primary : colors.textSubtle },
+                    styles.checkboxBox,
+                    {
+                      backgroundColor: birthTimeUnknown ? colors.primary : 'transparent',
+                      borderColor: birthTimeUnknown ? colors.primary : colors.ghostBorder,
+                    },
                   ]}
                 >
-                  {birthTimeUnknown ? 'Unknown' : "I don't know"}
+                  {birthTimeUnknown ? (
+                    <Text style={[styles.checkboxMark, { color: colors.onPrimary }]}>✓</Text>
+                  ) : null}
+                </View>
+                <Text
+                  style={[
+                    styles.checkboxLabel,
+                    { color: birthTimeUnknown ? colors.text : colors.textMuted },
+                  ]}
+                >
+                  {birthTimeUnknown ? 'Birth time unknown' : "I don't know the birth time"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -578,7 +657,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             )}
           </View>
         );
-      case 5:
+      case 6:
         return (
           <View style={styles.stepGroup}>
             <PlaceAutocompleteInput
@@ -593,22 +672,26 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               placeholder="City, Country"
               canUseSuggestions={canUseGoogleServices}
             />
-            {placeOfBirth ? (
-              <View style={[styles.selectedLocation, { backgroundColor: colors.surfaceHigh }]}>
-                <View style={[styles.locationDot, { backgroundColor: colors.success }]} />
-                <Text
-                  style={[styles.selectedLocationText, { color: colors.text }]}
-                  numberOfLines={2}
-                >
-                  {placeOfBirth}
-                </Text>
-              </View>
-            ) : null}
             {isAutofillingLocation ? (
               <Text style={[styles.infoText, { color: colors.textMuted }]}>Resolving...</Text>
             ) : null}
           </View>
         );
+      case 7:
+        return <ConfirmStep
+          colors={colors}
+          firstName={firstName}
+          lastName={lastName}
+          gender={gender}
+          preferredPartnerGender={preferredPartnerGender}
+          dateOfBirth={dateOfBirth}
+          timeOfBirth={timeOfBirth}
+          birthTimeUnknown={birthTimeUnknown}
+          placeOfBirth={placeOfBirth}
+          photoAdded={photoAdded}
+          formatDisplayDate={formatDisplayDate}
+          formatDisplayTime={formatDisplayTime}
+        />;
       default:
         return null;
     }
@@ -630,42 +713,20 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.content}>
         <View style={styles.topHeader}>
           <View style={styles.topHeaderRow}>
-            {currentStep > 0 ? (
-              <TouchableOpacity
-                style={styles.topHeaderBack}
-                onPress={goBack}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Text style={[styles.topHeaderBackArrow, { color: colors.text }]}>←</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.topHeaderBack} />
-            )}
+            <TouchableOpacity
+              style={styles.topHeaderBack}
+              onPress={goBack}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityLabel={currentStep === 0 ? 'Exit onboarding' : 'Go back'}
+            >
+              <Text style={[styles.topHeaderBackArrow, { color: colors.text }]}>←</Text>
+            </TouchableOpacity>
             <Text style={[styles.topHeaderTitle, { color: colors.text }]}>Iris</Text>
             <View style={styles.topHeaderBack} />
           </View>
 
-          <View style={styles.progressDashRow}>
-            {STEPS.map((_, index) => {
-              const isActive = index === currentStep;
-              return (
-                <View
-                  key={index}
-                  style={[
-                    styles.progressDash,
-                    { backgroundColor: colors.surfaceHigh },
-                    isActive && {
-                      backgroundColor: colors.primary,
-                      shadowColor: colors.primary,
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: 0.9,
-                      shadowRadius: 6,
-                      elevation: 6,
-                    },
-                  ]}
-                />
-              );
-            })}
+          <View style={styles.progressRowWrap}>
+            <ProgressDashes current={currentStep} total={STEPS.length} />
           </View>
 
           <Text style={[styles.stepCounter, { color: colors.accent }]}>{step.eyebrow.toUpperCase()}</Text>
@@ -685,39 +746,113 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.arrowButton, !canContinue && styles.arrowButtonDisabled]}
+          <WizardArrowButton
             onPress={isLastStep ? handleSubmit : goNext}
             disabled={!canContinue}
-            activeOpacity={0.85}
-          >
-            <Svg width={64} height={64} style={StyleSheet.absoluteFill}>
-              <Defs>
-                <SvgLinearGradient id="arrowGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-                  <Stop offset="0" stopColor="#9FE4FF" />
-                  <Stop offset="1" stopColor="#A78BFA" />
-                </SvgLinearGradient>
-              </Defs>
-              <Circle cx={32} cy={32} r={30} fill="url(#arrowGrad)" />
-              <Path
-                d="M22 32 H42 M34 24 L42 32 L34 40"
-                stroke="#0B1228"
-                strokeWidth={3.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-              />
-            </Svg>
-          </TouchableOpacity>
+          />
         </View>
 
         <Text style={[styles.privacyText, { color: colors.textSubtle }]}>
-          Privacy secured by encrypted celestial channels
+          Your privacy is secured and won&apos;t be shared
         </Text>
       </View>
     </SafeAreaView>
   );
 };
+
+interface ConfirmStepProps {
+  colors: ReturnType<typeof useTheme>['colors'];
+  firstName: string;
+  lastName: string;
+  gender: string;
+  preferredPartnerGender: string;
+  dateOfBirth: string;
+  timeOfBirth: string;
+  birthTimeUnknown: boolean;
+  placeOfBirth: string;
+  photoAdded: boolean;
+  formatDisplayDate: (iso: string) => string;
+  formatDisplayTime: (time: string) => string;
+}
+
+function ConfirmStep({
+  colors,
+  firstName,
+  lastName,
+  gender,
+  preferredPartnerGender,
+  dateOfBirth,
+  timeOfBirth,
+  birthTimeUnknown,
+  placeOfBirth,
+  photoAdded,
+  formatDisplayDate,
+  formatDisplayTime,
+}: ConfirmStepProps) {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim() || 'Not set';
+  const genderLabel =
+    GENDER_OPTIONS.find((option) => option.value === gender)?.label ?? 'Not set';
+  const partnerGenderLabel =
+    PARTNER_GENDER_OPTIONS.find((option) => option.value === preferredPartnerGender)?.label ??
+    'Not set';
+
+  const rows: readonly { key: string; label: string; value: string }[] = [
+    { key: 'name', label: 'Name', value: fullName },
+    { key: 'gender', label: 'Identify as', value: genderLabel },
+    { key: 'pref', label: 'Drawn to', value: partnerGenderLabel },
+    { key: 'dob', label: 'Birth Date', value: formatDisplayDate(dateOfBirth) },
+    {
+      key: 'time',
+      label: 'Birth Time',
+      value: birthTimeUnknown ? 'Unknown' : formatDisplayTime(timeOfBirth),
+    },
+    { key: 'city', label: 'Birth City', value: placeOfBirth || 'Not set' },
+  ];
+
+  return (
+    <View style={styles.stepGroup}>
+      <View style={styles.confirmHero}>
+        <Avatar
+          size={80}
+          gradient="lavender"
+          fallbackInitial={firstName.charAt(0) || 'A'}
+          photoUri={photoAdded ? 'local://photo-stub' : null}
+        />
+      </View>
+      <View
+        style={[
+          styles.confirmCard,
+          { backgroundColor: colors.surfaceHigh, borderColor: colors.ghostBorder },
+        ]}
+      >
+        {rows.map((row, index) => {
+          const isLast = index === rows.length - 1;
+          return (
+            <View
+              key={row.key}
+              style={[
+                styles.confirmRow,
+                isLast
+                  ? null
+                  : { borderBottomColor: colors.ghostBorder, borderBottomWidth: 1 },
+              ]}
+            >
+              <Text style={[styles.confirmRowLabel, { color: colors.textMuted }]}>
+                {row.label}
+              </Text>
+              <Text
+                style={[styles.confirmRowValue, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {row.value}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   screen: {
@@ -759,17 +894,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 3,
   },
-  progressDashRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  progressRowWrap: {
     marginBottom: 10,
-  },
-  progressDash: {
-    width: 28,
-    height: 3,
-    borderRadius: 2,
-    marginHorizontal: 4,
   },
   stepCounter: {
     fontSize: 11,
@@ -781,16 +907,6 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 14,
     gap: 10,
-  },
-  heroIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroIconText: {
-    fontSize: 28,
   },
   heroTitle: {
     fontSize: 28,
@@ -841,21 +957,110 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  unknownToggleRow: {
-    alignItems: 'flex-end',
+  photoStepGroup: {
+    alignItems: 'center',
+    gap: 14,
+    paddingTop: 16,
   },
-  unknownToggleText: {
+  photoWrap: {
+    position: 'relative',
+  },
+  photoPlaceholder: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoIcon: {
+    fontSize: 32,
+  },
+  photoBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoBadgeText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  photoHelper: {
     fontSize: 13,
-    fontWeight: '600',
+    textAlign: 'center',
+  },
+  confirmHero: {
+    alignItems: 'center',
+    paddingBottom: 6,
+  },
+  confirmCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  confirmRowLabel: {
+    width: 100,
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+  },
+  confirmRowValue: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  unknownToggleRow: {
+    alignItems: 'center',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  checkboxBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxMark: {
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   valueChip: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    alignSelf: 'center',
+    borderRadius: 100,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   valueChipText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
+    letterSpacing: 0.3,
+    textAlign: 'center',
   },
   infoBox: {
     borderRadius: 12,
@@ -896,23 +1101,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     marginTop: 24,
     paddingHorizontal: 12,
-  },
-  arrowButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#9FE4FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 14,
-    elevation: 10,
-  },
-  arrowButtonDisabled: {
-    opacity: 0.4,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   privacyText: {
     fontSize: 11,

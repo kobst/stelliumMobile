@@ -159,4 +159,41 @@ export const relationshipUsersApi = {
 
     return normalizeRelationshipAppProfile(response, null);
   },
+
+  async createGuestSubject(request: {
+    firstName: string;
+    lastName: string;
+    gender: string;
+    placeOfBirth: string;
+    dateOfBirth: string;
+    time: string;
+    lat: number;
+    lon: number;
+    tzone: number;
+    unknownTime: false;
+    firebaseUid: string;
+    ownerUserId: string;
+  }): Promise<SubjectDocument> {
+    return relationshipApiClient.post<SubjectDocument>('/createGuestSubject', {
+      ...request,
+      ...getRelationshipAppRequestMetadata(),
+    });
+  },
+
+  async createGuestSubjectUnknownTime(request: {
+    firstName: string;
+    lastName: string;
+    gender: string;
+    placeOfBirth: string;
+    dateOfBirth: string;
+    lat: number;
+    lon: number;
+    tzone: number;
+    ownerUserId: string;
+  }): Promise<SubjectDocument> {
+    return relationshipApiClient.post<SubjectDocument>('/createGuestSubjectUnknownTime', {
+      ...request,
+      ...getRelationshipAppRequestMetadata(),
+    });
+  },
 };

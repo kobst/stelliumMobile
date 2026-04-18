@@ -13,6 +13,8 @@ import {
 import { useTheme } from '../theme';
 import { PlaceAutocompleteInput } from './PlaceAutocompleteInput';
 import { SettingsNavBar } from './SettingsNavBar';
+import { ProgressDashes } from './ProgressDashes';
+import { WizardArrowButton } from './WizardArrowButton';
 import { relationshipAppEnv } from '../config/env';
 import type { PlaceDetails } from '../api';
 
@@ -30,7 +32,9 @@ interface BirthCityStepProps {
   onOffsetChange: (value: number | null) => void;
   onContinue: () => void;
   continueLabel?: string;
+  continueVariant?: 'arrow' | 'pill';
   backLabel?: string;
+  progress?: { current: number; total: number };
 }
 
 export function BirthCityStep({
@@ -47,14 +51,22 @@ export function BirthCityStep({
   onOffsetChange,
   onContinue,
   continueLabel = 'Continue',
+  continueVariant = 'pill',
   backLabel = 'Back',
+  progress,
 }: BirthCityStepProps) {
   const { colors } = useTheme();
   const canUseSuggestions = Boolean(relationshipAppEnv.googleApiKey);
+  const isWizard = continueVariant === 'arrow';
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
       <SettingsNavBar title="Birth City" backLabel={backLabel} />
+      {progress ? (
+        <View style={styles.progressWrap}>
+          <ProgressDashes current={progress.current} total={progress.total} />
+        </View>
+      ) : null}
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -88,16 +100,20 @@ export function BirthCityStep({
             />
           ) : null}
         </ScrollView>
-        <View style={styles.footer}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={onContinue}
-            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-          >
-            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-              {continueLabel}
-            </Text>
-          </TouchableOpacity>
+        <View style={[styles.footer, isWizard ? styles.footerWizard : null]}>
+          {isWizard ? (
+            <WizardArrowButton onPress={onContinue} />
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={onContinue}
+              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+            >
+              <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
+                {continueLabel}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -182,6 +198,10 @@ function ManualLatLonRow({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screen: { flex: 1 },
+  progressWrap: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
   content: {
     paddingHorizontal: 20,
     paddingBottom: 24,
@@ -205,6 +225,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     paddingTop: 8,
+  },
+  footerWizard: {
+    alignItems: 'flex-end',
   },
   primaryButton: {
     borderRadius: 14,

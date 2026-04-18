@@ -55,8 +55,9 @@ export function PartnerBirthCityScreen() {
       onLongitudeChange={(longitude) => updateDraft({ longitude })}
       onOffsetChange={(totalOffsetHours) => updateDraft({ totalOffsetHours })}
       onContinue={handleContinue}
-      continueLabel="Continue"
+      continueVariant="arrow"
       backLabel="Back"
+      progress={{ current: 3, total: 5 }}
     />
   );
 }

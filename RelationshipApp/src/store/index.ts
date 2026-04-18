@@ -125,6 +125,7 @@ export interface GuestProfileDraft {
   latitude: number | null;
   longitude: number | null;
   totalOffsetHours: number | null;
+  photoUri?: string | null;
 }
 
 export interface ProfileRevealData {
