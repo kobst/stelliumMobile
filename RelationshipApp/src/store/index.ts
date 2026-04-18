@@ -49,6 +49,43 @@ export interface AskMessage {
 
 export type AskThreadKey = 'profile' | 'home' | `relationship:${string}`;
 
+export type CreditTransactionKind =
+  | 'analysis_full'
+  | 'analysis_overview'
+  | 'ask_iris'
+  | 'purchase'
+  | 'renewal'
+  | 'bonus';
+
+export interface CreditTransaction {
+  id: string;
+  occurredAt: string;
+  kind: CreditTransactionKind;
+  description: string;
+  delta: number;
+}
+
+export interface NotificationPrefs {
+  weeklyArticle: boolean;
+  productUpdates: boolean;
+  transitAlerts: boolean;
+}
+
+export type ProfileGender = 'male' | 'female' | 'other';
+
+export interface BirthDetailsDraft {
+  firstName: string;
+  lastName: string;
+  gender: ProfileGender;
+  dateOfBirth: string;
+  time: string;
+  birthTimeUnknown: boolean;
+  placeOfBirth: string;
+  latitude: number | null;
+  longitude: number | null;
+  totalOffsetHours: number | null;
+}
+
 export interface GuestProfileDraft {
   firstName: string;
   lastName: string;
@@ -116,6 +153,10 @@ interface CreditsFlowState {
   credits: CreditsState | null;
   subscription: SubscriptionState | null;
   askThreads: Record<string, AskMessage[]>;
+  creditTransactions: CreditTransaction[];
+  notificationPrefs: NotificationPrefs;
+  birthEditsRemaining: number | null;
+  birthDetailsDraft: BirthDetailsDraft | null;
 }
 
 interface RelationshipAppStore
@@ -167,6 +208,12 @@ interface RelationshipAppStore
   setSubscription: (value: SubscriptionState | null) => void;
   appendAskMessage: (threadKey: AskThreadKey, message: AskMessage) => void;
   clearAskThread: (threadKey: AskThreadKey) => void;
+  setCreditTransactions: (value: CreditTransaction[]) => void;
+  setNotificationPrefs: (value: NotificationPrefs) => void;
+  setBirthEditsRemaining: (value: number | null) => void;
+  setBirthDetailsDraft: (value: BirthDetailsDraft | null) => void;
+  updateBirthDetailsDraft: (partial: Partial<BirthDetailsDraft>) => void;
+  clearBirthDetailsDraft: () => void;
 }
 
 const initialSessionState: RelationshipSessionState = {
@@ -184,10 +231,20 @@ const initialOnboardingState: OnboardingFlowState = {
   profileReveal: null,
 };
 
+const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
+  weeklyArticle: true,
+  productUpdates: true,
+  transitAlerts: false,
+};
+
 const initialCreditsState: CreditsFlowState = {
   credits: null,
   subscription: null,
   askThreads: {},
+  creditTransactions: [],
+  notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
+  birthEditsRemaining: null,
+  birthDetailsDraft: null,
 };
 
 const initialFlowState: RelationshipFlowState = {
@@ -341,4 +398,15 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       delete next[threadKey];
       return { askThreads: next };
     }),
+  setCreditTransactions: (value) => set({ creditTransactions: value }),
+  setNotificationPrefs: (value) => set({ notificationPrefs: value }),
+  setBirthEditsRemaining: (value) => set({ birthEditsRemaining: value }),
+  setBirthDetailsDraft: (value) => set({ birthDetailsDraft: value }),
+  updateBirthDetailsDraft: (partial) =>
+    set((state) => ({
+      birthDetailsDraft: state.birthDetailsDraft
+        ? { ...state.birthDetailsDraft, ...partial }
+        : null,
+    })),
+  clearBirthDetailsDraft: () => set({ birthDetailsDraft: null }),
 }));

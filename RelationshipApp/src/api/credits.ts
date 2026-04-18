@@ -1,4 +1,4 @@
-import type { CreditsState, SubscriptionState } from '../store';
+import type { CreditTransaction, CreditsState, SubscriptionState } from '../store';
 
 const STUB_DELAY_MS = 250;
 
@@ -63,4 +63,88 @@ export async function purchaseCredits(packageId: string): Promise<CreditsState> 
 export async function restorePurchases(): Promise<CreditsState> {
   await delay(STUB_DELAY_MS);
   return getCreditBalance();
+}
+
+// TODO: replace with real `/getCreditHistory` once endpoint ships.
+export async function getCreditHistory(): Promise<CreditTransaction[]> {
+  await delay(STUB_DELAY_MS);
+  return [
+    {
+      id: 'tx-001',
+      occurredAt: '2026-04-15T00:00:00.000Z',
+      kind: 'analysis_full',
+      description: 'Full analysis · You & Emma Watson',
+      delta: -3,
+    },
+    {
+      id: 'tx-002',
+      occurredAt: '2026-04-14T12:00:00.000Z',
+      kind: 'ask_iris',
+      description: 'Ask Iris · Your chart',
+      delta: -1,
+    },
+    {
+      id: 'tx-003',
+      occurredAt: '2026-04-14T08:00:00.000Z',
+      kind: 'analysis_overview',
+      description: 'Score reveal · You & Harry Styles',
+      delta: -1,
+    },
+    {
+      id: 'tx-004',
+      occurredAt: '2026-04-12T00:00:00.000Z',
+      kind: 'ask_iris',
+      description: 'Ask Iris · You & Sarah Chen',
+      delta: -1,
+    },
+    {
+      id: 'tx-005',
+      occurredAt: '2026-04-10T00:00:00.000Z',
+      kind: 'analysis_full',
+      description: 'Full analysis · You & Sarah Chen',
+      delta: -3,
+    },
+    {
+      id: 'tx-006',
+      occurredAt: '2026-04-08T00:00:00.000Z',
+      kind: 'analysis_overview',
+      description: 'Score reveal · You & Alex Rivera',
+      delta: -1,
+    },
+    {
+      id: 'tx-007',
+      occurredAt: '2026-04-01T00:00:00.000Z',
+      kind: 'renewal',
+      description: 'Monthly renewal · Iris Monthly',
+      delta: 200,
+    },
+    {
+      id: 'tx-008',
+      occurredAt: '2026-03-28T00:00:00.000Z',
+      kind: 'purchase',
+      description: 'Credit pack purchase',
+      delta: 100,
+    },
+    {
+      id: 'tx-009',
+      occurredAt: '2026-03-25T00:00:00.000Z',
+      kind: 'ask_iris',
+      description: 'Ask Iris · Your chart',
+      delta: -1,
+    },
+    {
+      id: 'tx-010',
+      occurredAt: '2026-03-01T00:00:00.000Z',
+      kind: 'renewal',
+      description: 'Monthly renewal · Iris Monthly',
+      delta: 200,
+    },
+    {
+      id: 'tx-011',
+      occurredAt: '2026-02-28T00:00:00.000Z',
+      kind: 'bonus',
+      description: 'Welcome bonus',
+      delta: 3,
+    },
+  ];
 }

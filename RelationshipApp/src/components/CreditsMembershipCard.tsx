@@ -7,7 +7,6 @@ interface CreditsMembershipCardProps {
   credits: CreditsState | null;
   subscription: SubscriptionState | null;
   onBuyCredits: () => void;
-  onManagePlan: () => void;
 }
 
 function formatRenewalDate(iso: string | null): string | null {
@@ -34,7 +33,6 @@ export function CreditsMembershipCard({
   credits,
   subscription,
   onBuyCredits,
-  onManagePlan,
 }: CreditsMembershipCardProps) {
   const { colors } = useTheme();
   const renewalShort = formatRenewalDate(credits?.planRenewsAt ?? null);
@@ -98,25 +96,13 @@ export function CreditsMembershipCard({
         <Text style={[styles.renewalLine, { color: colors.textSubtle }]}>{renewalLine}</Text>
       ) : null}
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-          onPress={onBuyCredits}
-          activeOpacity={0.85}
-        >
-          <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Buy credits</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.secondaryButton,
-            { backgroundColor: colors.surfaceHigh, borderColor: colors.ghostBorder },
-          ]}
-          onPress={onManagePlan}
-          activeOpacity={0.85}
-        >
-          <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Manage plan</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+        onPress={onBuyCredits}
+        activeOpacity={0.85}
+      >
+        <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Buy credits</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -188,29 +174,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
   primaryButton: {
-    flex: 1,
     borderRadius: 12,
     paddingVertical: 14,
   },
   primaryButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    textAlign: 'center',
-  },
-  secondaryButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    borderWidth: 1,
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
     textAlign: 'center',
   },
 });

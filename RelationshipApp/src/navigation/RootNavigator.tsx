@@ -16,9 +16,19 @@ import { UnlockScreen } from '../screens/UnlockScreen';
 import { FullRelationshipAnalysisScreen } from '../screens/FullRelationshipAnalysisScreen';
 import { RomanticProfileFullScreen } from '../screens/RomanticProfileFullScreen';
 import { AddConnectionScreen } from '../screens/AddConnectionScreen';
+import { CreditHistoryScreen } from '../screens/CreditHistoryScreen';
+import { ManageSubscriptionScreen } from '../screens/ManageSubscriptionScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
+import { PrivacyScreen } from '../screens/PrivacyScreen';
+import { HelpSupportScreen } from '../screens/HelpSupportScreen';
+import { EditBirthDetailsScreen } from '../screens/EditBirthDetailsScreen';
+import { EditBirthDateScreen } from '../screens/EditBirthDateScreen';
+import { EditBirthTimeScreen } from '../screens/EditBirthTimeScreen';
+import { EditBirthCityScreen } from '../screens/EditBirthCityScreen';
+import { EditNameScreen } from '../screens/EditNameScreen';
+import { EditGenderScreen } from '../screens/EditGenderScreen';
 import { MainTabs } from './MainTabs';
 import { BootstrapStatusScreen } from '../screens/BootstrapStatusScreen';
-import { PlaceholderScreen } from '../components/PlaceholderScreen';
 import { useRelationshipAppStore } from '../store';
 
 export type RelationshipRootParamList = {
@@ -44,9 +54,16 @@ export type RelationshipRootParamList = {
   RomanticProfileFull: undefined;
   AddConnection: undefined;
   EditBirthDetails: undefined;
+  EditBirthDate: undefined;
+  EditBirthTime: undefined;
+  EditBirthCity: undefined;
+  EditName: undefined;
+  EditGender: undefined;
   Notifications: undefined;
   Privacy: undefined;
   HelpSupport: undefined;
+  CreditHistory: undefined;
+  ManageSubscription: undefined;
   Main: undefined;
 };
 
@@ -113,54 +130,19 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="FullRelationshipAnalysis" component={FullRelationshipAnalysisScreen} />
         <Stack.Screen name="RomanticProfileFull" component={RomanticProfileFullScreen} />
         <Stack.Screen name="AddConnection" component={AddConnectionScreen} />
-        <Stack.Screen
-          name="EditBirthDetails"
-          component={EditBirthDetailsPlaceholder}
-        />
-        <Stack.Screen
-          name="Notifications"
-          component={NotificationsPlaceholder}
-        />
-        <Stack.Screen name="Privacy" component={PrivacyPlaceholder} />
-        <Stack.Screen name="HelpSupport" component={HelpSupportPlaceholder} />
+        <Stack.Screen name="EditBirthDetails" component={EditBirthDetailsScreen} />
+        <Stack.Screen name="EditBirthDate" component={EditBirthDateScreen} />
+        <Stack.Screen name="EditBirthTime" component={EditBirthTimeScreen} />
+        <Stack.Screen name="EditBirthCity" component={EditBirthCityScreen} />
+        <Stack.Screen name="EditName" component={EditNameScreen} />
+        <Stack.Screen name="EditGender" component={EditGenderScreen} />
+        <Stack.Screen name="CreditHistory" component={CreditHistoryScreen} />
+        <Stack.Screen name="ManageSubscription" component={ManageSubscriptionScreen} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        <Stack.Screen name="Privacy" component={PrivacyScreen} />
+        <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
-
-const EditBirthDetailsPlaceholder: React.FC = () => (
-  <PlaceholderScreen
-    eyebrow="Profile"
-    title="Edit birth details"
-    body="Editing birth data will live here. For now, we regenerate your chart when you sign up."
-    backLabel="Profile"
-  />
-);
-
-const NotificationsPlaceholder: React.FC = () => (
-  <PlaceholderScreen
-    eyebrow="Settings"
-    title="Notifications"
-    body="Push notification preferences will land here once the notification system is wired."
-    backLabel="Profile"
-  />
-);
-
-const PrivacyPlaceholder: React.FC = () => (
-  <PlaceholderScreen
-    eyebrow="Settings"
-    title="Privacy"
-    body="Data export, deletion, and consent controls will live here."
-    backLabel="Profile"
-  />
-);
-
-const HelpSupportPlaceholder: React.FC = () => (
-  <PlaceholderScreen
-    eyebrow="Settings"
-    title="Help & support"
-    body="Support channels, FAQs, and contact flows will live here."
-    backLabel="Profile"
-  />
-);

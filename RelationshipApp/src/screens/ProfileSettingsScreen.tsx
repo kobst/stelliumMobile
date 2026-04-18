@@ -14,8 +14,9 @@ import { AskIrisCard } from '../components/AskIrisCard';
 import { CreditsMembershipCard } from '../components/CreditsMembershipCard';
 import { SettingsList, type SettingsRowConfig } from '../components/SettingsList';
 import { PurchaseCreditsSheet } from '../components/PurchaseCreditsSheet';
+import { SignOutSheet } from '../components/SignOutSheet';
 import { DevSessionPanel } from '../components/DevSessionPanel';
-import { getCreditBalance, getSubscription, purchaseCredits } from '../api/credits';
+import { getCreditBalance, getSubscription, purchaseCredits, restorePurchases } from '../api/credits';
 
 const PROFILE_THREAD_KEY = 'profile' as const;
 
@@ -46,6 +47,8 @@ export function ProfileSettingsScreen() {
   const resetSession = useRelationshipAppStore((state) => state.resetSession);
 
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [signOutVisible, setSignOutVisible] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -121,6 +124,25 @@ export function ProfileSettingsScreen() {
     [setCredits]
   );
 
+  const handleRestore = useCallback(async () => {
+    if (isRestoring) {
+      return;
+    }
+    setIsRestoring(true);
+    try {
+      const next = await restorePurchases();
+      setCredits(next);
+      Alert.alert('Purchases restored', 'Your purchases have been restored to this device.');
+    } catch (error) {
+      Alert.alert(
+        'Restore failed',
+        error instanceof Error ? error.message : 'Please try again shortly.'
+      );
+    } finally {
+      setIsRestoring(false);
+    }
+  }, [isRestoring, setCredits]);
+
   const settingsRows = useMemo<readonly SettingsRowConfig[]>(
     () => [
       {
@@ -130,17 +152,22 @@ export function ProfileSettingsScreen() {
         onPress: () => navigation.navigate('EditBirthDetails'),
       },
       {
+        key: 'credit-history',
+        icon: '◆',
+        label: 'Credit history',
+        onPress: () => navigation.navigate('CreditHistory'),
+      },
+      {
+        key: 'manage-subscription',
+        icon: '✦',
+        label: 'Manage subscription',
+        onPress: () => navigation.navigate('ManageSubscription'),
+      },
+      {
         key: 'notifications',
         icon: '🔔',
         label: 'Notifications',
         onPress: () => navigation.navigate('Notifications'),
-      },
-      {
-        key: 'restore',
-        icon: '↻',
-        label: 'Restore purchases',
-        onPress: () =>
-          Alert.alert('Restore purchases', 'RevenueCat restore flow will land here.'),
       },
       {
         key: 'privacy',
@@ -155,23 +182,26 @@ export function ProfileSettingsScreen() {
         onPress: () => navigation.navigate('HelpSupport'),
       },
       {
+        key: 'restore',
+        icon: '↻',
+        label: isRestoring ? 'Restoring…' : 'Restore purchases',
+        onPress: handleRestore,
+      },
+      {
         key: 'sign-out',
         icon: '→',
         label: 'Sign out',
         destructive: true,
-        onPress: () =>
-          Alert.alert('Sign out', 'Sign out of this account?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Sign out',
-              style: 'destructive',
-              onPress: () => resetSession(),
-            },
-          ]),
+        onPress: () => setSignOutVisible(true),
       },
     ],
-    [navigation, resetSession]
+    [handleRestore, isRestoring, navigation]
   );
+
+  const handleConfirmSignOut = useCallback(() => {
+    setSignOutVisible(false);
+    resetSession();
+  }, [resetSession]);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
@@ -214,9 +244,6 @@ export function ProfileSettingsScreen() {
           credits={credits}
           subscription={subscription}
           onBuyCredits={handleBuyCredits}
-          onManagePlan={() =>
-            Alert.alert('Manage plan', 'Subscription management will land here.')
-          }
         />
 
         <SettingsList rows={settingsRows} />
@@ -230,6 +257,12 @@ export function ProfileSettingsScreen() {
         visible={sheetVisible}
         onClose={() => setSheetVisible(false)}
         onSelectPackage={handleSelectPackage}
+      />
+
+      <SignOutSheet
+        visible={signOutVisible}
+        onCancel={() => setSignOutVisible(false)}
+        onConfirm={handleConfirmSignOut}
       />
     </SafeAreaView>
   );
