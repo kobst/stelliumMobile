@@ -17,16 +17,9 @@ import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { celebrityToSubject, getBigThree, getCelebritySunSign } from '../utils/mainShell';
 import { TopCelebMatchesRail } from '../components/TopCelebMatchesRail';
+import { Avatar } from '../components/Avatar';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
-
-function getWeeklyDiscoverHeadline(sunSign: string | null) {
-  if (sunSign) {
-    return `${sunSign} chemistry patterns`;
-  }
-
-  return 'Charts worth exploring this week';
-}
 
 export const DiscoverScreen: React.FC = () => {
   const navigation = useNavigation<RootNavigation>();
@@ -149,32 +142,42 @@ export const DiscoverScreen: React.FC = () => {
     };
   }, [trimmedSearchQuery]);
 
-  const renderCelebCard = (celebrity: Celebrity, eyebrow: string) => (
-    <TouchableOpacity
-      key={`${eyebrow}-${celebrity._id}`}
-      style={[styles.celebCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      onPress={() => startCelebrityFlow(celebrity)}
-      activeOpacity={0.86}
-    >
-      <Text style={[styles.celebEyebrow, { color: colors.primary }]}>{eyebrow}</Text>
-      <Text style={[styles.celebName, { color: colors.text }]}>
-        {celebrity.firstName} {celebrity.lastName}
-      </Text>
-      <Text style={[styles.celebMeta, { color: colors.textMuted }]}>
-        {celebrity.dateOfBirth}
-        {celebrity.time ? ` • ${celebrity.time}` : ''}
-      </Text>
-      <Text style={[styles.celebMeta, { color: colors.textMuted }]}>
-        {getCelebritySunSign(celebrity) ?? 'Unknown sign'}
-      </Text>
-      <Text style={[styles.celebMeta, { color: colors.textMuted }]} numberOfLines={2}>
-        {celebrity.placeOfBirth}
-      </Text>
-      <View style={styles.inlineActionRow}>
-        <Text style={[styles.inlineAction, { color: colors.accent }]}>See your connection</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderCelebCard = (celebrity: Celebrity, eyebrow: string) => {
+    const photoUri = celebrity.profilePhotoUrl ?? celebrity.photoUrl ?? null;
+    const fullName = `${celebrity.firstName ?? ''} ${celebrity.lastName ?? ''}`.trim();
+    const initial = celebrity.firstName?.charAt(0) ?? '?';
+    return (
+      <TouchableOpacity
+        key={`${eyebrow}-${celebrity._id}`}
+        style={[styles.celebCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={() => startCelebrityFlow(celebrity)}
+        activeOpacity={0.86}
+      >
+        <View style={styles.celebHeader}>
+          <Avatar size={52} gradient="gold" photoUri={photoUri} fallbackInitial={initial} />
+          <View style={styles.celebHeaderCopy}>
+            <Text style={[styles.celebEyebrow, { color: colors.primary }]}>{eyebrow}</Text>
+            <Text style={[styles.celebName, { color: colors.text }]} numberOfLines={1}>
+              {fullName || 'Unknown'}
+            </Text>
+          </View>
+        </View>
+        <Text style={[styles.celebMeta, { color: colors.textMuted }]}>
+          {celebrity.dateOfBirth}
+          {celebrity.time ? ` • ${celebrity.time}` : ''}
+        </Text>
+        <Text style={[styles.celebMeta, { color: colors.textMuted }]}>
+          {getCelebritySunSign(celebrity) ?? 'Unknown sign'}
+        </Text>
+        <Text style={[styles.celebMeta, { color: colors.textMuted }]} numberOfLines={2}>
+          {celebrity.placeOfBirth}
+        </Text>
+        <View style={styles.inlineActionRow}>
+          <Text style={[styles.inlineAction, { color: colors.accent }]}>See your connection</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
@@ -195,25 +198,6 @@ export const DiscoverScreen: React.FC = () => {
           subtitle="Celeb overlaps from your saved relationship-app profile."
           matches={(profile?.topCelebMatches ?? []).slice(0, 5)}
         />
-
-        <View style={[styles.articleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.articleEyebrow, { color: colors.accent }]}>This Week</Text>
-          <Text style={[styles.articleTitle, { color: colors.text }]}>
-            {getWeeklyDiscoverHeadline(sun)}
-          </Text>
-          <Text style={[styles.articleBody, { color: colors.textMuted }]}>
-            This editorial slot should rotate through aspect stories, celebrity case studies, and
-            discovery prompts that convert browsing into new compatibility reads.
-          </Text>
-          <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: colors.border }]}
-            onPress={() => navigation.navigate('AskIris', { context: 'home' })}
-          >
-            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
-              Ask Iris About This Theme
-            </Text>
-          </TouchableOpacity>
-        </View>
 
         <View style={[styles.searchCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
@@ -344,27 +328,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
-  articleCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 18,
-    gap: 12,
-  },
-  articleEyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  articleTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    lineHeight: 28,
-  },
-  articleBody: {
-    fontSize: 14,
-    lineHeight: 21,
-  },
   searchCard: {
     borderRadius: 18,
     borderWidth: 1,
@@ -398,6 +361,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     gap: 6,
+  },
+  celebHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 2,
+  },
+  celebHeaderCopy: {
+    flex: 1,
+    gap: 2,
   },
   celebEyebrow: {
     fontSize: 11,
@@ -447,17 +420,6 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    textAlign: 'center',
-  },
-  secondaryButton: {
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
     textAlign: 'center',
   },
 });

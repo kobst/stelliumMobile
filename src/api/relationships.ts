@@ -151,6 +151,11 @@ export interface UserCompositeChart {
   isCelebrityRelationship?: boolean;
   ownerUserId?: string;
   updatedAt?: string;
+  // Partner display fields from getUserCompositeCharts (backfilled server-side)
+  userA_profilePhotoUrl?: string | null;
+  userB_profilePhotoUrl?: string | null;
+  userA_photoUrl?: string | null;
+  userB_photoUrl?: string | null;
   // New 5-Cluster Analysis Data
   clusterScoring?: ClusterScoring;
   completeAnalysis?: Record<string, ClusterAnalysis>;

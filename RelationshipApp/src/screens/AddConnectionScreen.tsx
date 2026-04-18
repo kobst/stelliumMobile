@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -16,30 +17,37 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
 import { Avatar } from '../components/Avatar';
+import { celebritiesApi, type Celebrity } from '../api';
+import { getCelebritySunSign } from '../utils/mainShell';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
 type Step = 'choose' | 'celeb' | 'celeb-confirm' | 'person';
 
-interface MockCeleb {
+interface CelebListItem {
   id: string;
   name: string;
-  sun: string;
-  photoUri?: string | null;
-  emoji?: string | null;
+  sun: string | null;
+  photoUri: string | null;
+  raw: Celebrity;
 }
 
-// TEMP: Replace with real celeb search API once data wiring pass lands.
-const POPULAR_CELEBS: readonly MockCeleb[] = [
-  { id: 'beyonce', name: 'Beyoncé', sun: 'Virgo' },
-  { id: 'timothee', name: 'Timothée Chalamet', sun: 'Capricorn' },
-  { id: 'zendaya', name: 'Zendaya', sun: 'Virgo' },
-  { id: 'badbunny', name: 'Bad Bunny', sun: 'Pisces', emoji: '🎵' },
-  { id: 'florence', name: 'Florence Pugh', sun: 'Capricorn' },
-  { id: 'pedro', name: 'Pedro Pascal', sun: 'Aries' },
-  { id: 'rihanna', name: 'Rihanna', sun: 'Pisces' },
-  { id: 'oscar', name: 'Oscar Isaac', sun: 'Pisces' },
-];
+function toListItem(celeb: Celebrity): CelebListItem {
+  const firstName = celeb.firstName?.trim() ?? '';
+  const lastName = celeb.lastName?.trim() ?? '';
+  const name = [firstName, lastName].filter(Boolean).join(' ') || 'Unknown';
+  return {
+    id: celeb._id,
+    name,
+    sun: getCelebritySunSign(celeb),
+    photoUri: celeb.profilePhotoUrl ?? celeb.photoUrl ?? null,
+    raw: celeb,
+  };
+}
+
+const POPULAR_LIMIT = 20;
+const SEARCH_LIMIT = 24;
+const SEARCH_DEBOUNCE_MS = 220;
 
 const RELATIONSHIP_TYPES = ['Partner', 'Crush', 'Ex', 'Friend', 'Other'] as const;
 type RelationshipTypeOption = (typeof RELATIONSHIP_TYPES)[number];
@@ -57,7 +65,14 @@ export function AddConnectionScreen() {
 
   const [step, setStep] = useState<Step>('choose');
   const [searchValue, setSearchValue] = useState('');
-  const [selectedCeleb, setSelectedCeleb] = useState<MockCeleb | null>(null);
+  const [selectedCeleb, setSelectedCeleb] = useState<CelebListItem | null>(null);
+
+  const [popularCelebs, setPopularCelebs] = useState<CelebListItem[]>([]);
+  const [isLoadingPopular, setIsLoadingPopular] = useState(false);
+  const [popularError, setPopularError] = useState<string | null>(null);
+
+  const [searchResults, setSearchResults] = useState<CelebListItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const [personName, setPersonName] = useState('');
   const [personDate, setPersonDate] = useState('');
@@ -67,13 +82,96 @@ export function AddConnectionScreen() {
   const [relationshipType, setRelationshipType] = useState<RelationshipTypeOption>('Partner');
   const [photoAdded, setPhotoAdded] = useState(false);
 
-  const filteredCelebs = useMemo(() => {
-    const query = searchValue.trim().toLowerCase();
-    if (!query) {
-      return POPULAR_CELEBS;
+  const trimmedSearch = searchValue.trim();
+  const isSearchMode = trimmedSearch.length >= 2;
+  const isSearchHint = trimmedSearch.length > 0 && trimmedSearch.length < 2;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPopular() {
+      setIsLoadingPopular(true);
+      setPopularError(null);
+      try {
+        const response = await celebritiesApi.getCelebrities({
+          usePagination: true,
+          page: 1,
+          limit: POPULAR_LIMIT,
+          sortBy: 'name',
+          sortOrder: 'asc',
+        });
+        if (cancelled) {
+          return;
+        }
+        const list = 'data' in response ? response.data : response;
+        setPopularCelebs(list.map(toListItem));
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+        setPopularError(
+          error instanceof Error ? error.message : 'Could not load celebrities right now.'
+        );
+      } finally {
+        if (!cancelled) {
+          setIsLoadingPopular(false);
+        }
+      }
     }
-    return POPULAR_CELEBS.filter((celeb) => celeb.name.toLowerCase().includes(query));
-  }, [searchValue]);
+    loadPopular();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSearchMode) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearching(true);
+    const handle = setTimeout(async () => {
+      try {
+        const response = await celebritiesApi.getCelebrities({
+          usePagination: true,
+          page: 1,
+          limit: SEARCH_LIMIT,
+          search: trimmedSearch,
+          sortBy: 'name',
+          sortOrder: 'asc',
+        });
+        if (cancelled) {
+          return;
+        }
+        const list = 'data' in response ? response.data : response;
+        setSearchResults(list.map(toListItem));
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+        setSearchResults([]);
+        if (__DEV__) {
+          console.warn('[AddConnectionScreen] celeb search failed', error);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSearching(false);
+        }
+      }
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [isSearchMode, trimmedSearch]);
+
+  const celebListItems = useMemo(
+    () => (isSearchMode ? searchResults : popularCelebs),
+    [isSearchMode, popularCelebs, searchResults]
+  );
 
   const handleClose = useCallback(() => {
     navigation.goBack();
@@ -83,7 +181,7 @@ export function AddConnectionScreen() {
     setStep('choose');
   }, []);
 
-  const handleSelectCeleb = useCallback((celeb: MockCeleb) => {
+  const handleSelectCeleb = useCallback((celeb: CelebListItem) => {
     setSelectedCeleb(celeb);
     setStep('celeb-confirm');
   }, []);
@@ -133,7 +231,11 @@ export function AddConnectionScreen() {
             <CelebStep
               searchValue={searchValue}
               onSearchChange={setSearchValue}
-              results={filteredCelebs}
+              isSearchMode={isSearchMode}
+              isSearchHint={isSearchHint}
+              results={celebListItems}
+              isLoading={isSearchMode ? isSearching : isLoadingPopular}
+              error={isSearchMode ? null : popularError}
               onSelect={handleSelectCeleb}
             />
           ) : null}
@@ -232,11 +334,24 @@ function ChooseCard({ iconGlyph, iconColor, iconBg, title, body, onPress }: Choo
 interface CelebStepProps {
   searchValue: string;
   onSearchChange: (value: string) => void;
-  results: readonly MockCeleb[];
-  onSelect: (celeb: MockCeleb) => void;
+  isSearchMode: boolean;
+  isSearchHint: boolean;
+  results: readonly CelebListItem[];
+  isLoading: boolean;
+  error: string | null;
+  onSelect: (celeb: CelebListItem) => void;
 }
 
-function CelebStep({ searchValue, onSearchChange, results, onSelect }: CelebStepProps) {
+function CelebStep({
+  searchValue,
+  onSearchChange,
+  isSearchMode,
+  isSearchHint,
+  results,
+  isLoading,
+  error,
+  onSelect,
+}: CelebStepProps) {
   const { colors } = useTheme();
   return (
     <View style={styles.stepBody}>
@@ -256,10 +371,21 @@ function CelebStep({ searchValue, onSearchChange, results, onSelect }: CelebStep
           autoCapitalize="words"
           autoCorrect={false}
         />
+        {isLoading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
       </View>
 
-      {!searchValue ? (
+      {isSearchHint ? (
+        <Text style={[styles.emptyResults, { color: colors.textSubtle }]}>
+          Type at least 2 characters to search.
+        </Text>
+      ) : null}
+
+      {!isSearchMode ? (
         <Text style={[styles.sectionLabel, { color: colors.accent }]}>Popular</Text>
+      ) : null}
+
+      {error ? (
+        <Text style={[styles.emptyResults, { color: colors.error }]}>{error}</Text>
       ) : null}
 
       {results.map((celeb) => (
@@ -270,7 +396,7 @@ function CelebStep({ searchValue, onSearchChange, results, onSelect }: CelebStep
         />
       ))}
 
-      {results.length === 0 ? (
+      {!isLoading && !error && results.length === 0 && isSearchMode ? (
         <Text style={[styles.emptyResults, { color: colors.textMuted }]}>
           No celebrities match "{searchValue}".
         </Text>
@@ -280,7 +406,7 @@ function CelebStep({ searchValue, onSearchChange, results, onSelect }: CelebStep
 }
 
 interface CelebRowProps {
-  celeb: MockCeleb;
+  celeb: CelebListItem;
   onPress: () => void;
 }
 
@@ -295,13 +421,14 @@ function CelebRow({ celeb, onPress }: CelebRowProps) {
       <Avatar
         size={48}
         gradient="gold"
-        photoUri={celeb.photoUri ?? null}
-        fallbackEmoji={celeb.emoji ?? null}
+        photoUri={celeb.photoUri}
         fallbackInitial={celeb.name.charAt(0)}
       />
       <View style={styles.celebCopy}>
         <Text style={[styles.celebName, { color: colors.text }]}>{celeb.name}</Text>
-        <Text style={[styles.celebMeta, { color: colors.textMuted }]}>{celeb.sun} Sun</Text>
+        <Text style={[styles.celebMeta, { color: colors.textMuted }]}>
+          {celeb.sun ? `${celeb.sun} Sun` : 'Unknown sign'}
+        </Text>
       </View>
       <Text style={[styles.chev, { color: colors.textSubtle }]}>›</Text>
     </TouchableOpacity>
@@ -309,7 +436,7 @@ function CelebRow({ celeb, onPress }: CelebRowProps) {
 }
 
 interface CelebConfirmStepProps {
-  celeb: MockCeleb;
+  celeb: CelebListItem;
   onCreate: () => void;
 }
 
@@ -321,15 +448,16 @@ function CelebConfirmStep({ celeb, onCreate }: CelebConfirmStepProps) {
         <Avatar
           size={88}
           gradient="gold"
-          photoUri={celeb.photoUri ?? null}
-          fallbackEmoji={celeb.emoji ?? null}
+          photoUri={celeb.photoUri}
           fallbackInitial={celeb.name.charAt(0)}
           ringColor="rgba(233, 195, 73, 0.25)"
           ringWidth={3}
         />
       </View>
       <Text style={[styles.confirmName, { color: colors.text }]}>{celeb.name}</Text>
-      <Text style={[styles.confirmMeta, { color: colors.textMuted }]}>{celeb.sun} Sun</Text>
+      <Text style={[styles.confirmMeta, { color: colors.textMuted }]}>
+        {celeb.sun ? `${celeb.sun} Sun` : 'Unknown sign'}
+      </Text>
 
       <View
         style={[

@@ -46,14 +46,19 @@ function resolveTier(relationship: UserCompositeChart): RelationshipTier {
 function resolveOtherSide(
   relationship: UserCompositeChart,
   selfProfileId: string | null
-): { name: string; initial: string } {
+): { name: string; initial: string; photoUri: string | null } {
   const selfIsA = Boolean(selfProfileId) && relationship.userA_id === selfProfileId;
   const otherName = selfIsA ? relationship.userB_name : relationship.userA_name;
   const fallbackName = selfIsA ? relationship.userA_name : relationship.userB_name;
   const name = otherName || fallbackName || 'Connection';
+  const profilePhoto = selfIsA
+    ? relationship.userB_profilePhotoUrl
+    : relationship.userA_profilePhotoUrl;
+  const photo = selfIsA ? relationship.userB_photoUrl : relationship.userA_photoUrl;
   return {
     name,
     initial: getInitials(name) || name.charAt(0).toUpperCase() || '·',
+    photoUri: profilePhoto ?? photo ?? null,
   };
 }
 
@@ -262,6 +267,7 @@ export const HistoryScreen: React.FC = () => {
                   tier={resolveTier(relationship)}
                   userInitial={userInitial}
                   otherInitial={other.initial}
+                  otherPhotoUri={other.photoUri}
                   onPress={() => openRelationship(relationship)}
                 />
               );
