@@ -56,7 +56,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.actions}>
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.replace('CreatePartner')}
+            onPress={() => navigation.replace('AddConnection')}
           >
             <Text style={styles.primaryButtonText}>Create Partner</Text>
           </TouchableOpacity>
@@ -177,7 +177,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
           style={[styles.secondaryButton, { borderColor: colors.border }]}
           onPress={() => {
             clearActiveRelationshipFlow();
-            navigation.replace('ChooseTargetType');
+            navigation.replace('AddConnection');
           }}
         >
           <Text style={[styles.secondaryButtonText, { color: colors.text }]}>

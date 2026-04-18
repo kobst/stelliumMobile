@@ -289,7 +289,7 @@ export const DiscoverScreen: React.FC = () => {
           </Text>
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('ChooseTargetType')}
+            onPress={() => navigation.navigate('AddConnection')}
           >
             <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
               Add Someone

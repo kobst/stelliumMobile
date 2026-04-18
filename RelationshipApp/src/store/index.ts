@@ -86,6 +86,34 @@ export interface BirthDetailsDraft {
   totalOffsetHours: number | null;
 }
 
+export interface PartnerDraft {
+  firstName: string;
+  lastName: string;
+  gender: ProfileGender;
+  photoUri: string | null;
+  dateOfBirth: string;
+  time: string;
+  birthTimeUnknown: boolean;
+  placeOfBirth: string;
+  latitude: number | null;
+  longitude: number | null;
+  totalOffsetHours: number | null;
+}
+
+export const EMPTY_PARTNER_DRAFT: PartnerDraft = {
+  firstName: '',
+  lastName: '',
+  gender: 'other',
+  photoUri: null,
+  dateOfBirth: '1995-01-01',
+  time: '12:00',
+  birthTimeUnknown: false,
+  placeOfBirth: '',
+  latitude: null,
+  longitude: null,
+  totalOffsetHours: null,
+};
+
 export interface GuestProfileDraft {
   firstName: string;
   lastName: string;
@@ -157,6 +185,7 @@ interface CreditsFlowState {
   notificationPrefs: NotificationPrefs;
   birthEditsRemaining: number | null;
   birthDetailsDraft: BirthDetailsDraft | null;
+  partnerDraft: PartnerDraft | null;
 }
 
 interface RelationshipAppStore
@@ -214,6 +243,9 @@ interface RelationshipAppStore
   setBirthDetailsDraft: (value: BirthDetailsDraft | null) => void;
   updateBirthDetailsDraft: (partial: Partial<BirthDetailsDraft>) => void;
   clearBirthDetailsDraft: () => void;
+  setPartnerDraft: (value: PartnerDraft | null) => void;
+  updatePartnerDraft: (partial: Partial<PartnerDraft>) => void;
+  clearPartnerDraft: () => void;
 }
 
 const initialSessionState: RelationshipSessionState = {
@@ -245,6 +277,7 @@ const initialCreditsState: CreditsFlowState = {
   notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
   birthEditsRemaining: null,
   birthDetailsDraft: null,
+  partnerDraft: null,
 };
 
 const initialFlowState: RelationshipFlowState = {
@@ -409,4 +442,12 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
         : null,
     })),
   clearBirthDetailsDraft: () => set({ birthDetailsDraft: null }),
+  setPartnerDraft: (value) => set({ partnerDraft: value }),
+  updatePartnerDraft: (partial) =>
+    set((state) => ({
+      partnerDraft: state.partnerDraft
+        ? { ...state.partnerDraft, ...partial }
+        : { ...EMPTY_PARTNER_DRAFT, ...partial },
+    })),
+  clearPartnerDraft: () => set({ partnerDraft: null }),
 }));

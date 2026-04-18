@@ -7,8 +7,6 @@ import { ProfileRevealScreen } from '../screens/ProfileRevealScreen';
 import { CreateAccountScreen } from '../screens/CreateAccountScreen';
 import { SignInScreen } from '../screens/SignInScreen';
 import { SelfProfileSuccessScreen } from '../screens/SelfProfileSuccessScreen';
-import { ChooseTargetTypeScreen } from '../screens/ChooseTargetTypeScreen';
-import { CreatePartnerScreen } from '../screens/CreatePartnerScreen';
 import { SelectCelebrityScreen } from '../screens/SelectCelebrityScreen';
 import { RelationshipPreviewScreen } from '../screens/RelationshipPreviewScreen';
 import { AskScreen } from '../screens/AskScreen';
@@ -16,6 +14,11 @@ import { UnlockScreen } from '../screens/UnlockScreen';
 import { FullRelationshipAnalysisScreen } from '../screens/FullRelationshipAnalysisScreen';
 import { RomanticProfileFullScreen } from '../screens/RomanticProfileFullScreen';
 import { AddConnectionScreen } from '../screens/AddConnectionScreen';
+import { PartnerIdentityScreen } from '../screens/PartnerIdentityScreen';
+import { PartnerBirthDateScreen } from '../screens/PartnerBirthDateScreen';
+import { PartnerBirthTimeScreen } from '../screens/PartnerBirthTimeScreen';
+import { PartnerBirthCityScreen } from '../screens/PartnerBirthCityScreen';
+import { PartnerConfirmScreen } from '../screens/PartnerConfirmScreen';
 import { CreditHistoryScreen } from '../screens/CreditHistoryScreen';
 import { ManageSubscriptionScreen } from '../screens/ManageSubscriptionScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
@@ -38,8 +41,6 @@ export type RelationshipRootParamList = {
   CreateAccount: undefined;
   SignIn: undefined;
   SelfProfileSuccess: undefined;
-  ChooseTargetType: undefined;
-  CreatePartner: undefined;
   SelectCelebrity: undefined;
   RelationshipPreview: undefined;
   AskIris:
@@ -53,6 +54,11 @@ export type RelationshipRootParamList = {
   FullRelationshipAnalysis: undefined;
   RomanticProfileFull: undefined;
   AddConnection: undefined;
+  PartnerIdentity: undefined;
+  PartnerBirthDate: undefined;
+  PartnerBirthTime: undefined;
+  PartnerBirthCity: undefined;
+  PartnerConfirm: undefined;
   EditBirthDetails: undefined;
   EditBirthDate: undefined;
   EditBirthTime: undefined;
@@ -121,8 +127,6 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
         <Stack.Screen name="SignIn" component={SignInScreen} />
         <Stack.Screen name="SelfProfileSuccess" component={SelfProfileSuccessScreen} />
-        <Stack.Screen name="ChooseTargetType" component={ChooseTargetTypeScreen} />
-        <Stack.Screen name="CreatePartner" component={CreatePartnerScreen} />
         <Stack.Screen name="SelectCelebrity" component={SelectCelebrityScreen} />
         <Stack.Screen name="RelationshipPreview" component={RelationshipPreviewScreen} />
         <Stack.Screen name="AskIris" component={AskScreen} />
@@ -130,6 +134,11 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="FullRelationshipAnalysis" component={FullRelationshipAnalysisScreen} />
         <Stack.Screen name="RomanticProfileFull" component={RomanticProfileFullScreen} />
         <Stack.Screen name="AddConnection" component={AddConnectionScreen} />
+        <Stack.Screen name="PartnerIdentity" component={PartnerIdentityScreen} />
+        <Stack.Screen name="PartnerBirthDate" component={PartnerBirthDateScreen} />
+        <Stack.Screen name="PartnerBirthTime" component={PartnerBirthTimeScreen} />
+        <Stack.Screen name="PartnerBirthCity" component={PartnerBirthCityScreen} />
+        <Stack.Screen name="PartnerConfirm" component={PartnerConfirmScreen} />
         <Stack.Screen name="EditBirthDetails" component={EditBirthDetailsScreen} />
         <Stack.Screen name="EditBirthDate" component={EditBirthDateScreen} />
         <Stack.Screen name="EditBirthTime" component={EditBirthTimeScreen} />

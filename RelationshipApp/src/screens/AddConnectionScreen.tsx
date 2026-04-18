@@ -22,7 +22,7 @@ import { getCelebritySunSign } from '../utils/mainShell';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
-type Step = 'choose' | 'celeb' | 'celeb-confirm' | 'person';
+type Step = 'choose' | 'celeb' | 'celeb-confirm';
 
 interface CelebListItem {
   id: string;
@@ -49,9 +49,6 @@ const POPULAR_LIMIT = 20;
 const SEARCH_LIMIT = 24;
 const SEARCH_DEBOUNCE_MS = 220;
 
-const RELATIONSHIP_TYPES = ['Partner', 'Crush', 'Ex', 'Friend', 'Other'] as const;
-type RelationshipTypeOption = (typeof RELATIONSHIP_TYPES)[number];
-
 const TIER_ROWS: readonly { glyph: string; text: string; paid: boolean }[] = [
   { glyph: '✓', text: 'Relationship archetype & aspect match', paid: false },
   { glyph: '✓', text: 'Short romantic blurb (free)', paid: false },
@@ -73,14 +70,6 @@ export function AddConnectionScreen() {
 
   const [searchResults, setSearchResults] = useState<CelebListItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-
-  const [personName, setPersonName] = useState('');
-  const [personDate, setPersonDate] = useState('');
-  const [personTime, setPersonTime] = useState('');
-  const [timeUnknown, setTimeUnknown] = useState(false);
-  const [personCity, setPersonCity] = useState('');
-  const [relationshipType, setRelationshipType] = useState<RelationshipTypeOption>('Partner');
-  const [photoAdded, setPhotoAdded] = useState(false);
 
   const trimmedSearch = searchValue.trim();
   const isSearchMode = trimmedSearch.length >= 2;
@@ -186,17 +175,14 @@ export function AddConnectionScreen() {
     setStep('celeb-confirm');
   }, []);
 
+  const handleOpenPersonFlow = useCallback(() => {
+    navigation.navigate('PartnerIdentity');
+  }, [navigation]);
+
   const handleCreateCelebConnection = useCallback(() => {
     Alert.alert(
       'Create connection',
       'Celebrity preview flow will run here once this screen is wired to the real preview endpoint.'
-    );
-  }, []);
-
-  const handleCreatePersonConnection = useCallback(() => {
-    Alert.alert(
-      'Create connection',
-      'Person preview flow will run here once this screen is wired to the create-partner endpoint.'
     );
   }, []);
 
@@ -226,7 +212,9 @@ export function AddConnectionScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {step === 'choose' ? <ChooseStep onPick={setStep} /> : null}
+          {step === 'choose' ? (
+            <ChooseStep onPickCeleb={() => setStep('celeb')} onPickPerson={handleOpenPersonFlow} />
+          ) : null}
           {step === 'celeb' ? (
             <CelebStep
               searchValue={searchValue}
@@ -242,25 +230,6 @@ export function AddConnectionScreen() {
           {step === 'celeb-confirm' && selectedCeleb ? (
             <CelebConfirmStep celeb={selectedCeleb} onCreate={handleCreateCelebConnection} />
           ) : null}
-          {step === 'person' ? (
-            <PersonStep
-              name={personName}
-              onNameChange={setPersonName}
-              date={personDate}
-              onDateChange={setPersonDate}
-              time={personTime}
-              onTimeChange={setPersonTime}
-              timeUnknown={timeUnknown}
-              onToggleTimeUnknown={() => setTimeUnknown((value) => !value)}
-              city={personCity}
-              onCityChange={setPersonCity}
-              relationshipType={relationshipType}
-              onRelationshipTypeChange={setRelationshipType}
-              photoAdded={photoAdded}
-              onTogglePhoto={() => setPhotoAdded((value) => !value)}
-              onCreate={handleCreatePersonConnection}
-            />
-          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -268,10 +237,11 @@ export function AddConnectionScreen() {
 }
 
 interface ChooseStepProps {
-  onPick: (step: Step) => void;
+  onPickCeleb: () => void;
+  onPickPerson: () => void;
 }
 
-function ChooseStep({ onPick }: ChooseStepProps) {
+function ChooseStep({ onPickCeleb, onPickPerson }: ChooseStepProps) {
   const { colors } = useTheme();
   return (
     <View style={styles.stepBody}>
@@ -286,7 +256,7 @@ function ChooseStep({ onPick }: ChooseStepProps) {
         iconBg="rgba(233, 195, 73, 0.15)"
         title="Celebrity"
         body="Explore your chart against hundreds of famous figures."
-        onPress={() => onPick('celeb')}
+        onPress={onPickCeleb}
       />
       <ChooseCard
         iconGlyph="👤"
@@ -294,7 +264,7 @@ function ChooseStep({ onPick }: ChooseStepProps) {
         iconBg="rgba(130, 200, 180, 0.14)"
         title="Someone in your life"
         body="Partner, crush, ex, friend — anyone you know birth details for."
-        onPress={() => onPick('person')}
+        onPress={onPickPerson}
       />
     </View>
   );
@@ -490,254 +460,19 @@ function CelebConfirmStep({ celeb, onCreate }: CelebConfirmStepProps) {
         ))}
       </View>
 
-      <PrimaryButton label="Create Connection" onPress={onCreate} />
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={onCreate}
+        style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+      >
+        <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
+          Create Connection
+        </Text>
+      </TouchableOpacity>
       <Text style={[styles.helperText, { color: colors.textMuted }]}>
         Short blurb and archetype are free.
       </Text>
     </View>
-  );
-}
-
-interface PersonStepProps {
-  name: string;
-  onNameChange: (value: string) => void;
-  date: string;
-  onDateChange: (value: string) => void;
-  time: string;
-  onTimeChange: (value: string) => void;
-  timeUnknown: boolean;
-  onToggleTimeUnknown: () => void;
-  city: string;
-  onCityChange: (value: string) => void;
-  relationshipType: RelationshipTypeOption;
-  onRelationshipTypeChange: (value: RelationshipTypeOption) => void;
-  photoAdded: boolean;
-  onTogglePhoto: () => void;
-  onCreate: () => void;
-}
-
-function PersonStep({
-  name,
-  onNameChange,
-  date,
-  onDateChange,
-  time,
-  onTimeChange,
-  timeUnknown,
-  onToggleTimeUnknown,
-  city,
-  onCityChange,
-  relationshipType,
-  onRelationshipTypeChange,
-  photoAdded,
-  onTogglePhoto,
-  onCreate,
-}: PersonStepProps) {
-  const { colors } = useTheme();
-
-  return (
-    <View style={styles.stepBody}>
-      <Text style={[styles.stepTitle, { color: colors.text }]}>Add someone you know</Text>
-      <Text style={[styles.stepSubtitle, { color: colors.textMuted }]}>
-        We need their birth details to calculate the chart.
-      </Text>
-
-      <View style={styles.photoWrap}>
-        <TouchableOpacity
-          onPress={onTogglePhoto}
-          activeOpacity={0.85}
-          style={[
-            styles.photoCircle,
-            photoAdded
-              ? { backgroundColor: '#5BA890', borderColor: 'transparent', borderWidth: 0 }
-              : {
-                  backgroundColor: colors.surfaceHigh,
-                  borderColor: colors.ghostBorder,
-                  borderWidth: 2,
-                  borderStyle: 'dashed',
-                },
-          ]}
-        >
-          {photoAdded ? (
-            <Text style={[styles.photoInitial, { color: colors.onPrimary }]}>
-              {(name || 'A').charAt(0).toUpperCase()}
-            </Text>
-          ) : (
-            <Text style={[styles.photoPlaceholder, { color: colors.textSubtle }]}>📷</Text>
-          )}
-        </TouchableOpacity>
-        <View
-          style={[
-            styles.photoBadge,
-            { backgroundColor: colors.primary, borderColor: colors.surfaceLow },
-          ]}
-        >
-          <Text style={[styles.photoBadgeText, { color: colors.onPrimary }]}>
-            {photoAdded ? '✓' : '+'}
-          </Text>
-        </View>
-      </View>
-      <Text style={[styles.photoCaption, { color: colors.textSubtle }]}>
-        Add a photo (optional)
-      </Text>
-
-      <LabeledInput
-        label="Their name"
-        value={name}
-        onChangeText={onNameChange}
-        placeholder="First name"
-        autoCapitalize="words"
-      />
-      <LabeledInput
-        label="Birth date"
-        value={date}
-        onChangeText={onDateChange}
-        placeholder="MM/DD/YYYY"
-      />
-
-      <View style={styles.fieldGroup}>
-        <View style={styles.fieldLabelRow}>
-          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Birth time</Text>
-          <TouchableOpacity onPress={onToggleTimeUnknown} activeOpacity={0.7}>
-            <Text style={[styles.fieldLabelAction, { color: colors.primary }]}>
-              {timeUnknown ? 'I know the time' : "I don't know"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View
-          style={[
-            styles.field,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.ghostBorder,
-              opacity: timeUnknown ? 0.5 : 1,
-            },
-          ]}
-        >
-          <TextInput
-            value={time}
-            onChangeText={onTimeChange}
-            placeholder="e.g. 3:30 PM"
-            placeholderTextColor={colors.textSubtle}
-            editable={!timeUnknown}
-            style={[styles.fieldInput, { color: colors.text }]}
-          />
-        </View>
-      </View>
-
-      <LabeledInput
-        label="Birth city"
-        value={city}
-        onChangeText={onCityChange}
-        placeholder="City, Country"
-        autoCapitalize="words"
-      />
-
-      <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Relationship type</Text>
-      <View style={styles.chipRow}>
-        {RELATIONSHIP_TYPES.map((option) => {
-          const active = option === relationshipType;
-          return (
-            <TouchableOpacity
-              key={option}
-              onPress={() => onRelationshipTypeChange(option)}
-              activeOpacity={0.8}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: active
-                    ? 'rgba(202, 190, 255, 0.14)'
-                    : colors.surface,
-                  borderColor: active
-                    ? 'rgba(202, 190, 255, 0.3)'
-                    : colors.ghostBorder,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  { color: active ? colors.primary : colors.textMuted },
-                ]}
-              >
-                {option}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <View
-        style={[
-          styles.privacyCard,
-          { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-        ]}
-      >
-        <Text style={[styles.privacyIcon, { color: colors.textSubtle }]}>🔒</Text>
-        <Text style={[styles.privacyText, { color: colors.textSubtle }]}>
-          Their details are private and only used to calculate the chart.
-        </Text>
-      </View>
-
-      <PrimaryButton label="Create Connection" onPress={onCreate} />
-    </View>
-  );
-}
-
-interface LabeledInputProps {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  autoCapitalize?: 'none' | 'words' | 'sentences' | 'characters';
-}
-
-function LabeledInput({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  autoCapitalize = 'none',
-}: LabeledInputProps) {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.fieldGroup}>
-      <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{label}</Text>
-      <View
-        style={[
-          styles.field,
-          { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-        ]}
-      >
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textSubtle}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={false}
-          style={[styles.fieldInput, { color: colors.text }]}
-        />
-      </View>
-    </View>
-  );
-}
-
-interface PrimaryButtonProps {
-  label: string;
-  onPress: () => void;
-}
-
-function PrimaryButton({ label, onPress }: PrimaryButtonProps) {
-  const { colors } = useTheme();
-  return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={onPress}
-      style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-    >
-      <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>{label}</Text>
-    </TouchableOpacity>
   );
 }
 
@@ -924,106 +659,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     marginTop: 4,
-  },
-  photoWrap: {
-    alignSelf: 'center',
-    position: 'relative',
-    marginTop: 6,
-  },
-  photoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoInitial: {
-    fontSize: 32,
-    fontWeight: '700',
-  },
-  photoPlaceholder: {
-    fontSize: 22,
-  },
-  photoBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  photoCaption: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 6,
-  },
-  fieldGroup: {
-    gap: 8,
-  },
-  fieldLabel: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  fieldLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  fieldLabelAction: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  field: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-  },
-  fieldInput: {
-    fontSize: 15,
-    paddingVertical: 10,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-  chip: {
-    borderWidth: 1,
-    borderRadius: 100,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  privacyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  privacyIcon: {
-    fontSize: 14,
-  },
-  privacyText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
   },
 });

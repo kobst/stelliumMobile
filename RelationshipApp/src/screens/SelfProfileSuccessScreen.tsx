@@ -28,7 +28,7 @@ export const SelfProfileSuccessScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.actions}>
         <TouchableOpacity
           style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-          onPress={() => navigation.replace('ChooseTargetType')}
+          onPress={() => navigation.replace('AddConnection')}
         >
           <Text style={styles.primaryButtonText}>Continue</Text>
         </TouchableOpacity>
