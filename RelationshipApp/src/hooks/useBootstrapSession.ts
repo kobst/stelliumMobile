@@ -3,6 +3,7 @@ import { getAuth, onAuthStateChanged, signOut } from '@react-native-firebase/aut
 import { ApiError, relationshipUsersApi } from '../api';
 import { relationshipAppEnv } from '../config/env';
 import { useRelationshipAppStore } from '../store';
+import { getEntitlements } from '../api/credits';
 
 function isNotFoundError(error: unknown): boolean {
   return error instanceof ApiError && error.status === 404;
@@ -31,6 +32,8 @@ export function useBootstrapSession() {
   const setAuthState = useRelationshipAppStore((state) => state.setAuthState);
   const setBootstrapState = useRelationshipAppStore((state) => state.setBootstrapState);
   const setProfile = useRelationshipAppStore((state) => state.setProfile);
+  const setCredits = useRelationshipAppStore((state) => state.setCredits);
+  const setSubscription = useRelationshipAppStore((state) => state.setSubscription);
   const guestProfileDraft = useRelationshipAppStore((state) => state.guestProfileDraft);
   const profileReveal = useRelationshipAppStore((state) => state.profileReveal);
 
@@ -94,6 +97,19 @@ export function useBootstrapSession() {
         const profile = await relationshipUsersApi.getMe();
         setProfile(profile);
         setBootstrapState({ bootstrapStatus: 'ready', bootstrapError: null });
+        getEntitlements(profile.id)
+          .then(({ credits, subscription }) => {
+            setCredits(credits);
+            setSubscription(subscription);
+          })
+          .catch((entitlementsError) => {
+            if (__DEV__) {
+              console.warn(
+                '[useBootstrapSession] entitlements hydration failed',
+                entitlementsError
+              );
+            }
+          });
       } catch (error) {
         if (isMissingFirebaseUserError(error)) {
           try {
@@ -127,5 +143,14 @@ export function useBootstrapSession() {
     });
 
     return unsubscribe;
-  }, [firebaseAuth, guestProfileDraft, profileReveal, setAuthState, setBootstrapState, setProfile]);
+  }, [
+    firebaseAuth,
+    guestProfileDraft,
+    profileReveal,
+    setAuthState,
+    setBootstrapState,
+    setProfile,
+    setCredits,
+    setSubscription,
+  ]);
 }

@@ -1,4 +1,11 @@
-import type { CreditTransaction, CreditsState, SubscriptionState } from '../store';
+import { relationshipApiClient } from '../../../shared/api/relationshipClient';
+import type {
+  CreditTransaction,
+  CreditTransactionKind,
+  CreditsState,
+  SubscriptionState,
+  SubscriptionTier,
+} from '../store';
 
 const STUB_DELAY_MS = 250;
 
@@ -19,132 +26,263 @@ export const CREDIT_PACKAGES: readonly CreditPackage[] = [
   { id: 'credits_150', credits: 150, priceLabel: '$9.99', bonusLabel: 'Best value' },
 ];
 
-export async function getCreditBalance(): Promise<CreditsState> {
-  await delay(STUB_DELAY_MS);
-  return {
-    balance: 147,
-    fromPlan: 127,
-    purchased: 20,
-    planRenewsAt: '2026-05-14',
-    planName: 'Iris Monthly',
-    planPriceLabel: '$9.99',
-    planCreditsPerCycle: 200,
+// ── /relationship-app/users/:userId/entitlements ────────────────────────────
+interface EntitlementsResponse {
+  success?: boolean;
+  appDomain?: string;
+  billingSystem?: string;
+  bootstrapSource?: string;
+  plan?: string | null;
+  planActiveUntil?: string | null;
+  isSubscriptionActive?: boolean;
+  hasEverSubscribed?: boolean;
+  credits?: {
+    total?: number;
+    monthly?: number;
+    pack?: number;
+    monthlyLimit?: number;
+    resetDate?: string | null;
   };
 }
 
-export async function getSubscription(): Promise<SubscriptionState> {
-  await delay(STUB_DELAY_MS);
+export interface Entitlements {
+  credits: CreditsState;
+  subscription: SubscriptionState;
+}
+
+function toNumber(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function planPriceLabelFor(plan: string | null | undefined): string | null {
+  if (plan === 'monthly') return '$9.99';
+  if (plan === 'annual') return '$79.99';
+  return null;
+}
+
+function planDisplayName(plan: string | null | undefined): string | null {
+  if (plan === 'monthly') return 'Iris Monthly';
+  if (plan === 'annual') return 'Iris Annual';
+  return null;
+}
+
+function subscriptionTier(plan: string | null | undefined): SubscriptionTier {
+  if (plan === 'monthly') return 'monthly';
+  if (plan === 'annual') return 'annual';
+  return 'free';
+}
+
+function subscriptionLabel(tier: SubscriptionTier): string {
+  if (tier === 'monthly') return 'Monthly';
+  if (tier === 'annual') return 'Annual';
+  return 'Free';
+}
+
+function normalizeEntitlements(response: EntitlementsResponse): Entitlements {
+  const creditsBlock = response.credits ?? {};
+  const total = toNumber(creditsBlock.total);
+  const monthly = toNumber(creditsBlock.monthly);
+  const pack = toNumber(creditsBlock.pack);
+  const monthlyLimit = toNumber(creditsBlock.monthlyLimit);
+  const plan = response.plan ?? 'free';
+
+  const tier = subscriptionTier(plan);
+
+  const credits: CreditsState = {
+    balance: total,
+    fromPlan: monthly,
+    purchased: pack,
+    planRenewsAt: creditsBlock.resetDate ?? null,
+    planName: planDisplayName(plan),
+    planPriceLabel: planPriceLabelFor(plan),
+    planCreditsPerCycle: monthlyLimit > 0 ? monthlyLimit : null,
+  };
+
+  const subscription: SubscriptionState = {
+    tier,
+    renewsAt: response.planActiveUntil ?? creditsBlock.resetDate ?? null,
+    label: subscriptionLabel(tier),
+  };
+
+  return { credits, subscription };
+}
+
+export async function getEntitlements(userId: string): Promise<Entitlements> {
+  if (!userId) {
+    throw new Error('getEntitlements requires a userId');
+  }
+  const response = await relationshipApiClient.get<EntitlementsResponse>(
+    `/relationship-app/users/${encodeURIComponent(userId)}/entitlements`
+  );
+  if (response && response.success === false) {
+    throw new Error('Failed to load entitlements');
+  }
+  return normalizeEntitlements(response ?? {});
+}
+
+export async function getCreditBalance(userId: string): Promise<CreditsState> {
+  const { credits } = await getEntitlements(userId);
+  return credits;
+}
+
+export async function getSubscription(userId: string): Promise<SubscriptionState> {
+  const { subscription } = await getEntitlements(userId);
+  return subscription;
+}
+
+// ── /api/credits/transactions ───────────────────────────────────────────────
+interface RawCreditTransaction {
+  id?: string;
+  _id?: string;
+  transactionId?: string;
+  kind?: string;
+  type?: string;
+  category?: string;
+  description?: string;
+  memo?: string;
+  note?: string;
+  delta?: number;
+  amount?: number;
+  credits?: number;
+  createdAt?: string;
+  occurredAt?: string;
+  timestamp?: string;
+  date?: string;
+}
+
+interface CreditTransactionsResponse {
+  success?: boolean;
+  transactions?: RawCreditTransaction[];
+  items?: RawCreditTransaction[];
+  data?: RawCreditTransaction[];
+}
+
+const KIND_ALIASES: Record<string, CreditTransactionKind> = {
+  analysis_full: 'analysis_full',
+  full_analysis: 'analysis_full',
+  relationship_full: 'analysis_full',
+  analysis_overview: 'analysis_overview',
+  overview: 'analysis_overview',
+  preview: 'analysis_overview',
+  score_reveal: 'analysis_overview',
+  ask_iris: 'ask_iris',
+  chat: 'ask_iris',
+  ask: 'ask_iris',
+  purchase: 'purchase',
+  pack_purchase: 'purchase',
+  renewal: 'renewal',
+  subscription_renewal: 'renewal',
+  plan_renewal: 'renewal',
+  bonus: 'bonus',
+  welcome_bonus: 'bonus',
+};
+
+function normalizeKind(raw: string | undefined, delta: number): CreditTransactionKind {
+  if (raw) {
+    const normalized = raw.toLowerCase();
+    if (KIND_ALIASES[normalized]) return KIND_ALIASES[normalized];
+    if (normalized.includes('full')) return 'analysis_full';
+    if (normalized.includes('overview') || normalized.includes('preview')) {
+      return 'analysis_overview';
+    }
+    if (normalized.includes('ask') || normalized.includes('chat')) return 'ask_iris';
+    if (normalized.includes('purchase') || normalized.includes('pack')) return 'purchase';
+    if (normalized.includes('renew') || normalized.includes('subscription')) {
+      return 'renewal';
+    }
+    if (normalized.includes('bonus')) return 'bonus';
+  }
+  return delta > 0 ? 'bonus' : 'ask_iris';
+}
+
+function normalizeTransaction(raw: RawCreditTransaction, index: number): CreditTransaction {
+  const deltaRaw =
+    typeof raw.delta === 'number'
+      ? raw.delta
+      : typeof raw.amount === 'number'
+      ? raw.amount
+      : typeof raw.credits === 'number'
+      ? raw.credits
+      : 0;
+  const delta = Number.isFinite(deltaRaw) ? deltaRaw : 0;
+
+  const kindRaw = raw.kind ?? raw.type ?? raw.category;
+  const kind = normalizeKind(kindRaw, delta);
+
+  const description =
+    raw.description ?? raw.memo ?? raw.note ?? fallbackDescription(kind);
+
+  const occurredAt =
+    raw.occurredAt ?? raw.createdAt ?? raw.timestamp ?? raw.date ?? new Date().toISOString();
+
+  const id =
+    raw.id ?? raw._id ?? raw.transactionId ?? `tx-${occurredAt}-${index}`;
+
   return {
-    tier: 'monthly',
-    renewsAt: '2026-05-14',
-    label: 'Monthly',
+    id,
+    occurredAt,
+    kind,
+    description,
+    delta,
   };
 }
 
+function fallbackDescription(kind: CreditTransactionKind): string {
+  switch (kind) {
+    case 'analysis_full':
+      return 'Full analysis';
+    case 'analysis_overview':
+      return 'Score reveal';
+    case 'ask_iris':
+      return 'Ask Iris';
+    case 'purchase':
+      return 'Credit pack purchase';
+    case 'renewal':
+      return 'Plan renewal';
+    case 'bonus':
+      return 'Bonus credits';
+    default:
+      return 'Credit activity';
+  }
+}
+
+export async function getCreditHistory(): Promise<CreditTransaction[]> {
+  const response = await relationshipApiClient.get<
+    CreditTransactionsResponse | RawCreditTransaction[]
+  >('/api/credits/transactions');
+
+  const rawList = Array.isArray(response)
+    ? response
+    : response?.transactions ?? response?.items ?? response?.data ?? [];
+
+  return rawList
+    .map((entry, index) => normalizeTransaction(entry, index))
+    .sort((a, b) => {
+      const aTs = Date.parse(a.occurredAt);
+      const bTs = Date.parse(b.occurredAt);
+      const aValid = Number.isFinite(aTs) ? aTs : 0;
+      const bValid = Number.isFinite(bTs) ? bTs : 0;
+      return bValid - aValid;
+    });
+}
+
+// ── Unimplemented: purchase/restore still use local stubs until the store
+// ── endpoints ship.  Keep these here so existing call sites don't break.
 export async function purchaseCredits(packageId: string): Promise<CreditsState> {
   await delay(STUB_DELAY_MS);
   const pkg = CREDIT_PACKAGES.find((candidate) => candidate.id === packageId);
   if (!pkg) {
     throw new Error(`Unknown credit package: ${packageId}`);
   }
-  const fromPlan = 127;
-  const purchased = 20 + pkg.credits;
-  return {
-    balance: fromPlan + purchased,
-    fromPlan,
-    purchased,
-    planRenewsAt: '2026-05-14',
-    planName: 'Iris Monthly',
-    planPriceLabel: '$9.99',
-    planCreditsPerCycle: 200,
-  };
+  throw new Error('Credit purchases are not wired to the backend yet.');
 }
 
 export async function restorePurchases(): Promise<CreditsState> {
   await delay(STUB_DELAY_MS);
-  return getCreditBalance();
-}
-
-// TODO: replace with real `/getCreditHistory` once endpoint ships.
-export async function getCreditHistory(): Promise<CreditTransaction[]> {
-  await delay(STUB_DELAY_MS);
-  return [
-    {
-      id: 'tx-001',
-      occurredAt: '2026-04-15T00:00:00.000Z',
-      kind: 'analysis_full',
-      description: 'Full analysis · You & Emma Watson',
-      delta: -3,
-    },
-    {
-      id: 'tx-002',
-      occurredAt: '2026-04-14T12:00:00.000Z',
-      kind: 'ask_iris',
-      description: 'Ask Iris · Your chart',
-      delta: -1,
-    },
-    {
-      id: 'tx-003',
-      occurredAt: '2026-04-14T08:00:00.000Z',
-      kind: 'analysis_overview',
-      description: 'Score reveal · You & Harry Styles',
-      delta: -1,
-    },
-    {
-      id: 'tx-004',
-      occurredAt: '2026-04-12T00:00:00.000Z',
-      kind: 'ask_iris',
-      description: 'Ask Iris · You & Sarah Chen',
-      delta: -1,
-    },
-    {
-      id: 'tx-005',
-      occurredAt: '2026-04-10T00:00:00.000Z',
-      kind: 'analysis_full',
-      description: 'Full analysis · You & Sarah Chen',
-      delta: -3,
-    },
-    {
-      id: 'tx-006',
-      occurredAt: '2026-04-08T00:00:00.000Z',
-      kind: 'analysis_overview',
-      description: 'Score reveal · You & Alex Rivera',
-      delta: -1,
-    },
-    {
-      id: 'tx-007',
-      occurredAt: '2026-04-01T00:00:00.000Z',
-      kind: 'renewal',
-      description: 'Monthly renewal · Iris Monthly',
-      delta: 200,
-    },
-    {
-      id: 'tx-008',
-      occurredAt: '2026-03-28T00:00:00.000Z',
-      kind: 'purchase',
-      description: 'Credit pack purchase',
-      delta: 100,
-    },
-    {
-      id: 'tx-009',
-      occurredAt: '2026-03-25T00:00:00.000Z',
-      kind: 'ask_iris',
-      description: 'Ask Iris · Your chart',
-      delta: -1,
-    },
-    {
-      id: 'tx-010',
-      occurredAt: '2026-03-01T00:00:00.000Z',
-      kind: 'renewal',
-      description: 'Monthly renewal · Iris Monthly',
-      delta: 200,
-    },
-    {
-      id: 'tx-011',
-      occurredAt: '2026-02-28T00:00:00.000Z',
-      kind: 'bonus',
-      description: 'Welcome bonus',
-      delta: 3,
-    },
-  ];
+  throw new Error('Restore purchases is not wired to the backend yet.');
 }

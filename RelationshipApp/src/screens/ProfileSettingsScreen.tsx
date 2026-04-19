@@ -16,7 +16,7 @@ import { SettingsList, type SettingsRowConfig } from '../components/SettingsList
 import { PurchaseCreditsSheet } from '../components/PurchaseCreditsSheet';
 import { SignOutSheet } from '../components/SignOutSheet';
 import { DevSessionPanel } from '../components/DevSessionPanel';
-import { getCreditBalance, getSubscription, purchaseCredits, restorePurchases } from '../api/credits';
+import { getEntitlements, purchaseCredits, restorePurchases } from '../api/credits';
 
 const PROFILE_THREAD_KEY = 'profile' as const;
 
@@ -50,16 +50,20 @@ export function ProfileSettingsScreen() {
   const [signOutVisible, setSignOutVisible] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
+  const profileId = profile?.id ?? null;
+
   useEffect(() => {
+    if (!profileId) return;
     let active = true;
     async function bootstrap() {
       try {
-        const [balance, plan] = await Promise.all([getCreditBalance(), getSubscription()]);
+        const { credits: nextCredits, subscription: nextSubscription } =
+          await getEntitlements(profileId!);
         if (!active) {
           return;
         }
-        setCredits(balance);
-        setSubscription(plan);
+        setCredits(nextCredits);
+        setSubscription(nextSubscription);
       } catch (error) {
         if (__DEV__) {
           console.warn('Credits bootstrap failed', error);
@@ -70,7 +74,7 @@ export function ProfileSettingsScreen() {
     return () => {
       active = false;
     };
-  }, [setCredits, setSubscription]);
+  }, [profileId, setCredits, setSubscription]);
 
   const placements = useMemo(() => getBigThree(profile), [profile]);
   const displayName = profile?.displayName ?? 'Your profile';

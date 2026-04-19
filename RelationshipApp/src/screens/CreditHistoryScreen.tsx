@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../theme';
 import { useRelationshipAppStore } from '../store';
-import { getCreditHistory } from '../api/credits';
+import { getCreditHistory, getEntitlements } from '../api/credits';
 import { SettingsNavBar } from '../components/SettingsNavBar';
 import type { CreditTransaction, CreditTransactionKind } from '../store';
 
@@ -33,14 +33,24 @@ export function CreditHistoryScreen() {
   const credits = useRelationshipAppStore((state) => state.credits);
   const transactions = useRelationshipAppStore((state) => state.creditTransactions);
   const setCreditTransactions = useRelationshipAppStore((state) => state.setCreditTransactions);
+  const setCredits = useRelationshipAppStore((state) => state.setCredits);
+  const setSubscription = useRelationshipAppStore((state) => state.setSubscription);
+  const profile = useRelationshipAppStore((state) => state.profile);
+  const profileId = profile?.id ?? null;
 
   useEffect(() => {
     let active = true;
     async function load() {
       try {
-        const history = await getCreditHistory();
-        if (active) {
-          setCreditTransactions(history);
+        const [history, entitlements] = await Promise.all([
+          getCreditHistory(),
+          profileId ? getEntitlements(profileId) : Promise.resolve(null),
+        ]);
+        if (!active) return;
+        setCreditTransactions(history);
+        if (entitlements) {
+          setCredits(entitlements.credits);
+          setSubscription(entitlements.subscription);
         }
       } catch (error) {
         if (__DEV__) {
@@ -52,7 +62,7 @@ export function CreditHistoryScreen() {
     return () => {
       active = false;
     };
-  }, [setCreditTransactions]);
+  }, [profileId, setCreditTransactions, setCredits, setSubscription]);
 
   const sections = useMemo(() => buildSections(transactions), [transactions]);
 
