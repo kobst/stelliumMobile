@@ -22,9 +22,27 @@ function makeTargetSubject(overrides: Partial<SubjectDocument> = {}): SubjectDoc
 
 describe('relationship app shared preview flow', () => {
   test('starts live celebrity preview with celebRelationship enabled', async () => {
-    const enhancedRelationshipAnalysis = jest.fn().mockResolvedValue({
+    const mockPreview = {
       compositeChartId: 'rel_celeb_1',
-    });
+      userA: { id: 'self_live_1', name: 'Alex Rivera' },
+      userB: { id: 'celeb_1', name: 'Ariana Grande' },
+      clusters: {
+        Harmony: { score: 70 },
+        Passion: { score: 65 },
+        Connection: { score: 80 },
+        Stability: { score: 55 },
+        Growth: { score: 60 },
+      },
+      overall: {
+        score: 70,
+        tier: 'Flourishing',
+        profile: 'Shared Frequency',
+        summary: { label: 'Shared Frequency' },
+      },
+      scoredItems: [],
+      initialOverview: 'Initial overview',
+    };
+    const enhancedRelationshipAnalysis = jest.fn().mockResolvedValue(mockPreview);
 
     const selfProfile = createLocalRelationshipProfile({
       firstName: 'Alex',
@@ -60,7 +78,10 @@ describe('relationship app shared preview flow', () => {
       true
     );
     expect(result.preview.compositeChartId).toBe('rel_celeb_1');
-    expect(result.updatedHistory).toEqual([]);
+    expect(result.updatedHistory).toHaveLength(1);
+    expect(result.updatedHistory[0]._id).toBe('rel_celeb_1');
+    expect(result.updatedHistory[0].userB_id).toBe('celeb_1');
+    expect(result.updatedHistory[0].isCelebrityRelationship).toBe(true);
   });
 
   test('creates a local preview history entry when running in local ux mode', async () => {

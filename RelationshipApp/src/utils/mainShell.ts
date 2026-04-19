@@ -119,9 +119,13 @@ export function getRelationshipPairLabel(relationship: UserCompositeChart): stri
 }
 
 export function getRelationshipArchetypeLabel(relationship: UserCompositeChart): string {
+  const status = relationship.relationshipAnalysisStatus;
   return (
+    relationship.clusterScoring?.overall?.summary?.label ??
     relationship.clusterScoring?.overall?.profile ??
-    relationship.relationshipAnalysisStatus?.profile ??
+    status?.overall?.summary?.label ??
+    status?.overall?.profile ??
+    status?.profile ??
     'Compatibility read'
   );
 }

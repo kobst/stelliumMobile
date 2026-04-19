@@ -109,6 +109,20 @@ export const relationshipsApi = {
           isArray: Array.isArray(result),
           count: Array.isArray(result) ? result.length : null,
         });
+        if (Array.isArray(result) && result.length > 0) {
+          const sample = result[0];
+          const status = sample?.relationshipAnalysisStatus;
+          // eslint-disable-next-line no-console
+          console.log('[relationshipsApi.getUserCompositeCharts] sample[0] archetype shape', {
+            id: sample?._id,
+            statusKeys: status ? Object.keys(status) : null,
+            statusOverallKeys: status?.overall ? Object.keys(status.overall) : null,
+            statusSummaryLabel: status?.overall?.summary?.label,
+            statusOverallProfile: status?.overall?.profile,
+            statusFlatProfile: status?.profile,
+            clusterScoringOverallProfile: sample?.clusterScoring?.overall?.profile,
+          });
+        }
       }
       return result;
     } catch (error) {

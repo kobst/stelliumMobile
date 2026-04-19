@@ -22,26 +22,13 @@ import {
 } from '../utils/mainShell';
 import { CreditPill } from '../components/CreditPill';
 import { CountedFilterPills, type CountedPillOption } from '../components/CountedFilterPills';
-import {
-  RelationshipCard,
-  type RelationshipTier,
-} from '../components/RelationshipCard';
+import { RelationshipCard } from '../components/RelationshipCard';
 import { RelationshipEmptyState } from '../components/RelationshipEmptyState';
 import type { UserCompositeChart } from '../../../shared/api/relationships';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
 type Filter = 'all' | 'people' | 'celebs';
-
-function resolveTier(relationship: UserCompositeChart): RelationshipTier {
-  if (relationship.completeAnalysis && Object.keys(relationship.completeAnalysis).length > 0) {
-    return 'full';
-  }
-  if (relationship.clusterScoring) {
-    return 'overview';
-  }
-  return 'blurb';
-}
 
 function resolveOtherSide(
   relationship: UserCompositeChart,
@@ -62,18 +49,6 @@ function resolveOtherSide(
   };
 }
 
-function resolveAspectLine(relationship: UserCompositeChart): string | null {
-  const first = relationship.synastryAspects?.[0];
-  if (!first) {
-    return null;
-  }
-  const { planet1, planet2, aspectType } = first;
-  if (!planet1 || !planet2 || !aspectType) {
-    return null;
-  }
-  return `${planet1}-${planet2} ${aspectType}`;
-}
-
 export const HistoryScreen: React.FC = () => {
   const navigation = useNavigation<RootNavigation>();
   const { colors } = useTheme();
@@ -92,7 +67,6 @@ export const HistoryScreen: React.FC = () => {
   const [filter, setFilter] = useState<Filter>('all');
 
   const selfProfileId = profile?.id ?? null;
-  const userInitial = getInitials(profile?.displayName ?? '') || '·';
 
   const counts = useMemo(() => {
     const celebs = relationshipHistory.filter((rel) => Boolean(rel.isCelebrityRelationship)).length;
@@ -104,18 +78,23 @@ export const HistoryScreen: React.FC = () => {
     };
   }, [relationshipHistory]);
 
-  const filteredRelationships = useMemo(
-    () =>
-      relationshipHistory.filter((relationship) => {
-        if (filter === 'all') {
-          return true;
-        }
-        return filter === 'celebs'
-          ? Boolean(relationship.isCelebrityRelationship)
-          : !relationship.isCelebrityRelationship;
-      }),
-    [filter, relationshipHistory]
-  );
+  const filteredRelationships = useMemo(() => {
+    const matched = relationshipHistory.filter((relationship) => {
+      if (filter === 'all') {
+        return true;
+      }
+      return filter === 'celebs'
+        ? Boolean(relationship.isCelebrityRelationship)
+        : !relationship.isCelebrityRelationship;
+    });
+    return [...matched].sort((a, b) => {
+      const aTs = Date.parse(a.updatedAt ?? a.createdAt ?? '');
+      const bTs = Date.parse(b.updatedAt ?? b.createdAt ?? '');
+      const aValid = Number.isFinite(aTs) ? aTs : 0;
+      const bValid = Number.isFinite(bTs) ? bTs : 0;
+      return bValid - aValid;
+    });
+  }, [filter, relationshipHistory]);
 
   const filterOptions = useMemo<readonly CountedPillOption<Filter>[]>(
     () => [
@@ -134,7 +113,7 @@ export const HistoryScreen: React.FC = () => {
   const openRelationship = useCallback(
     (relationship: UserCompositeChart) => {
       const selectionState = buildHistorySelectionState(relationship);
-      setPreviewAnalysis(null);
+      setPreviewAnalysis(selectionState.previewAnalysis);
       setActiveRelationshipId(relationship._id);
       setFullAnalysis(selectionState.fullAnalysis);
       setWorkflowState({
@@ -142,7 +121,7 @@ export const HistoryScreen: React.FC = () => {
         workflowPhase: selectionState.workflowPhase,
         workflowError: null,
       });
-      navigation.navigate('Unlock');
+      navigation.navigate('RelationshipPreview');
     },
     [navigation, setActiveRelationshipId, setFullAnalysis, setPreviewAnalysis, setWorkflowState]
   );
@@ -263,9 +242,6 @@ export const HistoryScreen: React.FC = () => {
                   kind={kind}
                   name={other.name}
                   archetype={getRelationshipArchetypeLabel(relationship)}
-                  aspect={resolveAspectLine(relationship)}
-                  tier={resolveTier(relationship)}
-                  userInitial={userInitial}
                   otherInitial={other.initial}
                   otherPhotoUri={other.photoUri}
                   onPress={() => openRelationship(relationship)}

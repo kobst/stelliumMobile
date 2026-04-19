@@ -140,6 +140,11 @@ export interface RelationshipAnalysisStatus {
   level: 'complete' | 'scores' | 'none';
   tier?: string;
   profile?: string;
+  overall?: {
+    tier?: string;
+    profile?: string;
+    summary?: OverallSummary;
+  };
   clusterScores?: {
     Harmony: number;
     Passion: number;
@@ -147,6 +152,7 @@ export interface RelationshipAnalysisStatus {
     Growth: number;
     Stability: number;
   };
+  tensionFlowQuadrant?: string;
   hasClusterAnalysis?: boolean;
 }
 

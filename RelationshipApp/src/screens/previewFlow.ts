@@ -42,12 +42,23 @@ export async function startRelationshipPreview(
         isCelebrityRelationship
       );
 
-  const updatedHistory = input.isLocalUxMode
-    ? [
-        createLocalHistoryEntry({ preview }),
-        ...input.relationshipHistory.filter((item) => item._id !== preview.compositeChartId),
-      ]
-    : input.relationshipHistory;
+  const newEntry = createLocalHistoryEntry({ preview });
+  const augmentedEntry: UserCompositeChart = {
+    ...newEntry,
+    userA_id: input.selfProfile.id,
+    userB_id: input.targetSubject._id,
+    ownerUserId: input.selfProfile.id,
+    isCelebrityRelationship,
+    userB_profilePhotoUrl:
+      (input.targetSubject as { profilePhotoUrl?: string | null } | null)?.profilePhotoUrl ?? null,
+    userB_photoUrl:
+      (input.targetSubject as { photoUrl?: string | null } | null)?.photoUrl ?? null,
+  };
+
+  const updatedHistory = [
+    augmentedEntry,
+    ...input.relationshipHistory.filter((item) => item._id !== preview.compositeChartId),
+  ];
 
   return {
     preview,

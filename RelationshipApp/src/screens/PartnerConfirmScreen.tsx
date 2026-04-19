@@ -220,7 +220,13 @@ export function PartnerConfirmScreen() {
         });
       }
       clearPartnerDraft();
-      navigation.navigate('RelationshipPreview');
+      navigation.reset({
+        index: 1,
+        routes: [
+          { name: 'Main', params: { screen: 'RelationshipsTab' } },
+          { name: 'RelationshipPreview' },
+        ],
+      });
     } catch (error) {
       Alert.alert(
         'Could not create connection',

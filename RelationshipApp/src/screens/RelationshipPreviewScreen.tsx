@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -116,7 +116,12 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.navBar}>
         <TouchableOpacity
           activeOpacity={0.7}
-          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main'))}
+          onPress={() =>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Main', params: { screen: 'RelationshipsTab' } }],
+            })
+          }
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Text style={[styles.navBackLabel, { color: colors.textMuted }]}>← Back</Text>
@@ -264,16 +269,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             {initialOverview ? (
               <View>
                 <SectionLabel color={colors.accent}>Initial Reading</SectionLabel>
-                <View
-                  style={[
-                    styles.softCard,
-                    { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-                  ]}
-                >
-                  <Text style={[styles.serifItalic, { color: colors.text }]}>
-                    {initialOverview}
-                  </Text>
-                </View>
+                <ExpandableReading text={initialOverview} />
               </View>
             ) : null}
           </>
@@ -397,6 +393,47 @@ function SectionLabelCentered({ children, color }: SectionLabelProps) {
 
 function Divider({ color }: { color: string }) {
   return <View style={[styles.divider, { backgroundColor: color }]} />;
+}
+
+const READING_COLLAPSED_LINES = 6;
+
+function ExpandableReading({ text }: { text: string }) {
+  const { colors } = useTheme();
+  const [expanded, setExpanded] = useState(false);
+  const [needsToggle, setNeedsToggle] = useState(false);
+
+  return (
+    <View
+      style={[
+        styles.softCard,
+        { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+      ]}
+    >
+      <Text
+        style={[styles.serifItalic, { color: colors.text }]}
+        numberOfLines={expanded ? undefined : READING_COLLAPSED_LINES}
+        onTextLayout={(event) => {
+          if (!expanded && event.nativeEvent.lines.length >= READING_COLLAPSED_LINES) {
+            setNeedsToggle(true);
+          }
+        }}
+      >
+        {text}
+      </Text>
+      {needsToggle ? (
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setExpanded((prev) => !prev)}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          style={styles.expandToggle}
+        >
+          <Text style={[styles.expandToggleText, { color: colors.primary }]}>
+            {expanded ? 'Show less' : 'Read more'}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
 }
 
 // Animated pulsing dots (stage 1 loader, stage 3 progress)
@@ -687,6 +724,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontStyle: 'italic',
     lineHeight: 23,
+  },
+  expandToggle: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+  },
+  expandToggleText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   serifItalicCenter: {
     fontSize: 14,
