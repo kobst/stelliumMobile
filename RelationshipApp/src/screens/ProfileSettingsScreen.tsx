@@ -98,6 +98,7 @@ export function ProfileSettingsScreen() {
     (prefill?: string) => {
       navigation.navigate('AskIris', {
         context: 'profile',
+        threadKey: PROFILE_THREAD_KEY,
         prefill,
       });
     },

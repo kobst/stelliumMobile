@@ -48,6 +48,7 @@ export type RelationshipRootParamList = {
         context: 'home' | 'profile' | 'relationship';
         relationshipLabel?: string;
         prefill?: string;
+        threadKey?: string;
       }
     | undefined;
   Unlock: undefined;

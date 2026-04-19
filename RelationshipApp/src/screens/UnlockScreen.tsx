@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -11,6 +11,18 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
 import { useRelationshipAppStore } from '../store';
 import { useRelationshipAnalysisWorkflow } from '../hooks/useRelationshipAnalysisWorkflow';
+import { AskIrisCard } from '../components/AskIrisCard';
+
+const RELATIONSHIP_ASK_COPY = {
+  title: 'Questions about this connection',
+  subtitle: 'Insights grounded in your synastry',
+  inputPlaceholder: 'Ask anything about this relationship…',
+  suggestions: [
+    'What is the strongest part of this connection?',
+    'Where are we most likely to misunderstand each other?',
+    'What should I pay attention to before getting more invested?',
+  ],
+} as const;
 
 type Props = StackScreenProps<RelationshipRootParamList, 'Unlock'>;
 
@@ -18,6 +30,7 @@ export const UnlockScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
   const previewAnalysis = useRelationshipAppStore((state) => state.previewAnalysis);
   const activeRelationshipId = useRelationshipAppStore((state) => state.activeRelationshipId);
+  const askThreads = useRelationshipAppStore((state) => state.askThreads);
   const {
     workflowStatus,
     workflowPhase,
@@ -25,6 +38,40 @@ export const UnlockScreen: React.FC<Props> = ({ navigation }) => {
     fullAnalysis,
     startFullAnalysis,
   } = useRelationshipAnalysisWorkflow(activeRelationshipId);
+
+  const relationshipThreadKey = useMemo(() => {
+    const id = activeRelationshipId ?? previewAnalysis?.compositeChartId ?? null;
+    return id ? `relationship:${id}` : null;
+  }, [activeRelationshipId, previewAnalysis?.compositeChartId]);
+
+  const relationshipThread = useMemo(
+    () => (relationshipThreadKey ? askThreads[relationshipThreadKey] ?? [] : []),
+    [askThreads, relationshipThreadKey]
+  );
+  const lastRelationshipUser = useMemo(
+    () => [...relationshipThread].reverse().find((message) => message.role === 'user') ?? null,
+    [relationshipThread]
+  );
+  const lastRelationshipIris = useMemo(
+    () => [...relationshipThread].reverse().find((message) => message.role === 'iris') ?? null,
+    [relationshipThread]
+  );
+
+  const relationshipLabel = previewAnalysis
+    ? `${previewAnalysis.userA.name} + ${previewAnalysis.userB.name}`
+    : undefined;
+
+  const openRelationshipAsk = useCallback(
+    (prefill?: string) => {
+      navigation.navigate('AskIris', {
+        context: 'relationship',
+        relationshipLabel,
+        threadKey: relationshipThreadKey ?? undefined,
+        prefill,
+      });
+    },
+    [navigation, relationshipLabel, relationshipThreadKey]
+  );
 
   const hasRelationshipContext = Boolean(activeRelationshipId);
   const isBusy = workflowPhase === 'starting' || workflowPhase === 'polling';
@@ -105,21 +152,13 @@ export const UnlockScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.primaryButtonText}>{primaryLabel}</Text>
         </TouchableOpacity>
         {hasRelationshipContext ? (
-          <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: colors.border }]}
-            onPress={() =>
-              navigation.navigate('AskIris', {
-                context: 'relationship',
-                relationshipLabel: previewAnalysis
-                  ? `${previewAnalysis.userA.name} + ${previewAnalysis.userB.name}`
-                  : undefined,
-              })
-            }
-          >
-            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
-              Ask Iris About This Relationship
-            </Text>
-          </TouchableOpacity>
+          <AskIrisCard
+            copy={RELATIONSHIP_ASK_COPY}
+            lastUserMessage={lastRelationshipUser}
+            lastIrisMessage={lastRelationshipIris}
+            onPressInput={openRelationshipAsk}
+            onPressContinue={() => openRelationshipAsk()}
+          />
         ) : null}
 
         <TouchableOpacity

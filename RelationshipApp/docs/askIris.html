@@ -1,0 +1,418 @@
+import { useState, useRef } from "react";
+
+const SANS = "'DM Sans', system-ui, sans-serif";
+const SERIF = "Georgia, 'Times New Roman', serif";
+
+const c = {
+  bg: "#0C0B10",
+  card: "#16151D",
+  border: "rgba(255,255,255,0.06)",
+  gold: "#D4A843",
+  goldDim: "rgba(212,168,67,0.15)",
+  lav: "#B8A0E8",
+  lavBg: "rgba(184,160,232,0.12)",
+  text: "#E8E4F0",
+  dim: "rgba(232,228,240,0.55)",
+  faint: "rgba(232,228,240,0.35)",
+  green: "#82C8B4",
+  greenDim: "rgba(130,200,180,0.12)",
+};
+
+const aspects = [
+  { id: 1, name: "Moon trine Mercury", type: "Synastry", shortName: "Moon ∆ Mercury" },
+  { id: 2, name: "Venus sextile Saturn", type: "Synastry", shortName: "Venus ⚹ Saturn" },
+  { id: 3, name: "Mars square Neptune", type: "Synastry", shortName: "Mars □ Neptune" },
+  { id: 4, name: "Sun conjunct Jupiter", type: "Synastry", shortName: "Sun ☌ Jupiter" },
+  { id: 5, name: "Venus opposite Pluto", type: "Synastry", shortName: "Venus ☍ Pluto" },
+  { id: 6, name: "Mercury trine Mars", type: "Synastry", shortName: "Mercury ∆ Mars" },
+  { id: 7, name: "Moon sextile Venus", type: "Synastry", shortName: "Moon ⚹ Venus" },
+  { id: 8, name: "Saturn square Uranus", type: "Synastry", shortName: "Saturn □ Uranus" },
+  { id: 9, name: "Moon in 3rd House", type: "Composite", shortName: "Moon in 3rd" },
+  { id: 10, name: "Venus in 7th House", type: "Composite", shortName: "Venus in 7th" },
+  { id: 11, name: "Mars in 5th House", type: "Composite", shortName: "Mars in 5th" },
+  { id: 12, name: "Saturn in 10th House", type: "Composite", shortName: "Saturn in 10th" },
+];
+
+const suggestions = [
+  "Why is our Passion score the lowest?",
+  "What does Mars square Neptune mean for us?",
+  "How do we introduce more creative tension?",
+];
+
+const chatHistory = [
+  {
+    role: "user",
+    text: "We get along really well but I don't feel a huge spark. What's going on?",
+    time: "8:12 PM",
+    contexts: [],
+  },
+  {
+    role: "iris",
+    text: "Your Connection score with Sarah is 81 — one of the highest I've seen in your chart connections — but Passion sits at 52, which explains exactly what you're feeling. The Moon-Mercury trine between you creates effortless intellectual alignment. You understand each other quickly, conversations are satisfying, and there's a genuine comfort. But comfort and desire run on different circuits.\n\nYour Mars in Sagittarius wants pursuit, novelty, and a bit of friction. Sarah's Mars in Virgo is precise and measured — she doesn't chase, she assesses. Neither of you is naturally creating the tension that generates physical charge. The Venus opposite Pluto aspect between your charts is actually your secret weapon here — it carries real intensity, but it's buried under all that easy communication.",
+    time: "8:12 PM",
+    contexts: [],
+  },
+  {
+    role: "user",
+    text: "Tell me more about what this means for our physical connection",
+    time: "8:15 PM",
+    contexts: [
+      { name: "Venus opposite Pluto", type: "Synastry" },
+      { name: "Mars in 5th House", type: "Composite" },
+    ],
+  },
+  {
+    role: "iris",
+    text: "These two placements tell a very specific story together. Venus opposite Pluto in synastry creates a magnetic undertow — there's a fascination that goes beyond surface attraction, something almost compulsive about how you perceive each other. You might not feel \"sparks\" in the conventional sense because this aspect doesn't operate on the surface. It pulls from underneath. The moments that catch you off guard — an unexpected vulnerability, a look that shifts the room — that's this aspect activating.\n\nThe composite Mars in the 5th house adds a creative, playful dimension to desire. The 5th house is where spontaneity and self-expression live. Your physical connection is most alive when you're doing something together that feels slightly risky or new — not routine. A predictable date night won't light this up. An unplanned adventure, a shared creative project, or even a charged conversation that goes somewhere unexpected will.",
+    time: "8:15 PM",
+    contexts: [],
+  },
+];
+
+const IrisMsg = ({ text, time }) => (
+  <div style={{ marginBottom: 20 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+      <div style={{ width: 26, height: 26, borderRadius: 8, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: c.green }}>✦</div>
+      <span style={{ fontSize: 12, fontWeight: 600, color: c.text }}>Iris</span>
+      <span style={{ fontSize: 10.5, color: c.faint }}>{time}</span>
+    </div>
+    <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: "4px 16px 16px 16px", padding: "16px 18px", marginLeft: 34 }}>
+      {text.split("\n\n").map((para, i) => (
+        <p key={i} style={{ fontFamily: SERIF, fontSize: 14.5, lineHeight: 1.6, color: "rgba(232,228,240,0.82)", margin: 0, marginTop: i > 0 ? 12 : 0 }}>{para}</p>
+      ))}
+    </div>
+  </div>
+);
+
+const UserMsg = ({ text, time, contexts }) => (
+  <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+      <span style={{ fontSize: 10.5, color: c.faint }}>{time}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: c.text }}>You</span>
+    </div>
+    {contexts && contexts.length > 0 && (
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end", marginBottom: 6, maxWidth: "85%" }}>
+        {contexts.map((ctx, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, background: c.goldDim, border: `1px solid rgba(212,168,67,0.2)`, borderRadius: 100, padding: "3px 9px", fontSize: 10, color: c.gold, fontWeight: 500 }}>
+            <span>{ctx.name}</span>
+            <span style={{ fontSize: 8, opacity: 0.6, textTransform: "uppercase", letterSpacing: 0.5 }}>{ctx.type === "Synastry" ? "SYN" : "COM"}</span>
+          </div>
+        ))}
+      </div>
+    )}
+    <div style={{ background: c.lavBg, border: `1px solid rgba(184,160,232,0.15)`, borderRadius: "16px 4px 16px 16px", padding: "14px 18px", maxWidth: "85%" }}>
+      <p style={{ fontSize: 14, lineHeight: 1.5, color: c.text, margin: 0 }}>{text}</p>
+    </div>
+  </div>
+);
+
+// ── Aspect Picker Sheet ──
+const AspectPicker = ({ selected, onToggle, onClose, searchVal, setSearchVal, filterType, setFilterType }) => {
+  const types = ["All", "Synastry", "Composite"];
+  const filtered = aspects.filter(a => {
+    const matchesType = filterType === "All" || a.type === filterType;
+    const matchesSearch = !searchVal || a.name.toLowerCase().includes(searchVal.toLowerCase());
+    return matchesType && matchesSearch;
+  });
+  const selectedIds = selected.map(s => s.id);
+
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 400, display: "flex", flexDirection: "column" }}>
+      {/* Backdrop */}
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)" }} />
+
+      {/* Sheet */}
+      <div style={{
+        position: "relative", marginTop: "auto", width: "100%", maxWidth: 393, margin: "auto auto 0",
+        background: c.card, borderRadius: "20px 20px 0 0", maxHeight: "75vh",
+        display: "flex", flexDirection: "column", animation: "slideUp 0.3s ease both",
+      }}>
+        <style>{`@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }`}</style>
+
+        {/* Handle + header */}
+        <div style={{ padding: "12px 20px 0", flexShrink: 0 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 4, background: "rgba(255,255,255,0.12)", margin: "0 auto 16px" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: c.text }}>Add context</div>
+              <div style={{ fontSize: 12, color: c.faint }}>Select up to 3 aspects to focus your question</div>
+            </div>
+            <div style={{ fontSize: 13, color: c.lav, fontWeight: 600, cursor: "pointer" }} onClick={onClose}>Done</div>
+          </div>
+
+          {/* Type filters */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+            {types.map(t => (
+              <div key={t} onClick={() => setFilterType(t)} style={{
+                padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 500, cursor: "pointer",
+                background: filterType === t ? c.lavBg : "rgba(255,255,255,0.03)",
+                color: filterType === t ? c.lav : c.faint,
+                border: `1px solid ${filterType === t ? "rgba(184,160,232,0.25)" : "rgba(255,255,255,0.05)"}`,
+              }}>{t} {t !== "All" && `(${aspects.filter(a => a.type === t).length})`}</div>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <span style={{ color: c.faint, fontSize: 14 }}>⌕</span>
+            <input value={searchVal} onChange={e => setSearchVal(e.target.value)} placeholder="Search aspects..." style={{ background: "none", border: "none", outline: "none", color: c.text, fontSize: 13.5, fontFamily: SANS, width: "100%", caretColor: c.lav }} />
+          </div>
+        </div>
+
+        {/* Aspect list */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 20px" }}>
+          {filtered.map(a => {
+            const isSelected = selectedIds.includes(a.id);
+            const isDisabled = !isSelected && selected.length >= 3;
+            return (
+              <div key={a.id} onClick={() => !isDisabled && onToggle(a)} style={{
+                display: "flex", alignItems: "center", gap: 12, padding: "13px 0",
+                borderBottom: `1px solid rgba(255,255,255,0.04)`,
+                opacity: isDisabled ? 0.35 : 1, cursor: isDisabled ? "default" : "pointer",
+              }}>
+                {/* Checkbox */}
+                <div style={{
+                  width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                  background: isSelected ? c.lav : "transparent",
+                  border: `2px solid ${isSelected ? c.lav : "rgba(255,255,255,0.15)"}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 12, color: c.bg, fontWeight: 700, transition: "all 0.15s",
+                }}>
+                  {isSelected && "✓"}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, color: c.text, fontWeight: 500 }}>{a.name}</div>
+                </div>
+                <div style={{
+                  fontSize: 9.5, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase",
+                  padding: "3px 8px", borderRadius: 100,
+                  background: a.type === "Synastry" ? c.goldDim : c.greenDim,
+                  color: a.type === "Synastry" ? c.gold : c.green,
+                }}>{a.type === "Synastry" ? "Syn" : "Com"}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Main Chat ──
+export default function AskIrisChat() {
+  const [view, setView] = useState("history");
+  const [inputVal, setInputVal] = useState("");
+  const [selectedAspects, setSelectedAspects] = useState([]);
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [pickerFilter, setPickerFilter] = useState("All");
+  const [isTyping, setIsTyping] = useState(false);
+
+  const toggleAspect = (aspect) => {
+    setSelectedAspects(prev =>
+      prev.find(a => a.id === aspect.id)
+        ? prev.filter(a => a.id !== aspect.id)
+        : prev.length < 3 ? [...prev, aspect] : prev
+    );
+  };
+
+  const handleSend = () => {
+    if (!inputVal.trim()) return;
+    setInputVal("");
+    setIsTyping(true);
+    setTimeout(() => {
+      setIsTyping(false);
+      setSelectedAspects([]);
+    }, 2500);
+  };
+
+  return (
+    <div style={{ background: c.bg, minHeight: "100vh", maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, display: "flex", flexDirection: "column" }}>
+
+      {/* Status bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600, flexShrink: 0 }}>
+        <span>9:41</span>
+        <div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} />
+        <span>···</span>
+      </div>
+
+      {/* Header */}
+      <div style={{ padding: "8px 20px 0", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <span style={{ fontSize: 15, color: c.dim, cursor: "pointer" }}>← Back</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.goldDim, border: "1px solid rgba(212,168,67,0.25)", borderRadius: 100, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: c.gold }}>
+            <span style={{ fontSize: 10 }}>◆</span><span>147</span>
+          </div>
+        </div>
+
+        {/* Context bar */}
+        <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <div style={{ position: "relative", width: 42, height: 34, flexShrink: 0 }}>
+            <div style={{ position: "absolute", left: 0, top: 0, zIndex: 1, width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg, ${c.lav}, #9B7DD4)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 13, fontWeight: 700, color: c.bg, border: `2px solid ${c.card}` }}>J</div>
+            <div style={{ position: "absolute", right: 0, top: 4, width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg, ${c.green}, #5BA890)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 13, fontWeight: 700, color: c.bg, border: `2px solid ${c.card}` }}>S</div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: c.text }}>You & Sarah Chen</div>
+            <div style={{ fontSize: 11.5, color: c.faint }}>Shared Frequency · Connection 81</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Demo toggles */}
+      <div style={{ display: "flex", gap: 4, padding: "0 20px", marginBottom: 12, flexShrink: 0 }}>
+        {["empty", "history"].map(v => (
+          <div key={v} onClick={() => setView(v)} style={{
+            flex: 1, textAlign: "center", padding: "6px 0", borderRadius: 8, cursor: "pointer",
+            fontSize: 10.5, fontWeight: 600,
+            background: view === v ? c.lavBg : "rgba(255,255,255,0.03)",
+            color: view === v ? c.lav : c.faint,
+            border: `1px solid ${view === v ? "rgba(184,160,232,0.25)" : "transparent"}`,
+          }}>{v === "empty" ? "No history" : "With history"}</div>
+        ))}
+      </div>
+
+      {/* Chat area */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 20px 20px", display: "flex", flexDirection: "column" }}>
+        {view === "empty" && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "50px 24px", textAlign: "center", flex: 1 }}>
+            <div style={{ width: 56, height: 56, borderRadius: 18, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, color: c.green, marginBottom: 18 }}>✦</div>
+            <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, color: c.text, marginBottom: 6 }}>Ask Iris anything</div>
+            <div style={{ fontSize: 13, color: c.dim, lineHeight: 1.5, marginBottom: 28, maxWidth: 260 }}>Ask about your connection with Sarah. Add specific aspects for deeper answers.</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+              {suggestions.map((q, i) => (
+                <div key={i} onClick={() => setInputVal(q)} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: "14px 16px", fontSize: 13.5, color: c.dim, cursor: "pointer", textAlign: "left", lineHeight: 1.4 }}>{q}</div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {view === "history" && (
+          <>
+            <div style={{ textAlign: "center", padding: "8px 0 20px" }}>
+              <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: c.faint }}>Apr 14</span>
+            </div>
+
+            {chatHistory.map((msg, i) => (
+              msg.role === "user"
+                ? <UserMsg key={i} text={msg.text} time={msg.time} contexts={msg.contexts} />
+                : <IrisMsg key={i} text={msg.text} time={msg.time} />
+            ))}
+
+            {isTyping && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 8, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: c.green }}>✦</div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: c.text }}>Iris</span>
+                </div>
+                <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: "4px 16px 16px 16px", padding: "16px 18px", marginLeft: 34, display: "flex", gap: 6 }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: c.lav, animation: `tp 1.2s ease-in-out ${i * 0.15}s infinite` }} />
+                  ))}
+                  <style>{`@keyframes tp { 0%,100%{opacity:0.25;transform:scale(0.85)} 50%{opacity:0.8;transform:scale(1.1)} }`}</style>
+                </div>
+              </div>
+            )}
+
+            {/* Suggested follow-ups */}
+            {!isTyping && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: c.faint, marginBottom: 8 }}>Suggested</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {suggestions.slice(0, 2).map((q, i) => (
+                    <div key={i} onClick={() => setInputVal(q)} style={{ background: "rgba(255,255,255,0.025)", border: `1px solid rgba(255,255,255,0.05)`, borderRadius: 12, padding: "10px 14px", fontSize: 12.5, color: c.dim, cursor: "pointer", lineHeight: 1.4 }}>{q}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Input area */}
+      <div style={{ padding: "10px 20px 28px", flexShrink: 0, borderTop: `1px solid ${c.border}`, background: "rgba(12,11,16,0.95)", backdropFilter: "blur(20px)" }}>
+
+        {/* Selected aspects */}
+        {selectedAspects.length > 0 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+            {selectedAspects.map(a => (
+              <div key={a.id} style={{
+                display: "flex", alignItems: "center", gap: 5,
+                background: c.goldDim, border: `1px solid rgba(212,168,67,0.2)`,
+                borderRadius: 100, padding: "5px 8px 5px 10px", fontSize: 11, color: c.gold, fontWeight: 500,
+              }}>
+                <span>{a.shortName}</span>
+                <span style={{
+                  fontSize: 8, opacity: 0.6, textTransform: "uppercase", letterSpacing: 0.5,
+                  background: "rgba(212,168,67,0.2)", borderRadius: 100, padding: "1px 4px",
+                }}>{a.type === "Synastry" ? "Syn" : "Com"}</span>
+                <span onClick={(e) => { e.stopPropagation(); setSelectedAspects(prev => prev.filter(x => x.id !== a.id)); }} style={{ cursor: "pointer", opacity: 0.6, fontSize: 12, marginLeft: 2 }}>×</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Context button + input */}
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          {/* Context / Aspect picker button */}
+          <div onClick={() => { setShowPicker(true); setPickerSearch(""); setPickerFilter("All"); }} style={{
+            width: 42, height: 42, borderRadius: 14, flexShrink: 0, cursor: "pointer",
+            background: selectedAspects.length > 0 ? c.goldDim : "rgba(255,255,255,0.04)",
+            border: `1px solid ${selectedAspects.length > 0 ? "rgba(212,168,67,0.25)" : "rgba(255,255,255,0.08)"}`,
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            gap: 1, transition: "all 0.15s",
+          }}>
+            <span style={{ fontSize: 14, color: selectedAspects.length > 0 ? c.gold : c.faint }}>⊕</span>
+            {selectedAspects.length > 0 && (
+              <span style={{ fontSize: 9, fontWeight: 700, color: c.gold }}>{selectedAspects.length}/3</span>
+            )}
+          </div>
+
+          {/* Input field */}
+          <div style={{
+            flex: 1, display: "flex", alignItems: "flex-end", gap: 8,
+            background: c.card, border: `1px solid ${c.border}`, borderRadius: 18,
+            padding: "6px 6px 6px 16px",
+          }}>
+            <div style={{ flex: 1, padding: "8px 0" }}>
+              <input
+                value={inputVal}
+                onChange={e => setInputVal(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSend()}
+                placeholder="Ask about this connection..."
+                style={{ background: "none", border: "none", outline: "none", color: c.text, fontSize: 14, fontFamily: SANS, width: "100%", caretColor: c.lav }}
+              />
+            </div>
+            <button onClick={handleSend} disabled={!inputVal.trim()} style={{
+              display: "flex", alignItems: "center", gap: 4,
+              background: inputVal.trim() ? `linear-gradient(135deg, ${c.lav}, #9B7DD4)` : "rgba(255,255,255,0.06)",
+              border: "none", borderRadius: 14, padding: "10px 12px",
+              fontSize: 11.5, fontWeight: 600, fontFamily: SANS,
+              color: inputVal.trim() ? c.bg : c.faint,
+              cursor: inputVal.trim() ? "pointer" : "default",
+              transition: "all 0.2s", flexShrink: 0,
+            }}>
+              <span style={{ fontSize: 9 }}>◆</span><span>1</span><span style={{ fontSize: 13, marginLeft: 1 }}>↑</span>
+            </button>
+          </div>
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 8, fontSize: 10.5, color: c.faint }}>
+          Viewing history is free · ◆ 1 per new question
+        </div>
+      </div>
+
+      {/* Aspect picker sheet */}
+      {showPicker && (
+        <AspectPicker
+          selected={selectedAspects}
+          onToggle={toggleAspect}
+          onClose={() => setShowPicker(false)}
+          searchVal={pickerSearch}
+          setSearchVal={setPickerSearch}
+          filterType={pickerFilter}
+          setFilterType={setPickerFilter}
+        />
+      )}
+    </div>
+  );
+}

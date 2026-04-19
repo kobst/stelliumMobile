@@ -214,6 +214,21 @@ export const relationshipUsersApi = {
     );
     return normalizeRomanticGuestResponse(response, 'createGuestSubjectUnknownTimeRomantic');
   },
+
+  async getGuestSubjectRomantic(userId: string): Promise<CreateGuestSubjectRomanticResult> {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipUsersApi.getGuestSubjectRomantic] request', { userId });
+    }
+    const response = await relationshipApiClient.post<CreateGuestSubjectRomanticEnvelope>(
+      '/getGuestSubjectRomantic',
+      {
+        userId,
+        ...getRelationshipAppRequestMetadata(),
+      }
+    );
+    return normalizeRomanticGuestResponse(response, 'getGuestSubjectRomantic');
+  },
 };
 
 export interface CreateGuestSubjectRomanticResult {

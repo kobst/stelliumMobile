@@ -58,6 +58,9 @@ export const HistoryScreen: React.FC = () => {
   const setFullAnalysis = useRelationshipAppStore((state) => state.setFullAnalysis);
   const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
   const setWorkflowState = useRelationshipAppStore((state) => state.setWorkflowState);
+  const setActivePartnerRomanticAssets = useRelationshipAppStore(
+    (state) => state.setActivePartnerRomanticAssets
+  );
   const clearActiveRelationshipFlow = useRelationshipAppStore(
     (state) => state.clearActiveRelationshipFlow
   );
@@ -113,6 +116,7 @@ export const HistoryScreen: React.FC = () => {
   const openRelationship = useCallback(
     (relationship: UserCompositeChart) => {
       const selectionState = buildHistorySelectionState(relationship);
+      setActivePartnerRomanticAssets(null);
       setPreviewAnalysis(selectionState.previewAnalysis);
       setActiveRelationshipId(relationship._id);
       setFullAnalysis(selectionState.fullAnalysis);
@@ -123,7 +127,14 @@ export const HistoryScreen: React.FC = () => {
       });
       navigation.navigate('RelationshipPreview');
     },
-    [navigation, setActiveRelationshipId, setFullAnalysis, setPreviewAnalysis, setWorkflowState]
+    [
+      navigation,
+      setActivePartnerRomanticAssets,
+      setActiveRelationshipId,
+      setFullAnalysis,
+      setPreviewAnalysis,
+      setWorkflowState,
+    ]
   );
 
   const showEmptyState =

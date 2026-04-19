@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -16,6 +16,8 @@ import { useTheme } from '../theme';
 import { useRelationshipAppStore } from '../store';
 import { Avatar } from '../components/Avatar';
 import { CreditPill } from '../components/CreditPill';
+import { AskIrisCard } from '../components/AskIrisCard';
+import { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'RelationshipPreview'>;
 
@@ -28,6 +30,17 @@ const CLUSTER_ORDER: readonly ('Harmony' | 'Passion' | 'Connection' | 'Stability
   'Stability',
   'Growth',
 ];
+
+const RELATIONSHIP_ASK_COPY = {
+  title: 'Questions about this connection',
+  subtitle: 'Insights grounded in your synastry',
+  inputPlaceholder: 'Ask anything about this relationship…',
+  suggestions: [
+    'What is the strongest part of this connection?',
+    'Where are we most likely to misunderstand each other?',
+    'What should I pay attention to before getting more invested?',
+  ],
+} as const;
 
 function toPercent(value?: number): number {
   if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -56,6 +69,56 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   const clearActiveRelationshipFlow = useRelationshipAppStore(
     (state) => state.clearActiveRelationshipFlow
   );
+  const setActivePartnerRomanticAssets = useRelationshipAppStore(
+    (state) => state.setActivePartnerRomanticAssets
+  );
+  const askThreads = useRelationshipAppStore((state) => state.askThreads);
+  const activeRelationshipId = useRelationshipAppStore((state) => state.activeRelationshipId);
+
+  const partnerIdForHydration = previewAnalysis?.userB?.id ?? null;
+  const isCelebrityRelationship = Boolean(
+    previewAnalysis?.metadata?.isCelebrityRelationship
+  );
+
+  useEffect(() => {
+    if (activePartnerRomanticAssets) return;
+    if (!partnerIdForHydration) return;
+    if (isCelebrityRelationship) return;
+
+    let cancelled = false;
+
+    relationshipUsersApi
+      .getGuestSubjectRomantic(partnerIdForHydration)
+      .then((result) => {
+        if (cancelled) return;
+        setActivePartnerRomanticAssets({
+          birthChart: result.birthChart,
+          overview: result.overview,
+          romanticProfileBlurb: result.romanticProfileBlurb,
+          referencedCodes: result.referencedCodes,
+          overviewMode: result.overviewMode,
+          status: result.status,
+        });
+      })
+      .catch((error) => {
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('[RelationshipPreviewScreen] hydrate romantic assets failed', {
+            partnerIdForHydration,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activePartnerRomanticAssets,
+    partnerIdForHydration,
+    isCelebrityRelationship,
+    setActivePartnerRomanticAssets,
+  ]);
 
   const stage: Stage = useMemo(() => {
     if (fullAnalysis) return 4;
@@ -100,6 +163,36 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   const keyAspect = previewAnalysis?.overall?.keystoneAspects?.[0] ?? null;
   const initialOverview = previewAnalysis?.initialOverview ?? null;
   const romanticBlurb = activePartnerRomanticAssets?.romanticProfileBlurb ?? null;
+
+  const relationshipThreadKey = useMemo(() => {
+    const id = activeRelationshipId ?? previewAnalysis?.compositeChartId ?? null;
+    return id ? `relationship:${id}` : null;
+  }, [activeRelationshipId, previewAnalysis?.compositeChartId]);
+
+  const relationshipThread = useMemo(
+    () => (relationshipThreadKey ? askThreads[relationshipThreadKey] ?? [] : []),
+    [askThreads, relationshipThreadKey]
+  );
+  const lastRelationshipUserMessage = useMemo(
+    () => [...relationshipThread].reverse().find((message) => message.role === 'user') ?? null,
+    [relationshipThread]
+  );
+  const lastRelationshipIrisMessage = useMemo(
+    () => [...relationshipThread].reverse().find((message) => message.role === 'iris') ?? null,
+    [relationshipThread]
+  );
+
+  const openRelationshipAsk = useCallback(
+    (prefill?: string) => {
+      navigation.navigate('AskIris', {
+        context: 'relationship',
+        relationshipLabel: `${selfName} + ${partnerName}`,
+        threadKey: relationshipThreadKey ?? undefined,
+        prefill,
+      });
+    },
+    [navigation, partnerName, relationshipThreadKey, selfName]
+  );
 
   const clusterScores = useMemo(() => {
     if (!previewAnalysis) {
@@ -158,11 +251,11 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={[styles.identitySubtitle, { color: colors.textSubtle }]}>
               {keyAspect.description}
             </Text>
-          ) : (
+          ) : stage < 2 ? (
             <Text style={[styles.identitySubtitleItalic, { color: colors.textSubtle }]}>
               Analyzing charts…
             </Text>
-          )}
+          ) : null}
         </View>
 
         {/* Partner romantic blurb — always visible from stage 1 */}
@@ -344,21 +437,22 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
           </>
         ) : null}
 
+        {/* Ask Iris card — normalized entry point */}
+        {stage >= 2 ? (
+          <View style={styles.askBlock}>
+            <SectionLabel color={colors.accent}>Ask Iris About This Relationship</SectionLabel>
+            <AskIrisCard
+              copy={RELATIONSHIP_ASK_COPY}
+              lastUserMessage={lastRelationshipUserMessage}
+              lastIrisMessage={lastRelationshipIrisMessage}
+              onPressInput={openRelationshipAsk}
+              onPressContinue={() => openRelationshipAsk()}
+            />
+          </View>
+        ) : null}
+
         {/* Secondary actions — always at the bottom of the scroll content */}
         <View style={styles.footerActions}>
-          <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: colors.ghostBorder }]}
-            onPress={() =>
-              navigation.navigate('AskIris', {
-                context: 'relationship',
-                relationshipLabel: `${selfName} + ${partnerName}`,
-              })
-            }
-          >
-            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>
-              Ask Iris About This Relationship
-            </Text>
-          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.secondaryButton, { borderColor: colors.ghostBorder }]}
             onPress={() => {
@@ -854,6 +948,9 @@ const styles = StyleSheet.create({
   },
   progressHint: {
     fontSize: 12,
+  },
+  askBlock: {
+    paddingTop: 4,
   },
   footerActions: {
     gap: 12,

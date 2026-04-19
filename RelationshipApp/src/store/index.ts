@@ -40,11 +40,21 @@ export interface SubscriptionState {
 
 export type AskRole = 'user' | 'iris';
 
+export type AskAspectKind = 'Synastry' | 'Composite' | 'Aspect' | 'Placement';
+
+export interface AskAspectRef {
+  id: string;
+  name: string;
+  shortName: string;
+  type: AskAspectKind;
+}
+
 export interface AskMessage {
   id: string;
   role: AskRole;
   text: string;
   createdAt: string;
+  contexts?: AskAspectRef[];
 }
 
 export type AskThreadKey = 'profile' | 'home' | `relationship:${string}`;
