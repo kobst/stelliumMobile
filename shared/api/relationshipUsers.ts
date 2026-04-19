@@ -160,7 +160,7 @@ export const relationshipUsersApi = {
     return normalizeRelationshipAppProfile(response, null);
   },
 
-  async createGuestSubject(request: {
+  async createGuestSubjectRomantic(request: {
     firstName: string;
     lastName: string;
     gender: string;
@@ -170,17 +170,25 @@ export const relationshipUsersApi = {
     lat: number;
     lon: number;
     tzone: number;
-    unknownTime: false;
-    firebaseUid: string;
     ownerUserId: string;
-  }): Promise<SubjectDocument> {
-    return relationshipApiClient.post<SubjectDocument>('/createGuestSubject', {
-      ...request,
-      ...getRelationshipAppRequestMetadata(),
-    });
+  }): Promise<CreateGuestSubjectRomanticResult> {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipUsersApi.createGuestSubjectRomantic] request', {
+        ownerUserId: request.ownerUserId,
+      });
+    }
+    const response = await relationshipApiClient.post<CreateGuestSubjectRomanticEnvelope>(
+      '/createGuestSubjectRomantic',
+      {
+        ...request,
+        ...getRelationshipAppRequestMetadata(),
+      }
+    );
+    return normalizeRomanticGuestResponse(response, 'createGuestSubjectRomantic');
   },
 
-  async createGuestSubjectUnknownTime(request: {
+  async createGuestSubjectUnknownTimeRomantic(request: {
     firstName: string;
     lastName: string;
     gender: string;
@@ -190,10 +198,83 @@ export const relationshipUsersApi = {
     lon: number;
     tzone: number;
     ownerUserId: string;
-  }): Promise<SubjectDocument> {
-    return relationshipApiClient.post<SubjectDocument>('/createGuestSubjectUnknownTime', {
-      ...request,
-      ...getRelationshipAppRequestMetadata(),
-    });
+  }): Promise<CreateGuestSubjectRomanticResult> {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipUsersApi.createGuestSubjectUnknownTimeRomantic] request', {
+        ownerUserId: request.ownerUserId,
+      });
+    }
+    const response = await relationshipApiClient.post<CreateGuestSubjectRomanticEnvelope>(
+      '/createGuestSubjectUnknownTimeRomantic',
+      {
+        ...request,
+        ...getRelationshipAppRequestMetadata(),
+      }
+    );
+    return normalizeRomanticGuestResponse(response, 'createGuestSubjectUnknownTimeRomantic');
   },
 };
+
+export interface CreateGuestSubjectRomanticResult {
+  partner: SubjectDocument;
+  birthChart: Record<string, unknown> | null;
+  overview: string | null;
+  romanticProfileBlurb: string | null;
+  referencedCodes: string[];
+  overviewMode: string | null;
+  status: string | null;
+}
+
+interface CreateGuestSubjectRomanticEnvelope {
+  success?: boolean;
+  error?: string;
+  userId?: string;
+  guestSubject?: Partial<SubjectDocument>;
+  birthChart?: Record<string, unknown> | null;
+  overview?: string | null;
+  romanticProfileBlurb?: string | null;
+  referencedCodes?: string[];
+  overviewMode?: string | null;
+  status?: string | null;
+}
+
+function normalizeRomanticGuestResponse(
+  response: CreateGuestSubjectRomanticEnvelope,
+  endpoint: string
+): CreateGuestSubjectRomanticResult {
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.log(`[relationshipUsersApi.${endpoint}] response`, {
+      success: response?.success,
+      hasUserId: Boolean(response?.userId),
+      userId: response?.userId,
+      hasGuestSubject: Boolean(response?.guestSubject),
+      status: response?.status,
+      keys: response ? Object.keys(response) : null,
+    });
+  }
+
+  if (!response || response.success === false) {
+    throw new Error(response?.error || 'Failed to create guest subject');
+  }
+
+  if (!response.userId) {
+    throw new Error('Guest subject response missing userId');
+  }
+
+  const partner = {
+    ...(response.guestSubject ?? {}),
+    _id: response.userId,
+  } as SubjectDocument;
+
+  return {
+    partner,
+    birthChart: response.birthChart ?? null,
+    overview: response.overview ?? null,
+    romanticProfileBlurb: response.romanticProfileBlurb ?? null,
+    referencedCodes: response.referencedCodes ?? [],
+    overviewMode: response.overviewMode ?? null,
+    status: response.status ?? null,
+  };
+}

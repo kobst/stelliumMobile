@@ -38,12 +38,20 @@ export function PartnerIdentityScreen() {
   const draft = useRelationshipAppStore((state) => state.partnerDraft);
   const setDraft = useRelationshipAppStore((state) => state.setPartnerDraft);
   const updateDraft = useRelationshipAppStore((state) => state.updatePartnerDraft);
+  const clearPartnerDraft = useRelationshipAppStore((state) => state.clearPartnerDraft);
 
   useEffect(() => {
     if (!draft) {
       setDraft({ ...EMPTY_PARTNER_DRAFT });
     }
   }, [draft, setDraft]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', () => {
+      clearPartnerDraft();
+    });
+    return unsubscribe;
+  }, [navigation, clearPartnerDraft]);
 
   const current = draft ?? EMPTY_PARTNER_DRAFT;
 

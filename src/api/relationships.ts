@@ -65,6 +65,19 @@ export interface ClusterMetrics {
   keystoneAspects: KeystoneAspect[];    // Top 5 most impactful aspects for this cluster
 }
 
+export interface OverallSummary {
+  label?: string;
+  blurb?: string;
+  archetypeKey?: string;
+  dominantClusters?: string[];
+  supportClusters?: string[];
+  tensionClusters?: string[];
+  shape?: string;
+  tone?: string;
+  confidence?: number;
+  version?: string;
+}
+
 export interface OverallAnalysis {
   score: number;                    // Weighted overall score (0-100)
   formula: string;                  // Weight formula description
@@ -81,6 +94,7 @@ export interface OverallAnalysis {
     uniformity: string;             // 'Uniform'|'Moderate'|'Varied'|'Highly Varied'
   };
   keystoneAspects: KeystoneAspect[];
+  summary?: OverallSummary;         // Archetype label + blurb + metadata
 }
 
 export interface ClusterAnalysis {

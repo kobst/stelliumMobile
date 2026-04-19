@@ -159,6 +159,15 @@ interface OnboardingFlowState {
   profileReveal: ProfileRevealData | null;
 }
 
+export interface PartnerRomanticAssets {
+  birthChart: Record<string, unknown> | null;
+  overview: string | null;
+  romanticProfileBlurb: string | null;
+  referencedCodes: string[];
+  overviewMode: string | null;
+  status: string | null;
+}
+
 interface RelationshipFlowState {
   hasCompletedSelfProfile: boolean;
   selfProfileId: string | null;
@@ -167,6 +176,7 @@ interface RelationshipFlowState {
   activeTargetType: TargetType;
   activeTargetSubject: SubjectDocument | null;
   activeRelationshipId: string | null;
+  activePartnerRomanticAssets: PartnerRomanticAssets | null;
   previewAnalysis: EnhancedRelationshipAnalysisResponse | null;
   fullAnalysis: RelationshipAnalysisResponse | null;
   workflowStatus: RelationshipWorkflowStatusResponse | null;
@@ -219,6 +229,7 @@ interface RelationshipAppStore
   setActiveTargetType: (value: TargetType) => void;
   setActiveTargetSubject: (value: SubjectDocument | null) => void;
   setActiveRelationshipId: (value: string | null) => void;
+  setActivePartnerRomanticAssets: (value: PartnerRomanticAssets | null) => void;
   setPreviewAnalysis: (value: EnhancedRelationshipAnalysisResponse | null) => void;
   setFullAnalysis: (value: RelationshipAnalysisResponse | null) => void;
   setWorkflowState: (payload: {
@@ -289,6 +300,7 @@ const initialFlowState: RelationshipFlowState = {
   activeTargetType: null,
   activeTargetSubject: null,
   activeRelationshipId: null,
+  activePartnerRomanticAssets: null,
   previewAnalysis: null,
   fullAnalysis: null,
   workflowStatus: null,
@@ -354,6 +366,7 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
   setActiveTargetType: (value) => set({ activeTargetType: value }),
   setActiveTargetSubject: (value) => set({ activeTargetSubject: value }),
   setActiveRelationshipId: (value) => set({ activeRelationshipId: value }),
+  setActivePartnerRomanticAssets: (value) => set({ activePartnerRomanticAssets: value }),
   setPreviewAnalysis: (value) =>
     set({
       previewAnalysis: value,
@@ -388,6 +401,7 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       activeTargetType: null,
       activeTargetSubject: null,
       activeRelationshipId: null,
+      activePartnerRomanticAssets: null,
       selfProfileOverview: null,
       previewAnalysis: null,
       fullAnalysis: null,

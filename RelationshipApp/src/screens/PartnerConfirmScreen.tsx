@@ -79,6 +79,9 @@ export function PartnerConfirmScreen() {
   const setActiveTargetType = useRelationshipAppStore((state) => state.setActiveTargetType);
   const setActiveTargetSubject = useRelationshipAppStore((state) => state.setActiveTargetSubject);
   const setActiveRelationshipId = useRelationshipAppStore((state) => state.setActiveRelationshipId);
+  const setActivePartnerRomanticAssets = useRelationshipAppStore(
+    (state) => state.setActivePartnerRomanticAssets
+  );
   const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
   const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
   const clearPartnerDraft = useRelationshipAppStore((state) => state.clearPartnerDraft);
@@ -104,7 +107,32 @@ export function PartnerConfirmScreen() {
   );
 
   const handleCreate = useCallback(async () => {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[PartnerConfirmScreen.handleCreate] preflight', {
+        hasDraft: Boolean(draft),
+        hasSelfProfile: Boolean(selfProfile),
+        selfProfileIdFromStore: selfProfileId,
+        selfProfileIdFromProfile: selfProfile?.id,
+        selfProfileFirebaseUid: selfProfile?.firebaseUid,
+        idsMatch: selfProfile?.id === selfProfileId,
+        isSubmitting,
+        isLocalUxMode,
+      });
+    }
     if (!draft || !selfProfile || !selfProfileId || isSubmitting) {
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[PartnerConfirmScreen.handleCreate] aborted', {
+          reason: !draft
+            ? 'missing draft'
+            : !selfProfile
+              ? 'missing selfProfile'
+              : !selfProfileId
+                ? 'missing selfProfileId'
+                : 'already submitting',
+        });
+      }
       return;
     }
     setIsSubmitting(true);
@@ -140,7 +168,7 @@ export function PartnerConfirmScreen() {
           relationshipHistory: updatedHistory,
         });
       } else {
-        const { partner } = await submitPartnerPreview(
+        const { partner, romanticAssets } = await submitPartnerPreview(
           legacyDraft,
           {
             id: selfProfileId,
@@ -150,10 +178,29 @@ export function PartnerConfirmScreen() {
             canUseGoogleServices,
             geocodeLocation: externalApi.geocodeLocation,
             fetchTimeZone: externalApi.fetchTimeZone,
-            createGuestSubject: relationshipUsersApi.createGuestSubject,
-            createGuestSubjectUnknownTime: relationshipUsersApi.createGuestSubjectUnknownTime,
+            createGuestSubjectRomantic: relationshipUsersApi.createGuestSubjectRomantic,
+            createGuestSubjectUnknownTimeRomantic:
+              relationshipUsersApi.createGuestSubjectUnknownTimeRomantic,
           }
         );
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('[PartnerConfirmScreen.handleCreate] partner created', {
+            partnerId: partner._id,
+            partnerKind: partner.kind,
+            romanticAssetsStatus: romanticAssets.status,
+            hasRomanticOverview: Boolean(romanticAssets.overview),
+            hasRomanticBlurb: Boolean(romanticAssets.romanticProfileBlurb),
+            selfProfileId: selfProfile.id,
+            aboutToCallEnhancedWith: {
+              userIdA: selfProfile.id,
+              userIdB: partner._id,
+              ownerUserId: selfProfile.id,
+            },
+          });
+        }
+        setActiveTargetSubject(partner);
+        setActivePartnerRomanticAssets(romanticAssets);
         const { preview, updatedHistory } = await startRelationshipPreview(
           {
             selfProfile,
@@ -166,7 +213,6 @@ export function PartnerConfirmScreen() {
             enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
           }
         );
-        setActiveTargetSubject(partner);
         setPreviewAnalysis(preview);
         setActiveRelationshipId(preview.compositeChartId);
         setRelationshipHistory({
@@ -193,6 +239,7 @@ export function PartnerConfirmScreen() {
     relationshipHistory,
     selfProfile,
     selfProfileId,
+    setActivePartnerRomanticAssets,
     setActiveRelationshipId,
     setActiveTargetSubject,
     setActiveTargetType,

@@ -119,9 +119,17 @@ describe('relationship app partner preview flow', () => {
     });
   });
 
-  test('creates a known-time guest subject', async () => {
-    const createGuestSubject = jest.fn().mockResolvedValue({ _id: 'guest_1' });
-    const createGuestSubjectUnknownTime = jest.fn();
+  test('creates a known-time guest subject via the romantic endpoint and returns romantic assets', async () => {
+    const createGuestSubjectRomantic = jest.fn().mockResolvedValue({
+      partner: { _id: 'guest_1' },
+      birthChart: { planets: [] },
+      overview: 'romantic overview',
+      romanticProfileBlurb: 'short blurb',
+      referencedCodes: ['code_1'],
+      overviewMode: 'romantic',
+      status: 'guest_created_with_overview',
+    });
+    const createGuestSubjectUnknownTimeRomantic = jest.fn();
 
     const result = await submitPartnerPreview(
       makeDraft({
@@ -136,12 +144,12 @@ describe('relationship app partner preview flow', () => {
         canUseGoogleServices: false,
         geocodeLocation: jest.fn(),
         fetchTimeZone: jest.fn(),
-        createGuestSubject,
-        createGuestSubjectUnknownTime,
+        createGuestSubjectRomantic,
+        createGuestSubjectUnknownTimeRomantic,
       }
     );
 
-    expect(createGuestSubject).toHaveBeenCalledWith({
+    expect(createGuestSubjectRomantic).toHaveBeenCalledWith({
       firstName: 'Taylor',
       lastName: 'Smith',
       gender: 'other',
@@ -151,17 +159,31 @@ describe('relationship app partner preview flow', () => {
       lat: 40.7128,
       lon: -74.006,
       tzone: -5,
-      unknownTime: false,
-      firebaseUid: 'firebase_123',
       ownerUserId: 'self_1',
     });
-    expect(createGuestSubjectUnknownTime).not.toHaveBeenCalled();
+    expect(createGuestSubjectUnknownTimeRomantic).not.toHaveBeenCalled();
     expect(result.partner).toEqual({ _id: 'guest_1' });
+    expect(result.romanticAssets).toEqual({
+      birthChart: { planets: [] },
+      overview: 'romantic overview',
+      romanticProfileBlurb: 'short blurb',
+      referencedCodes: ['code_1'],
+      overviewMode: 'romantic',
+      status: 'guest_created_with_overview',
+    });
   });
 
-  test('creates an unknown-time guest subject through the unknown-time path', async () => {
-    const createGuestSubject = jest.fn();
-    const createGuestSubjectUnknownTime = jest.fn().mockResolvedValue({ _id: 'guest_2' });
+  test('creates an unknown-time guest subject through the romantic unknown-time path', async () => {
+    const createGuestSubjectRomantic = jest.fn();
+    const createGuestSubjectUnknownTimeRomantic = jest.fn().mockResolvedValue({
+      partner: { _id: 'guest_2' },
+      birthChart: null,
+      overview: null,
+      romanticProfileBlurb: null,
+      referencedCodes: [],
+      overviewMode: null,
+      status: null,
+    });
     await submitPartnerPreview(
       makeDraft({
         birthTimeUnknown: true,
@@ -174,13 +196,13 @@ describe('relationship app partner preview flow', () => {
         canUseGoogleServices: false,
         geocodeLocation: jest.fn(),
         fetchTimeZone: jest.fn(),
-        createGuestSubject,
-        createGuestSubjectUnknownTime,
+        createGuestSubjectRomantic,
+        createGuestSubjectUnknownTimeRomantic,
       }
     );
 
-    expect(createGuestSubject).not.toHaveBeenCalled();
-    expect(createGuestSubjectUnknownTime).toHaveBeenCalledWith({
+    expect(createGuestSubjectRomantic).not.toHaveBeenCalled();
+    expect(createGuestSubjectUnknownTimeRomantic).toHaveBeenCalledWith({
       firstName: 'Taylor',
       lastName: 'Smith',
       gender: 'other',
@@ -193,6 +215,37 @@ describe('relationship app partner preview flow', () => {
     });
   });
 
+  test('throws when the romantic guest create response is missing a partner id', async () => {
+    const createGuestSubjectRomantic = jest.fn().mockResolvedValue({
+      partner: {},
+      birthChart: null,
+      overview: null,
+      romanticProfileBlurb: null,
+      referencedCodes: [],
+      overviewMode: null,
+      status: null,
+    });
+    await expect(
+      submitPartnerPreview(
+        makeDraft({
+          latitude: '40.7128',
+          longitude: '-74.0060',
+          timezoneOffset: '-5',
+        }),
+        { id: 'self_1', firebaseUid: null },
+        {
+          canUseGoogleServices: false,
+          geocodeLocation: jest.fn(),
+          fetchTimeZone: jest.fn(),
+          createGuestSubjectRomantic,
+          createGuestSubjectUnknownTimeRomantic: jest.fn(),
+        }
+      )
+    ).rejects.toThrow(
+      'Guest subject creation succeeded but no guest subject id was returned'
+    );
+  });
+
   test('throws when location data is still incomplete after resolution', async () => {
     await expect(
       submitPartnerPreview(
@@ -202,8 +255,8 @@ describe('relationship app partner preview flow', () => {
           canUseGoogleServices: false,
           geocodeLocation: jest.fn(),
           fetchTimeZone: jest.fn(),
-          createGuestSubject: jest.fn(),
-          createGuestSubjectUnknownTime: jest.fn(),
+          createGuestSubjectRomantic: jest.fn(),
+          createGuestSubjectUnknownTimeRomantic: jest.fn(),
         }
       )
     ).rejects.toThrow(

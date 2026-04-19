@@ -15,15 +15,45 @@ export const relationshipsApi = {
     ownerUserId?: string,
     celebRelationship: boolean = false
   ): Promise<EnhancedRelationshipAnalysisResponse> => {
-    return relationshipApiClient.post<EnhancedRelationshipAnalysisResponse>(
-      '/enhanced-relationship-analysis',
-      {
+    const payload = { userIdA, userIdB, ownerUserId, celebRelationship };
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipsApi.enhancedRelationshipAnalysis] request', {
         userIdA,
         userIdB,
         ownerUserId,
         celebRelationship,
+        userIdAType: typeof userIdA,
+        userIdBType: typeof userIdB,
+        userIdAEmpty: !userIdA || userIdA === '',
+        userIdBEmpty: !userIdB || userIdB === '',
+        payload,
+      });
+    }
+    try {
+      const result = await relationshipApiClient.post<EnhancedRelationshipAnalysisResponse>(
+        '/enhanced-relationship-analysis',
+        payload
+      );
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[relationshipsApi.enhancedRelationshipAnalysis] success', {
+          compositeChartId: result?.compositeChartId,
+        });
       }
-    );
+      return result;
+    } catch (error) {
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[relationshipsApi.enhancedRelationshipAnalysis] error', {
+          userIdA,
+          userIdB,
+          ownerUserId,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+      throw error;
+    }
   },
 
   startFullRelationshipAnalysis: async (

@@ -41,8 +41,21 @@ interface LocationResolverDeps {
   fetchTimeZone: (lat: number, lon: number, epochSeconds: number) => Promise<number>;
 }
 
+export interface PartnerRomanticAssets {
+  birthChart: Record<string, unknown> | null;
+  overview: string | null;
+  romanticProfileBlurb: string | null;
+  referencedCodes: string[];
+  overviewMode: string | null;
+  status: string | null;
+}
+
+export interface CreateGuestSubjectRomanticResult extends PartnerRomanticAssets {
+  partner: SubjectDocument;
+}
+
 interface SubmitPartnerPreviewDeps extends LocationResolverDeps {
-  createGuestSubject: (request: {
+  createGuestSubjectRomantic: (request: {
     firstName: string;
     lastName: string;
     gender: string;
@@ -52,11 +65,9 @@ interface SubmitPartnerPreviewDeps extends LocationResolverDeps {
     lat: number;
     lon: number;
     tzone: number;
-    unknownTime: false;
-    firebaseUid: string;
     ownerUserId: string;
-  }) => Promise<SubjectDocument>;
-  createGuestSubjectUnknownTime: (request: {
+  }) => Promise<CreateGuestSubjectRomanticResult>;
+  createGuestSubjectUnknownTimeRomantic: (request: {
     firstName: string;
     lastName: string;
     gender: string;
@@ -66,7 +77,7 @@ interface SubmitPartnerPreviewDeps extends LocationResolverDeps {
     lon: number;
     tzone: number;
     ownerUserId: string;
-  }) => Promise<SubjectDocument>;
+  }) => Promise<CreateGuestSubjectRomanticResult>;
 }
 
 export function validatePartnerDraft(
@@ -142,6 +153,7 @@ export async function submitPartnerPreview(
 ): Promise<{
   partner: SubjectDocument;
   resolvedLocation: ResolvedLocationFields;
+  romanticAssets: PartnerRomanticAssets;
 }> {
   const validationError = validatePartnerDraft(draft, selfProfile);
   if (validationError) {
@@ -160,8 +172,8 @@ export async function submitPartnerPreview(
     );
   }
 
-  const partner = draft.birthTimeUnknown
-    ? await deps.createGuestSubjectUnknownTime({
+  const result = draft.birthTimeUnknown
+    ? await deps.createGuestSubjectUnknownTimeRomantic({
         firstName: draft.firstName.trim(),
         lastName: draft.lastName.trim(),
         gender: draft.gender,
@@ -172,7 +184,7 @@ export async function submitPartnerPreview(
         tzone: resolvedLocation.tzone,
         ownerUserId: selfProfile.id,
       })
-    : await deps.createGuestSubject({
+    : await deps.createGuestSubjectRomantic({
         firstName: draft.firstName.trim(),
         lastName: draft.lastName.trim(),
         gender: draft.gender,
@@ -182,13 +194,18 @@ export async function submitPartnerPreview(
         lat: resolvedLocation.lat,
         lon: resolvedLocation.lon,
         tzone: resolvedLocation.tzone,
-        unknownTime: false,
-        firebaseUid: selfProfile.firebaseUid ?? selfProfile.id,
         ownerUserId: selfProfile.id,
       });
+
+  if (!result?.partner?._id) {
+    throw new Error('Guest subject creation succeeded but no guest subject id was returned');
+  }
+
+  const { partner, ...romanticAssets } = result;
 
   return {
     partner,
     resolvedLocation,
+    romanticAssets,
   };
 }
