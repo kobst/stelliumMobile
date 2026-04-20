@@ -183,6 +183,7 @@ export function celebrityToSubject(celebrity: Celebrity): SubjectDocument {
     birthTimeUnknown: !celebrity.time,
     totalOffsetHours: celebrity.totalOffsetHours ?? 0,
     birthChart: celebrity.birthChart,
+    profilePhotoUrl: celebrity.profilePhotoUrl ?? celebrity.photoUrl ?? undefined,
     appDomain: null,
     firebaseUid: null,
   };

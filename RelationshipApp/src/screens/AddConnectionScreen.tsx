@@ -17,8 +17,10 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
 import { Avatar } from '../components/Avatar';
-import { celebritiesApi, type Celebrity } from '../api';
-import { getCelebritySunSign } from '../utils/mainShell';
+import { celebritiesApi, relationshipsApi, type Celebrity } from '../api';
+import { celebrityToSubject, getCelebritySunSign } from '../utils/mainShell';
+import { useRelationshipAppStore } from '../store';
+import { startRelationshipPreview } from './previewFlow';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
@@ -29,6 +31,7 @@ interface CelebListItem {
   name: string;
   sun: string | null;
   photoUri: string | null;
+  blurb: string | null;
   raw: Celebrity;
 }
 
@@ -41,6 +44,7 @@ function toListItem(celeb: Celebrity): CelebListItem {
     name,
     sun: getCelebritySunSign(celeb),
     photoUri: celeb.profilePhotoUrl ?? celeb.photoUrl ?? null,
+    blurb: celeb.romanticProfileBlurb?.trim() || null,
     raw: celeb,
   };
 }
@@ -60,9 +64,25 @@ export function AddConnectionScreen() {
   const navigation = useNavigation<RootNavigation>();
   const { colors } = useTheme();
 
+  const profile = useRelationshipAppStore((state) => state.profile);
+  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
+  const relationshipHistory = useRelationshipAppStore((state) => state.relationshipHistory);
+  const setActiveTargetType = useRelationshipAppStore((state) => state.setActiveTargetType);
+  const setActiveTargetSubject = useRelationshipAppStore((state) => state.setActiveTargetSubject);
+  const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
+  const setActiveRelationshipId = useRelationshipAppStore((state) => state.setActiveRelationshipId);
+  const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
+  const setActivePartnerRomanticAssets = useRelationshipAppStore(
+    (state) => state.setActivePartnerRomanticAssets
+  );
+  const clearActiveRelationshipFlow = useRelationshipAppStore(
+    (state) => state.clearActiveRelationshipFlow
+  );
+
   const [step, setStep] = useState<Step>('choose');
   const [searchValue, setSearchValue] = useState('');
   const [selectedCeleb, setSelectedCeleb] = useState<CelebListItem | null>(null);
+  const [isCreatingConnection, setIsCreatingConnection] = useState(false);
 
   const [popularCelebs, setPopularCelebs] = useState<CelebListItem[]>([]);
   const [isLoadingPopular, setIsLoadingPopular] = useState(false);
@@ -179,12 +199,79 @@ export function AddConnectionScreen() {
     navigation.navigate('PartnerIdentity');
   }, [navigation]);
 
-  const handleCreateCelebConnection = useCallback(() => {
-    Alert.alert(
-      'Create connection',
-      'Celebrity preview flow will run here once this screen is wired to the real preview endpoint.'
-    );
-  }, []);
+  const handleCreateCelebConnection = useCallback(async () => {
+    if (!selectedCeleb || !profile || isCreatingConnection) {
+      return;
+    }
+    if (!profile.id) {
+      Alert.alert('Profile missing', 'Create your profile before starting a celebrity read.');
+      return;
+    }
+
+    setIsCreatingConnection(true);
+    try {
+      const rawCeleb = selectedCeleb.raw;
+      const targetSubject = celebrityToSubject(rawCeleb);
+
+      clearActiveRelationshipFlow();
+      setActiveTargetType('celebrity');
+      setActiveTargetSubject(targetSubject);
+      setActivePartnerRomanticAssets({
+        birthChart: (rawCeleb.birthChart as Record<string, unknown> | null | undefined) ?? null,
+        overview: rawCeleb.romanticOverview ?? null,
+        romanticProfileBlurb: rawCeleb.romanticProfileBlurb ?? null,
+        referencedCodes: rawCeleb.romanticReferencedCodes ?? [],
+        overviewMode: null,
+        status: null,
+      });
+
+      const { preview, updatedHistory } = await startRelationshipPreview(
+        {
+          selfProfile: profile,
+          targetSubject,
+          targetType: 'celebrity',
+          isLocalUxMode,
+          relationshipHistory,
+        },
+        {
+          enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
+        }
+      );
+
+      setPreviewAnalysis(preview);
+      setActiveRelationshipId(preview.compositeChartId);
+      setRelationshipHistory({ relationshipHistory: updatedHistory });
+
+      navigation.reset({
+        index: 1,
+        routes: [
+          { name: 'Main', params: { screen: 'RelationshipsTab' } },
+          { name: 'RelationshipPreview' },
+        ],
+      });
+    } catch (error) {
+      Alert.alert(
+        'Could not create connection',
+        error instanceof Error ? error.message : 'Please try again shortly.'
+      );
+    } finally {
+      setIsCreatingConnection(false);
+    }
+  }, [
+    clearActiveRelationshipFlow,
+    isCreatingConnection,
+    isLocalUxMode,
+    navigation,
+    profile,
+    relationshipHistory,
+    selectedCeleb,
+    setActivePartnerRomanticAssets,
+    setActiveRelationshipId,
+    setActiveTargetSubject,
+    setActiveTargetType,
+    setPreviewAnalysis,
+    setRelationshipHistory,
+  ]);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
@@ -228,7 +315,13 @@ export function AddConnectionScreen() {
             />
           ) : null}
           {step === 'celeb-confirm' && selectedCeleb ? (
-            <CelebConfirmStep celeb={selectedCeleb} onCreate={handleCreateCelebConnection} />
+            <CelebConfirmStep
+              celeb={selectedCeleb}
+              isCreating={isCreatingConnection}
+              onCreate={() => {
+                handleCreateCelebConnection().catch(() => undefined);
+              }}
+            />
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -399,6 +492,14 @@ function CelebRow({ celeb, onPress }: CelebRowProps) {
         <Text style={[styles.celebMeta, { color: colors.textMuted }]}>
           {celeb.sun ? `${celeb.sun} Sun` : 'Unknown sign'}
         </Text>
+        {celeb.blurb ? (
+          <Text
+            style={[styles.celebBlurb, { color: colors.textSubtle }]}
+            numberOfLines={2}
+          >
+            {celeb.blurb}
+          </Text>
+        ) : null}
       </View>
       <Text style={[styles.chev, { color: colors.textSubtle }]}>›</Text>
     </TouchableOpacity>
@@ -407,10 +508,11 @@ function CelebRow({ celeb, onPress }: CelebRowProps) {
 
 interface CelebConfirmStepProps {
   celeb: CelebListItem;
+  isCreating: boolean;
   onCreate: () => void;
 }
 
-function CelebConfirmStep({ celeb, onCreate }: CelebConfirmStepProps) {
+function CelebConfirmStep({ celeb, isCreating, onCreate }: CelebConfirmStepProps) {
   const { colors } = useTheme();
   return (
     <View style={styles.stepBody}>
@@ -428,6 +530,11 @@ function CelebConfirmStep({ celeb, onCreate }: CelebConfirmStepProps) {
       <Text style={[styles.confirmMeta, { color: colors.textMuted }]}>
         {celeb.sun ? `${celeb.sun} Sun` : 'Unknown sign'}
       </Text>
+      {celeb.blurb ? (
+        <Text style={[styles.confirmBlurb, { color: colors.text }]}>
+          {celeb.blurb}
+        </Text>
+      ) : null}
 
       <View
         style={[
@@ -461,13 +568,21 @@ function CelebConfirmStep({ celeb, onCreate }: CelebConfirmStepProps) {
       </View>
 
       <TouchableOpacity
-        activeOpacity={0.85}
+        activeOpacity={isCreating ? 1 : 0.85}
         onPress={onCreate}
-        style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+        disabled={isCreating}
+        style={[
+          styles.primaryButton,
+          { backgroundColor: isCreating ? colors.primaryMuted : colors.primary },
+        ]}
       >
-        <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-          Create Connection
-        </Text>
+        {isCreating ? (
+          <ActivityIndicator size="small" color={colors.onPrimary} />
+        ) : (
+          <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
+            Create Connection
+          </Text>
+        )}
       </TouchableOpacity>
       <Text style={[styles.helperText, { color: colors.textMuted }]}>
         Short blurb and archetype are free.
@@ -593,6 +708,12 @@ const styles = StyleSheet.create({
   celebMeta: {
     fontSize: 12,
   },
+  celebBlurb: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
   chev: {
     fontSize: 18,
     fontWeight: '500',
@@ -615,7 +736,15 @@ const styles = StyleSheet.create({
   confirmMeta: {
     fontSize: 13,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 8,
+  },
+  confirmBlurb: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingHorizontal: 8,
+    marginBottom: 18,
   },
   tierCard: {
     borderWidth: 1,

@@ -32,7 +32,7 @@ export const relationshipsApi = {
     }
     try {
       const result = await relationshipApiClient.post<EnhancedRelationshipAnalysisResponse>(
-        '/enhanced-relationship-analysis',
+        '/relationship-app/enhanced-relationship-analysis',
         payload
       );
       if (__DEV__) {
@@ -61,7 +61,7 @@ export const relationshipsApi = {
     immediate: boolean = true
   ): Promise<RelationshipWorkflowStartResponse> => {
     return relationshipApiClient.post<RelationshipWorkflowStartResponse>(
-      '/workflow/relationship/start',
+      '/relationship-app/workflow/relationship/start',
       {
         compositeChartId,
         immediate,

@@ -146,6 +146,7 @@ export const DiscoverScreen: React.FC = () => {
     const photoUri = celebrity.profilePhotoUrl ?? celebrity.photoUrl ?? null;
     const fullName = `${celebrity.firstName ?? ''} ${celebrity.lastName ?? ''}`.trim();
     const initial = celebrity.firstName?.charAt(0) ?? '?';
+    const blurb = celebrity.romanticProfileBlurb?.trim() || null;
     return (
       <TouchableOpacity
         key={`${eyebrow}-${celebrity._id}`}
@@ -172,6 +173,11 @@ export const DiscoverScreen: React.FC = () => {
         <Text style={[styles.celebMeta, { color: colors.textMuted }]} numberOfLines={2}>
           {celebrity.placeOfBirth}
         </Text>
+        {blurb ? (
+          <Text style={[styles.celebBlurb, { color: colors.text }]} numberOfLines={3}>
+            {blurb}
+          </Text>
+        ) : null}
         <View style={styles.inlineActionRow}>
           <Text style={[styles.inlineAction, { color: colors.accent }]}>See your connection</Text>
         </View>
@@ -386,6 +392,12 @@ const styles = StyleSheet.create({
   celebMeta: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  celebBlurb: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    fontStyle: 'italic',
+    marginTop: 6,
   },
   inlineActionRow: {
     paddingTop: 4,
