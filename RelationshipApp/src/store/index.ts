@@ -7,6 +7,7 @@ import {
   RelationshipWorkflowStatusResponse,
   UserCompositeChart,
 } from '../../../shared/api/relationships';
+import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
 import type {
   AsyncStatus,
   CelebAspectBank,
@@ -196,6 +197,10 @@ interface RelationshipFlowState {
   isHistoryLoading: boolean;
   historyError: string | null;
   hasFetchedHistory: boolean;
+  ownedSubjects: OwnedGuestSubject[];
+  isSubjectsLoading: boolean;
+  subjectsError: string | null;
+  hasFetchedSubjects: boolean;
 }
 
 interface CreditsFlowState {
@@ -253,6 +258,13 @@ interface RelationshipAppStore
     historyError?: string | null;
     hasFetchedHistory?: boolean;
   }) => void;
+  setOwnedSubjects: (payload: {
+    ownedSubjects: OwnedGuestSubject[];
+    isSubjectsLoading?: boolean;
+    subjectsError?: string | null;
+    hasFetchedSubjects?: boolean;
+  }) => void;
+  upsertOwnedSubject: (subject: OwnedGuestSubject) => void;
   clearActiveRelationshipFlow: () => void;
   setCredits: (value: CreditsState | null) => void;
   spendCredits: (amount: number) => void;
@@ -320,6 +332,10 @@ const initialFlowState: RelationshipFlowState = {
   isHistoryLoading: false,
   historyError: null,
   hasFetchedHistory: false,
+  ownedSubjects: [],
+  isSubjectsLoading: false,
+  subjectsError: null,
+  hasFetchedSubjects: false,
 };
 
 export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
@@ -406,6 +422,32 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       hasFetchedHistory:
         hasFetchedHistory !== undefined ? hasFetchedHistory : state.hasFetchedHistory,
     })),
+  setOwnedSubjects: ({
+    ownedSubjects,
+    isSubjectsLoading = false,
+    subjectsError = null,
+    hasFetchedSubjects,
+  }) =>
+    set((state) => ({
+      ownedSubjects,
+      isSubjectsLoading,
+      subjectsError,
+      hasFetchedSubjects:
+        hasFetchedSubjects !== undefined ? hasFetchedSubjects : state.hasFetchedSubjects,
+    })),
+  upsertOwnedSubject: (subject) =>
+    set((state) => {
+      if (!subject?._id) return state;
+      const existingIndex = state.ownedSubjects.findIndex(
+        (entry) => entry._id === subject._id
+      );
+      if (existingIndex >= 0) {
+        const next = [...state.ownedSubjects];
+        next[existingIndex] = { ...next[existingIndex], ...subject };
+        return { ownedSubjects: next };
+      }
+      return { ownedSubjects: [subject, ...state.ownedSubjects] };
+    }),
   clearActiveRelationshipFlow: () =>
     set({
       activeTargetType: null,

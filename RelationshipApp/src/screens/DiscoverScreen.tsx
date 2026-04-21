@@ -199,6 +199,31 @@ export const DiscoverScreen: React.FC = () => {
           </Text>
         </View>
 
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => {
+            clearActiveRelationshipFlow();
+            navigation.navigate('PartnerIdentity');
+          }}
+          style={[
+            styles.addBanner,
+            { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+          ]}
+        >
+          <View style={[styles.addBannerIcon, { backgroundColor: 'rgba(202, 190, 255, 0.12)' }]}>
+            <Text style={[styles.addBannerIconGlyph, { color: colors.primary }]}>+</Text>
+          </View>
+          <View style={styles.addBannerCopy}>
+            <Text style={[styles.addBannerTitle, { color: colors.text }]}>
+              Add someone to Iris
+            </Text>
+            <Text style={[styles.addBannerSubtitle, { color: colors.textSubtle }]}>
+              Save a chart to browse alongside the celebrity database.
+            </Text>
+          </View>
+          <Text style={[styles.addBannerChevron, { color: colors.textSubtle }]}>›</Text>
+        </TouchableOpacity>
+
         <TopCelebMatchesRail
           title="Your Chart in the Wild"
           subtitle="Celeb overlaps from your saved relationship-app profile."
@@ -286,23 +311,6 @@ export const DiscoverScreen: React.FC = () => {
           </View>
         ) : null}
 
-        {!isSearchMode ? (
-          <View style={[styles.ctaCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Want to analyze someone real?</Text>
-          <Text style={[styles.body, { color: colors.textMuted }]}>
-            Add a friend, ex, crush, or acquaintance and turn the same pipeline into a live
-            compatibility read.
-          </Text>
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('AddConnection')}
-          >
-            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-              Add Someone
-            </Text>
-          </TouchableOpacity>
-          </View>
-        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -318,6 +326,41 @@ const styles = StyleSheet.create({
   headerBlock: {
     gap: 10,
     paddingTop: 8,
+  },
+  addBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  addBannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addBannerIconGlyph: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  addBannerCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  addBannerTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  addBannerSubtitle: {
+    fontSize: 12.5,
+  },
+  addBannerChevron: {
+    fontSize: 20,
+    fontWeight: '500',
   },
   eyebrow: {
     fontSize: 12,
@@ -416,22 +459,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
-  },
-  ctaCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 18,
-    gap: 12,
-  },
-  primaryButton: {
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
     textAlign: 'center',
   },
 });

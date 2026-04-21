@@ -229,7 +229,49 @@ export const relationshipUsersApi = {
     );
     return normalizeRomanticGuestResponse(response, 'getGuestSubjectRomantic');
   },
+
+  async getUserSubjects(ownerUserId: string): Promise<OwnedGuestSubject[]> {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipUsersApi.getUserSubjects] request', { ownerUserId });
+    }
+    const response = await relationshipApiClient.post<
+      OwnedGuestSubject[] | GetUserSubjectsPaginatedResponse
+    >('/getUserSubjects', {
+      ownerUserId,
+      ...getRelationshipAppRequestMetadata(),
+    });
+
+    const rawList = Array.isArray(response) ? response : response?.data ?? [];
+    // Defensive filter: endpoint is already scoped to owned guest subjects,
+    // but keep this in case the backend widens the response later.
+    return rawList.filter(
+      (item) => Boolean(item?._id) && (item.kind === undefined || item.kind === 'guest')
+    );
+  },
 };
+
+export interface OwnedGuestSubject extends SubjectDocument {
+  analysisStatus?: {
+    level?: 'none' | 'scores' | 'complete' | string;
+    completedTasks?: number;
+    totalTasks?: number;
+    workflowStatus?: Record<string, unknown>;
+  };
+}
+
+interface GetUserSubjectsPaginatedResponse {
+  success?: boolean;
+  data?: OwnedGuestSubject[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
 
 export interface CreateGuestSubjectRomanticResult {
   partner: SubjectDocument;

@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   RefreshControl,
   SafeAreaView,
@@ -15,20 +16,51 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
+import { useOwnedSubjects } from '../hooks/useOwnedSubjects';
 import { buildHistorySelectionState } from './historySelection';
+import { startRelationshipPreview } from './previewFlow';
 import {
+  getBigThree,
   getRelationshipArchetypeLabel,
   getInitials,
 } from '../utils/mainShell';
+import { getUnconnectedSubjects } from '../utils/unconnectedSubjects';
 import { CreditPill } from '../components/CreditPill';
 import { CountedFilterPills, type CountedPillOption } from '../components/CountedFilterPills';
 import { RelationshipCard } from '../components/RelationshipCard';
 import { RelationshipEmptyState } from '../components/RelationshipEmptyState';
+import { Avatar } from '../components/Avatar';
+import { relationshipsApi } from '../api';
 import type { UserCompositeChart } from '../../../shared/api/relationships';
+import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
 type Filter = 'all' | 'people' | 'celebs';
+
+interface UnconnectedListItem {
+  id: string;
+  name: string;
+  initial: string;
+  sun: string | null;
+  photoUri: string | null;
+  subject: OwnedGuestSubject;
+}
+
+function toUnconnectedListItem(subject: OwnedGuestSubject): UnconnectedListItem {
+  const firstName = subject.firstName?.trim() ?? '';
+  const lastName = subject.lastName?.trim() ?? '';
+  const name = [firstName, lastName].filter(Boolean).join(' ') || 'Unnamed';
+  const { sun } = getBigThree(subject);
+  return {
+    id: subject._id,
+    name,
+    initial: getInitials(name) || name.charAt(0).toUpperCase() || '·',
+    sun,
+    photoUri: subject.profilePhotoUrl ?? null,
+    subject,
+  };
+}
 
 function resolveOtherSide(
   relationship: UserCompositeChart,
@@ -64,12 +96,30 @@ export const HistoryScreen: React.FC = () => {
   const clearActiveRelationshipFlow = useRelationshipAppStore(
     (state) => state.clearActiveRelationshipFlow
   );
+  const setActiveTargetType = useRelationshipAppStore((state) => state.setActiveTargetType);
+  const setActiveTargetSubject = useRelationshipAppStore((state) => state.setActiveTargetSubject);
+  const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
+  const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
+  const relationshipHistoryFromStore = useRelationshipAppStore(
+    (state) => state.relationshipHistory
+  );
   const profile = useRelationshipAppStore((state) => state.profile);
   const credits = useRelationshipAppStore((state) => state.credits);
+  const { ownedSubjects } = useOwnedSubjects();
 
   const [filter, setFilter] = useState<Filter>('all');
+  const [unconnectedExpanded, setUnconnectedExpanded] = useState(false);
+  const [connectingSubjectId, setConnectingSubjectId] = useState<string | null>(null);
 
   const selfProfileId = profile?.id ?? null;
+
+  const unconnectedItems = useMemo(
+    () =>
+      getUnconnectedSubjects(ownedSubjects, relationshipHistory, selfProfileId).map(
+        toUnconnectedListItem
+      ),
+    [ownedSubjects, relationshipHistory, selfProfileId]
+  );
 
   const counts = useMemo(() => {
     const celebs = relationshipHistory.filter((rel) => Boolean(rel.isCelebrityRelationship)).length;
@@ -113,6 +163,58 @@ export const HistoryScreen: React.FC = () => {
     navigation.navigate('AddConnection');
   }, [clearActiveRelationshipFlow, navigation]);
 
+  const connectExistingSubject = useCallback(
+    async (item: UnconnectedListItem) => {
+      if (!profile || !profile.id || connectingSubjectId) return;
+      setConnectingSubjectId(item.id);
+      try {
+        clearActiveRelationshipFlow();
+        setActiveTargetType('person');
+        setActiveTargetSubject(item.subject);
+        setActivePartnerRomanticAssets(null);
+
+        const { preview, updatedHistory } = await startRelationshipPreview(
+          {
+            selfProfile: profile,
+            targetSubject: item.subject,
+            targetType: 'person',
+            isLocalUxMode,
+            relationshipHistory: relationshipHistoryFromStore,
+          },
+          {
+            enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
+          }
+        );
+
+        setPreviewAnalysis(preview);
+        setActiveRelationshipId(preview.compositeChartId);
+        setRelationshipHistory({ relationshipHistory: updatedHistory });
+        navigation.navigate('RelationshipPreview');
+      } catch (error) {
+        Alert.alert(
+          'Could not create connection',
+          error instanceof Error ? error.message : 'Please try again shortly.'
+        );
+      } finally {
+        setConnectingSubjectId(null);
+      }
+    },
+    [
+      clearActiveRelationshipFlow,
+      connectingSubjectId,
+      isLocalUxMode,
+      navigation,
+      profile,
+      relationshipHistoryFromStore,
+      setActivePartnerRomanticAssets,
+      setActiveRelationshipId,
+      setActiveTargetSubject,
+      setActiveTargetType,
+      setPreviewAnalysis,
+      setRelationshipHistory,
+    ]
+  );
+
   const openRelationship = useCallback(
     (relationship: UserCompositeChart) => {
       const selectionState = buildHistorySelectionState(relationship);
@@ -138,7 +240,10 @@ export const HistoryScreen: React.FC = () => {
   );
 
   const showEmptyState =
-    !isHistoryLoading && !historyError && relationshipHistory.length === 0;
+    !isHistoryLoading &&
+    !historyError &&
+    relationshipHistory.length === 0 &&
+    unconnectedItems.length === 0;
   const showFilteredEmpty =
     !isHistoryLoading && !historyError && relationshipHistory.length > 0 && filteredRelationships.length === 0;
 
@@ -273,7 +378,7 @@ export const HistoryScreen: React.FC = () => {
               </View>
             ) : null}
 
-            {relationshipHistory.length > 0 ? (
+            {relationshipHistory.length > 0 || unconnectedItems.length > 0 ? (
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={openAddConnection}
@@ -286,6 +391,90 @@ export const HistoryScreen: React.FC = () => {
                   Add a connection
                 </Text>
               </TouchableOpacity>
+            ) : null}
+
+            {unconnectedItems.length > 0 ? (
+              <View style={styles.unconnectedSection}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setUnconnectedExpanded((prev) => !prev)}
+                  style={[
+                    styles.unconnectedToggle,
+                    { borderTopColor: colors.ghostBorder },
+                  ]}
+                >
+                  <Text style={[styles.unconnectedToggleLabel, { color: colors.textSubtle }]}>
+                    Added but not connected ({unconnectedItems.length})
+                  </Text>
+                  <Text
+                    style={[
+                      styles.unconnectedToggleChevron,
+                      {
+                        color: colors.textSubtle,
+                        transform: [{ rotate: unconnectedExpanded ? '90deg' : '0deg' }],
+                      },
+                    ]}
+                  >
+                    ›
+                  </Text>
+                </TouchableOpacity>
+
+                {unconnectedExpanded
+                  ? unconnectedItems.map((item) => {
+                      const busy = connectingSubjectId === item.id;
+                      const dimmed =
+                        Boolean(connectingSubjectId) && connectingSubjectId !== item.id;
+                      return (
+                        <TouchableOpacity
+                          key={item.id}
+                          activeOpacity={dimmed ? 1 : 0.75}
+                          disabled={dimmed || busy}
+                          onPress={() => {
+                            connectExistingSubject(item).catch(() => undefined);
+                          }}
+                          style={[
+                            styles.unconnectedRow,
+                            {
+                              backgroundColor: colors.surface,
+                              borderColor: colors.ghostBorder,
+                              opacity: dimmed ? 0.5 : 1,
+                            },
+                          ]}
+                        >
+                          <Avatar
+                            size={40}
+                            gradient="green"
+                            photoUri={item.photoUri}
+                            fallbackInitial={item.initial}
+                          />
+                          <View style={styles.unconnectedCopy}>
+                            <Text
+                              style={[styles.unconnectedName, { color: colors.text }]}
+                              numberOfLines={1}
+                            >
+                              {item.name}
+                            </Text>
+                            <Text
+                              style={[styles.unconnectedMeta, { color: colors.textSubtle }]}
+                              numberOfLines={1}
+                            >
+                              {item.sun ? `${item.sun} Sun · ` : ''}Profile only
+                            </Text>
+                          </View>
+                          {busy ? (
+                            <ActivityIndicator size="small" color={colors.primary} />
+                          ) : (
+                            <Text
+                              style={[styles.unconnectedAction, { color: colors.primary }]}
+                            >
+                              Connect →
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })
+                  : null}
+              </View>
             ) : null}
           </>
         )}
@@ -373,5 +562,49 @@ const styles = StyleSheet.create({
   },
   addLabel: {
     fontSize: 14,
+  },
+  unconnectedSection: {
+    marginTop: 4,
+    gap: 8,
+  },
+  unconnectedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    marginTop: 4,
+  },
+  unconnectedToggleLabel: {
+    fontSize: 13,
+  },
+  unconnectedToggleChevron: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  unconnectedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  unconnectedCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  unconnectedName: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  unconnectedMeta: {
+    fontSize: 11.5,
+  },
+  unconnectedAction: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

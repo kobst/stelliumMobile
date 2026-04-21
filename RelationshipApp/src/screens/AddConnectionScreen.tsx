@@ -18,9 +18,18 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
 import { Avatar } from '../components/Avatar';
 import { celebritiesApi, relationshipsApi, type Celebrity } from '../api';
-import { celebrityToSubject, getCelebritySunSign } from '../utils/mainShell';
+import {
+  celebrityToSubject,
+  getBigThree,
+  getCelebritySunSign,
+  getInitials,
+} from '../utils/mainShell';
 import { useRelationshipAppStore } from '../store';
 import { startRelationshipPreview } from './previewFlow';
+import { useOwnedSubjects } from '../hooks/useOwnedSubjects';
+import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
+import { getUnconnectedSubjects } from '../utils/unconnectedSubjects';
+import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
@@ -46,6 +55,30 @@ function toListItem(celeb: Celebrity): CelebListItem {
     photoUri: celeb.profilePhotoUrl ?? celeb.photoUrl ?? null,
     blurb: celeb.romanticProfileBlurb?.trim() || null,
     raw: celeb,
+  };
+}
+
+interface UnconnectedListItem {
+  id: string;
+  name: string;
+  initial: string;
+  sun: string | null;
+  photoUri: string | null;
+  subject: OwnedGuestSubject;
+}
+
+function toUnconnectedListItem(subject: OwnedGuestSubject): UnconnectedListItem {
+  const firstName = subject.firstName?.trim() ?? '';
+  const lastName = subject.lastName?.trim() ?? '';
+  const name = [firstName, lastName].filter(Boolean).join(' ') || 'Unnamed';
+  const { sun } = getBigThree(subject);
+  return {
+    id: subject._id,
+    name,
+    initial: getInitials(name) || name.charAt(0).toUpperCase() || '·',
+    sun,
+    photoUri: subject.profilePhotoUrl ?? null,
+    subject,
   };
 }
 
@@ -79,10 +112,23 @@ export function AddConnectionScreen() {
     (state) => state.clearActiveRelationshipFlow
   );
 
+  useRelationshipHistory();
+  const { ownedSubjects } = useOwnedSubjects();
+  const selfProfileId = profile?.id ?? null;
+
+  const unconnectedSubjects = useMemo(
+    () =>
+      getUnconnectedSubjects(ownedSubjects, relationshipHistory, selfProfileId).map(
+        toUnconnectedListItem
+      ),
+    [ownedSubjects, relationshipHistory, selfProfileId]
+  );
+
   const [step, setStep] = useState<Step>('choose');
   const [searchValue, setSearchValue] = useState('');
   const [selectedCeleb, setSelectedCeleb] = useState<CelebListItem | null>(null);
   const [isCreatingConnection, setIsCreatingConnection] = useState(false);
+  const [connectingSubjectId, setConnectingSubjectId] = useState<string | null>(null);
 
   const [popularCelebs, setPopularCelebs] = useState<CelebListItem[]>([]);
   const [isLoadingPopular, setIsLoadingPopular] = useState(false);
@@ -199,6 +245,74 @@ export function AddConnectionScreen() {
     navigation.navigate('PartnerIdentity');
   }, [navigation]);
 
+  const handleConnectExistingSubject = useCallback(
+    async (item: UnconnectedListItem) => {
+      if (!profile || connectingSubjectId) {
+        return;
+      }
+      if (!profile.id) {
+        Alert.alert('Profile missing', 'Create your profile before connecting.');
+        return;
+      }
+
+      setConnectingSubjectId(item.id);
+      try {
+        clearActiveRelationshipFlow();
+        setActiveTargetType('person');
+        setActiveTargetSubject(item.subject);
+        // Let the preview screen hydrate romantic assets via
+        // POST /getGuestSubjectRomantic on mount — don't seed here.
+        setActivePartnerRomanticAssets(null);
+
+        const { preview, updatedHistory } = await startRelationshipPreview(
+          {
+            selfProfile: profile,
+            targetSubject: item.subject,
+            targetType: 'person',
+            isLocalUxMode,
+            relationshipHistory,
+          },
+          {
+            enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
+          }
+        );
+
+        setPreviewAnalysis(preview);
+        setActiveRelationshipId(preview.compositeChartId);
+        setRelationshipHistory({ relationshipHistory: updatedHistory });
+
+        navigation.reset({
+          index: 1,
+          routes: [
+            { name: 'Main', params: { screen: 'RelationshipsTab' } },
+            { name: 'RelationshipPreview' },
+          ],
+        });
+      } catch (error) {
+        Alert.alert(
+          'Could not create connection',
+          error instanceof Error ? error.message : 'Please try again shortly.'
+        );
+      } finally {
+        setConnectingSubjectId(null);
+      }
+    },
+    [
+      clearActiveRelationshipFlow,
+      connectingSubjectId,
+      isLocalUxMode,
+      navigation,
+      profile,
+      relationshipHistory,
+      setActivePartnerRomanticAssets,
+      setActiveRelationshipId,
+      setActiveTargetSubject,
+      setActiveTargetType,
+      setPreviewAnalysis,
+      setRelationshipHistory,
+    ]
+  );
+
   const handleCreateCelebConnection = useCallback(async () => {
     if (!selectedCeleb || !profile || isCreatingConnection) {
       return;
@@ -300,7 +414,15 @@ export function AddConnectionScreen() {
           showsVerticalScrollIndicator={false}
         >
           {step === 'choose' ? (
-            <ChooseStep onPickCeleb={() => setStep('celeb')} onPickPerson={handleOpenPersonFlow} />
+            <ChooseStep
+              onPickCeleb={() => setStep('celeb')}
+              onPickPerson={handleOpenPersonFlow}
+              unconnected={unconnectedSubjects}
+              connectingSubjectId={connectingSubjectId}
+              onConnectExisting={(item) => {
+                handleConnectExistingSubject(item).catch(() => undefined);
+              }}
+            />
           ) : null}
           {step === 'celeb' ? (
             <CelebStep
@@ -332,9 +454,18 @@ export function AddConnectionScreen() {
 interface ChooseStepProps {
   onPickCeleb: () => void;
   onPickPerson: () => void;
+  unconnected: readonly UnconnectedListItem[];
+  connectingSubjectId: string | null;
+  onConnectExisting: (item: UnconnectedListItem) => void;
 }
 
-function ChooseStep({ onPickCeleb, onPickPerson }: ChooseStepProps) {
+function ChooseStep({
+  onPickCeleb,
+  onPickPerson,
+  unconnected,
+  connectingSubjectId,
+  onConnectExisting,
+}: ChooseStepProps) {
   const { colors } = useTheme();
   return (
     <View style={styles.stepBody}>
@@ -355,11 +486,77 @@ function ChooseStep({ onPickCeleb, onPickPerson }: ChooseStepProps) {
         iconGlyph="👤"
         iconColor={colors.text}
         iconBg="rgba(130, 200, 180, 0.14)"
-        title="Someone in your life"
+        title="Someone new"
         body="Partner, crush, ex, friend — anyone you know birth details for."
         onPress={onPickPerson}
       />
+
+      {unconnected.length > 0 ? (
+        <View style={styles.unconnectedBlock}>
+          <View style={[styles.dividerRow]}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.ghostBorder }]} />
+          </View>
+          <Text style={[styles.unconnectedEyebrow, { color: colors.textSubtle }]}>
+            Or connect with someone you've added
+          </Text>
+          {unconnected.map((item) => (
+            <UnconnectedRow
+              key={item.id}
+              item={item}
+              busy={connectingSubjectId === item.id}
+              disabled={Boolean(connectingSubjectId) && connectingSubjectId !== item.id}
+              onPress={() => onConnectExisting(item)}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
+  );
+}
+
+interface UnconnectedRowProps {
+  item: UnconnectedListItem;
+  busy: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}
+
+function UnconnectedRow({ item, busy, disabled, onPress }: UnconnectedRowProps) {
+  const { colors } = useTheme();
+  return (
+    <TouchableOpacity
+      activeOpacity={disabled ? 1 : 0.8}
+      disabled={disabled || busy}
+      onPress={onPress}
+      style={[
+        styles.unconnectedRow,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.ghostBorder,
+          opacity: disabled ? 0.5 : 1,
+        },
+      ]}
+    >
+      <Avatar
+        size={40}
+        gradient="green"
+        photoUri={item.photoUri}
+        fallbackInitial={item.initial}
+      />
+      <View style={styles.unconnectedCopy}>
+        <Text style={[styles.unconnectedName, { color: colors.text }]} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={[styles.unconnectedMeta, { color: colors.textSubtle }]} numberOfLines={1}>
+          {item.sun ? `${item.sun} Sun · ` : ''}Added, no relationship yet
+        </Text>
+      </View>
+      {busy ? (
+        <ActivityIndicator size="small" color={colors.primary} />
+      ) : (
+        <Text style={[styles.unconnectedAction, { color: colors.primary }]}>Connect</Text>
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -664,6 +861,48 @@ const styles = StyleSheet.create({
   chooseBody: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  unconnectedBlock: {
+    marginTop: 4,
+    gap: 10,
+  },
+  dividerRow: {
+    paddingVertical: 8,
+  },
+  dividerLine: {
+    height: 1,
+  },
+  unconnectedEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  unconnectedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  unconnectedCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  unconnectedName: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  unconnectedMeta: {
+    fontSize: 11.5,
+  },
+  unconnectedAction: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   searchField: {
     flexDirection: 'row',

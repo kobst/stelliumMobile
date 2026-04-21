@@ -1,0 +1,648 @@
+import { useState } from "react";
+
+const SANS = "'DM Sans', system-ui, sans-serif";
+const SERIF = "Georgia, 'Times New Roman', serif";
+
+const c = {
+  bg: "#0C0B10",
+  card: "#16151D",
+  border: "rgba(255,255,255,0.06)",
+  gold: "#D4A843",
+  goldDim: "rgba(212,168,67,0.15)",
+  lav: "#B8A0E8",
+  lavBg: "rgba(184,160,232,0.12)",
+  text: "#E8E4F0",
+  dim: "rgba(232,228,240,0.55)",
+  faint: "rgba(232,228,240,0.35)",
+  green: "#82C8B4",
+  greenDim: "rgba(130,200,180,0.12)",
+};
+
+// ── Data ──
+const initialRelationships = [
+  { id: "r1", name: "Sarah Chen", type: "person", initial: "S", color: c.green, archetype: "Shared Frequency", topScore: 81, topCat: "Connection", aspect: "Moon-Mercury Trine" },
+  { id: "r2", name: "Beyoncé", type: "celeb", photo: "https://image.tmdb.org/t/p/w200/bJCkMVEINqMKj2Yv2XGW6RLDPOX.jpg", archetype: "Iron & Honey", topScore: 91, topCat: "Growth", aspect: "Venus-Mars Trine" },
+  { id: "r3", name: "Emma Watson", type: "celeb", photo: "https://image.tmdb.org/t/p/w200/A14lbfGlFEliAoRUp7fKdJsHMD1.jpg", archetype: "Beautiful Tension", topScore: 74, topCat: "Passion", aspect: "Venus-Mars Square" },
+];
+
+const initialUnconnected = [
+  { id: "u1", name: "Alex Rivera", initial: "A", color: c.lav, sun: "Gemini", blurb: "Alex opens every door sideways..." },
+  { id: "u2", name: "Jordan Park", initial: "J", color: c.green, sun: "Pisces", blurb: "Jordan absorbs everything in the room..." },
+];
+
+const celebMatches = [
+  { id: "cm1", name: "Lady Gaga", photo: "https://image.tmdb.org/t/p/w200/bKbTppJHESVMGgqGVOKVYJfMbro.jpg", aspect: "Sun-Moon Sextile", archetype: "Flickering Flame", revealedScore: 45, revealedCat: "Harmony", sun: "Aries", blurb: "Both your Suns carry intensity squared..." },
+  { id: "cm2", name: "Harry Styles", photo: "https://image.tmdb.org/t/p/w200/wSjFCl4fXbnmxUrumVKJVzEWsGE.jpg", aspect: "Moon Conjunction", archetype: "Deep Root", revealedScore: 78, revealedCat: "Stability", sun: "Aquarius", blurb: "Harry's Moon echoes yours in ways that feel immediately familiar..." },
+];
+
+const chartsLikeYours = [
+  { id: "cl1", name: "Ryan Reynolds", photo: "https://image.tmdb.org/t/p/w200/algQ1VEno2W9SesoArWcZTeF3jr.jpg", match: "Scorpio Sun", sun: "Scorpio", blurb: "Ryan leads with charm that disarms before you notice the depth..." },
+  { id: "cl2", name: "Penn Badgley", photo: "https://image.tmdb.org/t/p/w200/pGqTSIna3VNoSjVfSRmSvRvqkdu.jpg", match: "Scorpio Sun · Libra Moon", sun: "Scorpio", blurb: "Penn's Venus in Sagittarius mirrors yours..." },
+];
+
+const browseAll = [
+  { id: "b1", name: "Zendaya", photo: "https://image.tmdb.org/t/p/w200/tyJFnBCJfksMb3JTfM1fhLpr6hm.jpg", sun: "Virgo" },
+  { id: "b2", name: "Timothée Chalamet", photo: "https://image.tmdb.org/t/p/w200/BE2sdjpgsa2rNTFa66f7upkaOP.jpg", sun: "Capricorn" },
+  { id: "b3", name: "Florence Pugh", photo: "https://image.tmdb.org/t/p/w200/6gBVPvVsaQPlrq4Hx5RRnwOjNiK.jpg", sun: "Capricorn" },
+  { id: "b4", name: "Pedro Pascal", photo: "https://image.tmdb.org/t/p/w200/dBOrm29qBhsNhMYe2JHTGhMuXog.jpg", sun: "Aries" },
+];
+
+// ── Shared UI ──
+const FadeIn = ({ children, delay = 0 }) => (
+  <div style={{ animation: `fadeUp 0.5s ease ${delay}s both` }}>
+    {children}
+    <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
+  </div>
+);
+
+const Avatar = ({ src, initial, color = c.green, size = 44 }) => {
+  const [err, setErr] = useState(false);
+  if (src && !err) return <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}><img src={src} onError={() => setErr(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>;
+  return <div style={{ width: size, height: size, borderRadius: "50%", background: `linear-gradient(135deg, ${color}, ${color}cc)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: size * 0.4, fontWeight: 700, color: c.bg, flexShrink: 0 }}>{initial || "?"}</div>;
+};
+
+const AvatarPair = ({ photo, initial, color }) => (
+  <div style={{ position: "relative", width: 56, height: 44, flexShrink: 0 }}>
+    <div style={{ position: "absolute", left: 0, top: 0, zIndex: 1, width: 38, height: 38, borderRadius: "50%", background: `linear-gradient(135deg, ${c.lav}, #9B7DD4)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 16, fontWeight: 700, color: c.bg, border: `2.5px solid ${c.bg}` }}>J</div>
+    <div style={{ position: "absolute", right: 0, top: 5 }}>
+      <Avatar src={photo} initial={initial} color={color || c.green} size={38} />
+    </div>
+  </div>
+);
+
+const SectionLabel = ({ children, sub }) => (
+  <div style={{ marginBottom: 14 }}>
+    <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: sub ? 4 : 0 }}>{children}</div>
+    {sub && <div style={{ fontSize: 12.5, color: c.faint, lineHeight: 1.4 }}>{sub}</div>}
+  </div>
+);
+
+const TabBar = ({ active, setActive }) => (
+  <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 393, background: "rgba(12,11,16,0.94)", backdropFilter: "blur(20px)", borderTop: `1px solid rgba(255,255,255,0.05)`, display: "flex", padding: "10px 0 22px", zIndex: 200 }}>
+    {[["⌂", "Home", 0], ["♡", "Relationships", 1], ["✦", "Discover", 2], ["◉", "Profile", 3]].map(([icon, label, idx]) => (
+      <div key={idx} onClick={() => setActive(idx)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontSize: 10, color: active === idx ? c.lav : c.faint, cursor: "pointer", fontFamily: SANS }}>
+        <span style={{ fontSize: 18 }}>{icon}</span><span>{label}</span>
+      </div>
+    ))}
+  </div>
+);
+
+// ── Add Flow Fork Screen ──
+const AddFork = ({ onClose, onCeleb, onNewPerson, unconnected, onExisting }) => (
+  <div style={{ position: "fixed", inset: 0, background: c.bg, zIndex: 300, maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, overflowY: "auto" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}>
+      <span>9:41</span>
+      <div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} />
+      <span>···</span>
+    </div>
+    <div style={{ padding: "8px 20px 0" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <span onClick={onClose} style={{ fontSize: 15, color: c.dim, cursor: "pointer" }}>✕</span>
+        <span style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 17, fontWeight: 600 }}>Add to Iris</span>
+        <span style={{ width: 20 }} />
+      </div>
+    </div>
+    <div style={{ padding: "0 24px" }}>
+      <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 700, marginBottom: 6 }}>What do you want to explore?</div>
+      <div style={{ fontSize: 14, color: c.dim, marginBottom: 28, lineHeight: 1.5 }}>Browse celebrities, add someone new, or connect with someone you've already added.</div>
+
+      {/* Celebrity */}
+      <div onClick={onCeleb} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: "22px 20px", marginBottom: 12, cursor: "pointer", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -40, right: -40, width: 120, height: 120, background: `radial-gradient(circle, ${c.goldDim} 0%, transparent 70%)`, pointerEvents: "none" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 46, height: 46, borderRadius: 14, background: c.goldDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>⭐</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: c.text, marginBottom: 3 }}>Celebrity</div>
+            <div style={{ fontSize: 13, color: c.dim, lineHeight: 1.4 }}>Explore your chart against hundreds of famous figures</div>
+          </div>
+          <span style={{ color: c.faint, fontSize: 18 }}>›</span>
+        </div>
+      </div>
+
+      {/* Someone new */}
+      <div onClick={onNewPerson} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: "22px 20px", marginBottom: 12, cursor: "pointer", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -40, right: -40, width: 120, height: 120, background: `radial-gradient(circle, ${c.greenDim} 0%, transparent 70%)`, pointerEvents: "none" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 46, height: 46, borderRadius: 14, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>👤</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: c.text, marginBottom: 3 }}>Someone new</div>
+            <div style={{ fontSize: 13, color: c.dim, lineHeight: 1.4 }}>Add anyone you have birth details for</div>
+          </div>
+          <span style={{ color: c.faint, fontSize: 18 }}>›</span>
+        </div>
+      </div>
+
+      {/* Existing person — only shows if unconnected exist */}
+      {unconnected.length > 0 && (
+        <>
+          <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${c.border} 30%, ${c.border} 70%, transparent)`, margin: "16px 0" }} />
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.faint, marginBottom: 12 }}>Or connect with someone you've added</div>
+          {unconnected.map(person => (
+            <div key={person.id} onClick={() => onExisting(person)} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: 8, cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
+              <Avatar initial={person.initial} color={person.color} size={40} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: c.text }}>{person.name}</div>
+                <div style={{ fontSize: 11.5, color: c.faint }}>{person.sun} Sun · Added, no relationship yet</div>
+              </div>
+              <div style={{ fontSize: 12, color: c.lav, fontWeight: 600 }}>Connect</div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  </div>
+);
+
+// ── Add Person Wizard ──
+const AddPersonWizard = ({ onClose, onComplete }) => {
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
+  const [timeKnown, setTimeKnown] = useState(true);
+  const [birthCity, setBirthCity] = useState("");
+  const [cityResult, setCityResult] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const totalSteps = 4;
+
+  const canAdvance = () => {
+    if (step === 1) return name.trim().length > 0;
+    if (step === 4) return cityResult !== null;
+    return true;
+  };
+
+  const handleNext = () => {
+    if (step < totalSteps) setStep(step + 1);
+    else { setIsGenerating(true); setTimeout(() => { setIsGenerating(false); setStep(5); }, 1800); }
+  };
+
+  const blurb = `${name} arrives with questions that feel like invitations, then pulls back the moment the answer threatens to matter. ${name}'s Venus in Scorpio insists on depth before trust, and a Gemini Moon keeps circling — seeking the next insight while the need for real intimacy runs parallel and unmet.`;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: c.bg, zIndex: 400, maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}><span>9:41</span><div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} /><span>···</span></div>
+
+      {step <= totalSteps && !isGenerating && (
+        <>
+          <div style={{ padding: "8px 20px 0", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <span onClick={step === 1 ? onClose : () => setStep(step - 1)} style={{ fontSize: 15, color: c.dim, cursor: "pointer" }}>{step === 1 ? "Cancel" : "← Back"}</span>
+              <span style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 17, fontWeight: 600 }}>Add Person</span>
+              <span style={{ width: 50 }} />
+            </div>
+            <div style={{ display: "flex", gap: 4, marginBottom: 24 }}>
+              {Array.from({ length: totalSteps }).map((_, i) => (
+                <div key={i} style={{ flex: 1, height: 3, borderRadius: 3, background: i < step ? c.lav : "rgba(255,255,255,0.08)", transition: "background 0.3s" }} />
+              ))}
+            </div>
+          </div>
+
+          <div style={{ flex: 1, padding: "0 24px", overflowY: "auto" }}>
+            {step === 1 && (
+              <FadeIn>
+                <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 8 }}>Step 1 of {totalSteps}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Who are you adding?</div>
+                <div style={{ fontSize: 13.5, color: c.dim, marginBottom: 28, lineHeight: 1.5 }}>Their details are private and only used to calculate the chart.</div>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(255,255,255,0.04)", border: "2px dashed rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: c.faint }}>📷</div>
+                </div>
+                <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.dim, marginBottom: 8 }}>First name</div>
+                <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "14px 16px" }}>
+                  <input value={name} onChange={e => setName(e.target.value)} placeholder="First name" style={{ background: "none", border: "none", outline: "none", color: c.text, fontSize: 15, fontFamily: SANS, width: "100%", caretColor: c.lav }} />
+                </div>
+              </FadeIn>
+            )}
+            {step === 2 && (
+              <FadeIn>
+                <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 8 }}>Step 2 of {totalSteps}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 700, marginBottom: 6 }}>When was {name} born?</div>
+                <div style={{ fontSize: 13.5, color: c.dim, marginBottom: 32 }}>We need this to calculate {name}'s chart.</div>
+                <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "24px 20px", display: "flex", justifyContent: "center", gap: 20 }}>
+                  {[{ items: ["Sep", "Oct", "Nov", "Dec", "Jan"], sel: 2 }, { items: ["4", "5", "6", "7", "8"], sel: 2 }, { items: ["1990", "1991", "1992", "1993", "1994"], sel: 2 }].map((col, ci) => (
+                    <div key={ci} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                      {col.items.map((item, ii) => (
+                        <div key={ii} style={{ padding: "6px 14px", borderRadius: 10, fontSize: ii === col.sel ? 22 : 14, fontWeight: ii === col.sel ? 700 : 400, fontFamily: SERIF, color: ii === col.sel ? c.text : c.faint, background: ii === col.sel ? "rgba(255,255,255,0.04)" : "transparent" }}>{item}</div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </FadeIn>
+            )}
+            {step === 3 && (
+              <FadeIn>
+                <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 8 }}>Step 3 of {totalSteps}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 700, marginBottom: 6 }}>What time?</div>
+                <div style={{ fontSize: 13.5, color: c.dim, marginBottom: 20 }}>Birth time sharpens house placements, but you can skip it.</div>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+                  <span onClick={() => setTimeKnown(!timeKnown)} style={{ fontSize: 13, color: c.lav, fontWeight: 600, cursor: "pointer" }}>{timeKnown ? "I don't know" : "I know the time"}</span>
+                </div>
+                {timeKnown ? (
+                  <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "24px 20px", display: "flex", justifyContent: "center", gap: 16 }}>
+                    {[{ items: ["2", "3", "4", "5", "6"], sel: 2 }, { items: ["28", "29", "30", "31", "32"], sel: 2 }, { items: ["AM", "PM"], sel: 1 }].map((col, ci) => (
+                      <div key={ci} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                        {col.items.map((item, ii) => (
+                          <div key={ii} style={{ padding: "6px 12px", borderRadius: 10, fontSize: ii === col.sel ? 22 : 14, fontWeight: ii === col.sel ? 700 : 400, fontFamily: ci < 2 ? SERIF : SANS, color: ii === col.sel ? c.text : c.faint, background: ii === col.sel ? "rgba(255,255,255,0.04)" : "transparent" }}>{item}</div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", textAlign: "center" }}>
+                    <div style={{ fontSize: 14, color: c.dim, fontStyle: "italic" }}>We'll calculate without house placements.</div>
+                  </div>
+                )}
+              </FadeIn>
+            )}
+            {step === 4 && (
+              <FadeIn>
+                <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 8 }}>Step 4 of {totalSteps}</div>
+                <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Where was {name} born?</div>
+                <div style={{ fontSize: 13.5, color: c.dim, marginBottom: 28 }}>City and country for coordinates and timezone.</div>
+                <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "14px 16px", marginBottom: 8 }}>
+                  <input value={birthCity} onChange={e => { setBirthCity(e.target.value); setCityResult(e.target.value.length > 3 ? e.target.value : null); }} placeholder="City, Country" style={{ background: "none", border: "none", outline: "none", color: c.text, fontSize: 15, fontFamily: SANS, width: "100%", caretColor: c.lav }} />
+                </div>
+                {cityResult && (
+                  <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ color: c.green, fontSize: 12 }}>●</span>
+                    <span style={{ fontSize: 14, color: c.text }}>{cityResult}</span>
+                  </div>
+                )}
+              </FadeIn>
+            )}
+          </div>
+
+          <div style={{ padding: "16px 24px 32px", flexShrink: 0, display: "flex", justifyContent: "flex-end" }}>
+            <div onClick={canAdvance() ? handleNext : undefined} style={{ width: 56, height: 56, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: canAdvance() ? `linear-gradient(135deg, ${c.lav}, #9B7DD4)` : "rgba(255,255,255,0.06)", cursor: canAdvance() ? "pointer" : "default", fontSize: 20, color: canAdvance() ? c.bg : c.faint, boxShadow: canAdvance() ? "0 4px 20px rgba(184,160,232,0.25)" : "none" }}>→</div>
+          </div>
+        </>
+      )}
+
+      {isGenerating && (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 32px" }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: c.lavBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}>
+            <div style={{ width: 24, height: 24, border: `3px solid ${c.lav}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+          </div>
+          <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: "center" }}>Reading {name}'s chart...</div>
+          <div style={{ fontSize: 13.5, color: c.dim, textAlign: "center" }}>Generating romantic profile</div>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+      )}
+
+      {step === 5 && (
+        <div style={{ flex: 1, padding: "0 24px", overflowY: "auto" }}>
+          <FadeIn>
+            <div style={{ textAlign: "center", paddingTop: 16, marginBottom: 20 }}>
+              <div style={{ width: 68, height: 68, borderRadius: "50%", background: `linear-gradient(135deg, ${c.green}, #5BA890)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 28, fontWeight: 700, color: c.bg, margin: "0 auto 14px" }}>{name[0]?.toUpperCase()}</div>
+              <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, marginBottom: 4 }}>{name}</div>
+              <div style={{ fontSize: 12, color: c.faint }}>Scorpio Sun · Gemini Moon</div>
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.12}>
+            <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: `radial-gradient(circle, ${c.greenDim} 0%, transparent 70%)`, pointerEvents: "none" }} />
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>{name}'s Romantic Profile</div>
+              <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 15.5, lineHeight: 1.6, color: "rgba(232,228,240,0.82)", margin: 0 }}>{blurb}</p>
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.2}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, padding: "0 4px" }}>
+              <span style={{ fontSize: 13, color: c.green }}>✓</span>
+              <span style={{ fontSize: 13, color: c.dim }}>{name} added to your People</span>
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.3}>
+            {/* Primary CTA */}
+            <div onClick={() => onComplete(name, "relationship")} style={{ background: c.card, border: `1px solid rgba(184,160,232,0.2)`, borderRadius: 18, padding: "20px", marginBottom: 12, cursor: "pointer", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -40, right: -40, width: 120, height: 120, background: `radial-gradient(circle, ${c.lavBg} 0%, transparent 70%)`, pointerEvents: "none" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: c.lavBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div style={{ position: "relative", width: 28, height: 20 }}>
+                    <div style={{ position: "absolute", left: 0, top: 0, width: 18, height: 18, borderRadius: "50%", background: c.lav, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, color: c.bg, border: `1.5px solid ${c.card}`, zIndex: 1 }}>J</div>
+                    <div style={{ position: "absolute", right: 0, top: 2, width: 18, height: 18, borderRadius: "50%", background: c.green, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, color: c.bg, border: `1.5px solid ${c.card}` }}>{name[0]}</div>
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: c.text, marginBottom: 3 }}>See your connection</div>
+                  <div style={{ fontSize: 12.5, color: c.dim, lineHeight: 1.4 }}>Scores, archetype, and initial reading</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, background: `linear-gradient(135deg, ${c.lav}, #9B7DD4)`, borderRadius: 100, padding: "6px 12px", fontSize: 11, fontWeight: 600, color: c.bg, flexShrink: 0 }}>◆ 1</div>
+              </div>
+            </div>
+
+            {/* Just add */}
+            <div onClick={() => onComplete(name, "none")} style={{ textAlign: "center", padding: "14px 0", cursor: "pointer" }}>
+              <span style={{ fontSize: 14, color: c.dim }}>Done for now</span>
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.4}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.02)", border: `1px solid ${c.border}`, borderRadius: 12, padding: "12px 14px", marginTop: 8, marginBottom: 32 }}>
+              <span style={{ fontSize: 13 }}>🔒</span>
+              <span style={{ fontSize: 11.5, color: c.faint, lineHeight: 1.4 }}>{name}'s details are private and never shared.</span>
+            </div>
+          </FadeIn>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Celeb Search (from fork) ──
+const CelebSearch = ({ onClose, addedIds, onAddCeleb }) => {
+  const [searchVal, setSearchVal] = useState("");
+  const allCelebs = [...celebMatches, ...chartsLikeYours, ...browseAll];
+  const filtered = searchVal.length > 1 ? allCelebs.filter(c => c.name.toLowerCase().includes(searchVal.toLowerCase())) : browseAll;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: c.bg, zIndex: 400, maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}><span>9:41</span><div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} /><span>···</span></div>
+      <div style={{ padding: "8px 20px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <span onClick={onClose} style={{ fontSize: 15, color: c.dim, cursor: "pointer" }}>← Back</span>
+          <span style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 17, fontWeight: 600 }}>Search Celebrities</span>
+          <span style={{ width: 50 }} />
+        </div>
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <span style={{ color: c.faint, fontSize: 16 }}>⌕</span>
+          <input value={searchVal} onChange={e => setSearchVal(e.target.value)} placeholder="Search celebrities..." autoFocus style={{ background: "none", border: "none", outline: "none", color: c.text, fontSize: 14, fontFamily: SANS, width: "100%", caretColor: c.lav }} />
+          {searchVal && <span onClick={() => setSearchVal("")} style={{ color: c.faint, cursor: "pointer" }}>✕</span>}
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
+        {!searchVal && <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 12 }}>Popular</div>}
+        {filtered.map(celeb => {
+          const isAdded = addedIds.includes(celeb.id);
+          return (
+            <div key={celeb.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+              <Avatar src={celeb.photo} initial={celeb.name[0]} color={c.gold} size={46} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: c.text }}>{celeb.name}</div>
+                <div style={{ fontSize: 12, color: c.faint }}>{celeb.sun} Sun</div>
+              </div>
+              {isAdded ? (
+                <span style={{ fontSize: 11, color: c.green, fontWeight: 500 }}>Added ✓</span>
+              ) : (
+                <div onClick={() => onAddCeleb(celeb)} style={{ fontSize: 12, color: c.lav, fontWeight: 600, cursor: "pointer", padding: "7px 14px", borderRadius: 100, background: c.lavBg }}>+ Add</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ── Relationships Tab ──
+const RelationshipsTab = ({ relationships, unconnected, onAdd, showUnconnected, setShowUnconnected }) => {
+  const [filter, setFilter] = useState("all");
+  const filtered = filter === "all" ? relationships : relationships.filter(r => filter === "celeb" ? r.type === "celeb" : r.type === "person");
+
+  return (
+    <div style={{ padding: "0 20px" }}>
+      <div style={{ fontFamily: SERIF, fontSize: 30, fontWeight: 700, marginBottom: 4 }}>Relationships</div>
+      <div style={{ fontSize: 13.5, color: c.dim, marginBottom: 18 }}>Your connections and how your charts interact.</div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {[["all", `All (${relationships.length})`], ["person", `People (${relationships.filter(r => r.type === "person").length})`], ["celeb", `Celebs (${relationships.filter(r => r.type === "celeb").length})`]].map(([key, label]) => (
+          <div key={key} onClick={() => setFilter(key)} style={{ fontSize: 12, padding: "7px 14px", borderRadius: 100, cursor: "pointer", background: filter === key ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)", color: filter === key ? c.text : c.faint, border: `1px solid ${filter === key ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.04)"}`, fontWeight: filter === key ? 500 : 400 }}>{label}</div>
+        ))}
+      </div>
+
+      {filtered.map((r, i) => (
+        <FadeIn key={r.id} delay={i * 0.04}>
+          <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: "16px", marginBottom: 10, cursor: "pointer" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <AvatarPair photo={r.photo} initial={r.initial} color={r.color} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: c.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+                  <span style={{ fontSize: 9.5, color: c.faint, background: "rgba(255,255,255,0.04)", borderRadius: 100, padding: "2px 7px", textTransform: "uppercase", letterSpacing: 0.5, flexShrink: 0 }}>{r.type === "celeb" ? "Celeb" : "Personal"}</span>
+                </div>
+                <div style={{ fontSize: 13.5, fontFamily: SERIF, fontStyle: "italic", color: c.gold, marginBottom: 3 }}>{r.archetype}</div>
+                <div style={{ fontSize: 11, color: c.faint }}>{r.aspect}</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                <div style={{ fontSize: 22, fontWeight: 700, fontFamily: SERIF, color: c.lav }}>{r.topScore}</div>
+                <div style={{ fontSize: 9, color: c.faint, textTransform: "uppercase", letterSpacing: 0.3 }}>{r.topCat}</div>
+              </div>
+            </div>
+          </div>
+        </FadeIn>
+      ))}
+
+      {/* Add button */}
+      <div onClick={onAdd} style={{ border: "1px dashed rgba(255,255,255,0.12)", borderRadius: 16, padding: "20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", marginTop: 6, marginBottom: unconnected.length > 0 ? 20 : 0 }}>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", background: c.lavBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: c.lav }}>+</div>
+        <span style={{ fontSize: 14, color: c.dim }}>Add a connection</span>
+      </div>
+
+      {/* Unconnected subjects */}
+      {unconnected.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div onClick={() => setShowUnconnected(!showUnconnected)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", cursor: "pointer", borderTop: `1px solid ${c.border}` }}>
+            <span style={{ fontSize: 13, color: c.faint }}>Added but not connected ({unconnected.length})</span>
+            <span style={{ fontSize: 13, color: c.faint, transform: showUnconnected ? "rotate(90deg)" : "rotate(0)", transition: "transform 0.2s" }}>›</span>
+          </div>
+          {showUnconnected && unconnected.map(p => (
+            <div key={p.id} style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${c.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+              <Avatar initial={p.initial} color={p.color} size={40} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: c.text }}>{p.name}</div>
+                <div style={{ fontSize: 11.5, color: c.faint }}>{p.sun} Sun · Profile only</div>
+              </div>
+              <div style={{ fontSize: 11.5, color: c.lav, fontWeight: 600 }}>Connect →</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Discover Tab ──
+const DiscoverTab = ({ addedIds, onAddCeleb, onOpenAdd }) => {
+  const [searchVal, setSearchVal] = useState("");
+  const filtered = searchVal.length > 1 ? browseAll.filter(b => b.name.toLowerCase().includes(searchVal.toLowerCase())) : null;
+
+  return (
+    <div style={{ padding: "0 20px" }}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 8 }}>Discover</div>
+        <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 700, lineHeight: 1.15, marginBottom: 8 }}>Search the chart database.</div>
+        <div style={{ fontSize: 13.5, color: c.dim, lineHeight: 1.5 }}>Browse celebrity charts, find patterns that echo your own, and add anyone to explore.</div>
+      </div>
+
+      {/* Quick add banner */}
+      <div onClick={onOpenAdd} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: "16px 18px", marginBottom: 28, cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: c.lavBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: c.lav }}>+</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: c.text }}>Add someone to Iris</div>
+          <div style={{ fontSize: 12, color: c.faint }}>Celebrity, someone new, or existing person</div>
+        </div>
+        <span style={{ color: c.faint, fontSize: 18 }}>›</span>
+      </div>
+
+      {/* Picked for you */}
+      <SectionLabel sub="Celeb matches from your chart">Picked For Your Chart</SectionLabel>
+      <div style={{ display: "flex", gap: 12, overflowX: "auto", marginBottom: 32, marginLeft: -20, marginRight: -20, padding: "0 20px", scrollbarWidth: "none" }}>
+        {celebMatches.map(celeb => {
+          const isAdded = addedIds.includes(celeb.id);
+          return (
+            <div key={celeb.id} style={{ flexShrink: 0, width: 240, background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, overflow: "hidden" }}>
+              <div style={{ width: "100%", height: 140, overflow: "hidden" }}><Avatar src={celeb.photo} initial={celeb.name[0]} color={c.gold} size={240} /></div>
+              <div style={{ padding: "14px 16px 16px" }}>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: c.gold, marginBottom: 4 }}>{celeb.aspect}</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: c.text, marginBottom: 2 }}>{celeb.name}</div>
+                <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: c.gold, marginBottom: 10 }}>{celeb.archetype}</div>
+                <div style={{ display: "flex", gap: 3, marginBottom: 12 }}>
+                  {["HAR", "PAS", "CON", "STA", "GRO"].map((l, i) => {
+                    const reveal = (i === 4 && celeb.revealedCat === "Growth") || (i === 0 && celeb.revealedCat === "Harmony");
+                    return (
+                      <div key={i} style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,0.03)", borderRadius: 6, padding: "5px 2px" }}>
+                        <div style={{ fontFamily: SERIF, fontSize: 12, fontWeight: 700, color: reveal ? c.lav : c.faint, filter: reveal ? "none" : "blur(4px)", userSelect: reveal ? "auto" : "none" }}>{reveal ? celeb.revealedScore : 55 + i * 8}</div>
+                        <div style={{ fontSize: 7.5, color: c.faint }}>{l}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {isAdded ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 12, background: c.greenDim, fontSize: 12, fontWeight: 600, color: c.green }}>✓ Added</div>
+                ) : (
+                  <button onClick={() => onAddCeleb(celeb)} style={{ width: "100%", padding: "9px", borderRadius: 12, background: `linear-gradient(135deg, ${c.lav}, #9B7DD4)`, color: c.bg, border: "none", fontSize: 12.5, fontWeight: 600, fontFamily: SANS, cursor: "pointer" }}>Add to People</button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Charts like yours */}
+      <SectionLabel sub="Celebs who share your placements">Charts Like Yours</SectionLabel>
+      <div style={{ marginBottom: 32 }}>
+        {chartsLikeYours.map(celeb => {
+          const isAdded = addedIds.includes(celeb.id);
+          return (
+            <div key={celeb.id} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: "16px", marginBottom: 10, display: "flex", gap: 14 }}>
+              <Avatar src={celeb.photo} initial={celeb.name[0]} color={c.gold} size={48} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: c.text, marginBottom: 4 }}>{celeb.name}</div>
+                <div style={{ display: "flex", gap: 4, marginBottom: 6, flexWrap: "wrap" }}>
+                  {celeb.match.split(" · ").map((m, j) => (
+                    <div key={j} style={{ fontSize: 10, background: c.lavBg, borderRadius: 100, padding: "2px 8px", color: c.lav, fontWeight: 500 }}>{m}</div>
+                  ))}
+                </div>
+                {isAdded ? <span style={{ fontSize: 11, color: c.green }}>✓ Added</span> : <span onClick={() => onAddCeleb(celeb)} style={{ fontSize: 12, color: c.lav, fontWeight: 600, cursor: "pointer" }}>+ Add</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Browse */}
+      <SectionLabel>Browse All</SectionLabel>
+      <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <span style={{ color: c.faint, fontSize: 16 }}>⌕</span>
+        <input value={searchVal} onChange={e => setSearchVal(e.target.value)} placeholder="Search celebrities..." style={{ background: "none", border: "none", outline: "none", color: c.text, fontSize: 14, fontFamily: SANS, width: "100%", caretColor: c.lav }} />
+      </div>
+      {(filtered || browseAll).map(celeb => {
+        const isAdded = addedIds.includes(celeb.id);
+        return (
+          <div key={celeb.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+            <Avatar src={celeb.photo} initial={celeb.name[0]} color={c.gold} size={42} />
+            <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 500, color: c.text }}>{celeb.name}</div><div style={{ fontSize: 12, color: c.faint }}>{celeb.sun} Sun</div></div>
+            {isAdded ? <span style={{ fontSize: 11, color: c.green }}>Added ✓</span> : <div onClick={() => onAddCeleb(celeb)} style={{ fontSize: 12, color: c.lav, fontWeight: 600, cursor: "pointer", padding: "6px 12px", borderRadius: 100, background: c.lavBg }}>+ Add</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ── Toast ──
+const Toast = ({ msg, onView }) => (
+  <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: "12px 20px", display: "flex", alignItems: "center", gap: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", zIndex: 250, animation: "toastIn 0.3s ease both", maxWidth: 360 }}>
+    <span style={{ fontSize: 14, color: c.green }}>✓</span>
+    <span style={{ fontSize: 13, color: c.text, flex: 1 }}>{msg}</span>
+    <span onClick={onView} style={{ fontSize: 12, color: c.lav, fontWeight: 600, cursor: "pointer" }}>View</span>
+    <style>{`@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`}</style>
+  </div>
+);
+
+// ── Main ──
+export default function App() {
+  const [activeTab, setActiveTab] = useState(1);
+  const [relationships, setRelationships] = useState(initialRelationships);
+  const [unconnected, setUnconnected] = useState(initialUnconnected);
+  const [addedCelebIds, setAddedCelebIds] = useState(["beyonce"]);
+  const [showFork, setShowFork] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [showCelebSearch, setShowCelebSearch] = useState(false);
+  const [showUnconnected, setShowUnconnected] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const openAdd = () => setShowFork(true);
+
+  const addCelebFromDiscover = (celeb) => {
+    setAddedCelebIds(prev => [...prev, celeb.id]);
+    setRelationships(prev => [...prev, { id: celeb.id, name: celeb.name, type: "celeb", photo: celeb.photo, archetype: celeb.archetype || "Analyzing...", topScore: celeb.revealedScore || "—", topCat: celeb.revealedCat || "", aspect: celeb.aspect || "" }]);
+    setToast(`${celeb.name} added`);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const addCelebFromSearch = (celeb) => {
+    addCelebFromDiscover(celeb);
+    setShowCelebSearch(false);
+    setShowFork(false);
+  };
+
+  const connectExisting = (person) => {
+    setUnconnected(prev => prev.filter(p => p.id !== person.id));
+    setRelationships(prev => [...prev, { id: person.id, name: person.name, type: "person", initial: person.initial, color: person.color, archetype: "Calculating...", topScore: "—", topCat: "", aspect: "Analyzing..." }]);
+    setShowFork(false);
+    setToast(`Analyzing connection with ${person.name}...`);
+    setActiveTab(1);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const completeWizard = (name, action) => {
+    setShowWizard(false);
+    setShowFork(false);
+    if (action === "relationship") {
+      setRelationships(prev => [...prev, { id: `new-${Date.now()}`, name, type: "person", initial: name[0].toUpperCase(), color: c.green, archetype: "Calculating...", topScore: "—", topCat: "", aspect: "Analyzing..." }]);
+      setToast(`Analyzing connection with ${name}...`);
+      setActiveTab(1);
+    } else {
+      setUnconnected(prev => [...prev, { id: `new-${Date.now()}`, name, initial: name[0].toUpperCase(), color: c.green, sun: "Scorpio", blurb: "" }]);
+      setToast(`${name} added to People`);
+      setActiveTab(1);
+    }
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  return (
+    <div style={{ background: c.bg, minHeight: "100vh", maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, paddingBottom: 96 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}><span>9:41</span><div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} /><span>···</span></div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px 16px" }}>
+        <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 22, fontWeight: 600 }}>Iris</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.goldDim, border: "1px solid rgba(212,168,67,0.25)", borderRadius: 100, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: c.gold }}><span style={{ fontSize: 10 }}>◆</span><span>147</span></div>
+      </div>
+
+      {activeTab === 1 && <RelationshipsTab relationships={relationships} unconnected={unconnected} onAdd={openAdd} showUnconnected={showUnconnected} setShowUnconnected={setShowUnconnected} />}
+      {activeTab === 2 && <DiscoverTab addedIds={addedCelebIds} onAddCeleb={addCelebFromDiscover} onOpenAdd={openAdd} />}
+      {activeTab === 0 && <div style={{ padding: "60px 20px", textAlign: "center", color: c.faint }}>Home tab</div>}
+      {activeTab === 3 && <div style={{ padding: "60px 20px", textAlign: "center", color: c.faint }}>Profile tab</div>}
+
+      {showFork && !showWizard && !showCelebSearch && (
+        <AddFork
+          onClose={() => setShowFork(false)}
+          onCeleb={() => setShowCelebSearch(true)}
+          onNewPerson={() => setShowWizard(true)}
+          unconnected={unconnected}
+          onExisting={connectExisting}
+        />
+      )}
+      {showCelebSearch && <CelebSearch onClose={() => setShowCelebSearch(false)} addedIds={addedCelebIds} onAddCeleb={addCelebFromSearch} />}
+      {showWizard && <AddPersonWizard onClose={() => setShowWizard(false)} onComplete={completeWizard} />}
+
+      {toast && <Toast msg={toast} onView={() => { setToast(null); setActiveTab(1); }} />}
+      <TabBar active={activeTab} setActive={setActiveTab} />
+    </div>
+  );
+}

@@ -1,10 +1,12 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -18,10 +20,13 @@ import { SubmittingOverlay } from '../components/SubmittingOverlay';
 import { ProgressDashes } from '../components/ProgressDashes';
 import { WizardArrowButton } from '../components/WizardArrowButton';
 import { externalApi, relationshipsApi, relationshipUsersApi } from '../api';
-import { submitPartnerPreview } from './createPartnerFlow';
+import { submitPartnerPreview, type PartnerRomanticAssets } from './createPartnerFlow';
 import { startRelationshipPreview } from './previewFlow';
 import { relationshipAppEnv } from '../config/env';
 import { createLocalPartnerSubject } from '../mocks/demoData';
+import { getBigThree } from '../utils/mainShell';
+import type { SubjectDocument } from '../../../shared/types/subject';
+import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
@@ -84,9 +89,14 @@ export function PartnerConfirmScreen() {
   );
   const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
   const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
+  const upsertOwnedSubject = useRelationshipAppStore((state) => state.upsertOwnedSubject);
   const clearPartnerDraft = useRelationshipAppStore((state) => state.clearPartnerDraft);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phase, setPhase] = useState<'review' | 'generating' | 'reveal' | 'connecting'>('review');
+  const [createdPartner, setCreatedPartner] = useState<SubjectDocument | null>(null);
+  const [romanticAssets, setRomanticAssets] = useState<PartnerRomanticAssets | null>(null);
+
+  const isBusy = phase === 'generating' || phase === 'connecting';
 
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
 
@@ -106,39 +116,15 @@ export function PartnerConfirmScreen() {
       selfProfileId
   );
 
-  const handleCreate = useCallback(async () => {
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[PartnerConfirmScreen.handleCreate] preflight', {
-        hasDraft: Boolean(draft),
-        hasSelfProfile: Boolean(selfProfile),
-        selfProfileIdFromStore: selfProfileId,
-        selfProfileIdFromProfile: selfProfile?.id,
-        selfProfileFirebaseUid: selfProfile?.firebaseUid,
-        idsMatch: selfProfile?.id === selfProfileId,
-        isSubmitting,
-        isLocalUxMode,
-      });
-    }
-    if (!draft || !selfProfile || !selfProfileId || isSubmitting) {
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log('[PartnerConfirmScreen.handleCreate] aborted', {
-          reason: !draft
-            ? 'missing draft'
-            : !selfProfile
-              ? 'missing selfProfile'
-              : !selfProfileId
-                ? 'missing selfProfileId'
-                : 'already submitting',
-        });
-      }
+  const handleCreateSubject = useCallback(async () => {
+    if (!draft || !selfProfile || !selfProfileId || isBusy) {
       return;
     }
-    setIsSubmitting(true);
+    setPhase('generating');
     try {
       setActiveTargetType('person');
       const legacyDraft = toLegacyDraft(draft);
+
       if (isLocalUxMode) {
         const localPartner = createLocalPartnerSubject({
           firstName: draft.firstName,
@@ -149,76 +135,86 @@ export function PartnerConfirmScreen() {
           birthTimeUnknown: draft.birthTimeUnknown,
           ownerUserId: selfProfileId,
         });
-        const { preview, updatedHistory } = await startRelationshipPreview(
-          {
-            selfProfile,
-            targetSubject: localPartner,
-            targetType: 'person',
-            isLocalUxMode,
-            relationshipHistory,
-          },
-          {
-            enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
-          }
-        );
+        const stubbedAssets: PartnerRomanticAssets = {
+          birthChart: null,
+          overview: null,
+          romanticProfileBlurb: null,
+          referencedCodes: [],
+          overviewMode: null,
+          status: null,
+        };
         setActiveTargetSubject(localPartner);
-        setPreviewAnalysis(preview);
-        setActiveRelationshipId(preview.compositeChartId);
-        setRelationshipHistory({
-          relationshipHistory: updatedHistory,
-        });
-      } else {
-        const { partner, romanticAssets } = await submitPartnerPreview(
-          legacyDraft,
-          {
-            id: selfProfileId,
-            firebaseUid: selfProfile.firebaseUid,
-          },
-          {
-            canUseGoogleServices,
-            geocodeLocation: externalApi.geocodeLocation,
-            fetchTimeZone: externalApi.fetchTimeZone,
-            createGuestSubjectRomantic: relationshipUsersApi.createGuestSubjectRomantic,
-            createGuestSubjectUnknownTimeRomantic:
-              relationshipUsersApi.createGuestSubjectUnknownTimeRomantic,
-          }
-        );
-        if (__DEV__) {
-          // eslint-disable-next-line no-console
-          console.log('[PartnerConfirmScreen.handleCreate] partner created', {
-            partnerId: partner._id,
-            partnerKind: partner.kind,
-            romanticAssetsStatus: romanticAssets.status,
-            hasRomanticOverview: Boolean(romanticAssets.overview),
-            hasRomanticBlurb: Boolean(romanticAssets.romanticProfileBlurb),
-            selfProfileId: selfProfile.id,
-            aboutToCallEnhancedWith: {
-              userIdA: selfProfile.id,
-              userIdB: partner._id,
-              ownerUserId: selfProfile.id,
-            },
-          });
-        }
-        setActiveTargetSubject(partner);
-        setActivePartnerRomanticAssets(romanticAssets);
-        const { preview, updatedHistory } = await startRelationshipPreview(
-          {
-            selfProfile,
-            targetSubject: partner,
-            targetType: 'person',
-            isLocalUxMode,
-            relationshipHistory,
-          },
-          {
-            enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
-          }
-        );
-        setPreviewAnalysis(preview);
-        setActiveRelationshipId(preview.compositeChartId);
-        setRelationshipHistory({
-          relationshipHistory: updatedHistory,
-        });
+        setActivePartnerRomanticAssets(stubbedAssets);
+        setCreatedPartner(localPartner);
+        setRomanticAssets(stubbedAssets);
+        upsertOwnedSubject(localPartner as OwnedGuestSubject);
+        setPhase('reveal');
+        return;
       }
+
+      const { partner, romanticAssets: assets } = await submitPartnerPreview(
+        legacyDraft,
+        {
+          id: selfProfileId,
+          firebaseUid: selfProfile.firebaseUid,
+        },
+        {
+          canUseGoogleServices,
+          geocodeLocation: externalApi.geocodeLocation,
+          fetchTimeZone: externalApi.fetchTimeZone,
+          createGuestSubjectRomantic: relationshipUsersApi.createGuestSubjectRomantic,
+          createGuestSubjectUnknownTimeRomantic:
+            relationshipUsersApi.createGuestSubjectUnknownTimeRomantic,
+        }
+      );
+
+      setActiveTargetSubject(partner);
+      setActivePartnerRomanticAssets(assets);
+      setCreatedPartner(partner);
+      setRomanticAssets(assets);
+      upsertOwnedSubject(partner as OwnedGuestSubject);
+      setPhase('reveal');
+    } catch (error) {
+      setPhase('review');
+      Alert.alert(
+        'Could not create partner',
+        error instanceof Error ? error.message : 'Please try again shortly.'
+      );
+    }
+  }, [
+    canUseGoogleServices,
+    draft,
+    isBusy,
+    isLocalUxMode,
+    selfProfile,
+    selfProfileId,
+    setActivePartnerRomanticAssets,
+    setActiveTargetSubject,
+    setActiveTargetType,
+    upsertOwnedSubject,
+  ]);
+
+  const handleSeeConnection = useCallback(async () => {
+    if (!createdPartner || !selfProfile || phase !== 'reveal') {
+      return;
+    }
+    setPhase('connecting');
+    try {
+      const { preview, updatedHistory } = await startRelationshipPreview(
+        {
+          selfProfile,
+          targetSubject: createdPartner,
+          targetType: 'person',
+          isLocalUxMode,
+          relationshipHistory,
+        },
+        {
+          enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
+        }
+      );
+      setPreviewAnalysis(preview);
+      setActiveRelationshipId(preview.compositeChartId);
+      setRelationshipHistory({ relationshipHistory: updatedHistory });
       clearPartnerDraft();
       navigation.reset({
         index: 1,
@@ -228,37 +224,135 @@ export function PartnerConfirmScreen() {
         ],
       });
     } catch (error) {
+      setPhase('reveal');
       Alert.alert(
         'Could not create connection',
         error instanceof Error ? error.message : 'Please try again shortly.'
       );
-    } finally {
-      setIsSubmitting(false);
     }
   }, [
-    canUseGoogleServices,
     clearPartnerDraft,
-    draft,
+    createdPartner,
     isLocalUxMode,
-    isSubmitting,
     navigation,
+    phase,
     relationshipHistory,
     selfProfile,
-    selfProfileId,
-    setActivePartnerRomanticAssets,
     setActiveRelationshipId,
-    setActiveTargetSubject,
-    setActiveTargetType,
     setPreviewAnalysis,
     setRelationshipHistory,
   ]);
 
-  if (isSubmitting) {
+  const handleDoneForNow = useCallback(() => {
+    if (phase !== 'reveal') {
+      return;
+    }
+    clearPartnerDraft();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main', params: { screen: 'RelationshipsTab' } }],
+    });
+  }, [clearPartnerDraft, navigation, phase]);
+
+  if (phase === 'generating') {
     return (
       <SubmittingOverlay
-        title="Iris is reading their chart"
-        subtitle="Mapping your compatibility across every dimension of connection."
+        title={`Reading ${draft?.firstName || 'their'} chart…`}
+        subtitle="Generating the romantic profile."
       />
+    );
+  }
+
+  if ((phase === 'reveal' || phase === 'connecting') && createdPartner) {
+    const isConnecting = phase === 'connecting';
+    const revealName =
+      [createdPartner.firstName, createdPartner.lastName].filter(Boolean).join(' ').trim() ||
+      'Your new connection';
+    const { sun, moon, rising } = getBigThree(createdPartner);
+    const placementLine = [
+      sun ? `${sun} Sun` : null,
+      moon ? `${moon} Moon` : null,
+      rising ? `${rising} Rising` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    const blurb = romanticAssets?.romanticProfileBlurb?.trim() || null;
+
+    return (
+      <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
+        <SettingsNavBar title="Added" backLabel="" />
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.hero}>
+            <Avatar
+              size={88}
+              gradient="green"
+              photoUri={createdPartner.profilePhotoUrl ?? null}
+              fallbackInitial={createdPartner.firstName?.charAt(0) ?? 'A'}
+            />
+            <Text style={[styles.heroName, { color: colors.text }]}>{revealName}</Text>
+            {placementLine ? (
+              <Text style={[styles.placementLine, { color: colors.textSubtle }]}>
+                {placementLine}
+              </Text>
+            ) : null}
+          </View>
+
+          {blurb ? (
+            <View
+              style={[
+                styles.blurbCard,
+                { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+              ]}
+            >
+              <Text style={[styles.blurbEyebrow, { color: colors.accent }]}>
+                {revealName.split(' ')[0]}&apos;s Romantic Profile
+              </Text>
+              <Text style={[styles.blurbText, { color: colors.text }]}>{blurb}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.addedRow}>
+            <Text style={[styles.addedGlyph, { color: colors.success }]}>✓</Text>
+            <Text style={[styles.addedText, { color: colors.textMuted }]}>
+              {revealName} added to your People
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            activeOpacity={isConnecting ? 1 : 0.85}
+            onPress={() => {
+              handleSeeConnection().catch(() => undefined);
+            }}
+            disabled={isConnecting}
+            style={[
+              styles.connectCta,
+              {
+                backgroundColor: isConnecting ? colors.primaryMuted : colors.primary,
+              },
+            ]}
+          >
+            {isConnecting ? (
+              <ActivityIndicator color={colors.onPrimary} size="small" />
+            ) : (
+              <Text style={[styles.connectCtaText, { color: colors.onPrimary }]}>
+                See your connection · ◆ 1
+              </Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleDoneForNow}
+            style={styles.doneLink}
+          >
+            <Text style={[styles.doneLinkText, { color: colors.textMuted }]}>
+              Done for now
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
@@ -378,9 +472,11 @@ export function PartnerConfirmScreen() {
         </Text>
         <View style={styles.footerActions}>
           <WizardArrowButton
-            onPress={handleCreate}
-            disabled={!canSubmit || isSubmitting}
-            accessibilityLabel="Create Connection"
+            onPress={() => {
+              handleCreateSubject().catch(() => undefined);
+            }}
+            disabled={!canSubmit || isBusy}
+            accessibilityLabel="Add to Iris"
           />
         </View>
       </View>
@@ -494,5 +590,57 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  placementLine: {
+    fontSize: 12,
+    letterSpacing: 0.4,
+  },
+  blurbCard: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 20,
+    gap: 10,
+  },
+  blurbEyebrow: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  blurbText: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+  addedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  addedGlyph: {
+    fontSize: 14,
+  },
+  addedText: {
+    fontSize: 13,
+  },
+  connectCta: {
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  connectCtaText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  doneLink: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  doneLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
