@@ -1,8 +1,9 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { relationshipsApi } from '../api';
 import { useRelationshipAppStore } from '../store';
 
 const LOG_TAG = '[useRelationshipHistory]';
+const HISTORY_REQUEST_WATCHDOG_MS = 15000;
 
 function debugLog(...args: unknown[]) {
   if (__DEV__) {
@@ -18,6 +19,7 @@ export function useRelationshipHistory(autoLoad: boolean = true) {
   const historyError = useRelationshipAppStore((state) => state.historyError);
   const hasFetchedHistory = useRelationshipAppStore((state) => state.hasFetchedHistory);
   const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
+  const activeRequestIdRef = useRef(0);
 
   const refreshHistory = useCallback(
     async (force: boolean = false) => {
@@ -52,9 +54,39 @@ export function useRelationshipHistory(autoLoad: boolean = true) {
         historyError: null,
       });
 
+      const requestId = activeRequestIdRef.current + 1;
+      activeRequestIdRef.current = requestId;
+      let didTimeout = false;
+      const watchdog = setTimeout(() => {
+        if (activeRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        didTimeout = true;
+        debugLog('refreshHistory watchdog timeout', {
+          ownerUserId: selfProfileId,
+          timeoutMs: HISTORY_REQUEST_WATCHDOG_MS,
+        });
+        setRelationshipHistory({
+          relationshipHistory: [],
+          isHistoryLoading: false,
+          historyError: 'Loading relationships took too long. Pull to refresh and try again.',
+          hasFetchedHistory: false,
+        });
+      }, HISTORY_REQUEST_WATCHDOG_MS);
+
       const startedAt = Date.now();
       try {
         const charts = await relationshipsApi.getUserCompositeCharts(selfProfileId);
+        clearTimeout(watchdog);
+        if (didTimeout || activeRequestIdRef.current !== requestId) {
+          debugLog('refreshHistory success ignored: stale request', {
+            requestId,
+            activeRequestId: activeRequestIdRef.current,
+            didTimeout,
+          });
+          return;
+        }
         const durationMs = Date.now() - startedAt;
         debugLog('refreshHistory success', {
           durationMs,
@@ -68,6 +100,15 @@ export function useRelationshipHistory(autoLoad: boolean = true) {
           hasFetchedHistory: true,
         });
       } catch (error) {
+        clearTimeout(watchdog);
+        if (didTimeout || activeRequestIdRef.current !== requestId) {
+          debugLog('refreshHistory error ignored: stale request', {
+            requestId,
+            activeRequestId: activeRequestIdRef.current,
+            didTimeout,
+          });
+          return;
+        }
         const durationMs = Date.now() - startedAt;
         debugLog('refreshHistory error', {
           durationMs,
@@ -81,6 +122,8 @@ export function useRelationshipHistory(autoLoad: boolean = true) {
             error instanceof Error ? error.message : 'Could not load relationship history.',
           hasFetchedHistory: true,
         });
+      } finally {
+        clearTimeout(watchdog);
       }
     },
     [
@@ -91,6 +134,12 @@ export function useRelationshipHistory(autoLoad: boolean = true) {
       setRelationshipHistory,
     ]
   );
+
+  useEffect(() => {
+    return () => {
+      activeRequestIdRef.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     debugLog('effect fire', {

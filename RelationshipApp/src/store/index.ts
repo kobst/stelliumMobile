@@ -356,11 +356,28 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
     }),
   setLocalUxMode: (value) => set({ isLocalUxMode: value }),
   setProfile: (profile) =>
-    set({
-      profile,
-      hasCompletedSelfProfile: Boolean(profile),
-      selfProfileId: profile?.id ?? null,
-      selfProfileOverview: profile?.romanticOverview ?? null,
+    set((state) => {
+      const nextProfileId = profile?.id ?? null;
+      const shouldResetRelationshipData = state.selfProfileId !== nextProfileId;
+
+      return {
+        profile,
+        hasCompletedSelfProfile: Boolean(profile),
+        selfProfileId: nextProfileId,
+        selfProfileOverview: profile?.romanticOverview ?? null,
+        ...(shouldResetRelationshipData
+          ? {
+              relationshipHistory: [],
+              isHistoryLoading: false,
+              historyError: null,
+              hasFetchedHistory: false,
+              ownedSubjects: [],
+              isSubjectsLoading: false,
+              subjectsError: null,
+              hasFetchedSubjects: false,
+            }
+          : {}),
+      };
     }),
   resetSession: () =>
     set({

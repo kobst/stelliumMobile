@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
@@ -37,6 +37,7 @@ import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
 type Filter = 'all' | 'people' | 'celebs';
+const HISTORY_TIMEOUT_ERROR = 'Loading relationships took too long. Pull to refresh and try again.';
 
 interface UnconnectedListItem {
   id: string;
@@ -110,6 +111,7 @@ export const HistoryScreen: React.FC = () => {
   const [filter, setFilter] = useState<Filter>('all');
   const [unconnectedExpanded, setUnconnectedExpanded] = useState(false);
   const [connectingSubjectId, setConnectingSubjectId] = useState<string | null>(null);
+  const didAutoRetryOnFocusRef = useRef(false);
 
   const selfProfileId = profile?.id ?? null;
 
@@ -250,6 +252,24 @@ export const HistoryScreen: React.FC = () => {
   const handlePullToRefresh = useCallback(() => {
     refreshHistory(true).catch(() => undefined);
   }, [refreshHistory]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (
+        !didAutoRetryOnFocusRef.current &&
+        !isHistoryLoading &&
+        relationshipHistory.length === 0 &&
+        historyError === HISTORY_TIMEOUT_ERROR
+      ) {
+        didAutoRetryOnFocusRef.current = true;
+        refreshHistory(true).catch(() => undefined);
+      }
+
+      return () => {
+        didAutoRetryOnFocusRef.current = false;
+      };
+    }, [historyError, isHistoryLoading, refreshHistory, relationshipHistory.length])
+  );
 
   if (__DEV__) {
     console.log('[HistoryScreen] render', {
