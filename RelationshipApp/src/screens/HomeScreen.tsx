@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  ActivityIndicator,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -11,16 +10,12 @@ import {
 import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { celebritiesApi, Celebrity } from '../api';
 import { MainTabParamList } from '../navigation/MainTabs';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
-import {
-  celebrityToSubject,
-  getBigThreeSummary,
-  getCelebritySunSign,
-} from '../utils/mainShell';
+import { getBigThreeSummary } from '../utils/mainShell';
+import { TopCelebMatchesRail } from '../components/TopCelebMatchesRail';
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'HomeTab'>,
@@ -41,50 +36,8 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeNavigation>();
   const { colors } = useTheme();
   const profile = useRelationshipAppStore((state) => state.profile);
-  const clearActiveRelationshipFlow = useRelationshipAppStore(
-    (state) => state.clearActiveRelationshipFlow
-  );
-  const setActiveTargetType = useRelationshipAppStore((state) => state.setActiveTargetType);
-  const setActiveTargetSubject = useRelationshipAppStore((state) => state.setActiveTargetSubject);
-  const [trendingCelebs, setTrendingCelebs] = React.useState<Celebrity[]>([]);
-  const [isTrendingLoading, setIsTrendingLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const loadTrending = async () => {
-      try {
-        setIsTrendingLoading(true);
-        const response = await celebritiesApi.getCelebrities({});
-        if (!cancelled) {
-          setTrendingCelebs(Array.isArray(response) ? response.slice(0, 8) : response.data.slice(0, 8));
-        }
-      } catch {
-        if (!cancelled) {
-          setTrendingCelebs([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsTrendingLoading(false);
-        }
-      }
-    };
-
-    loadTrending().catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const article = getWeeklyArticle(profile?.firstName, getBigThreeSummary(profile));
-
-  const startCelebrityFlow = (celebrity?: Celebrity) => {
-    clearActiveRelationshipFlow();
-    setActiveTargetType('celebrity');
-    setActiveTargetSubject(celebrity ? celebrityToSubject(celebrity) : null);
-    navigation.navigate('SelectCelebrity');
-  };
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
@@ -115,51 +68,11 @@ export const HomeScreen: React.FC = () => {
           </View>
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Trending Charts</Text>
-              <Text style={[styles.sectionBody, { color: colors.textMuted }]}>
-                A lightweight celeb browse strip pulled from the shared database.
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => startCelebrityFlow()}>
-              <Text style={[styles.sectionLink, { color: colors.primary }]}>Browse all</Text>
-            </TouchableOpacity>
-          </View>
-
-          {isTrendingLoading ? (
-            <View style={styles.statusRow}>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={[styles.sectionBody, { color: colors.textMuted }]}>
-                Loading celebrity charts...
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={styles.trendingList}>
-            {trendingCelebs.slice(0, 4).map((celebrity) => (
-              <TouchableOpacity
-                key={celebrity._id}
-                style={[styles.trendingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                onPress={() => startCelebrityFlow(celebrity)}
-              >
-                <View style={styles.trendingHeader}>
-                  <Text style={[styles.trendingName, { color: colors.text }]}>
-                    {celebrity.firstName} {celebrity.lastName}
-                  </Text>
-                  <Text style={[styles.trendingAction, { color: colors.accent }]}>See your connection</Text>
-                </View>
-                <Text style={[styles.trendingMeta, { color: colors.textMuted }]}>
-                  {getCelebritySunSign(celebrity) ?? 'Unknown sign'}
-                </Text>
-                <Text style={[styles.trendingMeta, { color: colors.textMuted }]} numberOfLines={2}>
-                  {celebrity.placeOfBirth}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+        <TopCelebMatchesRail
+          title="Your Chart in the Wild"
+          subtitle="Celeb overlaps from your saved relationship-app profile."
+          matches={(profile?.topCelebMatches ?? []).slice(0, 5)}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -216,57 +129,6 @@ const styles = StyleSheet.create({
   },
   articleActions: {
     gap: 10,
-  },
-  section: {
-    gap: 12,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    lineHeight: 28,
-  },
-  sectionBody: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 4,
-  },
-  sectionLink: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  trendingList: {
-    gap: 10,
-  },
-  trendingCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 16,
-    gap: 6,
-  },
-  trendingHeader: {
-    gap: 4,
-  },
-  trendingName: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  trendingAction: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  trendingMeta: {
-    fontSize: 13,
-    lineHeight: 18,
   },
   primaryButton: {
     borderRadius: 16,

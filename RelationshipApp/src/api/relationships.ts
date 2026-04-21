@@ -91,6 +91,12 @@ export const relationshipsApi = {
     );
   },
 
+  deleteRelationship: async (compositeChartId: string): Promise<{ success: boolean }> => {
+    return relationshipApiClient.delete<{ success: boolean }>(
+      `/relationships/${encodeURIComponent(compositeChartId)}`
+    );
+  },
+
   getUserCompositeCharts: async (ownerUserId: string): Promise<UserCompositeChart[]> => {
     const startedAt = Date.now();
     if (__DEV__) {

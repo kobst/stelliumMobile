@@ -1,0 +1,454 @@
+import { useState } from "react";
+
+const SANS = "'DM Sans', system-ui, sans-serif";
+const SERIF = "Georgia, 'Times New Roman', serif";
+
+const c = {
+  bg: "#0C0B10",
+  card: "#16151D",
+  border: "rgba(255,255,255,0.06)",
+  gold: "#D4A843",
+  goldDim: "rgba(212,168,67,0.15)",
+  lav: "#B8A0E8",
+  lavBg: "rgba(184,160,232,0.12)",
+  text: "#E8E4F0",
+  dim: "rgba(232,228,240,0.55)",
+  faint: "rgba(232,228,240,0.35)",
+  green: "#82C8B4",
+  greenDim: "rgba(130,200,180,0.12)",
+  coral: "#E8856B",
+  coralDim: "rgba(232,133,107,0.12)",
+};
+
+// ── Data ──
+const userSubjects = [
+  { id: "us1", name: "Sarah Chen", initial: "S", color: c.green, sun: "Virgo", venus: "Scorpio", hasRelationship: true, archetype: "Shared Frequency" },
+  { id: "us2", name: "Alex Rivera", initial: "A", color: c.lav, sun: "Gemini", venus: "Cancer", hasRelationship: false, archetype: null },
+  { id: "us3", name: "Beatrice Condor", initial: "B", color: c.green, sun: "Pisces", venus: "Aquarius", hasRelationship: false, archetype: null },
+];
+
+const celebs = [
+  { id: "c1", name: "Beyoncé", photo: "https://image.tmdb.org/t/p/w200/bJCkMVEINqMKj2Yv2XGW6RLDPOX.jpg", sun: "Virgo", moon: "Scorpio", venus: "Libra", mars: "Leo", element: "Earth", blurb: "She pulls back after leaning in, then waits for him to prove he won't flinch..." },
+  { id: "c2", name: "Ryan Reynolds", photo: "https://image.tmdb.org/t/p/w200/algQ1VEno2W9SesoArWcZTeF3jr.jpg", sun: "Scorpio", moon: "Virgo", venus: "Scorpio", mars: "Sagittarius", element: "Water", blurb: "Ryan leads with charm that disarms before you notice the depth underneath..." },
+  { id: "c3", name: "Zendaya", photo: "https://image.tmdb.org/t/p/w200/tyJFnBCJfksMb3JTfM1fhLpr6hm.jpg", sun: "Virgo", moon: "Taurus", venus: "Virgo", mars: "Leo", element: "Earth", blurb: "Precision wrapped in warmth — Venus in Virgo notices everything..." },
+  { id: "c4", name: "Timothée Chalamet", photo: "https://image.tmdb.org/t/p/w200/BE2sdjpgsa2rNTFa66f7upkaOP.jpg", sun: "Capricorn", moon: "Leo", venus: "Aquarius", mars: "Aquarius", element: "Earth", blurb: "Ambition that looks like vulnerability — Mercury in Capricorn builds carefully..." },
+  { id: "c5", name: "Florence Pugh", photo: "https://image.tmdb.org/t/p/w200/6gBVPvVsaQPlrq4Hx5RRnwOjNiK.jpg", sun: "Capricorn", moon: "Libra", venus: "Aquarius", mars: "Aries", element: "Earth", blurb: "Florence arrives with a question ready, then pulls back before she hears the answer..." },
+  { id: "c6", name: "Pedro Pascal", photo: "https://image.tmdb.org/t/p/w200/dBOrm29qBhsNhMYe2JHTGhMuXog.jpg", sun: "Aries", moon: "Cancer", venus: "Pisces", mars: "Leo", element: "Fire", blurb: "Fire sign warmth that doesn't demand anything back — Moon in Cancer softens..." },
+  { id: "c7", name: "Lady Gaga", photo: "https://image.tmdb.org/t/p/w200/bKbTppJHESVMGgqGVOKVYJfMbro.jpg", sun: "Aries", moon: "Scorpio", venus: "Aries", mars: "Capricorn", element: "Fire", blurb: "Intensity without apology — Venus in Aries doesn't wait for permission..." },
+  { id: "c8", name: "Harry Styles", photo: "https://image.tmdb.org/t/p/w200/wSjFCl4fXbnmxUrumVKJVzEWsGE.jpg", sun: "Aquarius", moon: "Libra", venus: "Aquarius", mars: "Libra", element: "Air", blurb: "Harry's Moon in Libra echoes yours — conversation is the love language..." },
+  { id: "c9", name: "Bad Bunny", photo: null, sun: "Pisces", moon: "Aquarius", venus: "Pisces", mars: "Aries", element: "Water", blurb: "Hold back from reaching out, then show up unannounced with flowers..." },
+  { id: "c10", name: "Ariana Grande", photo: "https://image.tmdb.org/t/p/w200/butJn2Hrl9FhLVsaysFHYeCiRNS.jpg", sun: "Cancer", moon: "Libra", venus: "Taurus", mars: "Capricorn", element: "Water", blurb: "Pull away mid-conversation then reach across the table to hold her hand..." },
+  { id: "c11", name: "Tom Brady", photo: "https://image.tmdb.org/t/p/w200/gDHYCBR3YKmHvFIxEo2KOiMSDPJ.jpg", sun: "Leo", moon: "Aries", venus: "Cancer", mars: "Gemini", element: "Fire", blurb: "Tom walks in with his whole chest open, then catches himself mid-laugh..." },
+  { id: "c12", name: "Margot Robbie", photo: null, sun: "Cancer", moon: "Scorpio", venus: "Gemini", mars: "Cancer", element: "Water", blurb: "Margot waits until the conversation deepens, then reveals exactly what she saw..." },
+];
+
+const collections = [
+  {
+    id: "col1",
+    title: "Emotional depth",
+    desc: "Heavy water sign charts — intensity, intuition, and emotional undercurrents.",
+    celebIds: ["c9", "c10", "c12", "c2"],
+    color: c.lav,
+    colorDim: c.lavBg,
+  },
+  {
+    id: "col2",
+    title: "Creative fire",
+    desc: "Dominant fire placements — artists and performers who lead with instinct.",
+    celebIds: ["c6", "c7", "c11"],
+    color: c.coral,
+    colorDim: c.coralDim,
+  },
+];
+
+const chartsLikeYours = ["c2"]; // Scorpio Sun match
+const recentlyAdded = ["c9", "c12"]; // new to database
+
+// ── Helpers ──
+const FadeIn = ({ children, delay = 0 }) => (
+  <div style={{ animation: `fadeUp 0.5s ease ${delay}s both` }}>
+    {children}
+    <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
+  </div>
+);
+
+const Avatar = ({ src, initial, color = c.green, size = 44 }) => {
+  const [err, setErr] = useState(false);
+  if (src && !err) return <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}><img src={src} onError={() => setErr(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>;
+  return <div style={{ width: size, height: size, borderRadius: "50%", background: `linear-gradient(135deg, ${color}, ${color}cc)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: size * 0.4, fontWeight: 700, color: c.bg, flexShrink: 0 }}>{initial || "?"}</div>;
+};
+
+const SectionLabel = ({ children, sub, style: s }) => (
+  <div style={{ marginBottom: 14, ...s }}>
+    <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: sub ? 4 : 0 }}>{children}</div>
+    {sub && <div style={{ fontSize: 12.5, color: c.faint, lineHeight: 1.4 }}>{sub}</div>}
+  </div>
+);
+
+const Divider = () => (
+  <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${c.border} 30%, ${c.border} 70%, transparent)`, margin: "28px 0" }} />
+);
+
+const Chip = ({ label, active, onClick }) => (
+  <div onClick={onClick} style={{
+    padding: "7px 14px", borderRadius: 100, fontSize: 12, fontWeight: 500, cursor: "pointer",
+    background: active ? c.lavBg : "rgba(255,255,255,0.03)",
+    color: active ? c.lav : c.faint,
+    border: `1px solid ${active ? "rgba(184,160,232,0.25)" : "rgba(255,255,255,0.05)"}`,
+    whiteSpace: "nowrap", flexShrink: 0, transition: "all 0.15s",
+  }}>{label}</div>
+);
+
+// ── Small celeb card for carousels ──
+const CelebMiniCard = ({ celeb, onAdd, added }) => (
+  <div style={{ flexShrink: 0, width: 140, cursor: "pointer" }}>
+    <Avatar src={celeb.photo} initial={celeb.name[0]} color={c.gold} size={140} />
+    <div style={{ padding: "8px 2px 0" }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{celeb.name}</div>
+      <div style={{ fontSize: 11, color: c.faint, marginBottom: 6 }}>{celeb.sun} Sun</div>
+      {added ? (
+        <span style={{ fontSize: 10.5, color: c.green }}>✓ Added</span>
+      ) : (
+        <span onClick={(e) => { e.stopPropagation(); onAdd(celeb); }} style={{ fontSize: 11, color: c.lav, fontWeight: 600, cursor: "pointer" }}>+ Add</span>
+      )}
+    </div>
+  </div>
+);
+
+// ── Celeb list row ──
+const CelebRow = ({ celeb, onAdd, added, matchLabel }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 0", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+    <Avatar src={celeb.photo} initial={celeb.name[0]} color={c.gold} size={46} />
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: c.text }}>{celeb.name}</span>
+        {matchLabel && <span style={{ fontSize: 9, background: c.lavBg, borderRadius: 100, padding: "2px 7px", color: c.lav, fontWeight: 500 }}>{matchLabel}</span>}
+      </div>
+      <div style={{ fontSize: 12, color: c.faint }}>{celeb.sun} Sun · {celeb.venus} Venus</div>
+    </div>
+    {added ? (
+      <span style={{ fontSize: 11, color: c.green }}>Added ✓</span>
+    ) : (
+      <div onClick={() => onAdd(celeb)} style={{ fontSize: 12, color: c.lav, fontWeight: 600, cursor: "pointer", padding: "6px 12px", borderRadius: 100, background: c.lavBg, flexShrink: 0 }}>+ Add</div>
+    )}
+  </div>
+);
+
+// ── User subject row ──
+const UserRow = ({ person }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 0", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+    <div style={{ position: "relative" }}>
+      <Avatar initial={person.initial} color={person.color} size={46} />
+      <div style={{ position: "absolute", bottom: -1, right: -1, width: 14, height: 14, borderRadius: "50%", background: c.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 10, height: 10, borderRadius: "50%", background: person.hasRelationship ? c.green : c.faint, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 6, color: c.bg }}>{person.hasRelationship ? "✓" : ""}</div>
+      </div>
+    </div>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: c.text }}>{person.name}</span>
+        <span style={{ fontSize: 9, background: c.greenDim, borderRadius: 100, padding: "2px 7px", color: c.green, fontWeight: 500 }}>Your person</span>
+      </div>
+      {person.hasRelationship ? (
+        <div style={{ fontSize: 12, color: c.gold, fontStyle: "italic", fontFamily: SERIF }}>{person.archetype}</div>
+      ) : (
+        <div style={{ fontSize: 12, color: c.faint }}>{person.sun} Sun · {person.venus} Venus</div>
+      )}
+    </div>
+    <span style={{ fontSize: 14, color: c.faint }}>›</span>
+  </div>
+);
+
+// ── Placement groups ──
+const PlacementGroup = ({ label, items, onAdd, addedIds }) => (
+  <div style={{ marginBottom: 24 }}>
+    <div style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+      {label}
+      <span style={{ fontSize: 11, color: c.faint, fontWeight: 400 }}>({items.length})</span>
+    </div>
+    <div style={{ display: "flex", gap: 10, overflowX: "auto", marginLeft: -20, marginRight: -20, padding: "0 20px", scrollbarWidth: "none" }}>
+      {items.map(item => (
+        <CelebMiniCard key={item.id} celeb={item} onAdd={onAdd} added={addedIds.includes(item.id)} />
+      ))}
+    </div>
+  </div>
+);
+
+// ── Main Discover ──
+export default function DiscoverTab() {
+  const [searchVal, setSearchVal] = useState("");
+  const [placementFilter, setPlacementFilter] = useState("all");
+  const [addedIds, setAddedIds] = useState([]);
+  const [showPlacementView, setShowPlacementView] = useState(false);
+
+  const handleAdd = (celeb) => {
+    setAddedIds(prev => [...prev, celeb.id]);
+  };
+
+  // Search results (mixed: user subjects + celebs)
+  const searchResults = searchVal.length > 1 ? [
+    ...userSubjects.filter(u => u.name.toLowerCase().includes(searchVal.toLowerCase())),
+    ...celebs.filter(c => {
+      const q = searchVal.toLowerCase();
+      return c.name.toLowerCase().includes(q) || c.sun.toLowerCase().includes(q) || c.venus.toLowerCase().includes(q) || c.moon?.toLowerCase().includes(q);
+    }),
+  ] : null;
+
+  // Placement groupings
+  const placementOptions = {
+    venus: ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"],
+    mars: ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"],
+    element: ["Fire", "Earth", "Air", "Water"],
+  };
+
+  const getPlacementGroups = () => {
+    if (placementFilter === "venus") {
+      return placementOptions.venus.map(sign => ({
+        label: `Venus in ${sign}`,
+        items: celebs.filter(c => c.venus === sign),
+      })).filter(g => g.items.length > 0);
+    }
+    if (placementFilter === "mars") {
+      return placementOptions.mars.map(sign => ({
+        label: `Mars in ${sign}`,
+        items: celebs.filter(c => c.mars === sign),
+      })).filter(g => g.items.length > 0);
+    }
+    if (placementFilter === "element") {
+      return placementOptions.element.map(el => ({
+        label: `${el} signs`,
+        items: celebs.filter(c => c.element === el),
+      })).filter(g => g.items.length > 0);
+    }
+    return [];
+  };
+
+  const isSearching = searchResults !== null;
+  const isBrowsingPlacements = placementFilter !== "all" && !isSearching;
+
+  return (
+    <div style={{ background: c.bg, minHeight: "100vh", maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, paddingBottom: 96 }}>
+      {/* Status bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}>
+        <span>9:41</span>
+        <div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} />
+        <span>···</span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px 16px" }}>
+        <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 22, fontWeight: 600 }}>Iris</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.goldDim, border: "1px solid rgba(212,168,67,0.25)", borderRadius: 100, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: c.gold }}><span style={{ fontSize: 10 }}>◆</span><span>147</span></div>
+      </div>
+
+      <div style={{ padding: "0 20px" }}>
+        {/* Header */}
+        <FadeIn>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 8 }}>Discover</div>
+            <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 700, lineHeight: 1.15, marginBottom: 6 }}>Explore charts.</div>
+            <div style={{ fontSize: 13.5, color: c.dim, lineHeight: 1.5 }}>Browse by placement, explore collections, or search anyone in the database.</div>
+          </div>
+        </FadeIn>
+
+        {/* Search */}
+        <FadeIn delay={0.05}>
+          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <span style={{ color: c.faint, fontSize: 16 }}>⌕</span>
+            <input
+              value={searchVal}
+              onChange={e => { setSearchVal(e.target.value); if (e.target.value) setPlacementFilter("all"); }}
+              placeholder="Search by name, sign, or placement..."
+              style={{ background: "none", border: "none", outline: "none", color: c.text, fontSize: 14, fontFamily: SANS, width: "100%", caretColor: c.lav }}
+            />
+            {searchVal && <span onClick={() => setSearchVal("")} style={{ color: c.faint, cursor: "pointer", fontSize: 14 }}>✕</span>}
+          </div>
+        </FadeIn>
+
+        {/* Placement filter chips */}
+        <FadeIn delay={0.08}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 24, overflowX: "auto", scrollbarWidth: "none", marginLeft: -20, marginRight: -20, padding: "0 20px" }}>
+            <Chip label="All" active={placementFilter === "all"} onClick={() => setPlacementFilter("all")} />
+            <Chip label="By Venus" active={placementFilter === "venus"} onClick={() => { setPlacementFilter(placementFilter === "venus" ? "all" : "venus"); setSearchVal(""); }} />
+            <Chip label="By Mars" active={placementFilter === "mars"} onClick={() => { setPlacementFilter(placementFilter === "mars" ? "all" : "mars"); setSearchVal(""); }} />
+            <Chip label="By element" active={placementFilter === "element"} onClick={() => { setPlacementFilter(placementFilter === "element" ? "all" : "element"); setSearchVal(""); }} />
+          </div>
+        </FadeIn>
+
+        {/* ═══════════════════════════════ */}
+        {/* SEARCH RESULTS                  */}
+        {/* ═══════════════════════════════ */}
+        {isSearching && (
+          <div>
+            <div style={{ fontSize: 12, color: c.faint, marginBottom: 16 }}>
+              {searchResults.length} result{searchResults.length !== 1 ? "s" : ""} for "{searchVal}"
+            </div>
+            {searchResults.map(item => {
+              if (item.initial) {
+                return <UserRow key={item.id} person={item} />;
+              }
+              return <CelebRow key={item.id} celeb={item} onAdd={handleAdd} added={addedIds.includes(item.id)} />;
+            })}
+            {searchResults.length === 0 && (
+              <div style={{ textAlign: "center", padding: "40px 0", color: c.faint, fontSize: 13 }}>No results for "{searchVal}"</div>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════════════════ */}
+        {/* PLACEMENT BROWSE VIEW           */}
+        {/* ═══════════════════════════════ */}
+        {isBrowsingPlacements && (
+          <div>
+            <SectionLabel sub={
+              placementFilter === "venus" ? "Browse charts grouped by Venus sign" :
+              placementFilter === "mars" ? "Browse charts grouped by Mars sign" :
+              "Browse charts grouped by element"
+            }>
+              {placementFilter === "venus" ? "By Venus sign" :
+               placementFilter === "mars" ? "By Mars sign" : "By element"}
+            </SectionLabel>
+            {getPlacementGroups().map(group => (
+              <PlacementGroup key={group.label} label={group.label} items={group.items} onAdd={handleAdd} addedIds={addedIds} />
+            ))}
+          </div>
+        )}
+
+        {/* ═══════════════════════════════ */}
+        {/* DEFAULT VIEW (All)              */}
+        {/* ═══════════════════════════════ */}
+        {!isSearching && !isBrowsingPlacements && (
+          <>
+            {/* ── Your People ── */}
+            {userSubjects.length > 0 && (
+              <FadeIn delay={0.1}>
+                <SectionLabel sub="People you've added to Iris">Your People</SectionLabel>
+                <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "4px 16px", marginBottom: 28 }}>
+                  {userSubjects.map((person, i) => (
+                    <UserRow key={person.id} person={person} />
+                  ))}
+                </div>
+              </FadeIn>
+            )}
+
+            {/* ── Charts Like Yours ── */}
+            <FadeIn delay={0.15}>
+              <SectionLabel sub="Celebs who share your key placements">Charts Like Yours</SectionLabel>
+              <div style={{ marginBottom: 28 }}>
+                {chartsLikeYours.map(id => {
+                  const celeb = celebs.find(c => c.id === id);
+                  if (!celeb) return null;
+                  return (
+                    <div key={celeb.id} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: "16px", display: "flex", gap: 14, marginBottom: 8 }}>
+                      <Avatar src={celeb.photo} initial={celeb.name[0]} color={c.gold} size={52} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: c.text }}>{celeb.name}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
+                          <div style={{ fontSize: 10, background: c.lavBg, borderRadius: 100, padding: "2px 8px", color: c.lav, fontWeight: 500 }}>Scorpio Sun</div>
+                          <div style={{ fontSize: 10, background: c.lavBg, borderRadius: 100, padding: "2px 8px", color: c.lav, fontWeight: 500 }}>Scorpio Venus</div>
+                        </div>
+                        <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, lineHeight: 1.4, color: "rgba(232,228,240,0.55)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{celeb.blurb}</div>
+                        <div style={{ marginTop: 8 }}>
+                          {addedIds.includes(celeb.id) ? (
+                            <span style={{ fontSize: 11, color: c.green }}>✓ Added</span>
+                          ) : (
+                            <span onClick={() => handleAdd(celeb)} style={{ fontSize: 12, color: c.lav, fontWeight: 600, cursor: "pointer" }}>+ Add to People</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </FadeIn>
+
+            {/* ── Collection 1 ── */}
+            <FadeIn delay={0.2}>
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ background: collections[0].colorDim, border: `1px solid rgba(184,160,232,0.1)`, borderRadius: 18, padding: "20px 20px 8px", marginBottom: 0 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: collections[0].color, marginBottom: 6 }}>Collection</div>
+                  <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: c.text, marginBottom: 4 }}>{collections[0].title}</div>
+                  <div style={{ fontSize: 12.5, color: c.dim, lineHeight: 1.4, marginBottom: 16 }}>{collections[0].desc}</div>
+                  <div style={{ display: "flex", gap: 10, overflowX: "auto", marginLeft: -20, marginRight: -20, padding: "0 20px 16px", scrollbarWidth: "none" }}>
+                    {collections[0].celebIds.map(id => {
+                      const celeb = celebs.find(c => c.id === id);
+                      if (!celeb) return null;
+                      return <CelebMiniCard key={celeb.id} celeb={celeb} onAdd={handleAdd} added={addedIds.includes(celeb.id)} />;
+                    })}
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+
+            {/* ── Recently Added ── */}
+            <FadeIn delay={0.25}>
+              <SectionLabel sub="New charts in the database">Recently Added</SectionLabel>
+              <div style={{ marginBottom: 28 }}>
+                {recentlyAdded.map(id => {
+                  const celeb = celebs.find(c => c.id === id);
+                  if (!celeb) return null;
+                  return (
+                    <div key={celeb.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+                      <Avatar src={celeb.photo} initial={celeb.name[0]} color={c.gold} size={44} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: c.text }}>{celeb.name}</div>
+                        <div style={{ fontSize: 12, color: c.faint }}>{celeb.sun} Sun · {celeb.venus} Venus</div>
+                      </div>
+                      <div style={{ fontSize: 9, background: c.goldDim, borderRadius: 100, padding: "2px 7px", color: c.gold, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase" }}>New</div>
+                      {addedIds.includes(celeb.id) ? (
+                        <span style={{ fontSize: 11, color: c.green }}>Added ✓</span>
+                      ) : (
+                        <div onClick={() => handleAdd(celeb)} style={{ fontSize: 12, color: c.lav, fontWeight: 600, cursor: "pointer", padding: "6px 12px", borderRadius: 100, background: c.lavBg }}>+ Add</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </FadeIn>
+
+            {/* ── Collection 2 ── */}
+            <FadeIn delay={0.3}>
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ background: collections[1].colorDim, border: `1px solid rgba(232,133,107,0.1)`, borderRadius: 18, padding: "20px 20px 8px" }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: collections[1].color, marginBottom: 6 }}>Collection</div>
+                  <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: c.text, marginBottom: 4 }}>{collections[1].title}</div>
+                  <div style={{ fontSize: 12.5, color: c.dim, lineHeight: 1.4, marginBottom: 16 }}>{collections[1].desc}</div>
+                  <div style={{ display: "flex", gap: 10, overflowX: "auto", marginLeft: -20, marginRight: -20, padding: "0 20px 16px", scrollbarWidth: "none" }}>
+                    {collections[1].celebIds.map(id => {
+                      const celeb = celebs.find(c => c.id === id);
+                      if (!celeb) return null;
+                      return <CelebMiniCard key={celeb.id} celeb={celeb} onAdd={handleAdd} added={addedIds.includes(celeb.id)} />;
+                    })}
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+
+            <Divider />
+
+            {/* ── Full Browse ── */}
+            <FadeIn delay={0.35}>
+              <SectionLabel sub="All celebrities in the database">Browse All</SectionLabel>
+              {celebs.map(celeb => (
+                <CelebRow key={celeb.id} celeb={celeb} onAdd={handleAdd} added={addedIds.includes(celeb.id)} />
+              ))}
+            </FadeIn>
+          </>
+        )}
+      </div>
+
+      {/* FAB */}
+      <div style={{ position: "fixed", bottom: 82, right: "calc(50% - 196px + 20px)", width: 52, height: 52, borderRadius: "50%", background: `linear-gradient(135deg, ${c.lav}, #9B7DD4)`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(184,160,232,0.35)", zIndex: 100, cursor: "pointer" }}>
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><line x1="11" y1="5" x2="11" y2="17" stroke="#0C0B10" strokeWidth="2.2" strokeLinecap="round"/><line x1="5" y1="11" x2="17" y2="11" stroke="#0C0B10" strokeWidth="2.2" strokeLinecap="round"/></svg>
+      </div>
+
+      {/* Tab bar */}
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 393, background: "rgba(12,11,16,0.94)", backdropFilter: "blur(20px)", borderTop: `1px solid rgba(255,255,255,0.05)`, display: "flex", padding: "10px 0 22px", zIndex: 200 }}>
+        {[["⌂", "Home"], ["♡", "Relationships"], ["✦", "Discover"], ["◉", "Profile"]].map(([icon, label], i) => (
+          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontSize: 10, color: i === 2 ? c.lav : c.faint, cursor: "pointer", fontFamily: SANS }}>
+            <span style={{ fontSize: 18 }}>{icon}</span><span>{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

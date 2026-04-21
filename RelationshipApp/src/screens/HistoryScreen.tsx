@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
@@ -30,6 +31,7 @@ import { CountedFilterPills, type CountedPillOption } from '../components/Counte
 import { RelationshipCard } from '../components/RelationshipCard';
 import { RelationshipEmptyState } from '../components/RelationshipEmptyState';
 import { Avatar } from '../components/Avatar';
+import { FloatingAddButton } from '../components/FloatingAddButton';
 import { relationshipsApi } from '../api';
 import type { UserCompositeChart } from '../../../shared/api/relationships';
 import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
@@ -111,7 +113,9 @@ export const HistoryScreen: React.FC = () => {
   const [filter, setFilter] = useState<Filter>('all');
   const [unconnectedExpanded, setUnconnectedExpanded] = useState(false);
   const [connectingSubjectId, setConnectingSubjectId] = useState<string | null>(null);
+  const [deletingRelationshipId, setDeletingRelationshipId] = useState<string | null>(null);
   const didAutoRetryOnFocusRef = useRef(false);
+  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
   const selfProfileId = profile?.id ?? null;
 
@@ -164,6 +168,56 @@ export const HistoryScreen: React.FC = () => {
     clearActiveRelationshipFlow();
     navigation.navigate('AddConnection');
   }, [clearActiveRelationshipFlow, navigation]);
+
+  const requestDeleteRelationship = useCallback(
+    (relationship: UserCompositeChart) => {
+      const { name: otherName } = resolveOtherSide(relationship, selfProfileId);
+      const ref = swipeableRefs.current.get(relationship._id);
+
+      Alert.alert(
+        'Delete this connection?',
+        `You & ${otherName} will be removed. This can't be undone.`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => ref?.close(),
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              if (deletingRelationshipId) return;
+              setDeletingRelationshipId(relationship._id);
+              const snapshot = relationshipHistoryFromStore;
+              // Optimistic remove
+              setRelationshipHistory({
+                relationshipHistory: snapshot.filter(
+                  (row) => row._id !== relationship._id
+                ),
+              });
+              swipeableRefs.current.delete(relationship._id);
+              try {
+                await relationshipsApi.deleteRelationship(relationship._id);
+              } catch (error) {
+                // Rollback on failure
+                setRelationshipHistory({ relationshipHistory: snapshot });
+                Alert.alert(
+                  'Could not delete',
+                  error instanceof Error
+                    ? error.message
+                    : 'Please try again shortly.'
+                );
+              } finally {
+                setDeletingRelationshipId(null);
+              }
+            },
+          },
+        ]
+      );
+    },
+    [deletingRelationshipId, relationshipHistoryFromStore, selfProfileId, setRelationshipHistory]
+  );
 
   const connectExistingSubject = useCallback(
     async (item: UnconnectedListItem) => {
@@ -373,15 +427,38 @@ export const HistoryScreen: React.FC = () => {
               const kind = relationship.isCelebrityRelationship ? 'celeb' : 'person';
               const other = resolveOtherSide(relationship, selfProfileId);
               return (
-                <RelationshipCard
+                <Swipeable
                   key={relationship._id}
-                  kind={kind}
-                  name={other.name}
-                  archetype={getRelationshipArchetypeLabel(relationship)}
-                  otherInitial={other.initial}
-                  otherPhotoUri={other.photoUri}
-                  onPress={() => openRelationship(relationship)}
-                />
+                  ref={(instance) => {
+                    if (instance) {
+                      swipeableRefs.current.set(relationship._id, instance);
+                    } else {
+                      swipeableRefs.current.delete(relationship._id);
+                    }
+                  }}
+                  friction={2}
+                  rightThreshold={40}
+                  overshootRight={false}
+                  renderRightActions={() => (
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => requestDeleteRelationship(relationship)}
+                      style={styles.deleteAction}
+                    >
+                      <Text style={styles.deleteActionText}>Delete</Text>
+                    </TouchableOpacity>
+                  )}
+                  containerStyle={styles.swipeableContainer}
+                >
+                  <RelationshipCard
+                    kind={kind}
+                    name={other.name}
+                    archetype={getRelationshipArchetypeLabel(relationship)}
+                    otherInitial={other.initial}
+                    otherPhotoUri={other.photoUri}
+                    onPress={() => openRelationship(relationship)}
+                  />
+                </Swipeable>
               );
             })}
 
@@ -396,21 +473,6 @@ export const HistoryScreen: React.FC = () => {
                   No {filter === 'celebs' ? 'celebrity' : 'personal'} connections yet.
                 </Text>
               </View>
-            ) : null}
-
-            {relationshipHistory.length > 0 || unconnectedItems.length > 0 ? (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={openAddConnection}
-                style={[styles.addFooter, { borderColor: colors.ghostBorder }]}
-              >
-                <View style={styles.addIcon}>
-                  <Text style={[styles.addIconGlyph, { color: colors.primary }]}>+</Text>
-                </View>
-                <Text style={[styles.addLabel, { color: colors.textMuted }]}>
-                  Add a connection
-                </Text>
-              </TouchableOpacity>
             ) : null}
 
             {unconnectedItems.length > 0 ? (
@@ -499,6 +561,9 @@ export const HistoryScreen: React.FC = () => {
           </>
         )}
       </ScrollView>
+      {!showEmptyState ? (
+        <FloatingAddButton onPress={openAddConnection} accessibilityLabel="Add connection" />
+      ) : null}
     </SafeAreaView>
   );
 };
@@ -508,7 +573,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 48,
+    paddingBottom: 120,
     gap: 16,
   },
   topBar: {
@@ -557,32 +622,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
-  addFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderRadius: 16,
-    paddingVertical: 20,
-    marginTop: 4,
-  },
-  addIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(202, 190, 255, 0.12)',
-  },
-  addIconGlyph: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  addLabel: {
-    fontSize: 14,
-  },
   unconnectedSection: {
     marginTop: 4,
     gap: 8,
@@ -625,6 +664,23 @@ const styles = StyleSheet.create({
   },
   unconnectedAction: {
     fontSize: 13,
+    fontWeight: '700',
+  },
+  swipeableContainer: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  deleteAction: {
+    width: 88,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#CF3F4F',
+    borderRadius: 16,
+    marginLeft: 8,
+  },
+  deleteActionText: {
+    color: '#FFF9F0',
+    fontSize: 14,
     fontWeight: '700',
   },
 });
