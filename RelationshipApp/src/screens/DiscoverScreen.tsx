@@ -26,7 +26,6 @@ import { Avatar } from '../components/Avatar';
 import { FloatingAddButton } from '../components/FloatingAddButton';
 import { useOwnedSubjects } from '../hooks/useOwnedSubjects';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
-import { buildHistorySelectionState } from './historySelection';
 import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
 import type { UserCompositeChart } from '../../../shared/api/relationships';
 
@@ -165,13 +164,6 @@ export const DiscoverScreen: React.FC = () => {
   );
   const setActiveTargetType = useRelationshipAppStore((state) => state.setActiveTargetType);
   const setActiveTargetSubject = useRelationshipAppStore((state) => state.setActiveTargetSubject);
-  const setActivePartnerRomanticAssets = useRelationshipAppStore(
-    (state) => state.setActivePartnerRomanticAssets
-  );
-  const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
-  const setActiveRelationshipId = useRelationshipAppStore((state) => state.setActiveRelationshipId);
-  const setFullAnalysis = useRelationshipAppStore((state) => state.setFullAnalysis);
-  const setWorkflowState = useRelationshipAppStore((state) => state.setWorkflowState);
 
   const { ownedSubjects } = useOwnedSubjects();
   const { relationshipHistory } = useRelationshipHistory();
@@ -190,60 +182,22 @@ export const DiscoverScreen: React.FC = () => {
   const isPlacementMode = placementFilter !== 'all' && !isSearchMode;
   const showSearchHint = trimmedSearchQuery.length > 0 && trimmedSearchQuery.length < 2;
 
-  const startCelebrityFlow = React.useCallback(
-    (celebrity?: Celebrity) => {
+  const openCelebrityDetail = React.useCallback(
+    (celebrity: Celebrity) => {
       clearActiveRelationshipFlow();
       setActiveTargetType('celebrity');
-      setActiveTargetSubject(celebrity ? celebrityToSubject(celebrity) : null);
-      navigation.navigate('SelectCelebrity');
+      setActiveTargetSubject(celebrityToSubject(celebrity));
+      navigation.navigate('CelebrityDetail', { celebrity });
     },
     [clearActiveRelationshipFlow, navigation, setActiveTargetSubject, setActiveTargetType]
   );
 
-  const openExistingRelationship = React.useCallback(
-    (relationship: UserCompositeChart) => {
-      const selectionState = buildHistorySelectionState(relationship);
-      setActivePartnerRomanticAssets(null);
-      setPreviewAnalysis(selectionState.previewAnalysis);
-      setActiveRelationshipId(relationship._id);
-      setFullAnalysis(selectionState.fullAnalysis);
-      setWorkflowState({
-        workflowStatus: null,
-        workflowPhase: selectionState.workflowPhase,
-        workflowError: null,
-      });
-      navigation.navigate('RelationshipPreview');
-    },
-    [
-      navigation,
-      setActivePartnerRomanticAssets,
-      setActiveRelationshipId,
-      setFullAnalysis,
-      setPreviewAnalysis,
-      setWorkflowState,
-    ]
-  );
-
   const handleUserSubjectTap = React.useCallback(
     (subject: OwnedGuestSubject) => {
-      const relationship = findRelationshipForSubject(subject, relationshipHistory, selfProfileId);
-      if (relationship) {
-        openExistingRelationship(relationship);
-        return;
-      }
-      // STUB: Connecting an existing subject to the self profile should live on a dedicated
-      // "connect" action; for now we fall back to the add-connection fork which already
-      // hosts the "connect existing subject" path.
       clearActiveRelationshipFlow();
-      navigation.navigate('AddConnection');
+      navigation.navigate('SubjectDetail', { subject });
     },
-    [
-      clearActiveRelationshipFlow,
-      navigation,
-      openExistingRelationship,
-      relationshipHistory,
-      selfProfileId,
-    ]
+    [clearActiveRelationshipFlow, navigation]
   );
 
   React.useEffect(() => {
@@ -379,7 +333,7 @@ export const DiscoverScreen: React.FC = () => {
     return (
       <TouchableOpacity
         key={`row-${celeb._id}`}
-        onPress={() => startCelebrityFlow(celeb)}
+        onPress={() => openCelebrityDetail(celeb)}
         activeOpacity={0.86}
         style={[styles.listRow, { borderBottomColor: colors.ghostBorder }]}
       >
@@ -454,7 +408,7 @@ export const DiscoverScreen: React.FC = () => {
     return (
       <TouchableOpacity
         key={`mini-${celeb._id}`}
-        onPress={() => startCelebrityFlow(celeb)}
+        onPress={() => openCelebrityDetail(celeb)}
         activeOpacity={0.86}
         style={styles.miniCard}
       >
@@ -489,7 +443,7 @@ export const DiscoverScreen: React.FC = () => {
     return (
       <TouchableOpacity
         key={`like-${celeb._id}`}
-        onPress={() => startCelebrityFlow(celeb)}
+        onPress={() => openCelebrityDetail(celeb)}
         activeOpacity={0.86}
         style={[styles.likeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >

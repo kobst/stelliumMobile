@@ -8,6 +8,8 @@ import { CreateAccountScreen } from '../screens/CreateAccountScreen';
 import { SignInScreen } from '../screens/SignInScreen';
 import { SelfProfileSuccessScreen } from '../screens/SelfProfileSuccessScreen';
 import { SelectCelebrityScreen } from '../screens/SelectCelebrityScreen';
+import { CelebrityDetailScreen } from '../screens/CelebrityDetailScreen';
+import { SubjectDetailScreen } from '../screens/SubjectDetailScreen';
 import { RelationshipPreviewScreen } from '../screens/RelationshipPreviewScreen';
 import { AskScreen } from '../screens/AskScreen';
 import { UnlockScreen } from '../screens/UnlockScreen';
@@ -42,6 +44,10 @@ export type RelationshipRootParamList = {
   SignIn: undefined;
   SelfProfileSuccess: undefined;
   SelectCelebrity: undefined;
+  CelebrityDetail: { celebrity: import('../api').Celebrity };
+  SubjectDetail: {
+    subject: import('../../../shared/api/relationshipUsers').OwnedGuestSubject;
+  };
   RelationshipPreview: undefined;
   AskIris:
     | {
@@ -129,6 +135,8 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="SignIn" component={SignInScreen} />
         <Stack.Screen name="SelfProfileSuccess" component={SelfProfileSuccessScreen} />
         <Stack.Screen name="SelectCelebrity" component={SelectCelebrityScreen} />
+        <Stack.Screen name="CelebrityDetail" component={CelebrityDetailScreen} />
+        <Stack.Screen name="SubjectDetail" component={SubjectDetailScreen} />
         <Stack.Screen name="RelationshipPreview" component={RelationshipPreviewScreen} />
         <Stack.Screen name="AskIris" component={AskScreen} />
         <Stack.Screen name="Unlock" component={UnlockScreen} />
