@@ -5,6 +5,13 @@ export { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
 export { usersApi } from '../../../shared/api/users';
 export { relationshipsApi } from './relationships';
 export { celebritiesApi } from './celebrities';
+export { discoverApi } from './discover';
+export type {
+  CollectionCeleb,
+  DiscoverCollection,
+  CelebrityProfile,
+  CelebRelationship,
+} from './discover';
 export { externalApi } from '../../../shared/api/external';
 export { onboardingApi } from '../../../shared/api/onboarding';
 export type {

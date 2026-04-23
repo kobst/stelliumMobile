@@ -12,7 +12,15 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { celebritiesApi, Celebrity } from '../api';
+import {
+  celebritiesApi,
+  Celebrity,
+  discoverApi,
+  CollectionCeleb,
+  DiscoverCollection,
+  CelebRelationship,
+} from '../api';
+import type { EnhancedRelationshipAnalysisResponse } from '../../../shared/api/relationships';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
@@ -69,30 +77,77 @@ const ELEMENT_BY_SIGN: Record<string, ElementLabel> = {
   Pisces: 'Water',
 };
 
-// STUB: Collections are hardcoded celeb-id bundles until backend exposes a curation endpoint.
-// See the spec request attached to this screen: we need a GET /discover/collections API.
-const STUB_COLLECTIONS: Array<{
-  id: string;
-  title: string;
-  description: string;
-  pickPredicate: (celeb: Celebrity) => boolean;
-  accent: 'lavender' | 'coral';
-}> = [
-  {
-    id: 'col-water',
-    title: 'Emotional depth',
-    description: 'Heavy water sign charts — intensity, intuition, and emotional undercurrents.',
-    pickPredicate: (celeb) => getCelebrityElement(celeb) === 'Water',
-    accent: 'lavender',
-  },
-  {
-    id: 'col-fire',
-    title: 'Creative fire',
-    description: 'Dominant fire placements — artists and performers who lead with instinct.',
-    pickPredicate: (celeb) => getCelebrityElement(celeb) === 'Fire',
-    accent: 'coral',
-  },
-];
+function fabricateClusterMetrics(score: number) {
+  return {
+    score: Number.isFinite(score) ? score : 0,
+    rawScore: 0,
+    supportPct: 0,
+    challengePct: 0,
+    heatPct: 0,
+    activityPct: 0,
+    sparkElements: 0,
+    quadrant: 'Flat' as const,
+    keystoneAspects: [],
+  };
+}
+
+function buildPreviewFromCelebRelationship(
+  rel: CelebRelationship
+): EnhancedRelationshipAnalysisResponse {
+  const cs = rel.clusterScores ?? {};
+  return {
+    success: true,
+    compositeChartId: rel._id,
+    userA: { id: rel.userA_id ?? '', name: rel.userA_name ?? rel.userA_firstName ?? '' },
+    userB: { id: rel.userB_id ?? '', name: rel.userB_name ?? rel.userB_firstName ?? '' },
+    clusters: {
+      Harmony: fabricateClusterMetrics(cs.Harmony ?? 0),
+      Passion: fabricateClusterMetrics(cs.Passion ?? 0),
+      Connection: fabricateClusterMetrics(cs.Connection ?? 0),
+      Stability: fabricateClusterMetrics(cs.Stability ?? 0),
+      Growth: fabricateClusterMetrics(cs.Growth ?? 0),
+    },
+    overall: {
+      score: rel.overallScore ?? 0,
+      formula: '',
+      dominantCluster: '',
+      challengeCluster: '',
+      profile: rel.archetypeKey ?? '',
+      tier: '',
+      strengthClusters: [],
+      growthClusters: [],
+      quadrantAnalytics: {
+        distribution: {},
+        entropy: 0,
+        dominantQuadrant: '',
+        uniformity: '',
+      },
+      keystoneAspects: [],
+      summary: rel.archetypeLabel
+        ? { label: rel.archetypeLabel, blurb: rel.archetypeBlurb ?? '' }
+        : undefined,
+    } as EnhancedRelationshipAnalysisResponse['overall'],
+    scoredItems: [],
+    initialOverview: rel.initialOverview ?? null,
+    tensionFlowAnalysis:
+      undefined as unknown as EnhancedRelationshipAnalysisResponse['tensionFlowAnalysis'],
+    compositeChart:
+      undefined as unknown as EnhancedRelationshipAnalysisResponse['compositeChart'],
+    synastryAspects: [],
+    synastryHousePlacements:
+      {} as EnhancedRelationshipAnalysisResponse['synastryHousePlacements'],
+    status: 'scores_calculated',
+    metadata: {
+      processingTime: '',
+      clustersAnalyzed: 5,
+      totalScoredItems: 0,
+      workflowType: 'direct-cluster-scoring',
+      version: '',
+      isCelebrityRelationship: true,
+      initialOverviewGenerated: Boolean(rel.initialOverview),
+    },
+  };
+}
 
 function getCelebPlanets(celeb: Celebrity): CelebPlanet[] {
   const planets = (celeb.birthChart as { planets?: CelebPlanet[] } | undefined)?.planets;
@@ -106,6 +161,19 @@ function getCelebPlanetSign(celeb: Celebrity, planet: string): string | null {
 
 function getCelebrityElement(celeb: Celebrity): ElementLabel | null {
   const sun = getCelebritySunSign(celeb);
+  if (!sun) return null;
+  return ELEMENT_BY_SIGN[sun] ?? null;
+}
+
+function getSubjectPlanetSign(subject: OwnedGuestSubject, planet: string): string | null {
+  const planets = (subject.birthChart as { planets?: CelebPlanet[] } | undefined)?.planets;
+  if (!Array.isArray(planets)) return null;
+  const match = planets.find((p) => p.name === planet);
+  return typeof match?.sign === 'string' ? match.sign : null;
+}
+
+function getSubjectElement(subject: OwnedGuestSubject): ElementLabel | null {
+  const sun = getSubjectPlanetSign(subject, 'Sun');
   if (!sun) return null;
   return ELEMENT_BY_SIGN[sun] ?? null;
 }
@@ -164,14 +232,27 @@ export const DiscoverScreen: React.FC = () => {
   );
   const setActiveTargetType = useRelationshipAppStore((state) => state.setActiveTargetType);
   const setActiveTargetSubject = useRelationshipAppStore((state) => state.setActiveTargetSubject);
+  const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
+  const setActiveRelationshipId = useRelationshipAppStore(
+    (state) => state.setActiveRelationshipId
+  );
+  const setFullAnalysis = useRelationshipAppStore((state) => state.setFullAnalysis);
+  const setWorkflowState = useRelationshipAppStore((state) => state.setWorkflowState);
+  const setActivePartnerRomanticAssets = useRelationshipAppStore(
+    (state) => state.setActivePartnerRomanticAssets
+  );
 
   const { ownedSubjects } = useOwnedSubjects();
   const { relationshipHistory } = useRelationshipHistory();
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const [placementFilter, setPlacementFilter] = React.useState<PlacementFilter>('all');
+  const [browseAllFilter, setBrowseAllFilter] =
+    React.useState<'all' | 'celebrities' | 'yours'>('all');
   const [allCelebs, setAllCelebs] = React.useState<Celebrity[]>([]);
   const [searchResults, setSearchResults] = React.useState<Celebrity[]>([]);
+  const [collections, setCollections] = React.useState<DiscoverCollection[]>([]);
+  const [celebRelationships, setCelebRelationships] = React.useState<CelebRelationship[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSearching, setIsSearching] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -192,12 +273,55 @@ export const DiscoverScreen: React.FC = () => {
     [clearActiveRelationshipFlow, navigation, setActiveTargetSubject, setActiveTargetType]
   );
 
+  const openCollectionCeleb = React.useCallback(
+    (celeb: CollectionCeleb) => {
+      clearActiveRelationshipFlow();
+      setActiveTargetType('celebrity');
+      setActiveTargetSubject(null);
+      navigation.navigate('CelebrityDetail', {
+        celebrityId: celeb.id,
+        preview: celeb,
+      });
+    },
+    [clearActiveRelationshipFlow, navigation, setActiveTargetSubject, setActiveTargetType]
+  );
+
   const handleUserSubjectTap = React.useCallback(
     (subject: OwnedGuestSubject) => {
       clearActiveRelationshipFlow();
       navigation.navigate('SubjectDetail', { subject });
     },
     [clearActiveRelationshipFlow, navigation]
+  );
+
+  const openCelebRelationshipAnalysis = React.useCallback(
+    (rel: CelebRelationship) => {
+      const preview = buildPreviewFromCelebRelationship(rel);
+      clearActiveRelationshipFlow();
+      setActiveTargetType('celebrity');
+      setActiveTargetSubject(null);
+      setActivePartnerRomanticAssets(null);
+      setPreviewAnalysis(preview);
+      setActiveRelationshipId(rel._id);
+      setFullAnalysis(null);
+      setWorkflowState({
+        workflowStatus: null,
+        workflowPhase: 'idle',
+        workflowError: null,
+      });
+      navigation.navigate('RelationshipPreview');
+    },
+    [
+      clearActiveRelationshipFlow,
+      navigation,
+      setActivePartnerRomanticAssets,
+      setActiveRelationshipId,
+      setActiveTargetSubject,
+      setActiveTargetType,
+      setFullAnalysis,
+      setPreviewAnalysis,
+      setWorkflowState,
+    ]
   );
 
   React.useEffect(() => {
@@ -235,6 +359,69 @@ export const DiscoverScreen: React.FC = () => {
     };
 
     loadDiscovery().catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    discoverApi
+      .getCollections()
+      .then((result) => {
+        if (cancelled) return;
+        setCollections(result);
+      })
+      .catch((collectionsError) => {
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('[DiscoverScreen] getCollections failed', {
+            error:
+              collectionsError instanceof Error
+                ? collectionsError.message
+                : String(collectionsError),
+          });
+        }
+        if (!cancelled) {
+          setCollections([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    discoverApi
+      .getCelebRelationships(12)
+      .then((result) => {
+        if (cancelled) return;
+        // Prefer rows with scoring data already joined in so cards render richly.
+        const withScoring = result.filter(
+          (row) =>
+            typeof row.overallScore === 'number' ||
+            !!row.archetypeLabel ||
+            (row.clusterScores && Object.values(row.clusterScores).some((v) => typeof v === 'number'))
+        );
+        setCelebRelationships(withScoring.length > 0 ? withScoring : result);
+      })
+      .catch((celebRelError) => {
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('[DiscoverScreen] getCelebRelationships failed', {
+            error:
+              celebRelError instanceof Error ? celebRelError.message : String(celebRelError),
+          });
+        }
+        if (!cancelled) {
+          setCelebRelationships([]);
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -308,19 +495,26 @@ export const DiscoverScreen: React.FC = () => {
   }, [allCelebs, isSearchMode, ownedSubjects, searchResults, trimmedSearchQuery]);
 
   const placementGroups = React.useMemo(() => {
-    if (!isPlacementMode) return [] as Array<{ label: string; items: Celebrity[] }>;
+    type PlacementGroup = {
+      label: string;
+      subjects: OwnedGuestSubject[];
+      celebs: Celebrity[];
+    };
+    if (!isPlacementMode) return [] as PlacementGroup[];
     if (placementFilter === 'element') {
-      return ELEMENTS.map((el) => ({
+      return ELEMENTS.map<PlacementGroup>((el) => ({
         label: `${el} signs`,
-        items: allCelebs.filter((c) => getCelebrityElement(c) === el),
-      })).filter((g) => g.items.length > 0);
+        subjects: ownedSubjects.filter((s) => getSubjectElement(s) === el),
+        celebs: allCelebs.filter((c) => getCelebrityElement(c) === el),
+      })).filter((g) => g.subjects.length + g.celebs.length > 0);
     }
     const planetName = placementFilter === 'venus' ? 'Venus' : 'Mars';
-    return SIGNS.map((sign) => ({
+    return SIGNS.map<PlacementGroup>((sign) => ({
       label: `${planetName} in ${sign}`,
-      items: allCelebs.filter((c) => getCelebPlanetSign(c, planetName) === sign),
-    })).filter((g) => g.items.length > 0);
-  }, [allCelebs, isPlacementMode, placementFilter]);
+      subjects: ownedSubjects.filter((s) => getSubjectPlanetSign(s, planetName) === sign),
+      celebs: allCelebs.filter((c) => getCelebPlanetSign(c, planetName) === sign),
+    })).filter((g) => g.subjects.length + g.celebs.length > 0);
+  }, [allCelebs, isPlacementMode, ownedSubjects, placementFilter]);
 
   // ── Row/card renderers ──────────────────────────────────────────────────────
 
@@ -397,6 +591,41 @@ export const DiscoverScreen: React.FC = () => {
           </Text>
         </View>
         <Text style={[styles.chevron, { color: colors.textSubtle }]}>›</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderMiniUserCard = (subject: OwnedGuestSubject) => {
+    const fullName = [subject.firstName, subject.lastName].filter(Boolean).join(' ').trim();
+    const initial = subject.firstName?.charAt(0) ?? '?';
+    const sunSign = getSubjectPlanetSign(subject, 'Sun') ?? '—';
+    return (
+      <TouchableOpacity
+        key={`mini-user-${subject._id}`}
+        onPress={() => handleUserSubjectTap(subject)}
+        activeOpacity={0.86}
+        style={styles.miniCard}
+      >
+        <View
+          style={[
+            styles.miniPhotoWrap,
+            styles.miniPhotoFallback,
+            { backgroundColor: colors.surfaceHigh },
+          ]}
+        >
+          <Avatar size={120} gradient="green" fallbackInitial={initial} />
+        </View>
+        <View style={styles.miniNameRow}>
+          <Text style={[styles.miniName, { color: colors.text }]} numberOfLines={1}>
+            {fullName || 'Your person'}
+          </Text>
+          <View style={[styles.miniBadge, { backgroundColor: colors.surfaceHigh }]}>
+            <Text style={[styles.miniBadgeText, { color: colors.accent }]}>You</Text>
+          </View>
+        </View>
+        <Text style={[styles.miniMeta, { color: colors.textMuted }]} numberOfLines={1}>
+          {sunSign} Sun
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -479,13 +708,159 @@ export const DiscoverScreen: React.FC = () => {
     );
   };
 
-  const renderCollection = (collection: (typeof STUB_COLLECTIONS)[number]) => {
-    const items = allCelebs.filter(collection.pickPredicate).slice(0, 8);
-    if (items.length === 0) return null;
-    const accentColor = collection.accent === 'lavender' ? colors.primary : colors.accent;
-    const accentBg = collection.accent === 'lavender' ? colors.surfaceHigh : colors.surfaceHigh;
+  const renderMiniCollectionCeleb = (celeb: CollectionCeleb) => {
+    const fullName = `${celeb.firstName ?? ''} ${celeb.lastName ?? ''}`.trim();
+    const sunSign = celeb.sunSign ?? '—';
     return (
-      <View key={collection.id} style={[styles.collectionCard, { backgroundColor: accentBg, borderColor: colors.border }]}>
+      <TouchableOpacity
+        key={`mini-collection-${celeb.id}`}
+        onPress={() => openCollectionCeleb(celeb)}
+        activeOpacity={0.86}
+        style={styles.miniCard}
+      >
+        <View style={[styles.miniPhotoWrap, { backgroundColor: colors.surface }]}>
+          {celeb.profilePhotoUrl ? (
+            <Image
+              source={{ uri: celeb.profilePhotoUrl }}
+              style={styles.miniPhoto}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.miniPhotoFallback, { backgroundColor: colors.surfaceHigh }]}>
+              <Text style={[styles.miniFallbackInitial, { color: colors.textMuted }]}>
+                {celeb.firstName?.charAt(0) ?? '?'}
+              </Text>
+            </View>
+          )}
+        </View>
+        <Text style={[styles.miniName, { color: colors.text }]} numberOfLines={1}>
+          {fullName || 'Unknown'}
+        </Text>
+        <Text style={[styles.miniMeta, { color: colors.textMuted }]} numberOfLines={1}>
+          {sunSign} Sun
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const celebByIdMap = React.useMemo(() => {
+    const map = new Map<string, Celebrity>();
+    for (const celeb of allCelebs) {
+      if (celeb._id) map.set(celeb._id, celeb);
+    }
+    return map;
+  }, [allCelebs]);
+
+  // /getCelebRelationships now returns userA_profilePhotoUrl / userB_profilePhotoUrl
+  // directly on each row (joined from the celebrity subject). Treat those as the
+  // primary source and only fall back to the /getCelebs map for rows where the
+  // server didn't populate a URL.
+  const resolveCelebPhoto = React.useCallback(
+    (userId: string | undefined, fallback: string | null | undefined): string | null => {
+      if (fallback) return fallback;
+      if (!userId) return null;
+      const celeb = celebByIdMap.get(userId);
+      return celeb?.profilePhotoUrl ?? celeb?.photoUrl ?? null;
+    },
+    [celebByIdMap]
+  );
+
+  const renderCelebRelationshipCard = (rel: CelebRelationship) => {
+    const nameA = rel.userA_firstName ?? rel.userA_name ?? '';
+    const nameB = rel.userB_firstName ?? rel.userB_name ?? '';
+    const pairLabel = [nameA, nameB].filter(Boolean).join(' & ');
+    const initialA = nameA.charAt(0) || '?';
+    const initialB = nameB.charAt(0) || '?';
+    const photoA = resolveCelebPhoto(rel.userA_id, rel.userA_profilePhotoUrl);
+    const photoB = resolveCelebPhoto(rel.userB_id, rel.userB_profilePhotoUrl);
+    const archetype = rel.archetypeLabel ?? null;
+    const blurb = rel.archetypeBlurb ?? rel.initialOverview ?? null;
+    const cs = rel.clusterScores ?? {};
+    const scoreChips: Array<{ key: string; label: string; value: number | null | undefined }> = [
+      { key: 'HAR', label: 'HAR', value: cs.Harmony },
+      { key: 'PAS', label: 'PAS', value: cs.Passion },
+      { key: 'CON', label: 'CON', value: cs.Connection },
+      { key: 'STA', label: 'STA', value: cs.Stability },
+      { key: 'GRO', label: 'GRO', value: cs.Growth },
+    ];
+
+    return (
+      <TouchableOpacity
+        key={`celebrel-${rel._id}`}
+        activeOpacity={0.86}
+        onPress={() => openCelebRelationshipAnalysis(rel)}
+        style={[
+          styles.connectionCard,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+      >
+        <View style={styles.connectionHeaderRow}>
+          <View style={styles.connectionAvatars}>
+            <View style={styles.connectionAvatarBack}>
+              <Avatar
+                size={48}
+                gradient="lavender"
+                photoUri={photoA}
+                fallbackInitial={initialA}
+              />
+            </View>
+            <View style={styles.connectionAvatarFront}>
+              <Avatar
+                size={48}
+                gradient="gold"
+                photoUri={photoB}
+                fallbackInitial={initialB}
+              />
+            </View>
+          </View>
+        </View>
+
+        <Text style={[styles.connectionPair, { color: colors.text }]} numberOfLines={1}>
+          {pairLabel || 'Celebrity pair'}
+        </Text>
+
+        {archetype ? (
+          <Text style={[styles.connectionArchetype, { color: colors.accent }]} numberOfLines={1}>
+            {archetype}
+          </Text>
+        ) : null}
+
+        {blurb ? (
+          <Text style={[styles.connectionBlurb, { color: colors.textMuted }]} numberOfLines={3}>
+            {blurb}
+          </Text>
+        ) : null}
+
+        <View style={styles.connectionScoreRow}>
+          {scoreChips.map((chip) => {
+            const rounded = typeof chip.value === 'number' ? Math.round(chip.value) : null;
+            return (
+              <View
+                key={chip.key}
+                style={[styles.connectionScoreCell, { backgroundColor: colors.surfaceHigh }]}
+              >
+                <Text style={[styles.connectionScoreValue, { color: colors.primary }]}>
+                  {rounded ?? '—'}
+                </Text>
+                <Text style={[styles.connectionScoreLabel, { color: colors.textMuted }]}>
+                  {chip.label}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderCollection = (collection: DiscoverCollection) => {
+    if (!collection.celebs || collection.celebs.length === 0) return null;
+    const accentColor = collection.accent === 'coral' ? colors.accent : colors.primary;
+    return (
+      <View
+        key={collection.id}
+        style={[styles.collectionCard, { backgroundColor: colors.surfaceHigh, borderColor: colors.border }]}
+      >
         <Text style={[styles.collectionEyebrow, { color: accentColor }]}>Collection</Text>
         <Text style={[styles.collectionTitle, { color: colors.text }]}>{collection.title}</Text>
         <Text style={[styles.collectionBody, { color: colors.textMuted }]}>{collection.description}</Text>
@@ -494,7 +869,7 @@ export const DiscoverScreen: React.FC = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.miniRail}
         >
-          {items.map(renderMiniCelebCard)}
+          {collection.celebs.map(renderMiniCollectionCeleb)}
         </ScrollView>
       </View>
     );
@@ -613,14 +988,18 @@ export const DiscoverScreen: React.FC = () => {
             {placementGroups.map((group) => (
               <View key={group.label} style={styles.placementGroup}>
                 <Text style={[styles.placementGroupLabel, { color: colors.text }]}>
-                  {group.label} <Text style={{ color: colors.textMuted }}>({group.items.length})</Text>
+                  {group.label}{' '}
+                  <Text style={{ color: colors.textMuted }}>
+                    ({group.subjects.length + group.celebs.length})
+                  </Text>
                 </Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.miniRail}
                 >
-                  {group.items.map(renderMiniCelebCard)}
+                  {group.subjects.map(renderMiniUserCard)}
+                  {group.celebs.map(renderMiniCelebCard)}
                 </ScrollView>
               </View>
             ))}
@@ -637,18 +1016,6 @@ export const DiscoverScreen: React.FC = () => {
         {/* DEFAULT VIEW ───────────────────────────────────── */}
         {!isSearchMode && !isPlacementMode ? (
           <>
-            {ownedSubjects.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Your People</Text>
-                <Text style={[styles.sectionMeta, { color: colors.textMuted }]}>
-                  People you've added to Iris.
-                </Text>
-                <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  {ownedSubjects.map(renderUserRow)}
-                </View>
-              </View>
-            ) : null}
-
             {chartsLikeYours.length > 0 ? (
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Charts Like Yours</Text>
@@ -659,7 +1026,25 @@ export const DiscoverScreen: React.FC = () => {
               </View>
             ) : null}
 
-            {renderCollection(STUB_COLLECTIONS[0])}
+            {collections[0] ? renderCollection(collections[0]) : null}
+
+            {celebRelationships.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  Famous Connections
+                </Text>
+                <Text style={[styles.sectionMeta, { color: colors.textMuted }]}>
+                  Real celebrity relationships analyzed.
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.connectionRail}
+                >
+                  {celebRelationships.map(renderCelebRelationshipCard)}
+                </ScrollView>
+              </View>
+            ) : null}
 
             {recentlyAdded.length > 0 ? (
               <View style={styles.section}>
@@ -673,15 +1058,116 @@ export const DiscoverScreen: React.FC = () => {
               </View>
             ) : null}
 
-            {renderCollection(STUB_COLLECTIONS[1])}
+            {collections[1] ? renderCollection(collections[1]) : null}
 
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse All</Text>
               <Text style={[styles.sectionMeta, { color: colors.textMuted }]}>
-                All celebrities in the database.
+                All charts in the database.
               </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipRow}
+              >
+                <TouchableOpacity
+                  onPress={() => setBrowseAllFilter('all')}
+                  activeOpacity={0.85}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor:
+                        browseAllFilter === 'all' ? colors.surfaceHigh : colors.surface,
+                      borderColor:
+                        browseAllFilter === 'all' ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      {
+                        color:
+                          browseAllFilter === 'all' ? colors.primary : colors.textMuted,
+                      },
+                    ]}
+                  >
+                    All
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setBrowseAllFilter('celebrities')}
+                  activeOpacity={0.85}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor:
+                        browseAllFilter === 'celebrities' ? colors.surfaceHigh : colors.surface,
+                      borderColor:
+                        browseAllFilter === 'celebrities' ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      {
+                        color:
+                          browseAllFilter === 'celebrities' ? colors.primary : colors.textMuted,
+                      },
+                    ]}
+                  >
+                    Celebrities
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setBrowseAllFilter('yours')}
+                  activeOpacity={0.85}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor:
+                        browseAllFilter === 'yours' ? colors.surfaceHigh : colors.surface,
+                      borderColor:
+                        browseAllFilter === 'yours' ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      {
+                        color:
+                          browseAllFilter === 'yours' ? colors.primary : colors.textMuted,
+                      },
+                    ]}
+                  >
+                    Your charts ({ownedSubjects.length})
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
               <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                {allCelebs.map((c) => renderCelebRow(c))}
+                {browseAllFilter === 'yours' ? (
+                  ownedSubjects.length > 0 ? (
+                    ownedSubjects.map(renderUserRow)
+                  ) : (
+                    <Text
+                      style={[
+                        styles.listEmpty,
+                        { color: colors.textMuted },
+                      ]}
+                    >
+                      You haven't added any charts yet.
+                    </Text>
+                  )
+                ) : browseAllFilter === 'celebrities' ? (
+                  allCelebs.map((c) => renderCelebRow(c))
+                ) : (
+                  <>
+                    {ownedSubjects.map(renderUserRow)}
+                    {allCelebs.map((c) => renderCelebRow(c))}
+                  </>
+                )}
               </View>
             </View>
           </>
@@ -783,6 +1269,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     marginTop: 6,
+  },
+  listEmpty: {
+    fontSize: 14,
+    lineHeight: 20,
+    paddingVertical: 20,
+    textAlign: 'center',
   },
   listRow: {
     flexDirection: 'row',
@@ -927,13 +1419,93 @@ const styles = StyleSheet.create({
   miniName: {
     fontSize: 13,
     fontWeight: '600',
+    flexShrink: 1,
   },
   miniMeta: {
     fontSize: 11,
   },
+  miniNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  miniBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 100,
+  },
+  miniBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
   placementGroup: {
     gap: 8,
     marginTop: 8,
+  },
+  connectionRail: {
+    gap: 12,
+    paddingRight: 20,
+    paddingTop: 6,
+  },
+  connectionCard: {
+    width: 280,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+    gap: 8,
+  },
+  connectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  connectionAvatars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  connectionAvatarBack: {
+    zIndex: 1,
+  },
+  connectionAvatarFront: {
+    marginLeft: -14,
+  },
+  connectionPair: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 8,
+  },
+  connectionArchetype: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    fontWeight: '600',
+  },
+  connectionBlurb: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontStyle: 'italic',
+  },
+  connectionScoreRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 4,
+  },
+  connectionScoreCell: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 10,
+    gap: 2,
+  },
+  connectionScoreValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  connectionScoreLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
   placementGroupLabel: {
     fontSize: 14,

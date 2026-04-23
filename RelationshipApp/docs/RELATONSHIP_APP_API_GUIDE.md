@@ -2,11 +2,12 @@
 
 Detailed staged onboarding documentation now lives in [RELATIONSHIP_APP_ONBOARDING_API_GUIDE.md](./RELATIONSHIP_APP_ONBOARDING_API_GUIDE.md).
 
-This document summarizes the API surface currently relevant to the relationship-focused mobile app as of April 19, 2026.
+This document summarizes the API surface currently relevant to the relationship-focused mobile app as of April 22, 2026.
 
 It covers:
 - Romantic subject creation endpoints that are already implemented
 - Relationship-app celebrity aspect bank APIs that are now implemented
+- Relationship-app Discover tab collection APIs
 - Relationship-app celebrity romantic profile APIs
 - Relationship-app romantic analysis read/generate APIs
 - Shared relationship analysis endpoints the mobile app can use today
@@ -27,6 +28,7 @@ The current backend split is:
 
 The relationship app now has its own dedicated endpoint namespace for user-centered romantic analysis:
 - `GET /relationship-app/me`
+- `GET /relationship-app/discover/collections`
 - `GET /relationship-app/users/:userId/entitlements`
 - `POST /relationship-app/users/:userId/ask-iris`
 - `POST /relationship-app/subjects/:userId/ask-iris`
@@ -81,9 +83,18 @@ This section is the quickest survey of the relationship-app-relevant API surface
 - `POST /getCelebs`
   - Returns celebrity subjects
   - Also returns `romanticProfileBlurb`, `romanticOverview`, and `romanticReferencedCodes` directly on each celeb item for list rendering
+- `GET /relationship-app/discover/collections`
+  - Public read endpoint for Discover tab editorial collections
+  - Returns exactly 2 weekly-rotating collections, each populated with up to 8 matching celebrity cards
+  - Does not require authentication and can be used by relationship-app or legacy landing-page surfaces
 - `GET /relationship-app/celebs/:userId/profile`
   - Returns the full celebrity profile payload for detail screens
   - Includes the shared celebrity subject, birth chart, and relationship-app romantic summary fields
+- `POST /getCelebRelationships`
+  - Public read endpoint for celebrity-to-celebrity relationship cards
+  - Returns existing composite relationship fields plus `overallScore`, `clusterScores`, `archetypeLabel`, and `archetypeBlurb` when relationship scoring data exists
+  - Includes `userA_profilePhotoUrl` and `userB_profilePhotoUrl` directly on each relationship card
+  - `POST /getCelebrityRelationships` remains supported as a legacy alias
 - `GET /users/:userId/relationship-app/celeb-aspect-bank`
   - Returns the authenticated relationship-app user’s persisted celebrity aspect bank / celeb match data
 - `POST /admin/relationship-app/celebs/:userId/profile/generate`
@@ -143,7 +154,9 @@ If the relationship app wants the simplest stable integration path, the default 
 - Read guest subject onboarding summary: `POST /getGuestSubjectRomantic`
 - List saved owned subjects: `POST /getUserSubjects`
 - List celebrities for browse cards: `POST /getCelebs`
+- Read weekly Discover collections: `GET /relationship-app/discover/collections`
 - Read celebrity detail: `GET /relationship-app/celebs/:userId/profile`
+- Read celebrity relationship cards: `POST /getCelebRelationships`
 - Read celeb match bank for the signed-in user: `GET /users/:userId/relationship-app/celeb-aspect-bank`
 - Create relationship and get initial scored overview immediately: `POST /relationship-app/enhanced-relationship-analysis`
 - Start async relationship workflow: `POST /relationship-app/workflow/relationship/start`
@@ -181,6 +194,15 @@ If the relationship app wants the simplest stable integration path, the default 
 - `GET /relationship-app/celebs/:userId/profile`
   - Public read
   - Returns celebrity base subject data plus relationship-app romantic summary fields when available
+- `GET /relationship-app/discover/collections`
+  - Public read
+  - No auth required
+- `POST /getCelebRelationships`
+  - Public read
+  - Returns celebrity-to-celebrity composite relationship cards with scoring/archetype fields when available
+- `POST /getCelebrityRelationships`
+  - Public read
+  - Legacy alias for `POST /getCelebRelationships`
 - `POST /relationship-app/enhanced-relationship-analysis`
   - Requires app auth via `requireAuth`
 - `POST /relationship-app/workflow/relationship/start`
@@ -259,6 +281,93 @@ For now, the first relationship-app billing cutover is:
 
 On first relationship-app billing access, the balance is bootstrapped once from the user's current shared credit snapshot and then maintained separately going forward.
 
+## Relationship-App Discover Collections
+
+### `GET /relationship-app/discover/collections`
+
+Public endpoint for the Discover tab and public landing-page surfaces.
+
+Returns exactly 2 editorially curated collections for the current week. Each collection is populated with a deterministic weekly subset of celebrity cards whose current chart placements match that collection's rule.
+
+Behavior:
+- The selected collections are global and fixed for the normalized week
+- Week starts Monday in `America/New_York`
+- `weekOf` is the Monday date string for the active week, for example `2026-04-20`
+- The two returned collections always have different moods when a valid pair exists
+- Each collection must have at least 4 matching celebrities to be eligible
+- Each returned collection includes up to 8 celebrities
+- Celebrity IDs are not hardcoded into collections; membership is computed from the current celebrity database
+- The returned celebrity subset is deterministic for the week, so repeated calls during the same week return the same ordering/subset until the 1-hour endpoint cache expires and recomputes to the same seed
+
+Current implementation details:
+- Collection definitions are static code-defined seed data
+- V1 matching supports sign/rising/placement rules only
+- Aspect-dependent editorial collections are excluded from the launch rotation until aspect-pattern matching is added
+- Matching uses `birthChart.planets` and relationship-app celebrity preview fields from `subjects.relationshipAppProfile`
+- Endpoint response is cached in memory for 1 hour per `weekOf`
+
+Response body:
+
+```json
+{
+  "success": true,
+  "weekOf": "2026-04-20",
+  "collections": [
+    {
+      "id": "the-nurturers",
+      "title": "The nurturers",
+      "description": "Cancer Moon or Cancer Venus. They build safety around the people they love.",
+      "mood": "soft",
+      "accent": "green",
+      "celebs": [
+        {
+          "id": "celebritySubjectId",
+          "firstName": "Zendaya",
+          "lastName": "Coleman",
+          "gender": "female",
+          "profilePhotoUrl": "https://...",
+          "romanticProfileBlurb": "Short frontend-friendly romantic blurb",
+          "sunSign": "Virgo",
+          "moonSign": "Taurus",
+          "venusSign": "Cancer",
+          "marsSign": "Cancer",
+          "risingSign": "Aquarius"
+        }
+      ]
+    },
+    {
+      "id": "freedom-first",
+      "title": "Freedom first",
+      "description": "Aquarius Venus or Sagittarius Mars. Love has to leave room to breathe.",
+      "mood": "restless",
+      "accent": "coral",
+      "celebs": [
+        {
+          "id": "celebritySubjectId2",
+          "firstName": "Timothée",
+          "lastName": "Chalamet",
+          "gender": "male",
+          "profilePhotoUrl": "https://...",
+          "romanticProfileBlurb": "Short frontend-friendly romantic blurb",
+          "sunSign": "Capricorn",
+          "moonSign": "Pisces",
+          "venusSign": "Aquarius",
+          "marsSign": "Capricorn",
+          "risingSign": null
+        }
+      ]
+    }
+  ]
+}
+```
+
+Notes for clients:
+- Treat `collections` as the full render payload for the Discover tab card/carousel
+- Do not implement collection rotation or filtering on the client
+- `risingSign` can be `null` for celebrities without a usable Ascendant
+- `romanticProfileBlurb` can be `null` if a celebrity has not been backfilled yet
+- `gender` is included in the current response but is not required for display
+
 ## Relationship-App Celebrity Profiles
 
 Celebrity source records remain shared across the backend. The relationship-app celebrity profile now uses a split persistence model:
@@ -326,6 +435,95 @@ Admin/backfill generation paths:
 - Existing celebrities can be backfilled with `npm run backfill:relationship-celeb-profiles`
 - Existing persisted analysis can be copied into celebrity list-preview fields with `npm run migrate:relationship-celeb-profile-preview`
 - One-off admin regeneration is available via `POST /admin/relationship-app/celebs/:userId/profile/generate`
+
+## Celebrity Relationship Cards
+
+### `POST /getCelebRelationships`
+
+Public endpoint for reading celebrity-to-celebrity relationships. `POST /getCelebrityRelationships` remains available as a legacy alias to the same handler.
+
+Request body:
+
+```json
+{
+  "limit": 50
+}
+```
+
+Behavior:
+- `limit` is optional and defaults to `50`
+- `limit` accepts a number or numeric string
+- `limit` is clamped to `1..100`
+- Only celebrity-to-celebrity relationships are returned
+- Mixed user-celebrity relationships are excluded even if `isCelebrityRelationship` is true
+- Results are sorted by relationship creation date descending
+- Relationship scoring fields are joined from `relationship_analysis` by `debug.inputSummary.compositeChartId`
+
+Response body:
+
+```json
+{
+  "success": true,
+  "count": 1,
+  "relationships": [
+    {
+      "_id": "compositeChartId",
+      "userA_id": "celebritySubjectIdA",
+      "userB_id": "celebritySubjectIdB",
+      "userA_name": "Zendaya",
+      "userB_name": "Tom",
+      "userA_firstName": "Zendaya",
+      "userA_lastName": "Coleman",
+      "userB_firstName": "Tom",
+      "userB_lastName": "Holland",
+      "userA_profilePhotoUrl": "https://...",
+      "userB_profilePhotoUrl": "https://...",
+      "synastryAspects": [],
+      "synastryHousePlacements": {},
+      "compositeChart": {},
+      "isCelebrityRelationship": true,
+      "overallScore": 76,
+      "clusterScores": {
+        "Harmony": 78,
+        "Passion": 82,
+        "Connection": 74,
+        "Stability": 69,
+        "Growth": 73
+      },
+      "archetypeKey": "safe_harbor_open_sea",
+      "archetypeLabel": "Safe Harbor, Open Sea",
+      "archetypeBlurb": "Short relationship archetype summary",
+      "archetype": {
+        "version": "archetype-summary-v3",
+        "archetypeKey": "safe_harbor_open_sea",
+        "label": "Safe Harbor, Open Sea",
+        "blurb": "Short relationship archetype summary",
+        "dominantClusters": ["Harmony", "Passion"],
+        "supportClusters": ["Harmony"],
+        "tensionClusters": [],
+        "shape": "balanced",
+        "tone": "magnetic",
+        "confidence": "high"
+      },
+      "initialOverview": "Initial relationship overview when available",
+      "clusterAnalysisGeneratedAt": "2026-04-23T00:00:00.000Z",
+      "createdAt": "2026-04-23T00:00:00.000Z",
+      "updatedAt": "2026-04-23T00:00:00.000Z"
+    }
+  ],
+  "metadata": {
+    "limit": 50,
+    "isCelebrityRelationships": true,
+    "includesRelationshipScoring": true,
+    "fetchedAt": "2026-04-23T00:00:00.000Z"
+  }
+}
+```
+
+Notes:
+- Scoring/archetype fields can be absent or `null` for older relationships that do not have a matching `relationship_analysis` document
+- `clusterScores` contains the 5 current relationship clusters: `Harmony`, `Passion`, `Connection`, `Stability`, and `Growth`
+- `userA_profilePhotoUrl` and `userB_profilePhotoUrl` are sourced from the joined celebrity subject records and can be `null` if no photo is stored
 
 ## AskIris APIs
 

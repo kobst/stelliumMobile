@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
-import { Celebrity, relationshipsApi } from '../api';
+import { Celebrity, CollectionCeleb, discoverApi, relationshipsApi } from '../api';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
@@ -33,9 +33,21 @@ function getPlanetSign(celeb: Celebrity, planet: string): string | null {
   return typeof match?.sign === 'string' ? match.sign : null;
 }
 
+function getPlanetSignFromBirthChart(
+  birthChart: Record<string, unknown> | null | undefined,
+  planet: string
+): string | null {
+  const planets = (birthChart as { planets?: CelebPlanet[] } | undefined)?.planets;
+  if (!Array.isArray(planets)) return null;
+  const match = planets.find((p) => p.name === planet);
+  return typeof match?.sign === 'string' ? match.sign : null;
+}
+
 export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { colors } = useTheme();
-  const celebrity = route.params?.celebrity;
+  const passedCelebrity = route.params?.celebrity;
+  const celebrityId = route.params?.celebrityId ?? passedCelebrity?._id ?? null;
+  const preview: CollectionCeleb | undefined = route.params?.preview;
 
   const profile = useRelationshipAppStore((state) => state.profile);
   const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
@@ -46,10 +58,50 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const setActiveRelationshipId = useRelationshipAppStore((state) => state.setActiveRelationshipId);
   const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
 
+  const [hydratedBirthChart, setHydratedBirthChart] = React.useState<
+    Record<string, unknown> | null
+  >(null);
+  const [hydratedBlurb, setHydratedBlurb] = React.useState<string | null>(null);
+  const [hydratedOverview, setHydratedOverview] = React.useState<string | null>(null);
+  const [hydratedPhoto, setHydratedPhoto] = React.useState<string | null>(null);
+  const [isHydrating, setIsHydrating] = React.useState(false);
   const [isStartingPreview, setIsStartingPreview] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  if (!celebrity) {
+  React.useEffect(() => {
+    if (!celebrityId) return;
+    // If we already have a full Celebrity record, trust its fields and skip the fetch.
+    if (passedCelebrity?.birthChart) return;
+    let cancelled = false;
+    setIsHydrating(true);
+    discoverApi
+      .getCelebrityProfile(celebrityId)
+      .then((result) => {
+        if (cancelled) return;
+        setHydratedBirthChart(result.birthChart ?? null);
+        setHydratedBlurb(result.romanticProfileBlurb?.trim() || null);
+        setHydratedOverview(result.overview?.trim() || null);
+        setHydratedPhoto(result.celebrity?.profilePhotoUrl ?? null);
+      })
+      .catch((hydrateError) => {
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('[CelebrityDetailScreen] hydrate failed', {
+            celebrityId,
+            error: hydrateError instanceof Error ? hydrateError.message : String(hydrateError),
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsHydrating(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [celebrityId, passedCelebrity]);
+
+  if (!celebrityId) {
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
         <View style={styles.emptyState}>
@@ -67,15 +119,49 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
     );
   }
 
-  const photoUri = celebrity.profilePhotoUrl ?? celebrity.photoUrl ?? null;
-  const fullName = `${celebrity.firstName ?? ''} ${celebrity.lastName ?? ''}`.trim();
-  const initial = celebrity.firstName?.charAt(0) ?? '?';
-  const sunSign = getCelebritySunSign(celebrity);
-  const moonSign = getPlanetSign(celebrity, 'Moon');
-  const venusSign = getPlanetSign(celebrity, 'Venus');
-  const marsSign = getPlanetSign(celebrity, 'Mars');
-  const blurb = celebrity.romanticProfileBlurb?.trim() || null;
-  const overview = celebrity.romanticOverview?.trim() || null;
+  // ── Resolve display fields from whichever source we have ────────────────────
+  const firstName = passedCelebrity?.firstName ?? preview?.firstName ?? '';
+  const lastName = passedCelebrity?.lastName ?? preview?.lastName ?? '';
+  const fullName = `${firstName} ${lastName}`.trim();
+  const initial = firstName.charAt(0) || '?';
+  const photoUri =
+    passedCelebrity?.profilePhotoUrl ??
+    passedCelebrity?.photoUrl ??
+    hydratedPhoto ??
+    preview?.profilePhotoUrl ??
+    null;
+
+  const sunSign =
+    (passedCelebrity ? getCelebritySunSign(passedCelebrity) : null) ??
+    getPlanetSignFromBirthChart(hydratedBirthChart, 'Sun') ??
+    preview?.sunSign ??
+    null;
+  const moonSign =
+    (passedCelebrity ? getPlanetSign(passedCelebrity, 'Moon') : null) ??
+    getPlanetSignFromBirthChart(hydratedBirthChart, 'Moon') ??
+    preview?.moonSign ??
+    null;
+  const venusSign =
+    (passedCelebrity ? getPlanetSign(passedCelebrity, 'Venus') : null) ??
+    getPlanetSignFromBirthChart(hydratedBirthChart, 'Venus') ??
+    preview?.venusSign ??
+    null;
+  const marsSign =
+    (passedCelebrity ? getPlanetSign(passedCelebrity, 'Mars') : null) ??
+    getPlanetSignFromBirthChart(hydratedBirthChart, 'Mars') ??
+    preview?.marsSign ??
+    null;
+
+  const blurb =
+    passedCelebrity?.romanticProfileBlurb?.trim() ||
+    hydratedBlurb ||
+    preview?.romanticProfileBlurb?.trim() ||
+    null;
+  const overview = passedCelebrity?.romanticOverview?.trim() || hydratedOverview || null;
+
+  const dateOfBirth = passedCelebrity?.dateOfBirth ?? null;
+  const time = passedCelebrity?.time ?? null;
+  const placeOfBirth = passedCelebrity?.placeOfBirth ?? null;
 
   const handleCreateConnection = async () => {
     if (!profile) {
@@ -83,13 +169,38 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       return;
     }
 
-    const targetSubject = celebrityToSubject(celebrity);
+    // Build a target subject from whichever source is richest. Collection-entry
+    // celebs only have id/name/photo — that's enough for enhanced-relationship-analysis
+    // since it resolves the real subject on the server by id.
+    const targetSubject = passedCelebrity
+      ? celebrityToSubject(passedCelebrity)
+      : {
+          _id: celebrityId,
+          createdAt: '',
+          updatedAt: '',
+          kind: 'celebrity' as const,
+          ownerUserId: null,
+          isCelebrity: true,
+          isReadOnly: true,
+          firstName,
+          lastName,
+          gender: (preview?.gender as 'male' | 'female' | 'other' | undefined) ?? undefined,
+          dateOfBirth: '',
+          placeOfBirth: '',
+          time: undefined,
+          birthTimeUnknown: true,
+          totalOffsetHours: 0,
+          birthChart: hydratedBirthChart ?? undefined,
+          profilePhotoUrl: photoUri ?? undefined,
+          appDomain: null,
+          firebaseUid: null,
+        };
 
     try {
       setIsStartingPreview(true);
       setError(null);
 
-      const { preview, updatedHistory } = await startRelationshipPreview(
+      const { preview: previewAnalysis, updatedHistory } = await startRelationshipPreview(
         {
           selfProfile: profile,
           targetSubject,
@@ -104,8 +215,8 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
 
       setActiveTargetType('celebrity');
       setActiveTargetSubject(targetSubject);
-      setPreviewAnalysis(preview);
-      setActiveRelationshipId(preview.compositeChartId);
+      setPreviewAnalysis(previewAnalysis);
+      setActiveRelationshipId(previewAnalysis.compositeChartId);
       if (isLocalUxMode) {
         setRelationshipHistory({ relationshipHistory: updatedHistory });
       }
@@ -137,11 +248,15 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
 
         <Text style={[styles.title, { color: colors.text }]}>{fullName || 'Unknown'}</Text>
 
-        <Text style={[styles.meta, { color: colors.textMuted }]}>
-          {celebrity.dateOfBirth}
-          {celebrity.time ? ` · ${celebrity.time}` : ''}
-        </Text>
-        <Text style={[styles.meta, { color: colors.textMuted }]}>{celebrity.placeOfBirth}</Text>
+        {dateOfBirth ? (
+          <Text style={[styles.meta, { color: colors.textMuted }]}>
+            {dateOfBirth}
+            {time ? ` · ${time}` : ''}
+          </Text>
+        ) : null}
+        {placeOfBirth ? (
+          <Text style={[styles.meta, { color: colors.textMuted }]}>{placeOfBirth}</Text>
+        ) : null}
 
         <View style={styles.pillRow}>
           {sunSign ? (
@@ -166,6 +281,15 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
           ) : null}
         </View>
 
+        {isHydrating && !blurb && !overview ? (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.cardBody, { color: colors.textMuted }]}>
+              Loading romantic profile…
+            </Text>
+          </View>
+        ) : null}
+
         {blurb ? (
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.cardEyebrow, { color: colors.accent }]}>Romantic Profile</Text>
@@ -180,7 +304,7 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
           </View>
         ) : null}
 
-        {!blurb && !overview ? (
+        {!isHydrating && !blurb && !overview ? (
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.cardBody, { color: colors.textMuted }]}>
               No romantic blurb available for this celebrity yet.

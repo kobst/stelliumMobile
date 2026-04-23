@@ -44,7 +44,11 @@ export type RelationshipRootParamList = {
   SignIn: undefined;
   SelfProfileSuccess: undefined;
   SelectCelebrity: undefined;
-  CelebrityDetail: { celebrity: import('../api').Celebrity };
+  CelebrityDetail: {
+    celebrity?: import('../api').Celebrity;
+    celebrityId?: string;
+    preview?: import('../api').CollectionCeleb;
+  };
   SubjectDetail: {
     subject: import('../../../shared/api/relationshipUsers').OwnedGuestSubject;
   };
