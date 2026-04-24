@@ -21,10 +21,55 @@ import { buildHistorySelectionState } from './historySelection';
 import { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
 import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
 import type { UserCompositeChart } from '../../../shared/api/relationships';
+import {
+  pickImageFromLibrary,
+  pickImageFromCamera,
+  uploadProfilePhotoPresigned,
+} from '../../../src/utils/imageHelpers';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'SubjectDetail'>;
 
 type SubjectPlanet = { name?: string; sign?: string | null };
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+function formatDateOfBirth(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const datePart = raw.includes('T') ? raw.split('T')[0] : raw;
+  const [yearStr, monthStr, dayStr] = datePart.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!year || !month || !day) return raw;
+  const monthName = MONTH_NAMES[month - 1] ?? '';
+  if (!monthName) return raw;
+  return `${monthName} ${day}, ${year}`;
+}
+
+function formatBirthTime(time: string | null | undefined): string | null {
+  if (!time) return null;
+  const [hStr, mStr] = time.split(':');
+  const h = Number(hStr);
+  const m = Number(mStr);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return time;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  const mm = String(m).padStart(2, '0');
+  return `${hour12}:${mm} ${period}`;
+}
 
 function getSubjectPlanets(subject: OwnedGuestSubject): SubjectPlanet[] {
   const planets = (subject.birthChart as { planets?: SubjectPlanet[] } | undefined)?.planets;
@@ -76,12 +121,15 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const setFullAnalysis = useRelationshipAppStore((state) => state.setFullAnalysis);
   const setWorkflowState = useRelationshipAppStore((state) => state.setWorkflowState);
   const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
+  const upsertOwnedSubject = useRelationshipAppStore((state) => state.upsertOwnedSubject);
 
   const [isStartingPreview, setIsStartingPreview] = React.useState(false);
   const [blurb, setBlurb] = React.useState<string | null>(null);
   const [overview, setOverview] = React.useState<string | null>(null);
   const [isBlurbLoading, setIsBlurbLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [photoOverride, setPhotoOverride] = React.useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = React.useState(false);
 
   React.useEffect(() => {
     if (!subject?._id) return;
@@ -203,21 +251,95 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const runPhotoUpload = async (imageUri: string, mimeType: string) => {
+    try {
+      setIsUploadingPhoto(true);
+      setError(null);
+      const result = await uploadProfilePhotoPresigned(subject._id, imageUri, mimeType);
+      setPhotoOverride(result.profilePhotoUrl);
+      upsertOwnedSubject({
+        ...subject,
+        profilePhotoUrl: result.profilePhotoUrl,
+      } as OwnedGuestSubject);
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error ? uploadError.message : 'Photo upload failed.';
+      Alert.alert('Upload failed', message);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleChoosePhoto = () => {
+    Alert.alert('Profile photo', 'Choose a source', [
+      {
+        text: 'Photo library',
+        onPress: async () => {
+          const picked = await pickImageFromLibrary();
+          if (picked) {
+            runPhotoUpload(picked.uri, picked.type).catch(() => undefined);
+          }
+        },
+      },
+      {
+        text: 'Take photo',
+        onPress: async () => {
+          const picked = await pickImageFromCamera();
+          if (picked) {
+            runPhotoUpload(picked.uri, picked.type).catch(() => undefined);
+          }
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const displayPhotoUri =
+    photoOverride ?? (subject.profilePhotoUrl as string | null | undefined) ?? null;
+  const formattedDate = formatDateOfBirth(subject.dateOfBirth);
+  const formattedTime = formatBirthTime(subject.time);
+  const dateLine = [formattedDate, formattedTime].filter(Boolean).join(' · ');
+
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>Your Person</Text>
 
         <View style={styles.heroRow}>
-          <Avatar size={120} gradient="green" fallbackInitial={initial} />
+          <TouchableOpacity
+            activeOpacity={0.86}
+            onPress={handleChoosePhoto}
+            disabled={isUploadingPhoto}
+            accessibilityLabel="Change profile photo"
+          >
+            <Avatar
+              size={120}
+              gradient="green"
+              fallbackInitial={initial}
+              photoUri={displayPhotoUri}
+            />
+            <View
+              style={[
+                styles.photoEditBadge,
+                { backgroundColor: colors.primary, borderColor: colors.surfaceLow },
+              ]}
+            >
+              {isUploadingPhoto ? (
+                <ActivityIndicator size="small" color={colors.onPrimary} />
+              ) : (
+                <Text style={[styles.photoEditBadgeText, { color: colors.onPrimary }]}>
+                  {displayPhotoUri ? 'Edit' : 'Add'}
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
 
         <Text style={[styles.title, { color: colors.text }]}>{fullName || 'Your person'}</Text>
 
-        <Text style={[styles.meta, { color: colors.textMuted }]}>
-          {subject.dateOfBirth ?? '—'}
-          {subject.time ? ` · ${subject.time}` : ''}
-        </Text>
+        {dateLine ? (
+          <Text style={[styles.meta, { color: colors.textMuted }]}>{dateLine}</Text>
+        ) : null}
         {subject.placeOfBirth ? (
           <Text style={[styles.meta, { color: colors.textMuted }]}>{subject.placeOfBirth}</Text>
         ) : null}
@@ -347,6 +469,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 4,
+  },
+  photoEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+    borderWidth: 2,
+    minWidth: 44,
+    alignItems: 'center',
+  },
+  photoEditBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
   title: {
     fontSize: 30,

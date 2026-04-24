@@ -98,8 +98,17 @@ function buildPreviewFromCelebRelationship(
   return {
     success: true,
     compositeChartId: rel._id,
-    userA: { id: rel.userA_id ?? '', name: rel.userA_name ?? rel.userA_firstName ?? '' },
-    userB: { id: rel.userB_id ?? '', name: rel.userB_name ?? rel.userB_firstName ?? '' },
+    userA: {
+      id: rel.userA_id ?? '',
+      name: rel.userA_name ?? rel.userA_firstName ?? '',
+      // Extra optional field consumed by RelationshipPreviewScreen for celeb-pair avatars.
+      profilePhotoUrl: rel.userA_profilePhotoUrl ?? null,
+    } as EnhancedRelationshipAnalysisResponse['userA'],
+    userB: {
+      id: rel.userB_id ?? '',
+      name: rel.userB_name ?? rel.userB_firstName ?? '',
+      profilePhotoUrl: rel.userB_profilePhotoUrl ?? null,
+    } as EnhancedRelationshipAnalysisResponse['userB'],
     clusters: {
       Harmony: fabricateClusterMetrics(cs.Harmony ?? 0),
       Passion: fabricateClusterMetrics(cs.Passion ?? 0),

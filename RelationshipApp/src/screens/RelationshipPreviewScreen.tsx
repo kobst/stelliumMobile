@@ -155,8 +155,34 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   const selfName = previewAnalysis?.userA.name ?? (profile?.firstName ?? 'You');
   const partnerInitial = getInitial(partnerName);
   const selfInitial = getInitial(selfName);
+  // For celeb-celeb relationships the signed-in user isn't either side of the
+  // pair, so show both names rather than the pronoun "You".
+  const isCelebPairRelationship = Boolean(
+    previewAnalysis?.metadata?.isCelebrityRelationship &&
+      previewAnalysis?.userA?.id &&
+      previewAnalysis?.userA?.id !== profile?.id
+  );
+  const pairTitle = isCelebPairRelationship
+    ? `${selfName} & ${partnerName}`
+    : `You & ${partnerName}`;
+  // userA/userB in a celeb-pair preview carry profilePhotoUrl (set in DiscoverScreen
+  // when building the preview from /getCelebRelationships). Fall back to
+  // activeTargetSubject.profilePhotoUrl for the user-owned flow, and to the
+  // signed-in profile photo for the self side.
+  const userAPhotoUrl =
+    (previewAnalysis?.userA as { profilePhotoUrl?: string | null } | undefined)?.profilePhotoUrl ??
+    null;
+  const userBPhotoUrl =
+    (previewAnalysis?.userB as { profilePhotoUrl?: string | null } | undefined)?.profilePhotoUrl ??
+    null;
+  const selfPhotoUri =
+    userAPhotoUrl ??
+    (profile?.subject as { profilePhotoUrl?: string | null } | undefined)?.profilePhotoUrl ??
+    null;
   const partnerPhotoUri =
-    (activeTargetSubject as { profilePhotoUrl?: string | null } | null)?.profilePhotoUrl ?? null;
+    userBPhotoUrl ??
+    (activeTargetSubject as { profilePhotoUrl?: string | null } | null)?.profilePhotoUrl ??
+    null;
 
   const archetypeLabel = previewAnalysis?.overall?.summary?.label ?? null;
   const archetypeBlurb = previewAnalysis?.overall?.summary?.blurb ?? null;
@@ -209,12 +235,19 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.navBar}>
         <TouchableOpacity
           activeOpacity={0.7}
-          onPress={() =>
+          onPress={() => {
+            // Prefer a plain pop so we land back on whichever tab the user came
+            // from (Discover for Famous Connections, Relationships for history
+            // items, etc). Reset only when the stack is empty.
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+              return;
+            }
             navigation.reset({
               index: 0,
               routes: [{ name: 'Main', params: { screen: 'RelationshipsTab' } }],
-            })
-          }
+            });
+          }}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Text style={[styles.navBackLabel, { color: colors.textMuted }]}>← Back</Text>
@@ -233,7 +266,12 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.identityHeader}>
           <View style={styles.avatarPair}>
             <View style={[styles.avatarWrap, styles.avatarLeft, { borderColor: colors.background }]}>
-              <Avatar size={56} gradient="lavender" fallbackInitial={selfInitial} />
+              <Avatar
+                size={56}
+                gradient="lavender"
+                fallbackInitial={selfInitial}
+                photoUri={selfPhotoUri}
+              />
             </View>
             <View style={[styles.avatarWrap, styles.avatarRight, { borderColor: colors.background }]}>
               <Avatar
@@ -245,7 +283,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
           <Text style={[styles.identityTitle, { color: colors.text }]}>
-            You &amp; {partnerName}
+            {pairTitle}
           </Text>
           {stage >= 2 && keyAspect ? (
             <Text style={[styles.identitySubtitle, { color: colors.textSubtle }]}>
