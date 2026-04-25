@@ -249,7 +249,59 @@ export const relationshipUsersApi = {
       (item) => Boolean(item?._id) && (item.kind === undefined || item.kind === 'guest')
     );
   },
+
+  async getSubjectPhotoPresignedUrl(
+    subjectId: string,
+    contentType: string
+  ): Promise<SubjectPhotoPresignedUrlResponse> {
+    if (!subjectId) throw new Error('getSubjectPhotoPresignedUrl requires a subjectId');
+    const response = await relationshipApiClient.post<SubjectPhotoPresignedUrlResponse>(
+      `/relationship-app/subjects/${encodeURIComponent(subjectId)}/profile-photo/presigned-url`,
+      { contentType }
+    );
+    if (!response || response.success === false) {
+      throw new Error('Failed to get photo upload URL');
+    }
+    return response;
+  },
+
+  async confirmSubjectPhotoUpload(
+    subjectId: string,
+    photoKey: string
+  ): Promise<SubjectPhotoConfirmResponse> {
+    if (!subjectId) throw new Error('confirmSubjectPhotoUpload requires a subjectId');
+    const response = await relationshipApiClient.post<SubjectPhotoConfirmResponse>(
+      `/relationship-app/subjects/${encodeURIComponent(subjectId)}/profile-photo/confirm`,
+      { photoKey }
+    );
+    if (!response || response.success === false) {
+      throw new Error('Failed to confirm photo upload');
+    }
+    return response;
+  },
+
+  async deleteSubjectProfilePhoto(subjectId: string): Promise<void> {
+    if (!subjectId) throw new Error('deleteSubjectProfilePhoto requires a subjectId');
+    await relationshipApiClient.delete<{ success?: boolean }>(
+      `/relationship-app/subjects/${encodeURIComponent(subjectId)}/profile-photo`
+    );
+  },
 };
+
+export interface SubjectPhotoPresignedUrlResponse {
+  success?: boolean;
+  uploadUrl: string;
+  photoKey: string;
+  expiresIn?: number;
+  instructions?: string;
+}
+
+export interface SubjectPhotoConfirmResponse {
+  success?: boolean;
+  profilePhotoUrl: string;
+  profilePhotoKey: string;
+  updatedAt?: string;
+}
 
 export interface OwnedGuestSubject extends SubjectDocument {
   analysisStatus?: {

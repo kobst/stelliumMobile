@@ -77,6 +77,12 @@ This section is the quickest survey of the relationship-app-relevant API surface
 - `POST /getUserSubjects`
   - Returns the authenticated owner’s saved subjects
   - This is not relationship-app-namespaced, but the relationship app uses it to enumerate owned guest subjects
+- `POST /relationship-app/subjects/:subjectId/profile-photo/presigned-url`
+  - Returns a presigned S3 upload URL for the authenticated relationship-app user’s own subject or owned guest subject
+- `POST /relationship-app/subjects/:subjectId/profile-photo/confirm`
+  - Confirms a completed direct-to-S3 upload and persists `profilePhotoUrl` / `profilePhotoKey`
+- `DELETE /relationship-app/subjects/:subjectId/profile-photo`
+  - Deletes the current profile photo for the authenticated relationship-app user’s own subject or owned guest subject
 
 ### Celebrity APIs
 
@@ -87,6 +93,9 @@ This section is the quickest survey of the relationship-app-relevant API surface
   - Public read endpoint for Discover tab editorial collections
   - Returns exactly 2 weekly-rotating collections, each populated with up to 8 matching celebrity cards
   - Does not require authentication and can be used by relationship-app or legacy landing-page surfaces
+- `GET /relationship-app/users/:userId/discover/charts-like-yours`
+  - Authenticated personalized Discover endpoint
+  - Returns a weekly lead placement plus up to 8 celebrity charts pre-ranked by total placement overlap
 - `GET /relationship-app/celebs/:userId/profile`
   - Returns the full celebrity profile payload for detail screens
   - Includes the shared celebrity subject, birth chart, and relationship-app romantic summary fields
@@ -153,8 +162,12 @@ If the relationship app wants the simplest stable integration path, the default 
 - Create unknown-time guest subject: `POST /createGuestSubjectUnknownTimeRomantic`
 - Read guest subject onboarding summary: `POST /getGuestSubjectRomantic`
 - List saved owned subjects: `POST /getUserSubjects`
+- Start subject profile photo upload: `POST /relationship-app/subjects/:subjectId/profile-photo/presigned-url`
+- Confirm subject profile photo upload: `POST /relationship-app/subjects/:subjectId/profile-photo/confirm`
+- Delete subject profile photo: `DELETE /relationship-app/subjects/:subjectId/profile-photo`
 - List celebrities for browse cards: `POST /getCelebs`
 - Read weekly Discover collections: `GET /relationship-app/discover/collections`
+- Read personalized charts-like-yours carousel: `GET /relationship-app/users/:userId/discover/charts-like-yours`
 - Read celebrity detail: `GET /relationship-app/celebs/:userId/profile`
 - Read celebrity relationship cards: `POST /getCelebRelationships`
 - Read celeb match bank for the signed-in user: `GET /users/:userId/relationship-app/celeb-aspect-bank`
@@ -219,6 +232,15 @@ If the relationship app wants the simplest stable integration path, the default 
 - `POST /relationship-app/subjects/:userId/romantic-analysis/generate`
   - Requires app auth via `requireAuth`
   - Subject must belong to the authenticated user
+- `POST /relationship-app/subjects/:subjectId/profile-photo/presigned-url`
+  - Requires app auth via `requireAuth`
+  - Subject must be the authenticated account-self or an owned guest subject
+- `POST /relationship-app/subjects/:subjectId/profile-photo/confirm`
+  - Requires app auth via `requireAuth`
+  - Subject must be the authenticated account-self or an owned guest subject
+- `DELETE /relationship-app/subjects/:subjectId/profile-photo`
+  - Requires app auth via `requireAuth`
+  - Subject must be the authenticated account-self or an owned guest subject
 - `GET /users/:userId/relationship-app/celeb-aspect-bank`
   - Requires app auth via `requireAuth`
   - `userId` must match authenticated user
@@ -367,6 +389,62 @@ Notes for clients:
 - `risingSign` can be `null` for celebrities without a usable Ascendant
 - `romanticProfileBlurb` can be `null` if a celebrity has not been backfilled yet
 - `gender` is included in the current response but is not required for display
+
+### `GET /relationship-app/users/:userId/discover/charts-like-yours`
+
+Authenticated personalized Discover endpoint that returns celebrity charts sharing one rotating lead placement with the signed-in relationship-app user.
+
+Auth:
+- Requires `requireAuth`
+- Route enforces `requireAuthenticatedUserParamMatch`
+- Only valid for relationship-app account users (`kind=accountSelf`, `appDomain=relationship-app`)
+
+Behavior:
+- Week starts Monday in `America/New_York`
+- `weekOf` is the Monday date string for the active week
+- Weekly lead placement rotates in this order:
+  - `venusSign`
+  - `moonSign`
+  - `marsSign`
+  - `sunSign`
+  - `risingSign`
+- Celebrities must match the active lead placement exactly
+- Results are ranked by total overlap count across `sunSign`, `moonSign`, `venusSign`, `marsSign`, and `risingSign`
+- Ties are broken deterministically so the weekly response stays stable
+- If the user is missing the current lead placement, or that placement produces fewer than `4` celeb matches, the backend falls forward to the next placement in the rotation
+- Returns up to `8` celebrity cards
+- Response is cached in memory for 1 hour per `userId + weekOf`
+
+Response body:
+
+```json
+{
+  "success": true,
+  "weekOf": "2026-04-20",
+  "matchedPlacement": {
+    "field": "venusSign",
+    "label": "Venus in Libra",
+    "subtitle": "Celebs who share your Venus in Libra"
+  },
+  "celebs": [
+    {
+      "id": "celebritySubjectId",
+      "firstName": "Ryan",
+      "lastName": "Reynolds",
+      "profilePhotoUrl": "https://...",
+      "sharedPlacements": ["Venus in Libra", "Sun in Scorpio"],
+      "overlapCount": 2,
+      "romanticProfileBlurb": "Short frontend-friendly romantic blurb"
+    }
+  ]
+}
+```
+
+Notes for clients:
+- Treat `matchedPlacement` and `sharedPlacements` as already formatted display strings
+- `sharedPlacements` is ordered with the current weekly lead placement first
+- The client should render the response as-is and does not need to know the weekly placement rotation logic
+- Cache key shape is `discover:charts-like-yours:user:{userId}:week:{weekOf}`
 
 ## Relationship-App Celebrity Profiles
 
@@ -835,6 +913,120 @@ Response body:
 Notes:
 - This is a private read endpoint for relationship-app guest-subject romantic summary data.
 - Reads prefer `interpretation.relationshipApp.*` and fall back to older `basicAnalysis.romantic*` fields when present.
+
+### Relationship-App Subject Profile Photo Upload
+
+These are the relationship-app-authenticated counterparts to the classic subject photo upload routes. They exist because relationship-app users authenticate against a separate Firebase project, so classic subject-photo routes will reject relationship-app tokens.
+
+Supported subject types:
+- The signed-in relationship-app account-self subject
+- Guest subjects owned by the signed-in relationship-app user
+
+Not supported:
+- Celebrity/read-only subjects
+
+### `POST /relationship-app/subjects/:subjectId/profile-photo/presigned-url`
+
+Returns a short-lived presigned S3 PUT URL for a relationship-app-owned subject photo upload.
+
+Request body:
+
+```json
+{
+  "contentType": "image/jpeg"
+}
+```
+
+Required:
+- `contentType`
+
+Allowed content types:
+- `image/jpeg`
+- `image/png`
+- `image/gif`
+- `image/webp`
+
+Notes:
+- `image/jpg` is normalized to `image/jpeg`
+- The uploaded bytes go directly to S3, not through the backend
+
+Response body:
+
+```json
+{
+  "success": true,
+  "uploadUrl": "https://s3.amazonaws.com/...signed-put-url...",
+  "photoKey": "subjectId/1767312000000.jpg",
+  "expiresIn": 900,
+  "instructions": "PUT the image bytes to uploadUrl with Content-Type header set to image/jpeg."
+}
+```
+
+Errors:
+- `401 INVALID_TOKEN`
+- `403 FORBIDDEN`
+- `404 SUBJECT_NOT_FOUND`
+- `400 INVALID_SUBJECT_ID`
+- `400 MISSING_CONTENT_TYPE`
+- `400 INVALID_CONTENT_TYPE`
+
+### `POST /relationship-app/subjects/:subjectId/profile-photo/confirm`
+
+Confirms a successful direct-to-S3 upload, verifies the object exists, and persists the resulting `profilePhotoUrl` and `profilePhotoKey` onto the subject record.
+
+Request body:
+
+```json
+{
+  "photoKey": "subjectId/1767312000000.jpg"
+}
+```
+
+Behavior:
+- `photoKey` must be present
+- `photoKey` must belong to the same `:subjectId` key prefix
+- Backend verifies the object exists in S3 before saving
+- Previous `profilePhotoKey` is deleted from S3 when possible
+
+Response body:
+
+```json
+{
+  "success": true,
+  "profilePhotoUrl": "https://stellium-profile-photos-dev.s3.amazonaws.com/subjectId/1767312000000.jpg",
+  "profilePhotoKey": "subjectId/1767312000000.jpg",
+  "updatedAt": "2026-04-24T00:00:00.000Z"
+}
+```
+
+Errors:
+- `401 INVALID_TOKEN`
+- `403 FORBIDDEN`
+- `404 SUBJECT_NOT_FOUND`
+- `400 INVALID_SUBJECT_ID`
+- `400 MISSING_PHOTO_KEY`
+- `400 KEY_MISMATCH`
+- `400 UPLOAD_NOT_FOUND`
+
+### `DELETE /relationship-app/subjects/:subjectId/profile-photo`
+
+Deletes the current profile photo for an authenticated relationship-app-owned subject.
+
+Response body:
+
+```json
+{
+  "success": true,
+  "message": "Profile photo deleted successfully",
+  "deletedAt": "2026-04-24T00:00:00.000Z"
+}
+```
+
+Errors:
+- `401 INVALID_TOKEN`
+- `403 FORBIDDEN`
+- `404 SUBJECT_NOT_FOUND`
+- `404 PROFILE_PHOTO_NOT_FOUND`
 
 ### `POST /createGuestSubjectUnknownTimeRomantic`
 

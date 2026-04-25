@@ -11,6 +11,9 @@ export type {
   DiscoverCollection,
   CelebrityProfile,
   CelebRelationship,
+  ChartsLikeYoursCeleb,
+  ChartsLikeYoursResponse,
+  ChartsLikeYoursMatchedPlacement,
 } from './discover';
 export { externalApi } from '../../../shared/api/external';
 export { onboardingApi } from '../../../shared/api/onboarding';

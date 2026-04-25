@@ -24,8 +24,8 @@ import type { UserCompositeChart } from '../../../shared/api/relationships';
 import {
   pickImageFromLibrary,
   pickImageFromCamera,
-  uploadProfilePhotoPresigned,
 } from '../../../src/utils/imageHelpers';
+import { uploadSubjectProfilePhoto } from '../utils/subjectPhotoUpload';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'SubjectDetail'>;
 
@@ -255,7 +255,7 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     try {
       setIsUploadingPhoto(true);
       setError(null);
-      const result = await uploadProfilePhotoPresigned(subject._id, imageUri, mimeType);
+      const result = await uploadSubjectProfilePhoto(subject._id, imageUri, mimeType);
       setPhotoOverride(result.profilePhotoUrl);
       upsertOwnedSubject({
         ...subject,
@@ -270,7 +270,27 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const runPhotoDelete = async () => {
+    try {
+      setIsUploadingPhoto(true);
+      setError(null);
+      await relationshipUsersApi.deleteSubjectProfilePhoto(subject._id);
+      setPhotoOverride(null);
+      upsertOwnedSubject({
+        ...subject,
+        profilePhotoUrl: undefined,
+      } as OwnedGuestSubject);
+    } catch (deleteError) {
+      const message =
+        deleteError instanceof Error ? deleteError.message : 'Could not remove photo.';
+      Alert.alert('Remove failed', message);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
   const handleChoosePhoto = () => {
+    const hasPhoto = Boolean(displayPhotoUri);
     Alert.alert('Profile photo', 'Choose a source', [
       {
         text: 'Photo library',
@@ -290,7 +310,18 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           }
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      ...(hasPhoto
+        ? [
+            {
+              text: 'Remove photo',
+              style: 'destructive' as const,
+              onPress: () => {
+                runPhotoDelete().catch(() => undefined);
+              },
+            },
+          ]
+        : []),
+      { text: 'Cancel', style: 'cancel' as const },
     ]);
   };
 

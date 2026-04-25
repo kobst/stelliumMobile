@@ -32,6 +32,7 @@ import { RelationshipCard } from '../components/RelationshipCard';
 import { RelationshipEmptyState } from '../components/RelationshipEmptyState';
 import { Avatar } from '../components/Avatar';
 import { FloatingAddButton } from '../components/FloatingAddButton';
+import type { MiniRadarScores } from '../components/MiniRadar';
 import { relationshipsApi } from '../api';
 import type { UserCompositeChart } from '../../../shared/api/relationships';
 import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
@@ -81,6 +82,53 @@ function resolveOtherSide(
     name,
     initial: getInitials(name) || name.charAt(0).toUpperCase() || '·',
     photoUri: profilePhoto ?? photo ?? null,
+  };
+}
+
+function extractClusterScores(relationship: UserCompositeChart): MiniRadarScores | null {
+  const fromStatus = relationship.relationshipAnalysisStatus?.clusterScores;
+  if (fromStatus) {
+    return {
+      Harmony: Number(fromStatus.Harmony) || 0,
+      Passion: Number(fromStatus.Passion) || 0,
+      Connection: Number(fromStatus.Connection) || 0,
+      Stability: Number(fromStatus.Stability) || 0,
+      Growth: Number(fromStatus.Growth) || 0,
+    };
+  }
+  const fromCluster = relationship.clusterScoring?.clusters;
+  if (fromCluster) {
+    return {
+      Harmony: Math.round(fromCluster.Harmony?.score ?? 0),
+      Passion: Math.round(fromCluster.Passion?.score ?? 0),
+      Connection: Math.round(fromCluster.Connection?.score ?? 0),
+      Stability: Math.round(fromCluster.Stability?.score ?? 0),
+      Growth: Math.round(fromCluster.Growth?.score ?? 0),
+    };
+  }
+  return null;
+}
+
+interface PartnerSide {
+  name: string;
+  initial: string;
+  photoUri: string | null;
+}
+
+function resolvePartnerSide(
+  side: 'A' | 'B',
+  relationship: UserCompositeChart
+): PartnerSide {
+  const name =
+    (side === 'A' ? relationship.userA_name : relationship.userB_name) || 'Partner';
+  const photo =
+    side === 'A'
+      ? relationship.userA_profilePhotoUrl ?? relationship.userA_photoUrl
+      : relationship.userB_profilePhotoUrl ?? relationship.userB_photoUrl;
+  return {
+    name,
+    initial: getInitials(name) || name.charAt(0).toUpperCase() || '·',
+    photoUri: photo ?? null,
   };
 }
 
@@ -425,7 +473,46 @@ export const HistoryScreen: React.FC = () => {
 
             {filteredRelationships.map((relationship) => {
               const kind = relationship.isCelebrityRelationship ? 'celeb' : 'person';
-              const other = resolveOtherSide(relationship, selfProfileId);
+              const scores = extractClusterScores(relationship);
+              const archetype = scores ? getRelationshipArchetypeLabel(relationship) : null;
+              const selfMatchesA =
+                Boolean(selfProfileId) && relationship.userA_id === selfProfileId;
+              const selfMatchesB =
+                Boolean(selfProfileId) && relationship.userB_id === selfProfileId;
+              const isCelebPair =
+                Boolean(relationship.isCelebrityRelationship) &&
+                !selfMatchesA &&
+                !selfMatchesB;
+
+              const cardContent = isCelebPair
+                ? (
+                  <RelationshipCard
+                    mode="pair"
+                    pairLabel={`${relationship.userA_name || 'Partner A'} & ${
+                      relationship.userB_name || 'Partner B'
+                    }`}
+                    left={resolvePartnerSide('A', relationship)}
+                    right={resolvePartnerSide('B', relationship)}
+                    archetype={archetype}
+                    scores={scores}
+                    onPress={() => openRelationship(relationship)}
+                  />
+                ) : (() => {
+                  const other = resolveOtherSide(relationship, selfProfileId);
+                  return (
+                    <RelationshipCard
+                      mode="single"
+                      kind={kind}
+                      name={other.name}
+                      initial={other.initial}
+                      photoUri={other.photoUri}
+                      archetype={archetype}
+                      scores={scores}
+                      onPress={() => openRelationship(relationship)}
+                    />
+                  );
+                })();
+
               return (
                 <Swipeable
                   key={relationship._id}
@@ -450,14 +537,7 @@ export const HistoryScreen: React.FC = () => {
                   )}
                   containerStyle={styles.swipeableContainer}
                 >
-                  <RelationshipCard
-                    kind={kind}
-                    name={other.name}
-                    archetype={getRelationshipArchetypeLabel(relationship)}
-                    otherInitial={other.initial}
-                    otherPhotoUri={other.photoUri}
-                    onPress={() => openRelationship(relationship)}
-                  />
+                  {cardContent}
                 </Swipeable>
               );
             })}

@@ -59,6 +59,35 @@ interface CelebrityProfileResponse {
   overviewMode?: string | null;
 }
 
+export interface ChartsLikeYoursCeleb {
+  id: string;
+  firstName: string;
+  lastName?: string;
+  profilePhotoUrl?: string | null;
+  sharedPlacements: string[];
+  overlapCount: number;
+  romanticProfileBlurb?: string | null;
+}
+
+export interface ChartsLikeYoursMatchedPlacement {
+  field: string;
+  label: string;
+  subtitle: string;
+}
+
+export interface ChartsLikeYoursResponse {
+  weekOf: string;
+  matchedPlacement: ChartsLikeYoursMatchedPlacement | null;
+  celebs: ChartsLikeYoursCeleb[];
+}
+
+interface ChartsLikeYoursRawResponse {
+  success?: boolean;
+  weekOf?: string;
+  matchedPlacement?: ChartsLikeYoursMatchedPlacement | null;
+  celebs?: ChartsLikeYoursCeleb[];
+}
+
 export interface CelebRelationship {
   _id: string;
   userA_id: string;
@@ -116,6 +145,23 @@ export const discoverApi = {
       throw new Error('Failed to load discover collections.');
     }
     return Array.isArray(response.collections) ? response.collections : [];
+  },
+
+  async getChartsLikeYours(userId: string): Promise<ChartsLikeYoursResponse> {
+    if (!userId) {
+      throw new Error('getChartsLikeYours requires a userId');
+    }
+    const response = await relationshipApiClient.get<ChartsLikeYoursRawResponse>(
+      `/relationship-app/users/${encodeURIComponent(userId)}/discover/charts-like-yours`
+    );
+    if (!response || response.success === false) {
+      throw new Error('Failed to load charts like yours.');
+    }
+    return {
+      weekOf: response.weekOf ?? '',
+      matchedPlacement: response.matchedPlacement ?? null,
+      celebs: Array.isArray(response.celebs) ? response.celebs : [],
+    };
   },
 
   async getCelebRelationships(limit: number = 20): Promise<CelebRelationship[]> {

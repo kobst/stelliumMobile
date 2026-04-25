@@ -19,6 +19,8 @@ import {
   CollectionCeleb,
   DiscoverCollection,
   CelebRelationship,
+  ChartsLikeYoursCeleb,
+  ChartsLikeYoursResponse,
 } from '../api';
 import type { EnhancedRelationshipAnalysisResponse } from '../../../shared/api/relationships';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
@@ -26,7 +28,6 @@ import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import {
   celebrityToSubject,
-  getBigThree,
   getCelebritySunSign,
   getRelationshipArchetypeLabel,
 } from '../utils/mainShell';
@@ -39,43 +40,7 @@ import type { UserCompositeChart } from '../../../shared/api/relationships';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
-type PlacementFilter = 'all' | 'venus' | 'mars' | 'element';
-
 type CelebPlanet = { name?: string; sign?: string | null };
-
-type ElementLabel = 'Fire' | 'Earth' | 'Air' | 'Water';
-
-const SIGNS: string[] = [
-  'Aries',
-  'Taurus',
-  'Gemini',
-  'Cancer',
-  'Leo',
-  'Virgo',
-  'Libra',
-  'Scorpio',
-  'Sagittarius',
-  'Capricorn',
-  'Aquarius',
-  'Pisces',
-];
-
-const ELEMENTS: ElementLabel[] = ['Fire', 'Earth', 'Air', 'Water'];
-
-const ELEMENT_BY_SIGN: Record<string, ElementLabel> = {
-  Aries: 'Fire',
-  Leo: 'Fire',
-  Sagittarius: 'Fire',
-  Taurus: 'Earth',
-  Virgo: 'Earth',
-  Capricorn: 'Earth',
-  Gemini: 'Air',
-  Libra: 'Air',
-  Aquarius: 'Air',
-  Cancer: 'Water',
-  Scorpio: 'Water',
-  Pisces: 'Water',
-};
 
 function fabricateClusterMetrics(score: number) {
   return {
@@ -168,25 +133,6 @@ function getCelebPlanetSign(celeb: Celebrity, planet: string): string | null {
   return typeof match?.sign === 'string' ? match.sign : null;
 }
 
-function getCelebrityElement(celeb: Celebrity): ElementLabel | null {
-  const sun = getCelebritySunSign(celeb);
-  if (!sun) return null;
-  return ELEMENT_BY_SIGN[sun] ?? null;
-}
-
-function getSubjectPlanetSign(subject: OwnedGuestSubject, planet: string): string | null {
-  const planets = (subject.birthChart as { planets?: CelebPlanet[] } | undefined)?.planets;
-  if (!Array.isArray(planets)) return null;
-  const match = planets.find((p) => p.name === planet);
-  return typeof match?.sign === 'string' ? match.sign : null;
-}
-
-function getSubjectElement(subject: OwnedGuestSubject): ElementLabel | null {
-  const sun = getSubjectPlanetSign(subject, 'Sun');
-  if (!sun) return null;
-  return ELEMENT_BY_SIGN[sun] ?? null;
-}
-
 function celebMatchesQuery(celeb: Celebrity, query: string): boolean {
   const q = query.toLowerCase();
   const fullName = `${celeb.firstName ?? ''} ${celeb.lastName ?? ''}`.toLowerCase();
@@ -255,21 +201,18 @@ export const DiscoverScreen: React.FC = () => {
   const { relationshipHistory } = useRelationshipHistory();
 
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [placementFilter, setPlacementFilter] = React.useState<PlacementFilter>('all');
-  const [browseAllFilter, setBrowseAllFilter] =
-    React.useState<'all' | 'celebrities' | 'yours'>('all');
   const [allCelebs, setAllCelebs] = React.useState<Celebrity[]>([]);
   const [searchResults, setSearchResults] = React.useState<Celebrity[]>([]);
   const [collections, setCollections] = React.useState<DiscoverCollection[]>([]);
   const [celebRelationships, setCelebRelationships] = React.useState<CelebRelationship[]>([]);
+  const [chartsLikeYoursData, setChartsLikeYoursData] =
+    React.useState<ChartsLikeYoursResponse | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSearching, setIsSearching] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const { sun } = getBigThree(profile);
   const trimmedSearchQuery = searchQuery.trim();
   const isSearchMode = trimmedSearchQuery.length >= 2;
-  const isPlacementMode = placementFilter !== 'all' && !isSearchMode;
   const showSearchHint = trimmedSearchQuery.length > 0 && trimmedSearchQuery.length < 2;
 
   const openCelebrityDetail = React.useCallback(
@@ -404,6 +347,36 @@ export const DiscoverScreen: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
+    if (!selfProfileId) {
+      setChartsLikeYoursData(null);
+      return;
+    }
+    let cancelled = false;
+    discoverApi
+      .getChartsLikeYours(selfProfileId)
+      .then((result) => {
+        if (cancelled) return;
+        setChartsLikeYoursData(result);
+      })
+      .catch((chartsError) => {
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('[DiscoverScreen] getChartsLikeYours failed', {
+            selfProfileId,
+            error: chartsError instanceof Error ? chartsError.message : String(chartsError),
+          });
+        }
+        if (!cancelled) {
+          setChartsLikeYoursData(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selfProfileId]);
+
+  React.useEffect(() => {
     let cancelled = false;
 
     discoverApi
@@ -478,17 +451,27 @@ export const DiscoverScreen: React.FC = () => {
     };
   }, [trimmedSearchQuery]);
 
-  // STUB: "Charts Like Yours" currently shallow-filters by Sun sign on the already-loaded page.
-  // The real data should be `profile.topCelebMatches` (currently rendered on Home) or a
-  // dedicated ranked-similar-charts endpoint. Spec item #1.
-  const chartsLikeYours = React.useMemo(() => {
-    if (!sun) return [];
-    return allCelebs.filter((c) => getCelebritySunSign(c) === sun).slice(0, 4);
-  }, [allCelebs, sun]);
+  const chartsLikeYours = chartsLikeYoursData?.celebs ?? [];
+  const chartsLikeYoursSubtitle =
+    chartsLikeYoursData?.matchedPlacement?.subtitle ??
+    'Celebs who share your key placements.';
 
   // STUB: client-side "Recently Added" — we don't know if /getCelebs supports
   // sortBy=createdAt. Falling back to last N of the current page.
   const recentlyAdded = React.useMemo(() => allCelebs.slice(-6).reverse(), [allCelebs]);
+
+  // Random sample of celebs to populate the "Popular" rail. Reshuffled when
+  // `allCelebs` changes (i.e. after a fresh /getCelebs fetch) and stable for
+  // re-renders in between, so taps don't cause the list to reorder.
+  const popularCelebs = React.useMemo(() => {
+    if (allCelebs.length === 0) return [] as Celebrity[];
+    const pool = [...allCelebs];
+    for (let i = pool.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, 6);
+  }, [allCelebs]);
 
   const unifiedSearchRows = React.useMemo(() => {
     if (!isSearchMode) return { subjectMatches: [] as OwnedGuestSubject[], celebMatches: [] as Celebrity[] };
@@ -503,27 +486,6 @@ export const DiscoverScreen: React.FC = () => {
     return { subjectMatches, celebMatches };
   }, [allCelebs, isSearchMode, ownedSubjects, searchResults, trimmedSearchQuery]);
 
-  const placementGroups = React.useMemo(() => {
-    type PlacementGroup = {
-      label: string;
-      subjects: OwnedGuestSubject[];
-      celebs: Celebrity[];
-    };
-    if (!isPlacementMode) return [] as PlacementGroup[];
-    if (placementFilter === 'element') {
-      return ELEMENTS.map<PlacementGroup>((el) => ({
-        label: `${el} signs`,
-        subjects: ownedSubjects.filter((s) => getSubjectElement(s) === el),
-        celebs: allCelebs.filter((c) => getCelebrityElement(c) === el),
-      })).filter((g) => g.subjects.length + g.celebs.length > 0);
-    }
-    const planetName = placementFilter === 'venus' ? 'Venus' : 'Mars';
-    return SIGNS.map<PlacementGroup>((sign) => ({
-      label: `${planetName} in ${sign}`,
-      subjects: ownedSubjects.filter((s) => getSubjectPlanetSign(s, planetName) === sign),
-      celebs: allCelebs.filter((c) => getCelebPlanetSign(c, planetName) === sign),
-    })).filter((g) => g.subjects.length + g.celebs.length > 0);
-  }, [allCelebs, isPlacementMode, ownedSubjects, placementFilter]);
 
   // ── Row/card renderers ──────────────────────────────────────────────────────
 
@@ -604,41 +566,6 @@ export const DiscoverScreen: React.FC = () => {
     );
   };
 
-  const renderMiniUserCard = (subject: OwnedGuestSubject) => {
-    const fullName = [subject.firstName, subject.lastName].filter(Boolean).join(' ').trim();
-    const initial = subject.firstName?.charAt(0) ?? '?';
-    const sunSign = getSubjectPlanetSign(subject, 'Sun') ?? '—';
-    return (
-      <TouchableOpacity
-        key={`mini-user-${subject._id}`}
-        onPress={() => handleUserSubjectTap(subject)}
-        activeOpacity={0.86}
-        style={styles.miniCard}
-      >
-        <View
-          style={[
-            styles.miniPhotoWrap,
-            styles.miniPhotoFallback,
-            { backgroundColor: colors.surfaceHigh },
-          ]}
-        >
-          <Avatar size={120} gradient="green" fallbackInitial={initial} />
-        </View>
-        <View style={styles.miniNameRow}>
-          <Text style={[styles.miniName, { color: colors.text }]} numberOfLines={1}>
-            {fullName || 'Your person'}
-          </Text>
-          <View style={[styles.miniBadge, { backgroundColor: colors.surfaceHigh }]}>
-            <Text style={[styles.miniBadgeText, { color: colors.accent }]}>You</Text>
-          </View>
-        </View>
-        <Text style={[styles.miniMeta, { color: colors.textMuted }]} numberOfLines={1}>
-          {sunSign} Sun
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
   const renderMiniCelebCard = (celeb: Celebrity) => {
     const photoUri = celeb.profilePhotoUrl ?? celeb.photoUrl ?? null;
     const fullName = `${celeb.firstName ?? ''} ${celeb.lastName ?? ''}`.trim();
@@ -671,41 +598,48 @@ export const DiscoverScreen: React.FC = () => {
     );
   };
 
-  const renderChartsLikeYoursCard = (celeb: Celebrity) => {
-    const photoUri = celeb.profilePhotoUrl ?? celeb.photoUrl ?? null;
+  const renderChartsLikeYoursCard = (celeb: ChartsLikeYoursCeleb) => {
     const fullName = `${celeb.firstName ?? ''} ${celeb.lastName ?? ''}`.trim();
     const initial = celeb.firstName?.charAt(0) ?? '?';
-    const sunSign = getCelebritySunSign(celeb);
-    const venusSign = getCelebPlanetSign(celeb, 'Venus');
     const blurb = celeb.romanticProfileBlurb?.trim() || null;
+    const preview: CollectionCeleb = {
+      id: celeb.id,
+      firstName: celeb.firstName,
+      lastName: celeb.lastName,
+      profilePhotoUrl: celeb.profilePhotoUrl ?? null,
+      romanticProfileBlurb: blurb,
+    };
     return (
       <TouchableOpacity
-        key={`like-${celeb._id}`}
-        onPress={() => openCelebrityDetail(celeb)}
+        key={`like-${celeb.id}`}
+        onPress={() => openCollectionCeleb(preview)}
         activeOpacity={0.86}
         style={[styles.likeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >
-        <Avatar size={52} gradient="gold" photoUri={photoUri} fallbackInitial={initial} />
+        <Avatar
+          size={52}
+          gradient="gold"
+          photoUri={celeb.profilePhotoUrl ?? null}
+          fallbackInitial={initial}
+        />
         <View style={styles.likeCardBody}>
           <Text style={[styles.likeCardName, { color: colors.text }]} numberOfLines={1}>
             {fullName || 'Unknown'}
           </Text>
-          <View style={styles.likeCardPills}>
-            {sunSign ? (
-              <View style={[styles.placementPill, { backgroundColor: colors.surfaceHigh }]}>
-                <Text style={[styles.placementPillText, { color: colors.primary }]}>
-                  {sunSign} Sun
-                </Text>
-              </View>
-            ) : null}
-            {venusSign ? (
-              <View style={[styles.placementPill, { backgroundColor: colors.surfaceHigh }]}>
-                <Text style={[styles.placementPillText, { color: colors.primary }]}>
-                  {venusSign} Venus
-                </Text>
-              </View>
-            ) : null}
-          </View>
+          {celeb.sharedPlacements.length > 0 ? (
+            <View style={styles.likeCardPills}>
+              {celeb.sharedPlacements.slice(0, 3).map((placement) => (
+                <View
+                  key={placement}
+                  style={[styles.placementPill, { backgroundColor: colors.surfaceHigh }]}
+                >
+                  <Text style={[styles.placementPillText, { color: colors.primary }]}>
+                    {placement}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
           {blurb ? (
             <Text style={[styles.likeCardBlurb, { color: colors.textMuted }]} numberOfLines={2}>
               {blurb}
@@ -884,31 +818,6 @@ export const DiscoverScreen: React.FC = () => {
     );
   };
 
-  const renderPlacementChip = (value: PlacementFilter, label: string) => {
-    const active = placementFilter === value;
-    return (
-      <TouchableOpacity
-        key={value}
-        onPress={() => {
-          setPlacementFilter(active ? 'all' : value);
-          setSearchQuery('');
-        }}
-        activeOpacity={0.85}
-        style={[
-          styles.chip,
-          {
-            backgroundColor: active ? colors.surfaceHigh : colors.surface,
-            borderColor: active ? colors.primary : colors.border,
-          },
-        ]}
-      >
-        <Text style={[styles.chipText, { color: active ? colors.primary : colors.textMuted }]}>
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -925,27 +834,13 @@ export const DiscoverScreen: React.FC = () => {
         <View style={[styles.searchCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
             value={searchQuery}
-            onChangeText={(text) => {
-              setSearchQuery(text);
-              if (text.trim()) setPlacementFilter('all');
-            }}
+            onChangeText={setSearchQuery}
             placeholder="Search by name, sign, or placement"
             placeholderTextColor={colors.textSubtle}
             style={[styles.searchInput, { color: colors.text, borderColor: colors.border }]}
           />
           {isSearching ? <ActivityIndicator size="small" color={colors.primary} /> : null}
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-        >
-          {renderPlacementChip('all', 'All')}
-          {renderPlacementChip('venus', 'By Venus')}
-          {renderPlacementChip('mars', 'By Mars')}
-          {renderPlacementChip('element', 'By element')}
-        </ScrollView>
 
         {showSearchHint ? (
           <View style={[styles.loadingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -981,55 +876,16 @@ export const DiscoverScreen: React.FC = () => {
           </View>
         ) : null}
 
-        {/* PLACEMENT BROWSE ──────────────────────────────── */}
-        {isPlacementMode ? (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {placementFilter === 'venus'
-                ? 'By Venus sign'
-                : placementFilter === 'mars'
-                ? 'By Mars sign'
-                : 'By element'}
-            </Text>
-            <Text style={[styles.sectionMeta, { color: colors.textMuted }]}>
-              Browse charts grouped by {placementFilter === 'element' ? 'element' : placementFilter}.
-            </Text>
-            {placementGroups.map((group) => (
-              <View key={group.label} style={styles.placementGroup}>
-                <Text style={[styles.placementGroupLabel, { color: colors.text }]}>
-                  {group.label}{' '}
-                  <Text style={{ color: colors.textMuted }}>
-                    ({group.subjects.length + group.celebs.length})
-                  </Text>
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.miniRail}
-                >
-                  {group.subjects.map(renderMiniUserCard)}
-                  {group.celebs.map(renderMiniCelebCard)}
-                </ScrollView>
-              </View>
-            ))}
-            {placementGroups.length === 0 && !isLoading ? (
-              <View style={[styles.loadingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[styles.loadingText, { color: colors.textMuted }]}>
-                  No placement data available yet. Server-side placement filtering is pending.
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        ) : null}
-
         {/* DEFAULT VIEW ───────────────────────────────────── */}
-        {!isSearchMode && !isPlacementMode ? (
+        {!isSearchMode ? (
           <>
             {chartsLikeYours.length > 0 ? (
               <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Charts Like Yours</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  {chartsLikeYoursData?.matchedPlacement?.label ?? 'Charts Like Yours'}
+                </Text>
                 <Text style={[styles.sectionMeta, { color: colors.textMuted }]}>
-                  Celebs who share your key placements.
+                  {chartsLikeYoursSubtitle}
                 </Text>
                 {chartsLikeYours.map(renderChartsLikeYoursCard)}
               </View>
@@ -1069,116 +925,17 @@ export const DiscoverScreen: React.FC = () => {
 
             {collections[1] ? renderCollection(collections[1]) : null}
 
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse All</Text>
-              <Text style={[styles.sectionMeta, { color: colors.textMuted }]}>
-                All charts in the database.
-              </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipRow}
-              >
-                <TouchableOpacity
-                  onPress={() => setBrowseAllFilter('all')}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor:
-                        browseAllFilter === 'all' ? colors.surfaceHigh : colors.surface,
-                      borderColor:
-                        browseAllFilter === 'all' ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      {
-                        color:
-                          browseAllFilter === 'all' ? colors.primary : colors.textMuted,
-                      },
-                    ]}
-                  >
-                    All
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setBrowseAllFilter('celebrities')}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor:
-                        browseAllFilter === 'celebrities' ? colors.surfaceHigh : colors.surface,
-                      borderColor:
-                        browseAllFilter === 'celebrities' ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      {
-                        color:
-                          browseAllFilter === 'celebrities' ? colors.primary : colors.textMuted,
-                      },
-                    ]}
-                  >
-                    Celebrities
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setBrowseAllFilter('yours')}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor:
-                        browseAllFilter === 'yours' ? colors.surfaceHigh : colors.surface,
-                      borderColor:
-                        browseAllFilter === 'yours' ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      {
-                        color:
-                          browseAllFilter === 'yours' ? colors.primary : colors.textMuted,
-                      },
-                    ]}
-                  >
-                    Your charts ({ownedSubjects.length})
-                  </Text>
-                </TouchableOpacity>
-              </ScrollView>
-              <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                {browseAllFilter === 'yours' ? (
-                  ownedSubjects.length > 0 ? (
-                    ownedSubjects.map(renderUserRow)
-                  ) : (
-                    <Text
-                      style={[
-                        styles.listEmpty,
-                        { color: colors.textMuted },
-                      ]}
-                    >
-                      You haven't added any charts yet.
-                    </Text>
-                  )
-                ) : browseAllFilter === 'celebrities' ? (
-                  allCelebs.map((c) => renderCelebRow(c))
-                ) : (
-                  <>
-                    {ownedSubjects.map(renderUserRow)}
-                    {allCelebs.map((c) => renderCelebRow(c))}
-                  </>
-                )}
+            {popularCelebs.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Popular</Text>
+                <Text style={[styles.sectionMeta, { color: colors.textMuted }]}>
+                  A handful of charts worth a peek.
+                </Text>
+                <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  {popularCelebs.map((c) => renderCelebRow(c))}
+                </View>
               </View>
-            </View>
+            ) : null}
           </>
         ) : null}
 
@@ -1247,20 +1004,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
   },
-  chipRow: {
-    gap: 8,
-    paddingRight: 20,
-  },
-  chip: {
-    borderRadius: 100,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
   section: {
     gap: 8,
   },
@@ -1278,12 +1021,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     marginTop: 6,
-  },
-  listEmpty: {
-    fontSize: 14,
-    lineHeight: 20,
-    paddingVertical: 20,
-    textAlign: 'center',
   },
   listRow: {
     flexDirection: 'row',
@@ -1433,26 +1170,6 @@ const styles = StyleSheet.create({
   miniMeta: {
     fontSize: 11,
   },
-  miniNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  miniBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 100,
-  },
-  miniBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  placementGroup: {
-    gap: 8,
-    marginTop: 8,
-  },
   connectionRail: {
     gap: 12,
     paddingRight: 20,
@@ -1515,10 +1232,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.4,
-  },
-  placementGroupLabel: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   loadingCard: {
     borderRadius: 18,
