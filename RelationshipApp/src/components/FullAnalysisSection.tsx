@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { RelationshipTheme } from '../theme';
+import { decodeAstroCode } from '../utils/astroCode';
 
 const SUPPORT_COLOR = '#82C8B4';
 const SUPPORT_BG = 'rgba(130, 200, 180, 0.12)';
@@ -143,6 +144,22 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
   const completeAnalysis = fullAnalysis?.completeAnalysis ?? null;
   const clusterMetrics = fullAnalysis?.clusterAnalysis?.clusters ?? null;
   const keystoneAspects: KeystoneAspect[] = aggregateKeystoneAspects(fullAnalysis);
+
+  const scoredItemsAll = Array.isArray(fullAnalysis?.scoredItems)
+    ? fullAnalysis.scoredItems
+    : Array.isArray(fullAnalysis?.clusterScoring?.scoredItems)
+    ? fullAnalysis.clusterScoring.scoredItems
+    : [];
+  const codeToDescription: Record<string, string> = {};
+  for (const item of scoredItemsAll) {
+    if (typeof item?.code === 'string' && typeof item?.description === 'string') {
+      codeToDescription[item.code] = item.description;
+    }
+  }
+  const personANameForCodes: string =
+    fullAnalysis?.userA?.name ?? fullAnalysis?.userA_name ?? 'Person 1';
+  const personBNameForCodes: string =
+    fullAnalysis?.userB?.name ?? fullAnalysis?.userB_name ?? 'Person 2';
 
   const aspectMix = (() => {
     const tfTotal = typeof tensionFlow?.totalAspects === 'number' ? tensionFlow.totalAspects : null;
@@ -390,6 +407,9 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
           setActiveCluster={setActiveCluster}
           activeLens={activeLens}
           setActiveLens={setActiveLens}
+          codeToDescription={codeToDescription}
+          personAName={personANameForCodes}
+          personBName={personBNameForCodes}
         />
       ) : null}
 
@@ -575,14 +595,26 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
   );
 }
 
+interface ClusterKeyAspectsLensSection {
+  codes?: string[];
+}
+
+interface ClusterKeyAspectsBlock {
+  synastry?: ClusterKeyAspectsLensSection;
+  composite?: ClusterKeyAspectsLensSection;
+}
+
 interface ClustersTabProps {
   colors: RelationshipTheme['colors'];
-  completeAnalysis: Partial<Record<ClusterName, ClusterCompleteAnalysis>> | null;
+  completeAnalysis: Partial<Record<ClusterName, ClusterCompleteAnalysis & { keyAspects?: ClusterKeyAspectsBlock }>> | null;
   clusterMetrics: Partial<Record<ClusterName, ClusterMetrics>> | null;
   activeCluster: ClusterName;
   setActiveCluster: (name: ClusterName) => void;
   activeLens: LensKey;
   setActiveLens: (lens: LensKey) => void;
+  codeToDescription: Record<string, string>;
+  personAName: string;
+  personBName: string;
 }
 
 function ClustersTab({
@@ -593,6 +625,9 @@ function ClustersTab({
   setActiveCluster,
   activeLens,
   setActiveLens,
+  codeToDescription,
+  personAName,
+  personBName,
 }: ClustersTabProps) {
   // When the user picks a different cluster, snap the lens back to "between"
   // (matches the mock's behavior).
@@ -601,10 +636,14 @@ function ClustersTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCluster]);
 
-  const ca: ClusterCompleteAnalysis = completeAnalysis?.[activeCluster] ?? {};
+  const ca = completeAnalysis?.[activeCluster] ?? {};
   const cm: ClusterMetrics = clusterMetrics?.[activeCluster] ?? {};
   const activeScore = typeof cm.score === 'number' ? Math.round(cm.score) : null;
   const lensSource = activeLens === 'between' ? ca.synastry : ca.composite;
+  const lensKeyAspectCodes: string[] =
+    (activeLens === 'between'
+      ? ca.keyAspects?.synastry?.codes
+      : ca.keyAspects?.composite?.codes) ?? [];
   const subtitle =
     activeLens === 'between'
       ? 'How your charts interact with each other'
@@ -741,6 +780,88 @@ function ClustersTab({
           </Text>
         </View>
       )}
+
+      {lensKeyAspectCodes.length > 0 ? (
+        <AspectsConsidered
+          colors={colors}
+          codes={lensKeyAspectCodes}
+          codeToDescription={codeToDescription}
+          personAName={personAName}
+          personBName={personBName}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+interface AspectsConsideredProps {
+  colors: RelationshipTheme['colors'];
+  codes: string[];
+  codeToDescription: Record<string, string>;
+  personAName: string;
+  personBName: string;
+}
+
+function AspectsConsidered({
+  colors,
+  codes,
+  codeToDescription,
+  personAName,
+  personBName,
+}: AspectsConsideredProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const items = codes.map((code) => {
+    const known = codeToDescription[code];
+    if (known) return { code, label: known };
+    const decoded = decodeAstroCode(code, {
+      person1Name: personAName,
+      person2Name: personBName,
+    });
+    if (decoded?.pretty) return { code, label: decoded.pretty };
+    return { code, label: code };
+  });
+
+  return (
+    <View style={styles.aspectsConsideredWrap}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => setExpanded((prev) => !prev)}
+        style={[
+          styles.aspectsConsideredHeader,
+          { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+        ]}
+      >
+        <Text style={[styles.aspectsConsideredLabel, { color: colors.textSubtle }]}>
+          Aspects considered · {items.length}
+        </Text>
+        <Text
+          style={[
+            styles.aspectsConsideredChevron,
+            { color: colors.textSubtle },
+            expanded && styles.aspectsConsideredChevronOpen,
+          ]}
+        >
+          ›
+        </Text>
+      </TouchableOpacity>
+      {expanded ? (
+        <View
+          style={[
+            styles.aspectsConsideredBody,
+            { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+          ]}
+        >
+          {items.map((it, i) => (
+            <Text
+              key={`${it.code}-${i}`}
+              style={[styles.aspectsConsideredItem, { color: colors.textMuted }]}
+            >
+              • {it.label}
+            </Text>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1006,6 +1127,43 @@ const styles = StyleSheet.create({
   clusterHeaderSubtitle: {
     fontSize: 11.5,
     marginTop: 2,
+  },
+  aspectsConsideredWrap: {
+    marginTop: 6,
+  },
+  aspectsConsideredHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  aspectsConsideredLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+  },
+  aspectsConsideredChevron: {
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  aspectsConsideredChevronOpen: {
+    transform: [{ rotate: '90deg' }],
+  },
+  aspectsConsideredBody: {
+    marginTop: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  aspectsConsideredItem: {
+    fontSize: 12.5,
+    lineHeight: 18,
   },
   panel: {
     borderRadius: 14,
