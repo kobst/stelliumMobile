@@ -123,11 +123,20 @@ interface AspectChartData {
   };
 }
 
+interface KeystoneAnnotation {
+  title?: string;
+  sentence?: string;
+  primaryCluster?: string;
+  rank?: number;
+}
+
 interface KeystoneAspect {
   description?: string;
   cluster?: string;
   chart?: AspectChartData;
   dominantValence?: number;
+  code?: string;
+  annotation?: KeystoneAnnotation;
 }
 
 function buildChartFromScoredItem(item: any): AspectChartData | undefined {
@@ -266,6 +275,7 @@ function aggregateKeystoneAspects(
       chart: buildChartFromScoredItem(item),
       magnitude: dominantMagnitude,
       dominantValence: valenceFromAspect(item?.aspect),
+      code: typeof item?.code === 'string' ? item.code : undefined,
     });
   }
 
@@ -474,10 +484,55 @@ export function FullAnalysisSection({
     };
   }
 
-  const keystoneAspectsRaw: KeystoneAspect[] = aggregateKeystoneAspects(fullAnalysis);
-  const keystoneAspects: KeystoneAspect[] = keystoneAspectsRaw.map((ka) =>
-    ka.chart ? { ...ka, chart: enrichAspectChart(ka.chart) } : ka
-  );
+  const keystoneAnnotationByCode: Record<string, KeystoneAnnotation> =
+    fullAnalysis?.clusterAnalysis?.overall?.keystoneAspectAnnotations?.byCode ?? {};
+
+  // Prefer the backend's curated overall keystone list; fall back to the
+  // magnitude-based aggregation only when the curated list is unavailable
+  // (older relationships pre-keystone-curation).
+  const officialKeystoneEntries: any[] =
+    fullAnalysis?.clusterAnalysis?.overall?.keystoneAspects ??
+    fullAnalysis?.overall?.keystoneAspects ??
+    [];
+  const officialKeystoneAspects: KeystoneAspect[] = Array.isArray(officialKeystoneEntries)
+    ? officialKeystoneEntries
+        .map((entry: any): KeystoneAspect | null => {
+          const code: string | undefined =
+            typeof entry?.code === 'string' ? entry.code : undefined;
+          const scoredItem = code ? codeToScoredItem[code] : undefined;
+          const description: string | undefined =
+            (typeof entry?.description === 'string' && entry.description) ||
+            (typeof scoredItem?.description === 'string' && scoredItem.description) ||
+            undefined;
+          if (!description) return null;
+          const cluster: string | undefined =
+            entry?.primaryCluster ?? entry?.cluster ?? scoredItem?.dominantCluster;
+          const chart = scoredItem ? buildChartFromScoredItem(scoredItem) : undefined;
+          const dominantValence = valenceFromAspect(
+            scoredItem?.aspect ?? entry?.aspect
+          );
+          return {
+            description,
+            cluster,
+            chart,
+            dominantValence,
+            code,
+          };
+        })
+        .filter((x): x is KeystoneAspect => x !== null)
+    : [];
+
+  const keystoneAspectsRaw: KeystoneAspect[] =
+    officialKeystoneAspects.length > 0
+      ? officialKeystoneAspects
+      : aggregateKeystoneAspects(fullAnalysis);
+  const keystoneAspects: KeystoneAspect[] = keystoneAspectsRaw.map((ka) => {
+    const enriched = ka.chart ? { ...ka, chart: enrichAspectChart(ka.chart) } : { ...ka };
+    if (ka.code && keystoneAnnotationByCode[ka.code]) {
+      enriched.annotation = keystoneAnnotationByCode[ka.code];
+    }
+    return enriched;
+  });
 
   const aspectMix = (() => {
     const tfTotal = typeof tensionFlow?.totalAspects === 'number' ? tensionFlow.totalAspects : null;
@@ -874,6 +929,16 @@ export function FullAnalysisSection({
                           </Text>
                         );
                       })()}
+                      {ka.annotation?.title ? (
+                        <Text style={[styles.keystoneAnnotationTitle, { color: accentColor }]}>
+                          {ka.annotation.title}
+                        </Text>
+                      ) : null}
+                      {ka.annotation?.sentence ? (
+                        <Text style={[styles.keystoneAnnotationSentence, { color: colors.textMuted }]}>
+                          {ka.annotation.sentence}
+                        </Text>
+                      ) : null}
                       {ka.cluster ? (
                         <Text style={[styles.keystoneCluster, { color: colors.textSubtle }]}>
                           {ka.cluster}
@@ -1725,6 +1790,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 3,
     letterSpacing: 0.2,
+  },
+  keystoneAnnotationTitle: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    marginTop: 6,
+    letterSpacing: 0.2,
+  },
+  keystoneAnnotationSentence: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    lineHeight: 17,
+    marginTop: 2,
   },
   aspectMixRow: {
     flexDirection: 'row',
