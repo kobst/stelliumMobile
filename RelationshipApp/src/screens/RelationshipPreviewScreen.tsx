@@ -18,6 +18,10 @@ import { Avatar } from '../components/Avatar';
 import { CreditPill } from '../components/CreditPill';
 import { AskIrisCard } from '../components/AskIrisCard';
 import { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
+import { relationshipsApi } from '../api';
+import { useRelationshipAnalysisWorkflow } from '../hooks/useRelationshipAnalysisWorkflow';
+import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
+import { FullAnalysisSection } from '../components/FullAnalysisSection';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'RelationshipPreview'>;
 
@@ -30,6 +34,8 @@ const CLUSTER_ORDER: readonly ('Harmony' | 'Passion' | 'Connection' | 'Stability
   'Stability',
   'Growth',
 ];
+
+const FULL_RELATIONSHIP_ANALYSIS_COST = 60;
 
 const RELATIONSHIP_ASK_COPY = {
   title: 'Questions about this connection',
@@ -64,6 +70,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   );
   const fullAnalysis = useRelationshipAppStore((state) => state.fullAnalysis);
   const workflowPhase = useRelationshipAppStore((state) => state.workflowPhase);
+  const workflowError = useRelationshipAppStore((state) => state.workflowError);
   const profile = useRelationshipAppStore((state) => state.profile);
   const credits = useRelationshipAppStore((state) => state.credits);
   const clearActiveRelationshipFlow = useRelationshipAppStore(
@@ -72,8 +79,22 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   const setActivePartnerRomanticAssets = useRelationshipAppStore(
     (state) => state.setActivePartnerRomanticAssets
   );
+  const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
+  const setFullAnalysis = useRelationshipAppStore((state) => state.setFullAnalysis);
   const askThreads = useRelationshipAppStore((state) => state.askThreads);
   const activeRelationshipId = useRelationshipAppStore((state) => state.activeRelationshipId);
+  const { startFullAnalysis } = useRelationshipAnalysisWorkflow(activeRelationshipId);
+  const { refreshHistory } = useRelationshipHistory(false);
+  const didRefreshAfterCompletionRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (workflowPhase !== 'completed') return;
+    const idToRefresh = activeRelationshipId ?? previewAnalysis?.compositeChartId ?? null;
+    if (!idToRefresh) return;
+    if (didRefreshAfterCompletionRef.current === idToRefresh) return;
+    didRefreshAfterCompletionRef.current = idToRefresh;
+    refreshHistory(true).catch(() => undefined);
+  }, [activeRelationshipId, previewAnalysis?.compositeChartId, refreshHistory, workflowPhase]);
 
   const partnerIdForHydration = previewAnalysis?.userB?.id ?? null;
   const isCelebrityRelationship = Boolean(
@@ -120,12 +141,123 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
     setActivePartnerRomanticAssets,
   ]);
 
+  const hasInitialOverview = Boolean(previewAnalysis?.initialOverview?.trim());
+  const hasFullAnalysisInStore = Boolean(fullAnalysis);
+  const compositeChartIdForHydration = previewAnalysis?.compositeChartId ?? activeRelationshipId ?? null;
+  const hydratedRef = useRef<string | null>(null);
+  const previewAnalysisRef = useRef(previewAnalysis);
+  previewAnalysisRef.current = previewAnalysis;
+
+  useEffect(() => {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[RelationshipPreviewScreen] hydrate effect fire', {
+        compositeChartIdForHydration,
+        hasInitialOverview,
+        hasFullAnalysisInStore,
+        hydratedRefCurrent: hydratedRef.current,
+        willSkip:
+          !compositeChartIdForHydration ||
+          (hasInitialOverview && hasFullAnalysisInStore) ||
+          hydratedRef.current === compositeChartIdForHydration,
+      });
+    }
+    if (!compositeChartIdForHydration) return;
+    // If both pieces of data are already present, nothing to hydrate.
+    if (hasInitialOverview && hasFullAnalysisInStore) return;
+    if (hydratedRef.current === compositeChartIdForHydration) return;
+
+    let cancelled = false;
+    hydratedRef.current = compositeChartIdForHydration;
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[RelationshipPreviewScreen] hydrate fetch start', {
+        compositeChartIdForHydration,
+      });
+    }
+
+    relationshipsApi
+      .fetchRelationshipAnalysis(compositeChartIdForHydration)
+      .then((result) => {
+        if (cancelled) return;
+        const current = previewAnalysisRef.current;
+        if (current && current.compositeChartId !== compositeChartIdForHydration) return;
+
+        const fetchedOverview = result?.initialOverview?.trim();
+        const hasCompleteAnalysis =
+          Boolean((result as any)?.completeAnalysis) &&
+          Object.keys(((result as any)?.completeAnalysis ?? {})).length > 0;
+        const workflowDone = (result as any)?.workflowStatus?.status === 'completed';
+
+        // Patch initialOverview into previewAnalysis if missing.
+        // NOTE: store's setPreviewAnalysis side-effect resets fullAnalysis to null,
+        // so we always re-apply setFullAnalysis below when the response has it.
+        if (fetchedOverview && current && !current.initialOverview?.trim()) {
+          setPreviewAnalysis({
+            ...current,
+            initialOverview: fetchedOverview,
+          });
+        }
+
+        // Always restore/set fullAnalysis when the saved analysis is complete,
+        // regardless of the closure's hasFullAnalysisInStore.
+        if (hasCompleteAnalysis || workflowDone) {
+          setFullAnalysis(result);
+        }
+
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('[RelationshipPreviewScreen] hydrate result', {
+            compositeChartId: compositeChartIdForHydration,
+            hasCompleteAnalysis,
+            workflowDone,
+            hadInitialOverview: hasInitialOverview,
+            patchedInitialOverview: Boolean(fetchedOverview && !current?.initialOverview?.trim()),
+            calledSetFullAnalysis: hasCompleteAnalysis || workflowDone,
+          });
+        }
+      })
+      .catch((error) => {
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.log('[RelationshipPreviewScreen] hydrate failed', {
+            compositeChartId: compositeChartIdForHydration,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        if (hydratedRef.current === compositeChartIdForHydration) {
+          hydratedRef.current = null;
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    compositeChartIdForHydration,
+    hasInitialOverview,
+    hasFullAnalysisInStore,
+    setPreviewAnalysis,
+    setFullAnalysis,
+  ]);
+
   const stage: Stage = useMemo(() => {
     if (fullAnalysis) return 4;
     if (previewAnalysis && (workflowPhase === 'starting' || workflowPhase === 'polling')) return 3;
     if (previewAnalysis) return 2;
     return 1;
   }, [fullAnalysis, previewAnalysis, workflowPhase]);
+
+  if (__DEV__) {
+    console.log('[RelationshipPreviewScreen] stage', {
+      stage,
+      fullAnalysis: fullAnalysis === null || fullAnalysis === undefined ? 'null' : 'truthy',
+      previewAnalysis: previewAnalysis === null || previewAnalysis === undefined ? 'null' : 'truthy',
+      workflowPhase,
+      previewCompositeChartId: previewAnalysis?.compositeChartId,
+      fullAnalysisKeys: fullAnalysis ? Object.keys(fullAnalysis as object) : null,
+    });
+  }
 
   if (!previewAnalysis && !activeTargetSubject) {
     return (
@@ -395,18 +527,10 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                 <RadarChart data={clusterScores} colors={colors} />
               </View>
             </View>
-
-            {/* Initial reading */}
-            {initialOverview ? (
-              <View>
-                <SectionLabel color={colors.accent}>Initial Reading</SectionLabel>
-                <ExpandableReading text={initialOverview} />
-              </View>
-            ) : null}
           </>
         ) : null}
 
-        {/* Stage 2 only: unlock CTA */}
+        {/* Stage 2: unlock CTA — single tap starts workflow inline */}
         {stage === 2 ? (
           <>
             <Divider color={colors.ghostBorder} />
@@ -423,56 +547,71 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={[styles.unlockButton, { backgroundColor: colors.primary }]}
-                onPress={() => navigation.navigate('Unlock')}
+                onPress={() => {
+                  startFullAnalysis().catch(() => undefined);
+                }}
               >
                 <Text style={[styles.unlockButtonText, { color: colors.onPrimary }]}>
-                  Unlock Full Analysis · ◆ 3
+                  {`Unlock Full Analysis · ◆ ${FULL_RELATIONSHIP_ANALYSIS_COST}`}
                 </Text>
               </TouchableOpacity>
+              {workflowPhase === 'error' && workflowError ? (
+                <Text style={[styles.unlockError, { color: colors.danger ?? '#ff6b6b' }]}>
+                  {workflowError}
+                </Text>
+              ) : null}
             </View>
           </>
         ) : null}
 
-        {/* Stage 3: async workflow running (UI placeholder — workflow not wired yet) */}
+        {/* Stage 3: workflow running — show initial reading + loading icon below */}
         {stage === 3 ? (
           <>
             <Divider color={colors.ghostBorder} />
-            <View
-              style={[
-                styles.progressCard,
-                { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-              ]}
-            >
-              <PulseDots color={colors.primary} />
-              <Text style={[styles.progressTitle, { color: colors.text }]}>
-                Full analysis in progress
-              </Text>
-              <Text style={[styles.progressHint, { color: colors.textMuted }]}>
-                Usually 30–60 seconds
-              </Text>
-            </View>
-          </>
-        ) : null}
-
-        {/* Stage 4: full analysis (placeholder — wire when workflow lands) */}
-        {stage === 4 ? (
-          <>
-            <Divider color={colors.ghostBorder} />
-            <View>
-              <SectionLabel color={colors.accent}>The Full Picture</SectionLabel>
+            {workflowPhase === 'starting' || !initialOverview ? (
               <View
                 style={[
-                  styles.softCard,
+                  styles.progressCard,
                   { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
                 ]}
               >
-                <Text style={[styles.serifItalic, { color: colors.text }]}>
-                  Full reading available. Deeper synastry, composite, and Ask Iris coming to this
-                  screen.
+                <PulseDots color={colors.primary} />
+                <Text style={[styles.progressTitle, { color: colors.text }]}>
+                  Starting full analysis…
                 </Text>
               </View>
-            </View>
+            ) : (
+              <>
+                <View>
+                  <SectionLabel color={colors.accent}>Initial Reading</SectionLabel>
+                  <ExpandableReading text={initialOverview} />
+                </View>
+                <View
+                  style={[
+                    styles.progressCard,
+                    { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                  ]}
+                >
+                  <PulseDots color={colors.primary} />
+                  <Text style={[styles.progressTitle, { color: colors.text }]}>
+                    Generating full analysis…
+                  </Text>
+                  <Text style={[styles.progressHint, { color: colors.textMuted }]}>
+                    Usually 30–60 seconds
+                  </Text>
+                </View>
+              </>
+            )}
           </>
+        ) : null}
+
+        {/* Stage 4: unlocked full analysis */}
+        {stage === 4 ? (
+          <FullAnalysisSection
+            colors={colors}
+            initialOverview={initialOverview}
+            fullAnalysis={fullAnalysis}
+          />
         ) : null}
 
         {/* Ask Iris card — normalized entry point */}
@@ -971,6 +1110,13 @@ const styles = StyleSheet.create({
   unlockButtonText: {
     fontSize: 15,
     fontWeight: '700',
+  },
+  unlockError: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    textAlign: 'center',
+    marginTop: 10,
+    paddingHorizontal: 8,
   },
   progressCard: {
     borderRadius: 18,

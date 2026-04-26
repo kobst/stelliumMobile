@@ -10,16 +10,24 @@ export function buildHistorySelectionState(relationship: UserCompositeChart): {
   previewAnalysis: EnhancedRelationshipAnalysisResponse | null;
   workflowPhase: RelationshipWorkflowPhase;
 } {
-  const fullAnalysis =
-    relationship.completeAnalysis || relationship.clusterScoring || relationship.initialOverview
-      ? {
-          completeAnalysis: relationship.completeAnalysis,
-          clusterScoring: relationship.clusterScoring,
-          initialOverview: relationship.initialOverview,
-          userA_name: relationship.userA_name,
-          userB_name: relationship.userB_name,
-        }
-      : null;
+  const status = relationship.relationshipAnalysisStatus as
+    | { level?: string; hasCompleteAnalysis?: boolean; hasClusterAnalysis?: boolean }
+    | undefined;
+  const isComplete =
+    Boolean(relationship.completeAnalysis) ||
+    status?.level === 'complete' ||
+    status?.hasCompleteAnalysis === true ||
+    status?.hasClusterAnalysis === true;
+
+  const fullAnalysis = isComplete
+    ? {
+        completeAnalysis: relationship.completeAnalysis,
+        clusterScoring: relationship.clusterScoring,
+        initialOverview: relationship.initialOverview,
+        userA_name: relationship.userA_name,
+        userB_name: relationship.userB_name,
+      }
+    : null;
 
   const workflowPhase: RelationshipWorkflowPhase =
     relationship.relationshipAnalysisStatus?.level === 'complete' ? 'completed' : 'idle';

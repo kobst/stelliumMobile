@@ -322,6 +322,15 @@ export const HistoryScreen: React.FC = () => {
   const openRelationship = useCallback(
     (relationship: UserCompositeChart) => {
       const selectionState = buildHistorySelectionState(relationship);
+      if (__DEV__) {
+        console.log('[HistoryScreen] openRelationship', {
+          compositeChartId: relationship._id,
+          partner: relationship.userB_name,
+          selectionFullAnalysis: selectionState.fullAnalysis === null ? 'null' : 'truthy',
+          selectionPreviewAnalysis: selectionState.previewAnalysis === null ? 'null' : 'truthy',
+          selectionWorkflowPhase: selectionState.workflowPhase,
+        });
+      }
       setActivePartnerRomanticAssets(null);
       setPreviewAnalysis(selectionState.previewAnalysis);
       setActiveRelationshipId(relationship._id);
@@ -381,6 +390,17 @@ export const HistoryScreen: React.FC = () => {
       selfProfileId,
       showEmptyState:
         !isHistoryLoading && !historyError && relationshipHistory.length === 0,
+      rows: relationshipHistory.map((rel) => ({
+        compositeChartId: rel._id,
+        ownerUserId: rel.ownerUserId,
+        userA_id: rel.userA_id,
+        userB_id: rel.userB_id,
+        userA_name: rel.userA_name,
+        userB_name: rel.userB_name,
+        isCelebrityRelationship: rel.isCelebrityRelationship,
+      })),
+      filteredCount: filteredRelationships.length,
+      filteredIds: filteredRelationships.map((rel) => rel._id),
     });
   }
 

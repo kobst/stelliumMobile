@@ -70,6 +70,14 @@ export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null
   );
 
   const startFullAnalysis = useCallback(async () => {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[useRelationshipAnalysisWorkflow] startFullAnalysis enter', {
+        compositeChartId,
+        isLocalUxMode,
+        hasPreviewAnalysis: Boolean(previewAnalysis),
+      });
+    }
     if (!compositeChartId) {
       setWorkflowState({
         workflowPhase: 'error',
@@ -118,7 +126,23 @@ export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null
         workflowError: null,
       });
 
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[useRelationshipAnalysisWorkflow] startFullRelationshipAnalysis request', {
+          compositeChartId,
+        });
+      }
       const response = await relationshipsApi.startFullRelationshipAnalysis(compositeChartId);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[useRelationshipAnalysisWorkflow] startFullRelationshipAnalysis response', {
+          success: response?.success,
+          status: (response as any)?.status,
+          message: (response as any)?.message,
+          error: (response as any)?.error,
+          keys: response ? Object.keys(response as object) : null,
+        });
+      }
 
       if (!response.success) {
         throw new Error(response.error || response.message || 'Failed to start full analysis.');
@@ -126,6 +150,15 @@ export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null
 
       await refreshWorkflowStatus(compositeChartId);
     } catch (error) {
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log('[useRelationshipAnalysisWorkflow] startFullAnalysis caught error', {
+          compositeChartId,
+          message: error instanceof Error ? error.message : String(error),
+          name: error instanceof Error ? error.name : undefined,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      }
       setWorkflowState({
         workflowPhase: 'error',
         workflowError:

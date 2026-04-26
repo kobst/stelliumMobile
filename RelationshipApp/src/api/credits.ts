@@ -254,7 +254,7 @@ function fallbackDescription(kind: CreditTransactionKind): string {
 export async function getCreditHistory(): Promise<CreditTransaction[]> {
   const response = await relationshipApiClient.get<
     CreditTransactionsResponse | RawCreditTransaction[]
-  >('/api/credits/transactions');
+  >('/relationship-app/api/credits/transactions');
 
   const rawList = Array.isArray(response)
     ? response

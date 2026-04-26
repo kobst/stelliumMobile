@@ -91,8 +91,24 @@ export function useRelationshipHistory(autoLoad: boolean = true) {
         debugLog('refreshHistory success', {
           durationMs,
           count: Array.isArray(charts) ? charts.length : 'non-array',
-          sampleIds: Array.isArray(charts) ? charts.slice(0, 3).map((chart) => chart?._id) : null,
         });
+        if (Array.isArray(charts)) {
+          charts.forEach((chart, index) => {
+            debugLog(`row[${index}]`, {
+              compositeChartId: chart?._id,
+              partner: chart?.userB_name,
+              partnerId: chart?.userB_id,
+              hasCompleteAnalysis: Boolean((chart as any)?.completeAnalysis),
+              hasClusterScoring: Boolean((chart as any)?.clusterScoring),
+              hasInitialOverview: Boolean((chart as any)?.initialOverview),
+              statusLevel: (chart as any)?.relationshipAnalysisStatus?.level,
+              statusHasCompleteAnalysis: (chart as any)?.relationshipAnalysisStatus?.hasCompleteAnalysis,
+              statusHasInitialOverview: (chart as any)?.relationshipAnalysisStatus?.hasInitialOverview,
+              statusWorkflowStatus: (chart as any)?.relationshipAnalysisStatus?.workflowStatus,
+              topLevelKeys: chart ? Object.keys(chart) : [],
+            });
+          });
+        }
         setRelationshipHistory({
           relationshipHistory: charts,
           isHistoryLoading: false,
