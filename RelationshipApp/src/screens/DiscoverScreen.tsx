@@ -210,6 +210,7 @@ export const DiscoverScreen: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSearching, setIsSearching] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [popularMode, setPopularMode] = React.useState<'popular' | 'yours'>('popular');
 
   const trimmedSearchQuery = searchQuery.trim();
   const isSearchMode = trimmedSearchQuery.length >= 2;
@@ -925,15 +926,56 @@ export const DiscoverScreen: React.FC = () => {
 
             {collections[1] ? renderCollection(collections[1]) : null}
 
-            {popularCelebs.length > 0 ? (
+            {popularCelebs.length > 0 || ownedSubjects.length > 0 ? (
               <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Popular</Text>
-                <Text style={[styles.sectionMeta, { color: colors.textMuted }]}>
-                  A handful of charts worth a peek.
-                </Text>
-                <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  {popularCelebs.map((c) => renderCelebRow(c))}
+                <View style={[styles.segmentedControl, { backgroundColor: colors.surfaceHigh }]}>
+                  {(['popular', 'yours'] as const).map((mode) => {
+                    const isActive = popularMode === mode;
+                    const label = mode === 'popular' ? 'Popular' : 'Your people';
+                    return (
+                      <TouchableOpacity
+                        key={mode}
+                        onPress={() => setPopularMode(mode)}
+                        activeOpacity={0.86}
+                        style={[
+                          styles.segmentedButton,
+                          isActive && { backgroundColor: colors.surface },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.segmentedButtonText,
+                            { color: isActive ? colors.text : colors.textMuted },
+                          ]}
+                        >
+                          {label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
+                <Text style={[styles.sectionMeta, { color: colors.textMuted }]}>
+                  {popularMode === 'popular'
+                    ? 'A handful of charts worth a peek.'
+                    : 'Subjects you’ve added to your circle.'}
+                </Text>
+                {popularMode === 'popular' ? (
+                  popularCelebs.length > 0 ? (
+                    <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                      {popularCelebs.map((c) => renderCelebRow(c))}
+                    </View>
+                  ) : null
+                ) : ownedSubjects.length > 0 ? (
+                  <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    {ownedSubjects.map(renderUserRow)}
+                  </View>
+                ) : (
+                  <View style={[styles.loadingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Text style={[styles.loadingText, { color: colors.textMuted }]}>
+                      You haven&apos;t added anyone yet. Tap the + button to start.
+                    </Text>
+                  </View>
+                )}
               </View>
             ) : null}
           </>
@@ -1015,6 +1057,22 @@ const styles = StyleSheet.create({
   sectionMeta: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 4,
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
+  segmentedButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  segmentedButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   listCard: {
     borderRadius: 18,
