@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { RelationshipTheme } from '../theme';
 import { decodeAstroCode } from '../utils/astroCode';
+import { AspectFocusChart } from '../../../shared/components/chart/AspectFocusChart';
+import type { TextStyle, StyleProp } from 'react-native';
 
 const SUPPORT_COLOR = '#82C8B4';
 const SUPPORT_BG = 'rgba(130, 200, 180, 0.12)';
@@ -11,6 +13,30 @@ const CHALLENGE_BG = 'rgba(232, 133, 107, 0.12)';
 const CHALLENGE_BORDER = 'rgba(232, 133, 107, 0.18)';
 const SYNTH_BG = 'rgba(202, 190, 255, 0.12)';
 const SYNTH_BORDER = 'rgba(202, 190, 255, 0.18)';
+
+const HARMONIOUS_ASPECTS = new Set(['trine', 'sextile']);
+const HARD_ASPECTS = new Set(['square', 'opposition', 'quincunx']);
+
+function valenceFromAspect(aspect?: string): number | undefined {
+  if (!aspect) return undefined;
+  const a = aspect.toLowerCase();
+  if (HARMONIOUS_ASPECTS.has(a)) return 1;
+  if (HARD_ASPECTS.has(a)) return -1;
+  return 0;
+}
+
+function formatPlacement(p?: { sign?: string; degree?: number; house?: number; isRetro?: boolean }): string | null {
+  if (!p) return null;
+  const parts: string[] = [];
+  if (typeof p.degree === 'number' && Number.isFinite(p.degree)) {
+    const within = ((p.degree % 30) + 30) % 30;
+    parts.push(`${Math.floor(within)}°`);
+  }
+  if (p.sign) parts.push(p.sign);
+  if (typeof p.house === 'number' && p.house > 0) parts.push(`H${p.house}`);
+  if (p.isRetro) parts.push('℞');
+  return parts.length > 0 ? parts.join(' ') : null;
+}
 
 const CLUSTER_ORDER = ['Harmony', 'Passion', 'Connection', 'Stability', 'Growth'] as const;
 type ClusterName = (typeof CLUSTER_ORDER)[number];
@@ -40,9 +66,125 @@ interface ClusterMetrics {
   challengePct?: number;
 }
 
+interface AspectChartData {
+  source: 'synastry' | 'composite' | 'natal';
+  aspect: string;
+  planet1: {
+    name: string;
+    sign: string;
+    degree?: number;
+    house?: number;
+    isRetro?: boolean;
+  };
+  planet2: {
+    name: string;
+    sign: string;
+    degree?: number;
+    house?: number;
+    isRetro?: boolean;
+  };
+}
+
 interface KeystoneAspect {
   description?: string;
   cluster?: string;
+  chart?: AspectChartData;
+  dominantValence?: number;
+}
+
+function buildChartFromScoredItem(item: any): AspectChartData | undefined {
+  const aspect: string | undefined = item?.aspect;
+  const p1Name: string | undefined = item?.planet1;
+  const p2Name: string | undefined = item?.planet2;
+  const p1Sign: string | undefined = item?.planet1Sign;
+  const p2Sign: string | undefined = item?.planet2Sign;
+  if (!aspect || !p1Name || !p2Name || !p1Sign || !p2Sign) return undefined;
+  const sourceRaw: string | undefined = item?.source;
+  const source: AspectChartData['source'] =
+    sourceRaw === 'composite' ? 'composite' : sourceRaw === 'natal' ? 'natal' : 'synastry';
+  return {
+    source,
+    aspect,
+    planet1: {
+      name: p1Name,
+      sign: p1Sign,
+      degree: typeof item?.planet1Degree === 'number' ? item.planet1Degree : undefined,
+      house: typeof item?.planet1House === 'number' ? item.planet1House : undefined,
+      isRetro: Boolean(item?.planet1IsRetro),
+    },
+    planet2: {
+      name: p2Name,
+      sign: p2Sign,
+      degree: typeof item?.planet2Degree === 'number' ? item.planet2Degree : undefined,
+      house: typeof item?.planet2House === 'number' ? item.planet2House : undefined,
+      isRetro: Boolean(item?.planet2IsRetro),
+    },
+  };
+}
+
+interface ColoredAspectTitleProps {
+  description?: string;
+  planet1Name?: string;
+  planet2Name?: string;
+  planet1Color?: string;
+  planet2Color?: string;
+  baseStyle?: StyleProp<TextStyle>;
+  numberOfLines?: number;
+}
+
+function ColoredAspectTitle({
+  description,
+  planet1Name,
+  planet2Name,
+  planet1Color,
+  planet2Color,
+  baseStyle,
+  numberOfLines,
+}: ColoredAspectTitleProps) {
+  if (!description) return null;
+  if (!planet1Name || !planet2Name || (!planet1Color && !planet2Color)) {
+    return (
+      <Text style={baseStyle} numberOfLines={numberOfLines}>
+        {description}
+      </Text>
+    );
+  }
+
+  type Segment = { text: string; color?: string };
+  const segments: Segment[] = [];
+  let cursor = 0;
+
+  if (planet1Color) {
+    const idx = description.indexOf(planet1Name, cursor);
+    if (idx >= cursor) {
+      segments.push({ text: description.slice(cursor, idx) });
+      segments.push({ text: planet1Name, color: planet1Color });
+      cursor = idx + planet1Name.length;
+    }
+  }
+  if (planet2Color) {
+    const idx = description.indexOf(planet2Name, cursor);
+    if (idx >= cursor) {
+      segments.push({ text: description.slice(cursor, idx) });
+      segments.push({ text: planet2Name, color: planet2Color });
+      cursor = idx + planet2Name.length;
+    }
+  }
+  segments.push({ text: description.slice(cursor) });
+
+  return (
+    <Text style={baseStyle} numberOfLines={numberOfLines}>
+      {segments.map((s, i) =>
+        s.color ? (
+          <Text key={i} style={{ color: s.color, fontWeight: '600' }}>
+            {s.text}
+          </Text>
+        ) : (
+          s.text
+        )
+      )}
+    </Text>
+  );
 }
 
 function aggregateKeystoneAspects(
@@ -83,7 +225,9 @@ function aggregateKeystoneAspects(
     ranked.push({
       description,
       cluster: dominantCluster,
+      chart: buildChartFromScoredItem(item),
       magnitude: dominantMagnitude,
+      dominantValence: valenceFromAspect(item?.aspect),
     });
   }
 
@@ -205,6 +349,10 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
       : Array.isArray(fullAnalysis?.clusterScoring?.scoredItems)
       ? fullAnalysis.clusterScoring.scoredItems
       : [];
+    const byDescription = new Map<string, any>();
+    for (const item of items) {
+      if (typeof item?.description === 'string') byDescription.set(item.description, item);
+    }
     const dedup = new Map<
       string,
       {
@@ -214,6 +362,8 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
         complexity?: string;
         combinedMagnitude?: number;
         dominantValence?: number;
+        chartA?: AspectChartData;
+        chartB?: AspectChartData;
       }
     >();
     for (const item of items) {
@@ -226,6 +376,7 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
         .sort()
         .join(' | ');
       if (!pairKey || dedup.has(pairKey)) continue;
+      const partnerItem = partnerDesc ? byDescription.get(partnerDesc) : undefined;
       dedup.set(pairKey, {
         description: desc,
         partnerDescription: partnerDesc,
@@ -235,6 +386,8 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
           typeof dw.combinedMagnitude === 'number' ? dw.combinedMagnitude : undefined,
         dominantValence:
           typeof dw.dominantValence === 'number' ? dw.dominantValence : undefined,
+        chartA: buildChartFromScoredItem(item),
+        chartB: partnerItem ? buildChartFromScoredItem(partnerItem) : undefined,
       });
     }
     return Array.from(dedup.values()).sort(
@@ -493,6 +646,12 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
             >
               {keystoneAspects.map((ka, i) => {
                 const aspectLabel = ka.description ?? '';
+                const accentColor =
+                  ka.dominantValence === 1
+                    ? SUPPORT_COLOR
+                    : ka.dominantValence === -1
+                    ? CHALLENGE_COLOR
+                    : colors.accent;
                 return (
                   <View
                     key={`${aspectLabel}-${i}`}
@@ -504,20 +663,54 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
                       },
                     ]}
                   >
-                    <View style={[styles.keystoneAccent, { backgroundColor: colors.accent }]} />
+                    <View style={[styles.keystoneAccent, { backgroundColor: accentColor }]} />
                     <View style={styles.keystoneBody}>
-                      <Text
-                        style={[styles.keystoneTitle, { color: colors.text }]}
-                        numberOfLines={2}
-                      >
-                        {aspectLabel || 'Keystone aspect'}
-                      </Text>
+                      <ColoredAspectTitle
+                        description={aspectLabel || 'Keystone aspect'}
+                        planet1Name={ka.chart?.planet1.name}
+                        planet2Name={ka.chart?.planet2.name}
+                        planet1Color={
+                          ka.chart?.source === 'synastry' ? colors.primary : undefined
+                        }
+                        planet2Color={
+                          ka.chart?.source === 'synastry' ? SUPPORT_COLOR : undefined
+                        }
+                        baseStyle={[styles.keystoneTitle, { color: colors.text }]}
+                      />
+                      {(() => {
+                        const p1 = formatPlacement(ka.chart?.planet1);
+                        const p2 = formatPlacement(ka.chart?.planet2);
+                        if (!p1 && !p2) return null;
+                        return (
+                          <Text style={[styles.keystonePlacement, { color: colors.textMuted }]}>
+                            {[p1, p2].filter(Boolean).join('  ·  ')}
+                          </Text>
+                        );
+                      })()}
                       {ka.cluster ? (
                         <Text style={[styles.keystoneCluster, { color: colors.textSubtle }]}>
                           {ka.cluster}
                         </Text>
                       ) : null}
                     </View>
+                    {ka.chart ? (
+                      <AspectFocusChart
+                        source={ka.chart.source}
+                        planet1={ka.chart.planet1}
+                        planet2={ka.chart.planet2}
+                        aspect={ka.chart.aspect}
+                        size={120}
+                        activeSignColor={colors.text}
+                        inactiveSignColor="rgba(232, 228, 240, 0.12)"
+                        ringColor="rgba(255, 255, 255, 0.07)"
+                        planet1Color={
+                          ka.chart.source === 'synastry' ? colors.primary : colors.text
+                        }
+                        planet2Color={
+                          ka.chart.source === 'synastry' ? SUPPORT_COLOR : colors.text
+                        }
+                      />
+                    ) : null}
                   </View>
                 );
               })}
@@ -572,16 +765,78 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
                         {dw.theme ? (
                           <Text style={[styles.dwTheme, { color: colors.text }]}>{dw.theme}</Text>
                         ) : null}
-                        {dw.description ? (
-                          <Text style={[styles.dwAspectLine, { color: colors.textMuted }]}>
-                            {dw.description}
-                          </Text>
-                        ) : null}
-                        {dw.partnerDescription ? (
-                          <Text style={[styles.dwAspectLine, { color: colors.textMuted }]}>
-                            {dw.partnerDescription}
-                          </Text>
-                        ) : null}
+                        <View style={styles.dwPairRow}>
+                          <View style={styles.dwPairText}>
+                            {dw.description ? (
+                              <ColoredAspectTitle
+                                description={dw.description}
+                                planet1Name={dw.chartA?.planet1.name}
+                                planet2Name={dw.chartA?.planet2.name}
+                                planet1Color={
+                                  dw.chartA?.source === 'synastry' ? colors.primary : undefined
+                                }
+                                planet2Color={
+                                  dw.chartA?.source === 'synastry' ? SUPPORT_COLOR : undefined
+                                }
+                                baseStyle={[styles.dwAspectLine, { color: colors.textMuted }]}
+                              />
+                            ) : null}
+                          </View>
+                          {dw.chartA ? (
+                            <AspectFocusChart
+                              source={dw.chartA.source}
+                              planet1={dw.chartA.planet1}
+                              planet2={dw.chartA.planet2}
+                              aspect={dw.chartA.aspect}
+                              size={120}
+                              activeSignColor={colors.text}
+                              inactiveSignColor="rgba(232, 228, 240, 0.12)"
+                              ringColor="rgba(255, 255, 255, 0.07)"
+                              planet1Color={
+                                dw.chartA.source === 'synastry' ? colors.primary : colors.text
+                              }
+                              planet2Color={
+                                dw.chartA.source === 'synastry' ? SUPPORT_COLOR : colors.text
+                              }
+                            />
+                          ) : null}
+                        </View>
+                        <View style={styles.dwPairRow}>
+                          <View style={styles.dwPairText}>
+                            {dw.partnerDescription ? (
+                              <ColoredAspectTitle
+                                description={dw.partnerDescription}
+                                planet1Name={dw.chartB?.planet1.name}
+                                planet2Name={dw.chartB?.planet2.name}
+                                planet1Color={
+                                  dw.chartB?.source === 'synastry' ? colors.primary : undefined
+                                }
+                                planet2Color={
+                                  dw.chartB?.source === 'synastry' ? SUPPORT_COLOR : undefined
+                                }
+                                baseStyle={[styles.dwAspectLine, { color: colors.textMuted }]}
+                              />
+                            ) : null}
+                          </View>
+                          {dw.chartB ? (
+                            <AspectFocusChart
+                              source={dw.chartB.source}
+                              planet1={dw.chartB.planet1}
+                              planet2={dw.chartB.planet2}
+                              aspect={dw.chartB.aspect}
+                              size={120}
+                              activeSignColor={colors.text}
+                              inactiveSignColor="rgba(232, 228, 240, 0.12)"
+                              ringColor="rgba(255, 255, 255, 0.07)"
+                              planet1Color={
+                                dw.chartB.source === 'synastry' ? colors.primary : colors.text
+                              }
+                              planet2Color={
+                                dw.chartB.source === 'synastry' ? SUPPORT_COLOR : colors.text
+                              }
+                            />
+                          ) : null}
+                        </View>
                       </View>
                     </View>
                   );
@@ -928,6 +1183,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 4,
   },
+  keystonePlacement: {
+    fontSize: 11,
+    marginTop: 3,
+    letterSpacing: 0.2,
+  },
   aspectMixRow: {
     flexDirection: 'row',
     gap: 8,
@@ -959,6 +1219,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     marginTop: 1,
+  },
+  dwPairRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 8,
+  },
+  dwPairText: {
+    flex: 1,
   },
   unlockedPill: {
     borderRadius: 100,
