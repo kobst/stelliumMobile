@@ -49,6 +49,9 @@ export interface AspectFocusChartProps {
   ringColor?: string;
   // Subtle fill behind the two involved sign sectors.
   activeSectorFill?: string;
+  // Rotates the wheel so the owner's Ascendant sits at 9 o'clock. Pass the
+  // first house's longitude (e.g. `houses[0].degree`).
+  ascendantDegree?: number;
 }
 
 interface AspectStyle {
@@ -63,10 +66,17 @@ function aspectStyleFor(aspect: string): AspectStyle {
   return { color: NEUTRAL_COLOR, dashed: false };
 }
 
-function polarToCartesian(cx: number, cy: number, r: number, deg: number) {
-  // 0° Aries at 9 o'clock, increasing counter-clockwise (matches main-app
-  // chart orientation).
-  const adjusted = (180 - deg + 360) % 360;
+function polarToCartesian(
+  cx: number,
+  cy: number,
+  r: number,
+  deg: number,
+  ascendantDegree: number = 0
+) {
+  // 0° Aries at 9 o'clock, increasing counter-clockwise. When ascendantDegree
+  // is non-zero, the wheel rotates so that the chart owner's ASC sits at the
+  // 9 o'clock position (matches main-app `getCirclePosition` math).
+  const adjusted = (180 - deg + ascendantDegree + 360) % 360;
   const rad = (adjusted * Math.PI) / 180;
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
@@ -82,12 +92,13 @@ function arcPath(
   rOuter: number,
   rInner: number,
   startDeg: number,
-  endDeg: number
+  endDeg: number,
+  ascendantDegree: number = 0
 ): string {
-  const start1 = polarToCartesian(cx, cy, rOuter, startDeg);
-  const end1 = polarToCartesian(cx, cy, rOuter, endDeg);
-  const start2 = polarToCartesian(cx, cy, rInner, endDeg);
-  const end2 = polarToCartesian(cx, cy, rInner, startDeg);
+  const start1 = polarToCartesian(cx, cy, rOuter, startDeg, ascendantDegree);
+  const end1 = polarToCartesian(cx, cy, rOuter, endDeg, ascendantDegree);
+  const start2 = polarToCartesian(cx, cy, rInner, endDeg, ascendantDegree);
+  const end2 = polarToCartesian(cx, cy, rInner, startDeg, ascendantDegree);
   const sweep = Math.abs(endDeg - startDeg) > 180 ? 1 : 0;
   // The chart's polarToCartesian flips angle direction; with our 30° sectors
   // the small-arc sweep is 0 and we draw clockwise on the outer arc, then
@@ -113,6 +124,7 @@ export function AspectFocusChart({
   inactiveSignColor = INACTIVE_SIGN_DEFAULT,
   ringColor = FAINT_RING_DEFAULT,
   activeSectorFill = ACTIVE_SECTOR_FILL_DEFAULT,
+  ascendantDegree = 0,
 }: AspectFocusChartProps) {
   const cx = size / 2;
   const cy = size / 2;
@@ -129,12 +141,12 @@ export function AspectFocusChart({
   const lon2 =
     absoluteLongitudeFromSign(planet2.sign, planet2.degree) ??
     signIndexOf(planet2.sign) * 30 + 15;
-  const p1Pos = polarToCartesian(cx, cy, planetR, lon1);
-  const p2Pos = polarToCartesian(cx, cy, planetR, lon2);
+  const p1Pos = polarToCartesian(cx, cy, planetR, lon1, ascendantDegree);
+  const p2Pos = polarToCartesian(cx, cy, planetR, lon2, ascendantDegree);
   // Aspect line endpoints sit at the inner edge of the sign band so the line
   // forms a chord across the center, never overlapping the planet glyphs.
-  const line1 = polarToCartesian(cx, cy, innerR, lon1);
-  const line2 = polarToCartesian(cx, cy, innerR, lon2);
+  const line1 = polarToCartesian(cx, cy, innerR, lon1, ascendantDegree);
+  const line2 = polarToCartesian(cx, cy, innerR, lon2, ascendantDegree);
 
   const styleData = aspectStyleFor(aspect);
   const dashArray = styleData.dashed ? `${size * 0.04} ${size * 0.025}` : undefined;
@@ -159,7 +171,7 @@ export function AspectFocusChart({
           return (
             <Path
               key={`sector-${i}`}
-              d={arcPath(cx, cy, outerR, innerR, startDeg, endDeg)}
+              d={arcPath(cx, cy, outerR, innerR, startDeg, endDeg, ascendantDegree)}
               fill={activeSectorFill}
               stroke="none"
             />
@@ -173,13 +185,14 @@ export function AspectFocusChart({
         {/* Cusp lines + sign glyphs */}
         {SIGN_NAMES.map((sign, i) => {
           const cuspDeg = i * 30;
-          const cuspStart = polarToCartesian(cx, cy, innerR, cuspDeg);
-          const cuspEnd = polarToCartesian(cx, cy, outerR, cuspDeg);
+          const cuspStart = polarToCartesian(cx, cy, innerR, cuspDeg, ascendantDegree);
+          const cuspEnd = polarToCartesian(cx, cy, outerR, cuspDeg, ascendantDegree);
           const labelPos = polarToCartesian(
             cx,
             cy,
             (innerR + outerR) / 2,
-            cuspDeg + 15
+            cuspDeg + 15,
+            ascendantDegree
           );
           const isActive = involvedSigns.has(sign);
           const fill = isActive ? activeSignColor : inactiveSignColor;

@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import type { RelationshipTheme } from '../theme';
 import { decodeAstroCode } from '../utils/astroCode';
 import { AspectFocusChart } from '../../../shared/components/chart/AspectFocusChart';
+import { PlacementFocusChart } from '../../../shared/components/chart/PlacementFocusChart';
 import type { TextStyle, StyleProp } from 'react-native';
 
 const SUPPORT_COLOR = '#82C8B4';
@@ -17,12 +18,49 @@ const SYNTH_BORDER = 'rgba(202, 190, 255, 0.18)';
 const HARMONIOUS_ASPECTS = new Set(['trine', 'sextile']);
 const HARD_ASPECTS = new Set(['square', 'opposition', 'quincunx']);
 
+const ASPECT_GLYPHS: Record<string, string> = {
+  conjunction: '\u260C',
+  sextile: '\u26B9',
+  square: '\u25A1',
+  trine: '\u25B3',
+  opposition: '\u260D',
+  quincunx: '\u26BB',
+};
+
+function aspectGlyph(aspect?: string): string {
+  if (!aspect) return '';
+  return ASPECT_GLYPHS[aspect.toLowerCase()] ?? aspect;
+}
+
 function valenceFromAspect(aspect?: string): number | undefined {
   if (!aspect) return undefined;
   const a = aspect.toLowerCase();
   if (HARMONIOUS_ASPECTS.has(a)) return 1;
   if (HARD_ASPECTS.has(a)) return -1;
   return 0;
+}
+
+const SIGN_ABBR: Record<string, string> = {
+  Aries: 'Ari', Taurus: 'Tau', Gemini: 'Gem', Cancer: 'Can',
+  Leo: 'Leo', Virgo: 'Vir', Libra: 'Lib', Scorpio: 'Sco',
+  Sagittarius: 'Sag', Capricorn: 'Cap', Aquarius: 'Aqu', Pisces: 'Pis',
+};
+
+function abbrSign(sign?: string): string | null {
+  if (!sign) return null;
+  return SIGN_ABBR[sign] ?? sign.slice(0, 3);
+}
+
+function shortPlacement(p?: { sign?: string; degree?: number; house?: number }): string | null {
+  if (!p) return null;
+  const parts: string[] = [];
+  const sign = abbrSign(p.sign);
+  if (sign) parts.push(sign);
+  if (typeof p.degree === 'number' && Number.isFinite(p.degree)) {
+    const within = ((p.degree % 30) + 30) % 30;
+    parts.push(`${Math.floor(within)}°`);
+  }
+  return parts.length > 0 ? parts.join(' ') : null;
 }
 
 function formatPlacement(p?: { sign?: string; degree?: number; house?: number; isRetro?: boolean }): string | null {
@@ -249,13 +287,25 @@ interface FullAnalysisSectionProps {
   colors: RelationshipTheme['colors'];
   initialOverview: string | null;
   fullAnalysis: any;
+  personAName?: string;
+  personBName?: string;
+  selfBirthChart?: { planets?: any[]; houses?: any[] } | null;
+  partnerBirthChart?: { planets?: any[]; houses?: any[] } | null;
 }
 
 type TabKey = 'overview' | 'clusters' | 'keyAspects';
 
 type LensKey = 'between' | 'relationship';
 
-export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: FullAnalysisSectionProps) {
+export function FullAnalysisSection({
+  colors,
+  initialOverview,
+  fullAnalysis,
+  personAName,
+  personBName,
+  selfBirthChart,
+  partnerBirthChart,
+}: FullAnalysisSectionProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [activeCluster, setActiveCluster] = useState<ClusterName>('Harmony');
   const [activeLens, setActiveLens] = useState<LensKey>('between');
@@ -287,7 +337,6 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
 
   const completeAnalysis = fullAnalysis?.completeAnalysis ?? null;
   const clusterMetrics = fullAnalysis?.clusterAnalysis?.clusters ?? null;
-  const keystoneAspects: KeystoneAspect[] = aggregateKeystoneAspects(fullAnalysis);
 
   const scoredItemsAll = Array.isArray(fullAnalysis?.scoredItems)
     ? fullAnalysis.scoredItems
@@ -295,15 +344,140 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
     ? fullAnalysis.clusterScoring.scoredItems
     : [];
   const codeToDescription: Record<string, string> = {};
+  const codeToScoredItem: Record<string, any> = {};
   for (const item of scoredItemsAll) {
-    if (typeof item?.code === 'string' && typeof item?.description === 'string') {
-      codeToDescription[item.code] = item.description;
+    if (typeof item?.code === 'string') {
+      if (typeof item?.description === 'string') {
+        codeToDescription[item.code] = item.description;
+      }
+      codeToScoredItem[item.code] = item;
     }
   }
   const personANameForCodes: string =
-    fullAnalysis?.userA?.name ?? fullAnalysis?.userA_name ?? 'Person 1';
+    personAName ??
+    fullAnalysis?.userA?.name ??
+    fullAnalysis?.userA_name ??
+    fullAnalysis?.userA?.firstName ??
+    'Person 1';
   const personBNameForCodes: string =
-    fullAnalysis?.userB?.name ?? fullAnalysis?.userB_name ?? 'Person 2';
+    personBName ??
+    fullAnalysis?.userB?.name ??
+    fullAnalysis?.userB_name ??
+    fullAnalysis?.userB?.firstName ??
+    'Person 2';
+
+  // Ascendant degrees per chart source so the focus charts rotate to the
+  // owner's frame. Synastry charts are drawn from Person A's perspective.
+  const synastryAscendant: number = (() => {
+    const houses = (selfBirthChart as any)?.houses;
+    if (!Array.isArray(houses)) return 0;
+    const asc = houses.find((h: any) => h?.house === 1 || h?.house === '1');
+    const deg = asc?.degree ?? houses[0]?.degree;
+    return typeof deg === 'number' && Number.isFinite(deg) ? deg : 0;
+  })();
+  const compositeAscendant: number = (() => {
+    const houses = fullAnalysis?.compositeChart?.houses;
+    if (!Array.isArray(houses)) return 0;
+    const asc = houses.find((h: any) => h?.house === 1 || h?.house === '1');
+    const deg = asc?.degree ?? houses[0]?.degree;
+    return typeof deg === 'number' && Number.isFinite(deg) ? deg : 0;
+  })();
+
+  // Planet lookups so placement cards (CompP-, SynP-, Pp-) get sign + degree
+  // from the actual chart data rather than a fallback position.
+  const compositePlanetByName: Record<string, { sign?: string; degree?: number; house?: number }> = {};
+  if (Array.isArray(fullAnalysis?.compositeChart?.planets)) {
+    for (const p of fullAnalysis.compositeChart.planets) {
+      if (typeof p?.name === 'string') {
+        compositePlanetByName[p.name] = {
+          sign: typeof p?.sign === 'string' ? p.sign : undefined,
+          degree:
+            typeof p?.norm_degree === 'number'
+              ? p.norm_degree
+              : typeof p?.full_degree === 'number'
+              ? p.full_degree
+              : undefined,
+          house: typeof p?.house === 'number' ? p.house : undefined,
+        };
+      }
+    }
+  }
+  const selfPlanetByName: Record<string, { sign?: string; degree?: number; house?: number }> = {};
+  if (Array.isArray((selfBirthChart as any)?.planets)) {
+    for (const p of (selfBirthChart as any).planets) {
+      if (typeof p?.name === 'string') {
+        selfPlanetByName[p.name] = {
+          sign: typeof p?.sign === 'string' ? p.sign : undefined,
+          degree:
+            typeof p?.norm_degree === 'number'
+              ? p.norm_degree
+              : typeof p?.full_degree === 'number'
+              ? p.full_degree
+              : undefined,
+          house: typeof p?.house === 'number' ? p.house : undefined,
+        };
+      }
+    }
+  }
+  const partnerPlanetByName: Record<string, { sign?: string; degree?: number; house?: number }> = {};
+  if (Array.isArray((partnerBirthChart as any)?.planets)) {
+    for (const p of (partnerBirthChart as any).planets) {
+      if (typeof p?.name === 'string') {
+        partnerPlanetByName[p.name] = {
+          sign: typeof p?.sign === 'string' ? p.sign : undefined,
+          degree:
+            typeof p?.norm_degree === 'number'
+              ? p.norm_degree
+              : typeof p?.full_degree === 'number'
+              ? p.full_degree
+              : undefined,
+          house: typeof p?.house === 'number' ? p.house : undefined,
+        };
+      }
+    }
+  }
+
+  // Enriches a chart's two planets with sign/degree from the right chart
+  // lookup based on chart source. Composite → both planets in the composite
+  // chart. Synastry → planet1 is Person A's, planet2 is Person B's. Natal →
+  // both come from Person A's natal chart.
+  function enrichAspectChart(chart: AspectChartData): AspectChartData {
+    if (!chart) return chart;
+    const lookup1 =
+      chart.source === 'composite'
+        ? compositePlanetByName[chart.planet1.name]
+        : chart.source === 'synastry'
+        ? selfPlanetByName[chart.planet1.name]
+        : selfPlanetByName[chart.planet1.name];
+    const lookup2 =
+      chart.source === 'composite'
+        ? compositePlanetByName[chart.planet2.name]
+        : chart.source === 'synastry'
+        ? partnerPlanetByName[chart.planet2.name]
+        : selfPlanetByName[chart.planet2.name];
+    return {
+      ...chart,
+      planet1: {
+        ...chart.planet1,
+        sign: chart.planet1.sign ?? lookup1?.sign ?? chart.planet1.sign,
+        degree:
+          typeof chart.planet1.degree === 'number' ? chart.planet1.degree : lookup1?.degree,
+        house: chart.planet1.house ?? lookup1?.house,
+      },
+      planet2: {
+        ...chart.planet2,
+        sign: chart.planet2.sign ?? lookup2?.sign ?? chart.planet2.sign,
+        degree:
+          typeof chart.planet2.degree === 'number' ? chart.planet2.degree : lookup2?.degree,
+        house: chart.planet2.house ?? lookup2?.house,
+      },
+    };
+  }
+
+  const keystoneAspectsRaw: KeystoneAspect[] = aggregateKeystoneAspects(fullAnalysis);
+  const keystoneAspects: KeystoneAspect[] = keystoneAspectsRaw.map((ka) =>
+    ka.chart ? { ...ka, chart: enrichAspectChart(ka.chart) } : ka
+  );
 
   const aspectMix = (() => {
     const tfTotal = typeof tensionFlow?.totalAspects === 'number' ? tensionFlow.totalAspects : null;
@@ -386,8 +560,15 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
           typeof dw.combinedMagnitude === 'number' ? dw.combinedMagnitude : undefined,
         dominantValence:
           typeof dw.dominantValence === 'number' ? dw.dominantValence : undefined,
-        chartA: buildChartFromScoredItem(item),
-        chartB: partnerItem ? buildChartFromScoredItem(partnerItem) : undefined,
+        chartA: (() => {
+          const c = buildChartFromScoredItem(item);
+          return c ? enrichAspectChart(c) : undefined;
+        })(),
+        chartB: (() => {
+          if (!partnerItem) return undefined;
+          const c = buildChartFromScoredItem(partnerItem);
+          return c ? enrichAspectChart(c) : undefined;
+        })(),
       });
     }
     return Array.from(dedup.values()).sort(
@@ -561,8 +742,14 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
           activeLens={activeLens}
           setActiveLens={setActiveLens}
           codeToDescription={codeToDescription}
+          codeToScoredItem={codeToScoredItem}
           personAName={personANameForCodes}
           personBName={personBNameForCodes}
+          synastryAscendant={synastryAscendant}
+          compositeAscendant={compositeAscendant}
+          compositePlanetByName={compositePlanetByName}
+          selfPlanetByName={selfPlanetByName}
+          partnerPlanetByName={partnerPlanetByName}
         />
       ) : null}
 
@@ -700,6 +887,13 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
                         planet2={ka.chart.planet2}
                         aspect={ka.chart.aspect}
                         size={120}
+                        ascendantDegree={
+                          ka.chart.source === 'composite'
+                            ? compositeAscendant
+                            : ka.chart.source === 'synastry'
+                            ? synastryAscendant
+                            : 0
+                        }
                         activeSignColor={colors.text}
                         inactiveSignColor="rgba(232, 228, 240, 0.12)"
                         ringColor="rgba(255, 255, 255, 0.07)"
@@ -789,6 +983,13 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
                               planet2={dw.chartA.planet2}
                               aspect={dw.chartA.aspect}
                               size={120}
+                              ascendantDegree={
+                                dw.chartA.source === 'composite'
+                                  ? compositeAscendant
+                                  : dw.chartA.source === 'synastry'
+                                  ? synastryAscendant
+                                  : 0
+                              }
                               activeSignColor={colors.text}
                               inactiveSignColor="rgba(232, 228, 240, 0.12)"
                               ringColor="rgba(255, 255, 255, 0.07)"
@@ -825,6 +1026,13 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
                               planet2={dw.chartB.planet2}
                               aspect={dw.chartB.aspect}
                               size={120}
+                              ascendantDegree={
+                                dw.chartB.source === 'composite'
+                                  ? compositeAscendant
+                                  : dw.chartB.source === 'synastry'
+                                  ? synastryAscendant
+                                  : 0
+                              }
                               activeSignColor={colors.text}
                               inactiveSignColor="rgba(232, 228, 240, 0.12)"
                               ringColor="rgba(255, 255, 255, 0.07)"
@@ -868,8 +1076,14 @@ interface ClustersTabProps {
   activeLens: LensKey;
   setActiveLens: (lens: LensKey) => void;
   codeToDescription: Record<string, string>;
+  codeToScoredItem: Record<string, any>;
   personAName: string;
   personBName: string;
+  synastryAscendant: number;
+  compositeAscendant: number;
+  compositePlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>;
+  selfPlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>;
+  partnerPlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>;
 }
 
 function ClustersTab({
@@ -881,8 +1095,14 @@ function ClustersTab({
   activeLens,
   setActiveLens,
   codeToDescription,
+  codeToScoredItem,
   personAName,
   personBName,
+  synastryAscendant,
+  compositeAscendant,
+  compositePlanetByName,
+  selfPlanetByName,
+  partnerPlanetByName,
 }: ClustersTabProps) {
   // When the user picks a different cluster, snap the lens back to "between"
   // (matches the mock's behavior).
@@ -1041,8 +1261,14 @@ function ClustersTab({
           colors={colors}
           codes={lensKeyAspectCodes}
           codeToDescription={codeToDescription}
+          codeToScoredItem={codeToScoredItem}
           personAName={personAName}
           personBName={personBName}
+          synastryAscendant={synastryAscendant}
+          compositeAscendant={compositeAscendant}
+          compositePlanetByName={compositePlanetByName}
+          selfPlanetByName={selfPlanetByName}
+          partnerPlanetByName={partnerPlanetByName}
         />
       ) : null}
     </View>
@@ -1053,72 +1279,384 @@ interface AspectsConsideredProps {
   colors: RelationshipTheme['colors'];
   codes: string[];
   codeToDescription: Record<string, string>;
+  codeToScoredItem: Record<string, any>;
   personAName: string;
   personBName: string;
+  synastryAscendant: number;
+  compositeAscendant: number;
+  compositePlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>;
+  selfPlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>;
+  partnerPlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>;
+}
+
+type CarouselCard =
+  | {
+      kind: 'aspect';
+      code: string;
+      chart: AspectChartData;
+      valence?: number;
+    }
+  | {
+      kind: 'placement';
+      code: string;
+      planet: { name: string; sign?: string; degree?: number; house?: number; isRetro?: boolean };
+      source: 'synastry' | 'composite' | 'natal';
+    };
+
+function buildPlacementCardFromScoredItem(
+  item: any,
+  code: string
+): CarouselCard | null {
+  const planetName: string | undefined = item?.planet1 ?? item?.planet;
+  if (!planetName) return null;
+  const sourceRaw: string | undefined = item?.source;
+  const source: 'synastry' | 'composite' | 'natal' =
+    sourceRaw === 'composite' ? 'composite' : sourceRaw === 'synastry' ? 'synastry' : 'natal';
+  return {
+    kind: 'placement',
+    code,
+    source,
+    planet: {
+      name: planetName,
+      sign: typeof item?.planet1Sign === 'string' ? item.planet1Sign : item?.sign,
+      degree: typeof item?.planet1Degree === 'number' ? item.planet1Degree : item?.degree,
+      house: typeof item?.planet1House === 'number' ? item.planet1House : item?.house,
+      isRetro: Boolean(item?.planet1IsRetro ?? item?.isRetro),
+    },
+  };
+}
+
+// Look up sign + degree from the chart data when the code or scored item
+// didn't carry them. Aspect cards: planet1 always from "primary" chart
+// (composite for composite source, self for synastry/natal); planet2 follows
+// the source rule (partner for synastry, composite for composite, self for
+// natal). Placement cards: single planet, source decides which chart.
+function enrichCard(
+  card: CarouselCard,
+  compositePlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>,
+  selfPlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>,
+  partnerPlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>
+): CarouselCard {
+  if (card.kind === 'placement') {
+    if (card.planet.sign && typeof card.planet.degree === 'number') return card;
+    const lookup =
+      card.source === 'composite'
+        ? compositePlanetByName[card.planet.name]
+        : selfPlanetByName[card.planet.name];
+    if (!lookup) return card;
+    return {
+      ...card,
+      planet: {
+        ...card.planet,
+        sign: card.planet.sign ?? lookup.sign,
+        degree:
+          typeof card.planet.degree === 'number' ? card.planet.degree : lookup.degree,
+      },
+    };
+  }
+  // Aspect card
+  const { chart } = card;
+  const lookup1 =
+    chart.source === 'composite'
+      ? compositePlanetByName[chart.planet1.name]
+      : selfPlanetByName[chart.planet1.name];
+  const lookup2 =
+    chart.source === 'composite'
+      ? compositePlanetByName[chart.planet2.name]
+      : chart.source === 'synastry'
+      ? partnerPlanetByName[chart.planet2.name]
+      : selfPlanetByName[chart.planet2.name];
+  return {
+    ...card,
+    chart: {
+      ...chart,
+      planet1: {
+        ...chart.planet1,
+        sign: chart.planet1.sign ?? lookup1?.sign,
+        degree:
+          typeof chart.planet1.degree === 'number' ? chart.planet1.degree : lookup1?.degree,
+        house: chart.planet1.house ?? lookup1?.house,
+      },
+      planet2: {
+        ...chart.planet2,
+        sign: chart.planet2.sign ?? lookup2?.sign,
+        degree:
+          typeof chart.planet2.degree === 'number' ? chart.planet2.degree : lookup2?.degree,
+        house: chart.planet2.house ?? lookup2?.house,
+      },
+    },
+  };
+}
+
+function buildCardFromCode(
+  code: string,
+  scoredItem: any,
+  personAName: string,
+  personBName: string
+): CarouselCard | null {
+  const isAspectCode =
+    code.startsWith('SynA-') ||
+    code.startsWith('A-') ||
+    code.startsWith('CompA-') ||
+    code.startsWith('Tr-');
+  const isPlacementCode =
+    code.startsWith('Pp-') || code.startsWith('SynP-') || code.startsWith('CompP-');
+
+  if (scoredItem) {
+    if (isAspectCode || scoredItem?.aspect) {
+      const chart = buildChartFromScoredItem(scoredItem);
+      if (chart) {
+        return {
+          kind: 'aspect',
+          code,
+          chart,
+          valence: valenceFromAspect(chart.aspect),
+        };
+      }
+    }
+    if (isPlacementCode || (!scoredItem?.aspect && (scoredItem?.planet1 || scoredItem?.planet))) {
+      const card = buildPlacementCardFromScoredItem(scoredItem, code);
+      if (card) return card;
+    }
+  }
+
+  // Fallback: decode the code itself when we don't have a scored item.
+  const decoded = decodeAstroCode(code, {
+    person1Name: personAName,
+    person2Name: personBName,
+  });
+  if (!decoded) return null;
+  if (decoded.type === 'aspect' || decoded.type === 'synastry') {
+    return {
+      kind: 'aspect',
+      code,
+      chart: {
+        source: decoded.type === 'synastry' ? 'synastry' : 'natal',
+        aspect: decoded.aspect,
+        planet1: { name: decoded.p1.planet, sign: decoded.p1.sign, house: decoded.p1.house },
+        planet2: { name: decoded.p2.planet, sign: decoded.p2.sign, house: decoded.p2.house },
+      },
+      valence: valenceFromAspect(decoded.aspect),
+    };
+  }
+  if (decoded.type === 'placement') {
+    return {
+      kind: 'placement',
+      code,
+      source: 'natal',
+      planet: { name: decoded.planet, sign: decoded.sign, house: decoded.house },
+    };
+  }
+  if (decoded.type === 'synastryPlacement') {
+    return {
+      kind: 'placement',
+      code,
+      source: 'synastry',
+      planet: { name: decoded.planet, house: decoded.house },
+    };
+  }
+  if (decoded.type === 'compositePlacement') {
+    return {
+      kind: 'placement',
+      code,
+      source: 'composite',
+      planet: { name: decoded.planet, house: decoded.house },
+    };
+  }
+  if (decoded.type === 'compositeAspect') {
+    return {
+      kind: 'aspect',
+      code,
+      chart: {
+        source: 'composite',
+        aspect: decoded.aspect,
+        planet1: { name: decoded.p1.planet, sign: 'Aries', house: decoded.p1.house },
+        planet2: { name: decoded.p2.planet, sign: 'Aries', house: decoded.p2.house },
+      },
+      valence: valenceFromAspect(decoded.aspect),
+    };
+  }
+  return null;
 }
 
 function AspectsConsidered({
   colors,
   codes,
-  codeToDescription,
+  codeToScoredItem,
   personAName,
   personBName,
+  synastryAscendant,
+  compositeAscendant,
+  compositePlanetByName,
+  selfPlanetByName,
+  partnerPlanetByName,
 }: AspectsConsideredProps) {
-  const [expanded, setExpanded] = useState(false);
+  const cards: CarouselCard[] = [];
+  for (const code of codes) {
+    const built = buildCardFromCode(code, codeToScoredItem[code], personAName, personBName);
+    if (!built) continue;
+    cards.push(enrichCard(built, compositePlanetByName, selfPlanetByName, partnerPlanetByName));
+  }
 
-  const items = codes.map((code) => {
-    const known = codeToDescription[code];
-    if (known) return { code, label: known };
-    const decoded = decodeAstroCode(code, {
-      person1Name: personAName,
-      person2Name: personBName,
-    });
-    if (decoded?.pretty) return { code, label: decoded.pretty };
-    return { code, label: code };
-  });
+  if (cards.length === 0) return null;
 
   return (
     <View style={styles.aspectsConsideredWrap}>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => setExpanded((prev) => !prev)}
-        style={[
-          styles.aspectsConsideredHeader,
-          { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-        ]}
-      >
+      <View style={styles.aspectsConsideredHeaderRow}>
         <Text style={[styles.aspectsConsideredLabel, { color: colors.textSubtle }]}>
-          Aspects considered · {items.length}
+          Aspects considered · {cards.length}
         </Text>
-        <Text
-          style={[
-            styles.aspectsConsideredChevron,
-            { color: colors.textSubtle },
-            expanded && styles.aspectsConsideredChevronOpen,
-          ]}
-        >
-          ›
-        </Text>
-      </TouchableOpacity>
-      {expanded ? (
-        <View
-          style={[
-            styles.aspectsConsideredBody,
-            { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-          ]}
-        >
-          {items.map((it, i) => (
-            <Text
-              key={`${it.code}-${i}`}
-              style={[styles.aspectsConsideredItem, { color: colors.textMuted }]}
-            >
-              • {it.label}
-            </Text>
-          ))}
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={154}
+        decelerationRate="fast"
+        contentContainerStyle={styles.carouselContent}
+        style={styles.carouselScroll}
+      >
+        {cards.map((card, i) => (
+          <AspectCard
+            key={`${card.code}-${i}`}
+            card={card}
+            colors={colors}
+            personAName={personAName}
+            personBName={personBName}
+            synastryAscendant={synastryAscendant}
+            compositeAscendant={compositeAscendant}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+interface AspectCardProps {
+  card: CarouselCard;
+  colors: RelationshipTheme['colors'];
+  personAName: string;
+  personBName: string;
+  synastryAscendant: number;
+  compositeAscendant: number;
+}
+
+function AspectCard({
+  card,
+  colors,
+  personAName,
+  personBName,
+  synastryAscendant,
+  compositeAscendant,
+}: AspectCardProps) {
+  const valence = card.kind === 'aspect' ? card.valence : 0;
+  const sourceForRotation = card.kind === 'aspect' ? card.chart.source : card.source;
+  const ascendantDegree =
+    sourceForRotation === 'composite'
+      ? compositeAscendant
+      : sourceForRotation === 'synastry'
+      ? synastryAscendant
+      : 0;
+  const borderColor =
+    valence === 1
+      ? 'rgba(130, 200, 180, 0.6)'
+      : valence === -1
+      ? 'rgba(232, 133, 107, 0.6)'
+      : 'rgba(202, 190, 255, 0.4)';
+
+  if (card.kind === 'aspect') {
+    const { chart } = card;
+    const isSyn = chart.source === 'synastry';
+    const p1Color = isSyn ? colors.primary : colors.text;
+    const p2Color = isSyn ? SUPPORT_COLOR : colors.text;
+    const placementLine = [
+      shortPlacement(chart.planet1),
+      shortPlacement(chart.planet2),
+    ]
+      .filter(Boolean)
+      .join('  ·  ');
+    return (
+      <View style={[styles.carouselCard, { backgroundColor: colors.surface, borderColor }]}>
+        <View style={styles.carouselChart}>
+          <AspectFocusChart
+            source={chart.source}
+            planet1={chart.planet1}
+            planet2={chart.planet2}
+            aspect={chart.aspect}
+            size={100}
+            ascendantDegree={ascendantDegree}
+            activeSignColor={colors.text}
+            inactiveSignColor="rgba(232, 228, 240, 0.12)"
+            ringColor="rgba(255, 255, 255, 0.07)"
+            planet1Color={p1Color}
+            planet2Color={p2Color}
+          />
         </View>
+        <Text style={[styles.carouselTitle, { color: colors.text }]} numberOfLines={1}>
+          <Text style={{ color: p1Color, fontWeight: '600' }}>{chart.planet1.name}</Text>
+          <Text> {aspectGlyph(chart.aspect)} </Text>
+          <Text style={{ color: p2Color, fontWeight: '600' }}>{chart.planet2.name}</Text>
+        </Text>
+        {placementLine ? (
+          <Text style={[styles.carouselDegrees, { color: colors.text }]} numberOfLines={1}>
+            {placementLine}
+          </Text>
+        ) : null}
+        {isSyn ? (
+          <Text style={styles.carouselOwnership} numberOfLines={1}>
+            <Text style={{ color: p1Color }}>{personAName}</Text>
+            <Text style={{ color: colors.text }}>  ·  </Text>
+            <Text style={{ color: p2Color }}>{personBName}</Text>
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
+
+  // Placement
+  const planetColor = card.source === 'synastry' ? colors.primary : colors.text;
+  const placementLine = shortPlacement(card.planet);
+  const houseLabel =
+    typeof card.planet.house === 'number' && card.planet.house > 0
+      ? `${card.planet.house}${ordinalSuffix(card.planet.house)} house`
+      : null;
+  return (
+    <View style={[styles.carouselCard, { backgroundColor: colors.surface, borderColor }]}>
+      <View style={styles.carouselChart}>
+        <PlacementFocusChart
+          planet={card.planet}
+          size={100}
+          ascendantDegree={ascendantDegree}
+          planetColor={planetColor}
+          activeSignColor={colors.text}
+          inactiveSignColor="rgba(232, 228, 240, 0.12)"
+          ringColor="rgba(255, 255, 255, 0.07)"
+        />
+      </View>
+      <Text style={[styles.carouselTitle, { color: colors.text }]} numberOfLines={1}>
+        <Text style={{ color: planetColor, fontWeight: '600' }}>{card.planet.name}</Text>
+      </Text>
+      {placementLine || houseLabel ? (
+        <Text style={[styles.carouselDegrees, { color: colors.text }]} numberOfLines={1}>
+          {[placementLine, houseLabel].filter(Boolean).join('  ·  ')}
+        </Text>
       ) : null}
     </View>
   );
+}
+
+function ordinalSuffix(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return 'th';
+  switch (n % 10) {
+    case 1:
+      return 'st';
+    case 2:
+      return 'nd';
+    case 3:
+      return 'rd';
+    default:
+      return 'th';
+  }
 }
 
 interface ClusterPanelProps {
@@ -1400,14 +1938,9 @@ const styles = StyleSheet.create({
   aspectsConsideredWrap: {
     marginTop: 6,
   },
-  aspectsConsideredHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+  aspectsConsideredHeaderRow: {
+    paddingHorizontal: 4,
+    marginBottom: 8,
   },
   aspectsConsideredLabel: {
     fontSize: 11,
@@ -1415,24 +1948,42 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
-  aspectsConsideredChevron: {
-    fontSize: 18,
-    fontWeight: '500',
+  carouselScroll: {
+    marginHorizontal: -20,
   },
-  aspectsConsideredChevronOpen: {
-    transform: [{ rotate: '90deg' }],
+  carouselContent: {
+    paddingHorizontal: 20,
+    gap: 10,
   },
-  aspectsConsideredBody: {
-    marginTop: 4,
-    borderRadius: 12,
+  carouselCard: {
+    width: 144,
+    borderRadius: 14,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    alignItems: 'center',
   },
-  aspectsConsideredItem: {
-    fontSize: 12.5,
-    lineHeight: 18,
+  carouselChart: {
+    marginBottom: 8,
+  },
+  carouselTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 15,
+  },
+  carouselOwnership: {
+    fontSize: 11.5,
+    marginTop: 2,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  carouselDegrees: {
+    fontSize: 11.5,
+    marginTop: 2,
+    textAlign: 'center',
+    letterSpacing: 0.3,
+    fontVariant: ['tabular-nums'],
   },
   panel: {
     borderRadius: 14,

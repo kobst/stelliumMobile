@@ -611,6 +611,10 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             colors={colors}
             initialOverview={initialOverview}
             fullAnalysis={fullAnalysis}
+            personAName={selfName}
+            personBName={partnerName}
+            selfBirthChart={profile?.subject?.birthChart as any}
+            partnerBirthChart={activePartnerRomanticAssets?.birthChart as any}
           />
         ) : null}
 
