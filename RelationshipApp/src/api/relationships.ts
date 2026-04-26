@@ -73,7 +73,7 @@ export const relationshipsApi = {
     compositeChartId: string
   ): Promise<RelationshipWorkflowStatusResponse> => {
     return relationshipApiClient.post<RelationshipWorkflowStatusResponse>(
-      '/workflow/relationship/status',
+      '/relationship-app/workflow/relationship/status',
       {
         compositeChartId,
       }
@@ -83,11 +83,8 @@ export const relationshipsApi = {
   fetchRelationshipAnalysis: async (
     compositeChartId: string
   ): Promise<RelationshipAnalysisResponse> => {
-    return relationshipApiClient.post<RelationshipAnalysisResponse>(
-      '/fetchRelationshipAnalysis',
-      {
-        compositeChartId,
-      }
+    return relationshipApiClient.get<RelationshipAnalysisResponse>(
+      `/relationship-app/relationships/${encodeURIComponent(compositeChartId)}/analysis`
     );
   },
 

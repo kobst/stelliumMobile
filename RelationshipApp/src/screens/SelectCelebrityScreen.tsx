@@ -163,9 +163,7 @@ export const SelectCelebrityScreen: React.FC<Props> = ({ navigation }) => {
       setActiveTargetSubject(targetSubject);
       setPreviewAnalysis(preview);
       setActiveRelationshipId(preview.compositeChartId);
-      if (isLocalUxMode) {
-        setRelationshipHistory({ relationshipHistory: updatedHistory });
-      }
+      setRelationshipHistory({ relationshipHistory: updatedHistory });
       navigation.replace('RelationshipPreview');
     } catch (selectionError) {
       const message =

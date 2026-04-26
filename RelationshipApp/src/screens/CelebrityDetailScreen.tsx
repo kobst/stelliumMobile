@@ -217,9 +217,7 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       setActiveTargetSubject(targetSubject);
       setPreviewAnalysis(previewAnalysis);
       setActiveRelationshipId(previewAnalysis.compositeChartId);
-      if (isLocalUxMode) {
-        setRelationshipHistory({ relationshipHistory: updatedHistory });
-      }
+      setRelationshipHistory({ relationshipHistory: updatedHistory });
       navigation.replace('RelationshipPreview');
     } catch (previewError) {
       const message =

@@ -237,9 +237,7 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
       setActivePartnerRomanticAssets(null);
       setPreviewAnalysis(preview);
       setActiveRelationshipId(preview.compositeChartId);
-      if (isLocalUxMode) {
-        setRelationshipHistory({ relationshipHistory: updatedHistory });
-      }
+      setRelationshipHistory({ relationshipHistory: updatedHistory });
       navigation.replace('RelationshipPreview');
     } catch (previewError) {
       const message =

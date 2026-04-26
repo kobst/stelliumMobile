@@ -2,7 +2,7 @@
 
 Detailed staged onboarding documentation now lives in [RELATIONSHIP_APP_ONBOARDING_API_GUIDE.md](./RELATIONSHIP_APP_ONBOARDING_API_GUIDE.md).
 
-This document summarizes the API surface currently relevant to the relationship-focused mobile app as of April 22, 2026.
+This document summarizes the API surface currently relevant to the relationship-focused mobile app as of April 26, 2026.
 
 It covers:
 - Romantic subject creation endpoints that are already implemented
@@ -24,7 +24,7 @@ Current production-oriented model choices for onboarding artifacts:
 The current backend split is:
 - Classic app: existing full-chart natal analysis APIs
 - Relationship app: romantic subject creation, celebrity aspect bank, onboarding preview, and user-centered romantic analysis APIs
-- Relationship analysis: still uses the shared relationship endpoints and shared scoring pipeline for pairwise synastry/composite analysis
+- Relationship analysis: uses the shared scoring pipeline for pairwise synastry/composite analysis, with relationship-app-specific full-analysis workflow output stored separately from classic output
 
 The relationship app now has its own dedicated endpoint namespace for user-centered romantic analysis:
 - `GET /relationship-app/me`
@@ -35,6 +35,8 @@ The relationship app now has its own dedicated endpoint namespace for user-cente
 - `GET /relationship-app/celebs/:userId/profile`
 - `POST /relationship-app/enhanced-relationship-analysis`
 - `POST /relationship-app/workflow/relationship/start`
+- `POST /relationship-app/workflow/relationship/status`
+- `POST /relationship-app/workflow/relationship/resume`
 - `POST /relationship-app/relationships/:compositeChartId/ask-iris`
 - `POST /relationship-app/relationships/:compositeChartId/enhanced-chat`
 - `GET /relationship-app/relationships/:compositeChartId/analysis`
@@ -115,18 +117,18 @@ This section is the quickest survey of the relationship-app-relevant API surface
 - `POST /relationship-app/enhanced-relationship-analysis`
   - Primary direct relationship-creation endpoint for the relationship app
   - Generates synastry/composite data, scores the 5 clusters, generates the initial relationship overview, and saves the relationship
-  - This does **not** generate the long-form per-cluster writeups stored under `completeAnalysis`
+  - This does **not** generate the full per-cluster writeups stored under `relationshipAppCompleteAnalysis`
 - `POST /relationship-app/workflow/relationship/start`
-  - Async workflow-based relationship creation path
-  - Use this when the client wants the full long-form relationship analysis workflow
-  - This is the path that generates the per-cluster long-form analysis stored under `completeAnalysis`
+  - Async full relationship analysis workflow for an existing saved relationship
+  - Starts the relationship-app compact 5-cluster workflow
+  - This is the path that generates the per-cluster full analysis stored under `relationshipAppCompleteAnalysis`
+- `POST /relationship-app/workflow/relationship/status`
+  - Polls relationship-app compact workflow status
+- `POST /relationship-app/workflow/relationship/resume`
+  - Resumes a paused/incomplete relationship-app compact workflow when applicable
 - `GET /relationship-app/relationships/:compositeChartId/analysis`
   - Authenticated relationship-app read endpoint for a saved relationship analysis payload
   - Use this for private/owned relationship reads in the relationship app
-- `POST /workflow/relationship/status`
-  - Polls workflow status for async relationship generation
-- `POST /workflow/relationship/resume`
-  - Resumes a paused/incomplete relationship workflow when applicable
 - `POST /getUserCompositeCharts`
   - Returns saved relationships for the authenticated owner
 - `POST /fetchRelationshipAnalysis`
@@ -179,6 +181,7 @@ If the relationship app wants the simplest stable integration path, the default 
 - Read celeb match bank for the signed-in user: `GET /users/:userId/relationship-app/celeb-aspect-bank`
 - Create relationship and get initial scored overview immediately: `POST /relationship-app/enhanced-relationship-analysis`
 - Start async relationship workflow: `POST /relationship-app/workflow/relationship/start`
+- Poll async relationship workflow: `POST /relationship-app/workflow/relationship/status`
 - Read owned relationship analysis: `GET /relationship-app/relationships/:compositeChartId/analysis`
 - AskIris about self: `POST /relationship-app/users/:userId/ask-iris`
 - AskIris about another subject: `POST /relationship-app/subjects/:userId/ask-iris`
@@ -266,6 +269,10 @@ If the relationship app wants the simplest stable integration path, the default 
 - `POST /workflow/relationship/status`
   - Requires app auth
 - `POST /workflow/relationship/resume`
+  - Requires app auth
+- `POST /relationship-app/workflow/relationship/status`
+  - Requires app auth
+- `POST /relationship-app/workflow/relationship/resume`
   - Requires app auth
 - `POST /relationships/:compositeChartId/enhanced-chat`
   - Requires app auth
@@ -1381,7 +1388,7 @@ This endpoint does:
 - save the relationship analysis shell
 
 This endpoint does **not** do:
-- it does **not** generate long-form per-cluster panels under `completeAnalysis`
+- it does **not** generate full per-cluster panels under `relationshipAppCompleteAnalysis`
 - it does **not** complete the full workflow
 
 Request body:
@@ -1557,7 +1564,7 @@ Error responses currently used by this handler:
 
 ### `POST /relationship-app/workflow/relationship/start`
 
-Starts the full long-form pairwise relationship workflow.
+Starts the relationship-app full pairwise relationship workflow.
 
 Auth:
 - Requires `requireAuth`
@@ -1565,30 +1572,20 @@ Auth:
 Billing:
 - Charges the relationship-app balance
 
-This is the endpoint that generates `completeAnalysis`.
+This endpoint starts the relationship-app compact 5-cluster workflow (`relationship-app-cluster`). It generates `relationshipAppCompleteAnalysis`; the relationship-app read endpoint exposes that same payload through `completeAnalysis` for frontend compatibility.
 
-You can start the workflow in either mode:
-- create-then-start: send `userIdA` and `userIdB`
-- analyze-existing: send `compositeChartId`
+Preferred request mode:
+- analyze-existing: send `compositeChartId` from a successful `POST /relationship-app/enhanced-relationship-analysis`
 
-The deployed environment currently uses the Step Functions implementation. If Step Functions is disabled, the same route falls back to the older local workflow controller. The response shapes differ slightly; both are documented below.
+The direct relationship creation call should run first. The workflow route supports resolving participants from `compositeChartId`; clients should not use this as the primary relationship-creation endpoint.
+
+The deployed environment currently uses the Step Functions implementation. If Step Functions is disabled, the same route falls back to local cluster processing with the same relationship-app compact output style. The response shapes differ slightly; both are documented below.
 
 Typical request body:
 
 ```json
 {
   "compositeChartId": "relationshipId",
-  "ownerUserId": "ownerSubjectId",
-  "immediate": true
-}
-```
-
-or
-
-```json
-{
-  "userIdA": "subjectIdA",
-  "userIdB": "subjectIdB",
   "ownerUserId": "ownerSubjectId",
   "immediate": true
 }
@@ -1608,6 +1605,7 @@ Current Step Functions response shape:
   "compositeChartId": "relationshipId",
   "userIdA": "subjectIdA",
   "userIdB": "subjectIdB",
+  "workflowType": "relationship-app-cluster",
   "mode": "immediate",
   "creditsDeducted": 60,
   "billingSystem": "relationship-app"
@@ -1624,14 +1622,19 @@ Legacy local-fallback response shape:
 {
   "success": true,
   "message": "Relationship workflow started",
-  "workflowId": "relationshipId"
+  "workflowId": "relationshipId",
+  "workflowType": "relationship-app-cluster"
 }
 ```
 
 Frontend guidance:
-- use this endpoint to start long-form generation
+- use this endpoint to start compact full-analysis generation
 - do **not** use its response as the report payload
 - after completion, read the report from `GET /relationship-app/relationships/:compositeChartId/analysis`
+- relationship-app compact panel targets:
+  - support panel: one paragraph, 3-4 sentences
+  - challenge panel: one paragraph, 3-4 sentences
+  - synthesis panel: two short paragraphs, 5-6 sentences total
 
 ### `POST /getUserCompositeCharts`
 
@@ -1724,8 +1727,8 @@ Typical response item:
 
 `relationshipAnalysisStatus.level` currently resolves to:
 - `"none"`: no analysis record exists
-- `"scores"`: the relationship has scored data and maybe `initialOverview`, but long-form cluster panels are not fully complete
-- `"complete"`: `completeAnalysis` exists and cluster scoring exists
+- `"scores"`: the relationship has scored data and maybe `initialOverview`, but full cluster panels are not fully complete
+- `"complete"`: `completeAnalysis`, `relationshipAppCompleteAnalysis`, or `clusterAnalyses` exists and cluster scoring exists
 
 Frontend guidance:
 - this endpoint is the list/history endpoint
@@ -1768,14 +1771,14 @@ Current response shape:
   "completeAnalysis": {
     "Harmony": {
       "synastry": {
-        "supportPanel": "Long-form text",
-        "challengePanel": "Long-form text",
-        "synthesisPanel": "Long-form text"
+        "supportPanel": "Compact relationship-app support text",
+        "challengePanel": "Compact relationship-app challenge text",
+        "synthesisPanel": "Compact relationship-app synthesis text"
       },
       "composite": {
-        "supportPanel": "Long-form text",
-        "challengePanel": "Long-form text",
-        "synthesisPanel": "Long-form text"
+        "supportPanel": "Compact relationship-app support text",
+        "challengePanel": "Compact relationship-app challenge text",
+        "synthesisPanel": "Compact relationship-app synthesis text"
       },
       "keyAspects": {
         "synastry": {
@@ -1793,14 +1796,13 @@ Current response shape:
           "compositePlacements": ["CompP-..."]
         }
       },
-      "generatedAt": "2026-04-25T12:34:56.000Z",
       "panelFormat": "6-panel",
-      "workflowType": "synastry-composite-support-challenge-synthesis"
-    },
-    "Passion": {},
-    "Connection": {},
-    "Stability": {},
-    "Growth": {}
+      "workflowType": "relationship-app-compact-synastry-composite-support-challenge-synthesis",
+      "analysisOutputStyle": "relationship-app-compact"
+    }
+  },
+  "relationshipAppCompleteAnalysis": {
+    "...": "same relationship-app compact analysis stored separately from classic completeAnalysis"
   },
   "overall": {
     "score": 82,
@@ -1885,6 +1887,7 @@ Current response shape:
     "categoryScoreBreakdown": null,
     "clusterScoring": null,
     "completeAnalysis": {},
+    "relationshipAppCompleteAnalysis": {},
     "overall": {},
     "clusterAnalysis": {},
     "clusterAnalyses": null,
@@ -1902,6 +1905,9 @@ Current response shape:
     "vectorizationStatus": {
       "...": "workflow/vectorization status"
     },
+    "relationshipAppVectorizationStatus": {
+      "...": "relationship-app compact workflow/vectorization status"
+    },
     "workflowStatus": {
       "...": "stored workflow status"
     },
@@ -1911,7 +1917,8 @@ Current response shape:
 ```
 
 The frontend should treat these fields as primary:
-- `completeAnalysis`: full long-form cluster report
+- `completeAnalysis`: relationship-app compact full cluster report on `GET /relationship-app/relationships/:compositeChartId/analysis`; this is populated from `relationshipAppCompleteAnalysis` when available
+- `relationshipAppCompleteAnalysis`: persisted relationship-app compact full-analysis field; useful for debugging or clients that need to distinguish app-specific output from classic output
 - `clusterAnalysis`: scored metrics used for score chips, bars, and drilldown metadata
 - `overall`: top-level relationship score and archetype summary
 - `initialOverview`: short overview available before the full workflow completes
@@ -2116,12 +2123,12 @@ Response body:
 Notes:
 - The relationship-app should use `POST /relationship-app/workflow/relationship/start`
 - The shared route still exists for classic compatibility
-- This workflow is what generates the long-form per-cluster output saved under `completeAnalysis`
+- This shared workflow generates classic per-cluster output saved under `completeAnalysis`; relationship-app compact output is generated by `/relationship-app/workflow/relationship/start` and persisted under `relationshipAppCompleteAnalysis`
 - The current server-enforced cost is `CREDIT_COSTS.FULL_RELATIONSHIP_ANALYSIS = 60`
 
-### `POST /workflow/relationship/status`
+### `POST /relationship-app/workflow/relationship/status`
 
-Polls workflow state only. This is not the canonical report-read endpoint.
+Polls relationship-app compact workflow state only. This is not the canonical report-read endpoint.
 
 Request body:
 
@@ -2146,6 +2153,7 @@ Current deployed Step Functions response shape:
   "success": true,
   "workflowId": "relationshipId",
   "compositeChartId": "relationshipId",
+  "workflowType": "relationship-app-cluster",
   "status": "in_progress",
   "completed": false,
   "phase": "running",
@@ -2222,7 +2230,7 @@ Local fallback response shape when Step Functions is disabled:
 ```
 
 Important:
-- `POST /workflow/relationship/status` is a workflow-status endpoint, not the canonical content-read endpoint for the saved relationship report.
+- `POST /relationship-app/workflow/relationship/status` is a workflow-status endpoint, not the canonical content-read endpoint for the saved relationship report.
 - For relationship-app private/owned reads, the canonical fetch endpoint is `GET /relationship-app/relationships/:compositeChartId/analysis`.
 - The shared fallback endpoint remains `POST /fetchRelationshipAnalysis`.
 - Frontend should build against the Step Functions shape for polling state and use the fetch endpoint for the actual report body.
@@ -2252,18 +2260,19 @@ Request body:
 Current response body:
 - identical to `GET /relationship-app/relationships/:compositeChartId/analysis`
 - same top-level fields
-- same `completeAnalysis`, `clusterAnalysis`, `overall`, `initialOverview`, `workflowStatus`, `tensionFlowAnalysis`, and `_fullData` structure
+- same `completeAnalysis`, `relationshipAppCompleteAnalysis`, `clusterAnalysis`, `overall`, `initialOverview`, `workflowStatus`, `tensionFlowAnalysis`, and `_fullData` structure
 
 Read semantics:
-- If the relationship was only created through `POST /relationship-app/enhanced-relationship-analysis`, expect scored data plus `initialOverview`, but `completeAnalysis` may still be `null` or partial.
-- After the workflow completes, `completeAnalysis` is the field the mobile app should read for the full long-form per-cluster report.
+- If the relationship was only created through `POST /relationship-app/enhanced-relationship-analysis`, expect scored data plus `initialOverview`, but `relationshipAppCompleteAnalysis` / `completeAnalysis` may still be `null` or partial.
+- After the relationship-app workflow completes, `completeAnalysis` is the field the mobile app should read for the compact full per-cluster report.
+- Internally, relationship-app full analysis is persisted under `relationshipAppCompleteAnalysis` to avoid collisions with classic `completeAnalysis`.
 - This route is now public only for celebrity-to-celebrity relationships.
 - For non-celebrity/private relationships, it requires auth plus ownership.
 - Relationship-app clients should prefer `GET /relationship-app/relationships/:compositeChartId/analysis` for private reads.
 
-### `POST /workflow/relationship/resume`
+### `POST /relationship-app/workflow/relationship/resume`
 
-Resumes a paused or incomplete relationship workflow.
+Resumes a paused or incomplete relationship-app compact workflow.
 
 Request body:
 
@@ -2290,6 +2299,7 @@ Current Step Functions response:
   "workflowId": "relationshipId",
   "compositeChartId": "relationshipId",
   "executionArn": "arn:aws:states:...",
+  "workflowType": "relationship-app-cluster",
   "mode": "step-functions"
 }
 ```
@@ -2306,10 +2316,10 @@ If the mobile app is building pairwise relationship UI today, the intended contr
    - `POST /relationship-app/enhanced-relationship-analysis`
 2. Read relationship cards/history:
    - `POST /getUserCompositeCharts`
-3. Kick off long-form generation:
+3. Kick off compact full-analysis generation:
    - `POST /relationship-app/workflow/relationship/start`
 4. Poll state:
-   - `POST /workflow/relationship/status`
+   - `POST /relationship-app/workflow/relationship/status`
 5. Read the saved full report:
    - `GET /relationship-app/relationships/:compositeChartId/analysis`
 
@@ -2317,11 +2327,11 @@ The UI should treat these fields as canonical:
 - list/history cards: `relationshipAnalysisStatus`
 - short immediate relationship summary: `initialOverview`
 - score bars, cluster chips, and overall score: `clusterAnalysis` and `overall`
-- full long-form relationship report: `completeAnalysis`
+- compact full relationship report: `completeAnalysis` from relationship-app fetch, backed by `relationshipAppCompleteAnalysis`
 - lightweight workflow state: `workflow/status`
 
 The mobile app should **not** rely on:
-- `POST /workflow/relationship/status` as the source of truth for report content
+- `POST /relationship-app/workflow/relationship/status` as the source of truth for report content
 - the shared `POST /fetchRelationshipAnalysis` for authenticated private reads in the relationship app
 
 ## Real Dev Captures
@@ -2462,12 +2472,13 @@ Observed `_fullData` keys:
   "tensionFlowAnalysisGeneratedAt",
   "debug",
   "vectorizationStatus",
+  "relationshipAppVectorizationStatus",
   "workflowStatus",
   "_id"
 ]
 ```
 
-### 2. Completed `POST /workflow/relationship/status`
+### 2. Completed `POST /relationship-app/workflow/relationship/status`
 
 Request used:
 
@@ -2484,6 +2495,7 @@ Observed deployed `dev` response:
   "success": true,
   "workflowId": "68d1e067ef9b96815851c81c",
   "compositeChartId": "68d1e067ef9b96815851c81c",
+  "workflowType": "relationship-app-cluster",
   "status": "completed",
   "completed": true,
   "phase": "complete",
@@ -2754,7 +2766,7 @@ Authenticated fetch of saved relationship chat history.
 ## Backend Notes
 
 - Romantic subject creation stores the returned romantic overview internally in a relationship-app-specific field, but the API contract exposes it simply as `overview`.
-- Pairwise relationship creation and long-form generation still use the shared underlying scoring/workflow machinery, even when called through relationship-app routes.
+- Pairwise relationship creation uses the shared underlying scoring pipeline. Full-analysis generation uses a relationship-app workflow variant that calls the same cluster Lambda with compact output settings.
 - Missing natal vector context in relationship workflows is already tolerated; the pipeline continues with fallback text if nothing is retrieved.
 - The relationship analysis core is chart-data-driven and does not require a separate “full natal analysis” product to produce pairwise relationship output.
 
@@ -2768,13 +2780,13 @@ The pairwise relationship surface is now split like this:
   - `POST /relationship-app/workflow/relationship/start`
 - relationship-app private read:
   - `GET /relationship-app/relationships/:compositeChartId/analysis`
-- shared polling/resume:
-  - `POST /workflow/relationship/status`
-  - `POST /workflow/relationship/resume`
+- relationship-app private polling/resume:
+  - `POST /relationship-app/workflow/relationship/status`
+  - `POST /relationship-app/workflow/relationship/resume`
 - shared compatibility/public fetch:
   - `POST /fetchRelationshipAnalysis`
 
-That means the relationship app now has a clean authenticated private read contract for saved reports, while workflow polling/resume and the celebrity/public compatibility fetch remain shared.
+That means the relationship app now has clean authenticated private contracts for starting, polling, resuming, and reading saved reports, while the celebrity/public compatibility fetch remains shared.
 
 ## Recommended Mobile Contract
 
@@ -2789,10 +2801,10 @@ For pairwise relationship UI in the mobile app, the intended API set is:
   - `POST /relationship-app/enhanced-relationship-analysis`
 - relationship list/history:
   - `POST /getUserCompositeCharts`
-- full long-form generation:
+- compact full-analysis generation:
   - `POST /relationship-app/workflow/relationship/start`
-  - `POST /workflow/relationship/status`
-  - `POST /workflow/relationship/resume`
+  - `POST /relationship-app/workflow/relationship/status`
+  - `POST /relationship-app/workflow/relationship/resume`
 - saved relationship read:
   - private/owned: `GET /relationship-app/relationships/:compositeChartId/analysis`
   - public celebrity-to-celebrity or legacy/shared: `POST /fetchRelationshipAnalysis`
