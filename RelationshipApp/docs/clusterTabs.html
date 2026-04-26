@@ -1,0 +1,332 @@
+import { useState } from "react";
+
+var SANS = "'DM Sans', system-ui, sans-serif";
+var SERIF = "Georgia, 'Times New Roman', serif";
+
+var c = {
+  bg: "#0C0B10", card: "#16151D", border: "rgba(255,255,255,0.06)",
+  gold: "#D4A843", goldDim: "rgba(212,168,67,0.15)",
+  lav: "#B8A0E8", lavBg: "rgba(184,160,232,0.12)",
+  text: "#E8E4F0", dim: "rgba(232,228,240,0.55)", faint: "rgba(232,228,240,0.35)",
+  green: "#82C8B4", greenDim: "rgba(130,200,180,0.12)",
+  coral: "#E8856B", coralDim: "rgba(232,133,107,0.12)",
+};
+
+var clusters = [
+  { name: "Harmony", score: 66, icon: "\u2764\uFE0F",
+    between: {
+      works: "Edmin's emotional nature meets Beatrice's values through gentle tension that actually deepens understanding. His Moon in Gemini seeks intellectual and emotional variety, while her Venus in Sagittarius craves expansive connection. Rather than clash, this opposition creates a dynamic where his need to process feelings through conversation activates her desire to explore meaning together.",
+      difficult: "Their Mars-Saturn square introduces friction around timing and pace. Edmin wants to move toward ease quickly; Beatrice needs to test whether that ease is earned. This can feel like resistance when it's actually rigor \u2014 she's not blocking warmth, she's making sure it's real.",
+      full: "The harmony between them is built on a Venus-Moon circuit that keeps emotional temperature regulated. It's not effortless \u2014 it's maintained. The Mars-Saturn square ensures neither of them mistakes comfort for depth. What makes it work is that Edmin's curiosity meets Beatrice's philosophical expansiveness, creating a warmth that's intellectually alive."
+    },
+    relationship: {
+      works: "Composite Venus in the 7th house places partnership at the center of this relationship's identity. The relationship itself wants to be a team \u2014 it's most alive when they're operating as a unit rather than two individuals navigating separately. The Moon trine Jupiter in the composite gives emotional generosity a structural home.",
+      difficult: "Composite Saturn in the 1st house means the relationship presents itself seriously to the world. There's a weight to how others perceive them as a couple, and that weight can make lighter moments feel like they need to be earned rather than simply enjoyed. The relationship can take itself too seriously.",
+      full: "This is a relationship that is fundamentally partnership-oriented but carries a gravitas from Saturn's presence. They're a team that takes commitment seriously \u2014 the ongoing work is remembering that playfulness isn't a departure from who they are together. The composite chart suggests a bond that deepens through shared responsibility."
+    }
+  },
+  { name: "Passion", score: 78, icon: "\uD83D\uDD25",
+    between: {
+      works: "Edmin's Pluto opposition to Beatrice's Mars creates a magnetic undertow that neither of them fully controls. This isn't surface attraction \u2014 it's a compulsive fascination that surfaces in unexpected moments. A look that lingers, a conversation that suddenly drops into vulnerability. The intensity is real and persistent.",
+      difficult: "Their Venus-Neptune square filters desire through idealization. What they want from each other physically can be colored by projection \u2014 wanting who they imagine the other person to be rather than who they actually are in that moment. The fantasy can override the reality.",
+      full: "Passion here operates on two levels: the Pluto-Mars opposition provides genuine transformative intensity, while the Venus-Neptune square introduces a dream-like quality that can either elevate desire into something transcendent or detach it from reality. The key is staying present \u2014 the raw connection is powerful enough without embellishment."
+    },
+    relationship: {
+      works: "Composite Mars in the 5th house gives desire a creative, playful container. The relationship's physical dimension is most alive when it feels like play \u2014 spontaneity, shared adventures, creative collaboration that generates heat as a byproduct rather than a goal.",
+      difficult: "Composite Venus square Neptune echoes the synastry theme: idealization lives in the relationship's DNA. The relationship itself can build narratives about its own passion that don't match the day-to-day experience, creating a gap between the story and the reality.",
+      full: "The composite Passion signature combines creative potential with a tendency toward romantic mythology. The physical connection works best when grounded in present-moment experience \u2014 activities that are physically engaging and slightly unpredictable light this up better than planned intimacy or nostalgic callbacks to early intensity."
+    }
+  },
+  { name: "Connection", score: 65, icon: "\uD83E\uDDE0",
+    between: {
+      works: "Edmin's Mercury trine Beatrice's Ascendant creates an immediate intellectual rapport. He speaks and she receives it as if the words were calibrated for her specifically. There's a shorthand between them that most relationships take years to develop \u2014 they skip the translation phase entirely.",
+      difficult: "Mercury square Pluto between their charts can make communication intense in unproductive ways. When they disagree, conversations risk spiraling into power dynamics rather than staying in the realm of understanding. She may probe where he'd rather leave things unexamined, and he may deflect where she needs directness.",
+      full: "Connection is strong but has sharp edges. The Mercury-Ascendant trine provides a foundation of mutual intelligibility that makes everyday communication feel easy. The Mercury-Pluto square adds depth but also occasional intensity \u2014 they understand each other unusually well, and that understanding sometimes cuts deeper than intended."
+    },
+    relationship: {
+      works: "Composite Mercury in the 3rd house makes communication the lifeblood of the relationship. They process the relationship itself through conversation \u2014 talking about what's happening between them is how they make it real. The relationship needs verbal exchange to feel alive.",
+      difficult: "Composite Chiron conjunct Mercury means the communication channel also carries old wounds. Conversations can inadvertently activate past hurts \u2014 not from each other, but from before. The relationship's greatest strength is also where vulnerability is highest.",
+      full: "Mercury in the 3rd gives them an extraordinary communication channel; Chiron's presence means that channel carries emotional weight. This is a relationship where words matter more than usual \u2014 they heal and they wound with equal facility. The awareness of that power is itself the growth edge."
+    }
+  },
+  { name: "Stability", score: 87, icon: "\uD83D\uDC8E",
+    between: {
+      works: "Edmin's Jupiter trine Beatrice's Saturn creates a rare balance between expansion and structure. He brings optimism and vision; she brings discipline and follow-through. Neither quality overwhelms the other \u2014 they calibrate naturally, creating a partnership that dreams realistically.",
+      difficult: "Uranus square Moon introduces periodic disruption to the emotional foundation. One or both of them may need space that feels abrupt to the other. The need for independence can register as instability even when it's actually healthy breathing room.",
+      full: "Stability here is genuine but not rigid. The Jupiter-Saturn trine provides a reliable core, while the Uranus-Moon square ensures that core never calcifies. This is stability that adapts \u2014 it bends rather than breaks, which makes it more durable than the kind that depends on nothing changing."
+    },
+    relationship: {
+      works: "Composite Saturn trine Venus gives the relationship a durable, almost architectural quality. Commitments made feel genuinely binding \u2014 not performative, not conditional. There's a bedrock seriousness to how they treat the partnership that builds trust over time.",
+      difficult: "Composite Uranus in the 4th house means the domestic or foundational aspects of the relationship resist convention. What 'home' or 'routine' looks like for them may not match external expectations, and forcing it into a standard template creates tension.",
+      full: "The Stability signature suggests a relationship that is genuinely committed but unconventional in form. The stability is real \u2014 it just doesn't look like other people's stability. Accepting that is the key to making it feel secure rather than uncertain. Their version of lasting is built on adaptability, not rigidity."
+    }
+  },
+  { name: "Growth", score: 79, icon: "\uD83C\uDF31",
+    between: {
+      works: "Edmin's Sun conjunction Beatrice's Pluto signals that this relationship is inherently transformative. His core identity activates her deepest evolutionary impulses. Being together changes both of them in ways that are difficult to reverse \u2014 the growth is permanent once it begins.",
+      difficult: "Saturn opposite Neptune introduces tension between realism and idealism in how they grow together. One of them pushes for practical progress while the other envisions something more abstract. The challenge is aligning on what growth actually means \u2014 building something concrete vs. becoming something new.",
+      full: "Growth is driven by a Sun-Pluto conjunction that makes transformation inevitable, complicated by a Saturn-Neptune opposition that debates the form transformation should take. They both want to evolve \u2014 they need to regularly recalibrate what 'forward' looks like so they're growing in the same direction rather than parallel tracks."
+    },
+    relationship: {
+      works: "Composite Jupiter in the 9th house makes shared learning and philosophical exploration a growth engine. Travel, education, spiritual inquiry, exposure to unfamiliar ideas \u2014 anything that expands their shared worldview strengthens the relationship and gives it momentum.",
+      difficult: "Composite Pluto in the 8th house means growth also involves confronting shadow material together. Transformation in this relationship isn't always comfortable \u2014 it sometimes requires facing things neither of them would examine alone. The depth is real and occasionally overwhelming.",
+      full: "The Growth signature combines expansive optimism with deep transformative pressure. This is a relationship that grows through both adventure and confrontation \u2014 the light and the dark, the philosophical and the psychological. The most significant evolution happens when they engage both rather than retreating to only the comfortable mode."
+    }
+  }
+];
+
+var overallData = {
+  tier: "Flourishing", score: 75,
+  dominantCluster: "Stability", challengeCluster: "Connection",
+  holisticOverview: "Edmin and Beatrice share a relationship with genuine compatibility at 75 out of 100, marked by a strongly activated astrological cluster system that leans consistently in one direction. What makes their connection special is how unified their planetary patterns feel in practice \u2014 rather than canceling each other out, their aspects reinforce a coherent relationship dynamic that feels both grounded and transformative."
+};
+
+function Radar(props) {
+  var s = props.size || 180;
+  var entries = clusters.map(function(cl) { return [cl.name, cl.score]; });
+  var cx = s / 2, cy = s / 2, maxR = s * 0.36, n = entries.length;
+  function ang(i) { return (Math.PI * 2 * i) / n - Math.PI / 2; }
+  function pt(i, r) { var a = ang(i); return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; }
+  function ring(r) { return entries.map(function(_, i) { return pt(i, r).join(","); }).join(" "); }
+  var dataStr = entries.map(function(e, i) { return pt(i, (e[1] / 100) * maxR).join(","); }).join(" ");
+  var labelOff = [
+    { dx: 0, dy: -12, a: "middle" }, { dx: 14, dy: 4, a: "start" },
+    { dx: 10, dy: 16, a: "start" }, { dx: -10, dy: 16, a: "end" }, { dx: -14, dy: 4, a: "end" }
+  ];
+  return (
+    <svg viewBox={"0 0 " + s + " " + s} style={{ width: "100%", maxWidth: s }}>
+      <g stroke="rgba(255,255,255,0.06)" fill="none" strokeWidth="0.8">
+        <polygon points={ring(maxR)} /><polygon points={ring(maxR * 0.66)} /><polygon points={ring(maxR * 0.33)} />
+      </g>
+      <polygon points={dataStr} fill="rgba(184,160,232,0.18)" stroke={c.lav} strokeWidth="1.8" strokeLinejoin="round" />
+      {entries.map(function(e, i) { var p = pt(i, (e[1] / 100) * maxR); return <circle key={i} cx={p[0]} cy={p[1]} r={3} fill={c.lav} stroke={c.bg} strokeWidth="1.5" />; })}
+      {entries.map(function(e, i) {
+        var p = pt(i, maxR); var o = labelOff[i];
+        return (
+          <g key={"l" + i}>
+            <text x={p[0] + o.dx} y={p[1] + o.dy} textAnchor={o.a} fontFamily={SANS} fontSize="8.5" fill="rgba(232,228,240,0.5)" fontWeight="500">{e[0]}</text>
+            <text x={p[0] + o.dx} y={p[1] + o.dy + 11} textAnchor={o.a} fontFamily={SERIF} fontSize="11" fill={c.lav} fontWeight="700">{e[1]}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function Panel(props) {
+  var styles = {
+    works: { bg: c.greenDim, border: "rgba(130,200,180,0.15)", accent: c.green, label: "What works" },
+    difficult: { bg: c.coralDim, border: "rgba(232,133,107,0.15)", accent: c.coral, label: "What's difficult" },
+    full: { bg: c.lavBg, border: "rgba(184,160,232,0.15)", accent: c.lav, label: "The full picture" },
+  };
+  var s = styles[props.type];
+  return (
+    <div style={{ background: s.bg, border: "1px solid " + s.border, borderRadius: 14, padding: "14px 16px", marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <div style={{ width: 6, height: 6, borderRadius: "50%", background: s.accent }} />
+        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: s.accent }}>{s.label}</span>
+      </div>
+      <div style={{ fontFamily: SERIF, fontSize: 14, lineHeight: 1.6, color: "rgba(232,228,240,0.78)", fontStyle: "italic" }}>{props.text}</div>
+    </div>
+  );
+}
+
+function AskIrisInline(props) {
+  return (
+    <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid " + c.border, borderRadius: 12, padding: "12px 14px", marginTop: 12, display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+      <div style={{ width: 28, height: 28, borderRadius: 8, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: c.green, flexShrink: 0 }}>{"\u2726"}</div>
+      <div style={{ flex: 1, fontSize: 12.5, color: c.dim, lineHeight: 1.35 }}>{props.prompt}</div>
+      <div style={{ fontSize: 10, color: c.gold, fontWeight: 600, flexShrink: 0 }}>{"\u25C6"} 1</div>
+    </div>
+  );
+}
+
+export default function ClusterTabs() {
+  var mainTabState = useState(1);
+  var mainTab = mainTabState[0];
+  var setMainTab = mainTabState[1];
+
+  var clusterState = useState(0);
+  var activeCluster = clusterState[0];
+  var setActiveCluster = clusterState[1];
+
+  var lensState = useState(0);
+  var activeLens = lensState[0];
+  var setActiveLens = lensState[1];
+
+  var cl = clusters[activeCluster];
+  var lensData = activeLens === 0 ? cl.between : cl.relationship;
+
+  var irisPrompts = {
+    "Harmony": ["What does the Mars-Saturn square mean day to day?", "How do we keep warmth from becoming routine?"],
+    "Passion": ["How do we activate the Pluto-Mars intensity?", "What does Venus square Neptune look like in practice?"],
+    "Connection": ["Why can our conversations get too intense?", "How do we use the Chiron-Mercury energy?"],
+    "Stability": ["Is our unconventional stability sustainable?", "What does Uranus in the 4th mean for living together?"],
+    "Growth": ["Are we growing in the same direction?", "What does Sun conjunct Pluto transform?"],
+  };
+
+  return (
+    <div style={{ background: c.bg, minHeight: "100vh", maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, paddingBottom: 40 }}>
+      {/* Status bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}>
+        <span>9:41</span><div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} /><span>...</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 20px 12px" }}>
+        <span style={{ fontSize: 15, color: c.dim, cursor: "pointer" }}>{"\u2190"} Back</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.goldDim, border: "1px solid rgba(212,168,67,0.25)", borderRadius: 100, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: c.gold }}><span style={{ fontSize: 10 }}>{"\u25C6"}</span><span>456</span></div>
+      </div>
+
+      <div style={{ padding: "0 20px" }}>
+        {/* Identity */}
+        <div style={{ textAlign: "center", marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+            <div style={{ position: "relative", width: 68, height: 46 }}>
+              <div style={{ position: "absolute", left: 0, top: 0, zIndex: 1, width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, " + c.lav + ", #9B7DD4)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 16, fontWeight: 700, color: c.bg, border: "3px solid " + c.bg }}>E</div>
+              <div style={{ position: "absolute", right: 0, top: 4, width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, " + c.green + ", #5BA890)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 16, fontWeight: 700, color: c.bg, border: "3px solid " + c.bg }}>B</div>
+            </div>
+          </div>
+          <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>You & Beatrice</div>
+          <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 18, color: c.gold, marginBottom: 2 }}>Slow Burn Revolution</div>
+          <div style={{ fontSize: 11, color: c.faint }}>Stability & Growth dominant</div>
+        </div>
+
+        {/* Compact radar */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+          <Radar size={170} />
+        </div>
+
+        {/* Main tabs */}
+        <div style={{ display: "flex", background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: 3, marginBottom: 16 }}>
+          {["Overview", "Clusters", "Key Aspects"].map(function(tab, i) {
+            var isActive = mainTab === i;
+            return (
+              <div key={tab} onClick={function() { setMainTab(i); }} style={{
+                flex: 1, textAlign: "center", padding: "10px 0", borderRadius: 10, cursor: "pointer",
+                fontSize: 12.5, fontWeight: 600,
+                background: isActive ? c.card : "transparent",
+                color: isActive ? c.text : c.faint,
+                border: isActive ? "1px solid " + c.border : "1px solid transparent",
+              }}>{tab}</div>
+            );
+          })}
+        </div>
+
+        {/* ── OVERVIEW TAB ── */}
+        {mainTab === 0 && (
+          <div>
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>Overall Reading</div>
+            <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "18px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: "radial-gradient(circle, " + c.goldDim + " 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+                <div style={{ background: c.lavBg, border: "1px solid rgba(184,160,232,0.2)", borderRadius: 100, padding: "4px 12px", fontSize: 11, fontWeight: 600, color: c.lav }}>{overallData.tier} {"\u00b7"} {overallData.score}/100</div>
+                <div style={{ background: c.greenDim, border: "1px solid rgba(130,200,180,0.15)", borderRadius: 100, padding: "4px 10px", fontSize: 10, color: c.green, fontWeight: 500 }}>Strongest: {overallData.dominantCluster}</div>
+                <div style={{ background: c.coralDim, border: "1px solid rgba(232,133,107,0.15)", borderRadius: 100, padding: "4px 10px", fontSize: 10, color: c.coral, fontWeight: 500 }}>Weakest: {overallData.challengeCluster}</div>
+              </div>
+              <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14.5, lineHeight: 1.6, color: "rgba(232,228,240,0.8)" }}>{overallData.holisticOverview}</div>
+            </div>
+            <AskIrisInline prompt="What makes our cluster system so unified?" />
+          </div>
+        )}
+
+        {/* ── CLUSTERS TAB ── */}
+        {mainTab === 1 && (
+          <div>
+            {/* Cluster pills */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", scrollbarWidth: "none", marginLeft: -20, marginRight: -20, padding: "0 20px" }}>
+              {clusters.map(function(cluster, i) {
+                var isActive = activeCluster === i;
+                return (
+                  <div key={cluster.name} onClick={function() { setActiveCluster(i); setActiveLens(0); }} style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "8px 14px", borderRadius: 100, cursor: "pointer", flexShrink: 0,
+                    background: isActive ? c.card : "rgba(255,255,255,0.03)",
+                    border: "1px solid " + (isActive ? c.border : "rgba(255,255,255,0.04)"),
+                  }}>
+                    <span style={{ fontSize: 14 }}>{cluster.icon}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: isActive ? 600 : 400, color: isActive ? c.text : c.faint }}>{cluster.name}</span>
+                    <span style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 700, color: isActive ? c.lav : c.faint }}>{cluster.score}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Lens sub-tabs */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+              {["Between You", "The Relationship Itself"].map(function(lens, i) {
+                var isActive = activeLens === i;
+                return (
+                  <div key={lens} onClick={function() { setActiveLens(i); }} style={{
+                    flex: 1, textAlign: "center", padding: "8px 0", borderRadius: 10, cursor: "pointer",
+                    fontSize: 12, fontWeight: 600,
+                    background: isActive ? c.lavBg : "rgba(255,255,255,0.03)",
+                    color: isActive ? c.lav : c.faint,
+                    border: "1px solid " + (isActive ? "rgba(184,160,232,0.25)" : "rgba(255,255,255,0.04)"),
+                  }}>{lens}</div>
+                );
+              })}
+            </div>
+
+            {/* Cluster header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div style={{ fontSize: 24, width: 42, height: 42, borderRadius: 12, background: c.lavBg, display: "flex", alignItems: "center", justifyContent: "center" }}>{cl.icon}</div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: c.text }}>{cl.name}</span>
+                  <span style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, color: c.lav }}>{cl.score}</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: c.faint }}>{activeLens === 0 ? "How your charts interact with each other" : "What the relationship creates as its own entity"}</div>
+              </div>
+            </div>
+
+            {/* Panels */}
+            <Panel type="works" text={lensData.works} />
+            <Panel type="difficult" text={lensData.difficult} />
+            <Panel type="full" text={lensData.full} />
+
+            {/* Contextual Ask Iris */}
+            <AskIrisInline prompt={irisPrompts[cl.name][activeLens]} />
+          </div>
+        )}
+
+        {/* ── KEY ASPECTS TAB ── */}
+        {mainTab === 2 && (
+          <div>
+            <div style={{ fontSize: 12.5, color: c.faint, marginBottom: 16, lineHeight: 1.4 }}>The highest-impact planetary interactions shaping this relationship.</div>
+            <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "6px 16px" }}>
+              {[
+                { aspect: "Sun conjunction Pluto", cluster: "Growth", type: "Support", impact: "Core identity activates deepest transformation" },
+                { aspect: "Pluto opposition Mars", cluster: "Passion", type: "Mixed", impact: "Magnetic undertow that neither fully controls" },
+                { aspect: "Jupiter trine Saturn", cluster: "Stability", type: "Support", impact: "Expansion meets structure in perfect balance" },
+                { aspect: "Mercury trine Ascendant", cluster: "Connection", type: "Support", impact: "Immediate intellectual rapport" },
+                { aspect: "Venus square Neptune", cluster: "Passion", type: "Challenge", impact: "Desire filtered through idealization" },
+                { aspect: "Mars square Saturn", cluster: "Harmony", type: "Challenge", impact: "Timing friction \u2014 tests whether ease is earned" },
+                { aspect: "Moon square Uranus", cluster: "Stability", type: "Challenge", impact: "Periodic disruption to emotional routine" },
+                { aspect: "Mercury square Pluto", cluster: "Connection", type: "Mixed", impact: "Conversations that cut deeper than intended" },
+              ].map(function(ka, i) {
+                var typeColor = ka.type === "Support" ? c.green : ka.type === "Challenge" ? c.coral : c.gold;
+                var typeBg = ka.type === "Support" ? c.greenDim : ka.type === "Challenge" ? c.coralDim : c.goldDim;
+                return (
+                  <div key={i} style={{ display: "flex", gap: 12, padding: "14px 0", borderBottom: i < 7 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                    <div style={{ width: 4, minHeight: 4, borderRadius: 2, background: typeColor, marginTop: 5, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 600, color: c.text }}>{ka.aspect}</span>
+                        <span style={{ fontSize: 9, background: typeBg, borderRadius: 100, padding: "2px 7px", color: typeColor, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{ka.type}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: c.dim, lineHeight: 1.4, marginBottom: 4 }}>{ka.impact}</div>
+                      <div style={{ fontSize: 10.5, color: c.faint }}>{ka.cluster}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <AskIrisInline prompt="Which aspect has the most impact on our daily experience?" />
+          </div>
+        )}
+
+        {/* Bottom spacer */}
+        <div style={{ height: 40 }} />
+      </div>
+    </div>
+  );
+}

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { RelationshipTheme } from '../theme';
 
 const SUPPORT_COLOR = '#82C8B4';
@@ -41,79 +41,63 @@ interface ClusterMetrics {
 
 interface KeystoneAspect {
   description?: string;
-  rank?: number;
-  impact?: string;
-  type?: string;
   cluster?: string;
-}
-
-function inferKeystoneType(impact?: string): string | undefined {
-  if (!impact) return undefined;
-  const lower = impact.toLowerCase();
-  if (lower.includes('support')) return 'Support';
-  if (lower.includes('challenge')) return 'Challenge';
-  return 'Mixed';
-}
-
-function stripPointsFromImpact(impact?: string): string {
-  if (!impact) return '';
-  return impact.replace(/\s*\([^)]*pts?\)\s*$/i, '').trim();
 }
 
 function aggregateKeystoneAspects(
   fullAnalysis: any,
   maxCount: number = 6
 ): KeystoneAspect[] {
-  const collected: KeystoneAspect[] = [];
-  const tfKeystones = Array.isArray(fullAnalysis?.tensionFlowAnalysis?.keystoneAspects)
-    ? fullAnalysis.tensionFlowAnalysis.keystoneAspects
+  // Rank by the dominant cluster contribution magnitude per scored item.
+  const scoredItems = Array.isArray(fullAnalysis?.scoredItems)
+    ? fullAnalysis.scoredItems
+    : Array.isArray(fullAnalysis?.clusterScoring?.scoredItems)
+    ? fullAnalysis.clusterScoring.scoredItems
     : [];
-  for (const ka of tfKeystones) {
-    collected.push({
-      description: ka?.description,
-      rank: typeof ka?.rank === 'number' ? ka.rank : undefined,
-      impact: ka?.impact,
-      type: ka?.type ?? inferKeystoneType(ka?.impact),
-      cluster: ka?.cluster,
+
+  type Ranked = KeystoneAspect & { magnitude: number };
+  const ranked: Ranked[] = [];
+
+  for (const item of scoredItems) {
+    const description: string | undefined = item?.description;
+    if (!description) continue;
+    const contributions = Array.isArray(item?.clusterContributions)
+      ? item.clusterContributions
+      : [];
+    if (contributions.length === 0) continue;
+
+    let dominantCluster: string | undefined;
+    let dominantMagnitude = -Infinity;
+    for (const c of contributions) {
+      const score = typeof c?.score === 'number' ? c.score : 0;
+      if (score === 0 || !c?.cluster) continue;
+      const magnitude = Math.abs(score);
+      if (magnitude > dominantMagnitude) {
+        dominantMagnitude = magnitude;
+        dominantCluster = c.cluster;
+      }
+    }
+    if (dominantMagnitude <= 0) continue;
+
+    ranked.push({
+      description,
+      cluster: dominantCluster,
+      magnitude: dominantMagnitude,
     });
   }
-  const clusters = fullAnalysis?.clusterAnalysis?.clusters ?? {};
-  for (const [clusterName, cluster] of Object.entries(clusters)) {
-    const clusterKa = (cluster as any)?.keystoneAspects;
-    if (!Array.isArray(clusterKa)) continue;
-    for (const ka of clusterKa) {
-      collected.push({
-        description: ka?.description,
-        rank: typeof ka?.rank === 'number' ? ka.rank : undefined,
-        impact: ka?.impact,
-        type: ka?.type ?? inferKeystoneType(ka?.impact),
-        cluster: clusterName,
-      });
-    }
-  }
-  // Dedupe by description, prefer the entry with the lowest rank
-  const byDesc = new Map<string, KeystoneAspect>();
-  for (const ka of collected) {
+
+  const byDesc = new Map<string, Ranked>();
+  for (const ka of ranked) {
     const key = ka.description ?? '';
     if (!key) continue;
     const existing = byDesc.get(key);
-    if (!existing) {
-      byDesc.set(key, ka);
-      continue;
-    }
-    const existingRank = existing.rank ?? Number.POSITIVE_INFINITY;
-    const candidateRank = ka.rank ?? Number.POSITIVE_INFINITY;
-    if (candidateRank < existingRank) {
+    if (!existing || ka.magnitude > existing.magnitude) {
       byDesc.set(key, ka);
     }
   }
   const deduped = Array.from(byDesc.values());
-  deduped.sort((a, b) => {
-    const ar = a.rank ?? Number.POSITIVE_INFINITY;
-    const br = b.rank ?? Number.POSITIVE_INFINITY;
-    return ar - br;
-  });
-  return deduped.slice(0, maxCount);
+  deduped.sort((a, b) => b.magnitude - a.magnitude);
+  return deduped.slice(0, maxCount).map(({ magnitude, ...rest }) => rest);
 }
 
 interface FullAnalysisSectionProps {
@@ -124,9 +108,12 @@ interface FullAnalysisSectionProps {
 
 type TabKey = 'overview' | 'clusters' | 'keyAspects';
 
+type LensKey = 'between' | 'relationship';
+
 export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: FullAnalysisSectionProps) {
-  const [openCluster, setOpenCluster] = useState<ClusterName | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [activeCluster, setActiveCluster] = useState<ClusterName>('Harmony');
+  const [activeLens, setActiveLens] = useState<LensKey>('between');
 
   const overall = fullAnalysis?.overall ?? null;
   const tier = overall?.tier ?? null;
@@ -157,49 +144,91 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
   const clusterMetrics = fullAnalysis?.clusterAnalysis?.clusters ?? null;
   const keystoneAspects: KeystoneAspect[] = aggregateKeystoneAspects(fullAnalysis);
 
-  if (__DEV__) {
-    // eslint-disable-next-line no-console
-    console.log('[FullAnalysisSection] keystone debug', {
-      tfKeystoneCount: Array.isArray(tensionFlow?.keystoneAspects)
-        ? tensionFlow.keystoneAspects.length
-        : 'not-array',
-      clusterKeystoneCounts: clusterMetrics
-        ? Object.fromEntries(
-            Object.entries(clusterMetrics).map(([k, v]) => [
-              k,
-              Array.isArray((v as any)?.keystoneAspects)
-                ? (v as any).keystoneAspects.length
-                : 'not-array',
-            ])
-          )
-        : null,
-      aggregatedCount: keystoneAspects.length,
-      firstAggregated: keystoneAspects[0] ?? null,
-    });
-  }
-
-  const clusterCounts: Record<ClusterName, number> = {
-    Harmony: 0,
-    Passion: 0,
-    Connection: 0,
-    Stability: 0,
-    Growth: 0,
-  };
-  let supportCount = 0;
-  let challengeCount = 0;
-  let mixedCount = 0;
-  for (const ka of keystoneAspects) {
-    if (ka.cluster && ka.cluster in clusterCounts) {
-      clusterCounts[ka.cluster as ClusterName] += 1;
+  const aspectMix = (() => {
+    const tfTotal = typeof tensionFlow?.totalAspects === 'number' ? tensionFlow.totalAspects : null;
+    const tfSupport =
+      typeof tensionFlow?.supportAspects === 'number' ? tensionFlow.supportAspects : null;
+    const tfChallenge =
+      typeof tensionFlow?.challengeAspects === 'number' ? tensionFlow.challengeAspects : null;
+    if (tfTotal !== null || tfSupport !== null || tfChallenge !== null) {
+      return { total: tfTotal, support: tfSupport, challenge: tfChallenge };
     }
-    if (ka.type === 'Support') supportCount += 1;
-    else if (ka.type === 'Challenge') challengeCount += 1;
-    else mixedCount += 1;
-  }
+    // Fallback: derive from scoredItems by dominant clusterContribution valence.
+    const items = Array.isArray(fullAnalysis?.scoredItems)
+      ? fullAnalysis.scoredItems
+      : Array.isArray(fullAnalysis?.clusterScoring?.scoredItems)
+      ? fullAnalysis.clusterScoring.scoredItems
+      : [];
+    if (items.length === 0) return null;
+    let support = 0;
+    let challenge = 0;
+    for (const item of items) {
+      const contributions = Array.isArray(item?.clusterContributions)
+        ? item.clusterContributions
+        : [];
+      let dominantValence: number | undefined;
+      let dominantMagnitude = -Infinity;
+      for (const c of contributions) {
+        const score = typeof c?.score === 'number' ? c.score : 0;
+        const magnitude = Math.abs(score);
+        if (magnitude > dominantMagnitude) {
+          dominantMagnitude = magnitude;
+          dominantValence = c?.valence;
+        }
+      }
+      if (dominantValence === 1) support += 1;
+      else if (dominantValence === -1) challenge += 1;
+    }
+    return { total: items.length, support, challenge };
+  })();
+
+  const doubleWhammyAspects = (() => {
+    const items = Array.isArray(fullAnalysis?.scoredItems)
+      ? fullAnalysis.scoredItems
+      : Array.isArray(fullAnalysis?.clusterScoring?.scoredItems)
+      ? fullAnalysis.clusterScoring.scoredItems
+      : [];
+    const dedup = new Map<
+      string,
+      {
+        description?: string;
+        partnerDescription?: string;
+        theme?: string;
+        complexity?: string;
+        combinedMagnitude?: number;
+        dominantValence?: number;
+      }
+    >();
+    for (const item of items) {
+      const dw = item?.doubleWhammy;
+      if (!dw || dw.isDoubleWhammy !== true) continue;
+      const desc: string | undefined = item?.description;
+      const partnerDesc: string | undefined = dw.partnerDescription;
+      const pairKey = [desc, partnerDesc]
+        .filter((v): v is string => typeof v === 'string')
+        .sort()
+        .join(' | ');
+      if (!pairKey || dedup.has(pairKey)) continue;
+      dedup.set(pairKey, {
+        description: desc,
+        partnerDescription: partnerDesc,
+        theme: dw.theme,
+        complexity: dw.complexity,
+        combinedMagnitude:
+          typeof dw.combinedMagnitude === 'number' ? dw.combinedMagnitude : undefined,
+        dominantValence:
+          typeof dw.dominantValence === 'number' ? dw.dominantValence : undefined,
+      });
+    }
+    return Array.from(dedup.values()).sort(
+      (a, b) => (b.combinedMagnitude ?? 0) - (a.combinedMagnitude ?? 0)
+    );
+  })();
+
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'overview', label: 'Overview' },
-    { key: 'clusters', label: 'Clusters' },
+    { key: 'clusters', label: 'Breakdown' },
     { key: 'keyAspects', label: 'Key Aspects' },
   ];
 
@@ -353,121 +382,15 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
       ) : null}
 
       {activeTab === 'clusters' ? (
-        <View>
-          <Text style={[styles.sectionSub, { color: colors.textSubtle }]}>
-            Tap any cluster to read the full synastry and composite breakdown.
-          </Text>
-          {CLUSTER_ORDER.map((name) => {
-          const ca: ClusterCompleteAnalysis = completeAnalysis?.[name] ?? {};
-          const cm: ClusterMetrics = clusterMetrics?.[name] ?? {};
-          const score = typeof cm.score === 'number' ? Math.round(cm.score) : null;
-          const supportPct = typeof cm.supportPct === 'number' ? Math.round(cm.supportPct) : null;
-          const challengePct = typeof cm.challengePct === 'number' ? Math.round(cm.challengePct) : null;
-          const isOpen = openCluster === name;
-          const hasContent = Boolean(ca.synastry || ca.composite);
-
-          return (
-            <View
-              key={name}
-              style={[
-                styles.clusterCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: isOpen ? 'rgba(202, 190, 255, 0.18)' : colors.ghostBorder,
-                },
-              ]}
-            >
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => setOpenCluster(isOpen ? null : name)}
-                style={styles.clusterHeader}
-                disabled={!hasContent}
-              >
-                <View
-                  style={[
-                    styles.clusterIcon,
-                    {
-                      backgroundColor: isOpen
-                        ? 'rgba(202, 190, 255, 0.12)'
-                        : 'rgba(255, 255, 255, 0.04)',
-                    },
-                  ]}
-                >
-                  <Text style={styles.clusterIconText}>{CLUSTER_ICONS[name]}</Text>
-                </View>
-                <View style={styles.clusterMeta}>
-                  <View style={styles.clusterTitleRow}>
-                    <Text style={[styles.clusterName, { color: colors.text }]}>{name}</Text>
-                    {score !== null ? (
-                      <Text style={[styles.clusterScore, { color: colors.primary }]}>{score}</Text>
-                    ) : null}
-                  </View>
-                  {supportPct !== null && challengePct !== null ? (
-                    <View style={styles.barRow}>
-                      <View
-                        style={[
-                          styles.barTrack,
-                          { backgroundColor: 'rgba(255, 255, 255, 0.06)' },
-                        ]}
-                      >
-                        <View style={styles.barFill}>
-                          <View
-                            style={{
-                              flex: supportPct,
-                              backgroundColor: SUPPORT_COLOR,
-                            }}
-                          />
-                          <View
-                            style={{
-                              flex: challengePct,
-                              backgroundColor: CHALLENGE_COLOR,
-                            }}
-                          />
-                        </View>
-                      </View>
-                      <Text style={[styles.barLabel, { color: colors.textSubtle }]}>
-                        {supportPct}% / {challengePct}%
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-                {hasContent ? (
-                  <Text
-                    style={[styles.chevron, { color: colors.textSubtle }, isOpen && styles.chevronOpen]}
-                  >
-                    ›
-                  </Text>
-                ) : null}
-              </TouchableOpacity>
-
-              {isOpen && hasContent ? (
-                <View style={styles.clusterBody}>
-                  {ca.synastry ? (
-                    <View style={styles.subSection}>
-                      <Text style={[styles.subSectionLabel, { color: colors.textSubtle }]}>
-                        Synastry
-                      </Text>
-                      <ClusterPanel kind="support" text={ca.synastry.supportPanel} />
-                      <ClusterPanel kind="challenge" text={ca.synastry.challengePanel} />
-                      <ClusterPanel kind="synthesis" text={ca.synastry.synthesisPanel} colors={colors} />
-                    </View>
-                  ) : null}
-                  {ca.composite ? (
-                    <View style={styles.subSection}>
-                      <Text style={[styles.subSectionLabel, { color: colors.textSubtle }]}>
-                        Composite
-                      </Text>
-                      <ClusterPanel kind="support" text={ca.composite.supportPanel} />
-                      <ClusterPanel kind="challenge" text={ca.composite.challengePanel} />
-                      <ClusterPanel kind="synthesis" text={ca.composite.synthesisPanel} colors={colors} />
-                    </View>
-                  ) : null}
-                </View>
-              ) : null}
-            </View>
-          );
-        })}
-        </View>
+        <ClustersTab
+          colors={colors}
+          completeAnalysis={completeAnalysis}
+          clusterMetrics={clusterMetrics}
+          activeCluster={activeCluster}
+          setActiveCluster={setActiveCluster}
+          activeLens={activeLens}
+          setActiveLens={setActiveLens}
+        />
       ) : null}
 
       {activeTab === 'keyAspects' ? (
@@ -475,6 +398,72 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
           <Text style={[styles.sectionSub, { color: colors.textSubtle }]}>
             The highest-impact planetary interactions shaping this relationship, ranked by influence.
           </Text>
+
+          {aspectMix ? (
+            <View>
+              <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
+                Aspect Mix
+              </Text>
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                ]}
+              >
+                <View style={styles.aspectMixRow}>
+                  <View
+                    style={[
+                      styles.aspectMixCard,
+                      { backgroundColor: 'rgba(255, 255, 255, 0.04)' },
+                    ]}
+                  >
+                    <Text style={[styles.aspectMixCount, { color: colors.text }]}>
+                      {aspectMix.total ?? '—'}
+                    </Text>
+                    <Text style={[styles.aspectMixLabel, { color: colors.textSubtle }]}>
+                      Total
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.aspectMixCard,
+                      { backgroundColor: SUPPORT_BG },
+                    ]}
+                  >
+                    <Text style={[styles.aspectMixCount, { color: SUPPORT_COLOR }]}>
+                      {aspectMix.support ?? '—'}
+                    </Text>
+                    <Text style={[styles.aspectMixLabel, { color: colors.textSubtle }]}>
+                      Support
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.aspectMixCard,
+                      { backgroundColor: CHALLENGE_BG },
+                    ]}
+                  >
+                    <Text style={[styles.aspectMixCount, { color: CHALLENGE_COLOR }]}>
+                      {aspectMix.challenge ?? '—'}
+                    </Text>
+                    <Text style={[styles.aspectMixLabel, { color: colors.textSubtle }]}>
+                      Challenge
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          ) : null}
+
+          <View>
+            <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
+              Keystone Aspects
+            </Text>
+            <Text style={[styles.sectionSub, { color: colors.textSubtle }]}>
+              The strongest individual aspects driving this connection.
+            </Text>
+          </View>
+
           {keystoneAspects.length > 0 ? (
             <View
               style={[
@@ -484,20 +473,6 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
             >
               {keystoneAspects.map((ka, i) => {
                 const aspectLabel = ka.description ?? '';
-                const impactLabel = stripPointsFromImpact(ka.impact);
-                const type = ka.type ?? null;
-                const typeColor =
-                  type === 'Support'
-                    ? SUPPORT_COLOR
-                    : type === 'Challenge'
-                    ? CHALLENGE_COLOR
-                    : colors.accent;
-                const typeBg =
-                  type === 'Support'
-                    ? SUPPORT_BG
-                    : type === 'Challenge'
-                    ? CHALLENGE_BG
-                    : 'rgba(233, 195, 73, 0.14)';
                 return (
                   <View
                     key={`${aspectLabel}-${i}`}
@@ -509,26 +484,14 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
                       },
                     ]}
                   >
-                    <View style={[styles.keystoneAccent, { backgroundColor: typeColor }]} />
+                    <View style={[styles.keystoneAccent, { backgroundColor: colors.accent }]} />
                     <View style={styles.keystoneBody}>
-                      <View style={styles.keystoneTitleRow}>
-                        <Text
-                          style={[styles.keystoneTitle, { color: colors.text }]}
-                          numberOfLines={2}
-                        >
-                          {aspectLabel || 'Keystone aspect'}
-                        </Text>
-                        {type ? (
-                          <View style={[styles.typeBadge, { backgroundColor: typeBg }]}>
-                            <Text style={[styles.typeBadgeText, { color: typeColor }]}>{type}</Text>
-                          </View>
-                        ) : null}
-                      </View>
-                      {impactLabel ? (
-                        <Text style={[styles.keystoneImpact, { color: colors.textMuted }]}>
-                          {impactLabel}
-                        </Text>
-                      ) : null}
+                      <Text
+                        style={[styles.keystoneTitle, { color: colors.text }]}
+                        numberOfLines={2}
+                      >
+                        {aspectLabel || 'Keystone aspect'}
+                      </Text>
                       {ka.cluster ? (
                         <Text style={[styles.keystoneCluster, { color: colors.textSubtle }]}>
                           {ka.cluster}
@@ -552,80 +515,233 @@ export function FullAnalysisSection({ colors, initialOverview, fullAnalysis }: F
             </View>
           )}
 
-          {keystoneAspects.length > 0 ? (
+          {doubleWhammyAspects.length > 0 ? (
             <View>
               <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
-                Aspect Distribution
+                Double Whammy Aspects
+              </Text>
+              <Text style={[styles.sectionSub, { color: colors.textSubtle }]}>
+                Mirrored aspect pairs that reinforce a single theme between you.
               </Text>
               <View
                 style={[
                   styles.card,
-                  { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                  { backgroundColor: colors.surface, borderColor: colors.ghostBorder, paddingHorizontal: 16, paddingVertical: 6 },
                 ]}
               >
-                <View style={styles.distributionRow}>
-                  <View
-                    style={[
-                      styles.distributionCard,
-                      { backgroundColor: SUPPORT_BG },
-                    ]}
-                  >
-                    <Text style={[styles.distributionCount, { color: SUPPORT_COLOR }]}>
-                      {supportCount}
-                    </Text>
-                    <Text style={[styles.distributionLabel, { color: colors.textSubtle }]}>
-                      Support
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.distributionCard,
-                      { backgroundColor: CHALLENGE_BG },
-                    ]}
-                  >
-                    <Text style={[styles.distributionCount, { color: CHALLENGE_COLOR }]}>
-                      {challengeCount}
-                    </Text>
-                    <Text style={[styles.distributionLabel, { color: colors.textSubtle }]}>
-                      Challenge
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.distributionCard,
-                      { backgroundColor: 'rgba(233, 195, 73, 0.14)' },
-                    ]}
-                  >
-                    <Text style={[styles.distributionCount, { color: colors.accent }]}>
-                      {mixedCount}
-                    </Text>
-                    <Text style={[styles.distributionLabel, { color: colors.textSubtle }]}>
-                      Mixed
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.clusterPillWrap}>
-                  {CLUSTER_ORDER.map((name) => (
+                {doubleWhammyAspects.map((dw, i) => {
+                  const accent =
+                    dw.dominantValence === 1
+                      ? SUPPORT_COLOR
+                      : dw.dominantValence === -1
+                      ? CHALLENGE_COLOR
+                      : colors.accent;
+                  return (
                     <View
-                      key={name}
+                      key={`${dw.description ?? ''}-${i}`}
                       style={[
-                        styles.clusterCountPill,
-                        { backgroundColor: 'rgba(255, 255, 255, 0.03)' },
+                        styles.keystoneRow,
+                        i < doubleWhammyAspects.length - 1 && styles.keystoneRowDivider,
+                        i < doubleWhammyAspects.length - 1 && {
+                          borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+                        },
                       ]}
                     >
-                      <Text style={[styles.clusterCountPillText, { color: colors.textSubtle }]}>
-                        {name}: {clusterCounts[name]} aspect
-                        {clusterCounts[name] !== 1 ? 's' : ''}
-                      </Text>
+                      <View style={[styles.keystoneAccent, { backgroundColor: accent }]} />
+                      <View style={styles.keystoneBody}>
+                        {dw.theme ? (
+                          <Text style={[styles.dwTheme, { color: colors.text }]}>{dw.theme}</Text>
+                        ) : null}
+                        {dw.description ? (
+                          <Text style={[styles.dwAspectLine, { color: colors.textMuted }]}>
+                            {dw.description}
+                          </Text>
+                        ) : null}
+                        {dw.partnerDescription ? (
+                          <Text style={[styles.dwAspectLine, { color: colors.textMuted }]}>
+                            {dw.partnerDescription}
+                          </Text>
+                        ) : null}
+                      </View>
                     </View>
-                  ))}
-                </View>
+                  );
+                })}
               </View>
             </View>
           ) : null}
         </>
       ) : null}
     </>
+  );
+}
+
+interface ClustersTabProps {
+  colors: RelationshipTheme['colors'];
+  completeAnalysis: Partial<Record<ClusterName, ClusterCompleteAnalysis>> | null;
+  clusterMetrics: Partial<Record<ClusterName, ClusterMetrics>> | null;
+  activeCluster: ClusterName;
+  setActiveCluster: (name: ClusterName) => void;
+  activeLens: LensKey;
+  setActiveLens: (lens: LensKey) => void;
+}
+
+function ClustersTab({
+  colors,
+  completeAnalysis,
+  clusterMetrics,
+  activeCluster,
+  setActiveCluster,
+  activeLens,
+  setActiveLens,
+}: ClustersTabProps) {
+  // When the user picks a different cluster, snap the lens back to "between"
+  // (matches the mock's behavior).
+  useEffect(() => {
+    setActiveLens('between');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCluster]);
+
+  const ca: ClusterCompleteAnalysis = completeAnalysis?.[activeCluster] ?? {};
+  const cm: ClusterMetrics = clusterMetrics?.[activeCluster] ?? {};
+  const activeScore = typeof cm.score === 'number' ? Math.round(cm.score) : null;
+  const lensSource = activeLens === 'between' ? ca.synastry : ca.composite;
+  const subtitle =
+    activeLens === 'between'
+      ? 'How your charts interact with each other'
+      : 'What the relationship creates as its own entity';
+
+  const lensTabs: { key: LensKey; label: string }[] = [
+    { key: 'between', label: 'Between You' },
+    { key: 'relationship', label: 'The Relationship Itself' },
+  ];
+
+  return (
+    <View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.pillScrollContent}
+        style={styles.pillScroll}
+      >
+        {CLUSTER_ORDER.map((name) => {
+          const isActive = activeCluster === name;
+          const score =
+            typeof clusterMetrics?.[name]?.score === 'number'
+              ? Math.round(clusterMetrics[name]!.score!)
+              : null;
+          return (
+            <TouchableOpacity
+              key={name}
+              activeOpacity={0.85}
+              onPress={() => setActiveCluster(name)}
+              style={[
+                styles.clusterPill,
+                {
+                  backgroundColor: isActive ? colors.surface : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: isActive ? colors.ghostBorder : 'rgba(255, 255, 255, 0.04)',
+                },
+              ]}
+            >
+              <Text style={styles.pillIcon}>{CLUSTER_ICONS[name]}</Text>
+              <Text
+                style={[
+                  styles.pillName,
+                  {
+                    color: isActive ? colors.text : colors.textSubtle,
+                    fontWeight: isActive ? '600' : '400',
+                  },
+                ]}
+              >
+                {name}
+              </Text>
+              {score !== null ? (
+                <Text
+                  style={[
+                    styles.pillScore,
+                    { color: isActive ? colors.primary : colors.textSubtle },
+                  ]}
+                >
+                  {score}
+                </Text>
+              ) : null}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      <View style={styles.lensRow}>
+        {lensTabs.map((lens) => {
+          const isActive = activeLens === lens.key;
+          return (
+            <TouchableOpacity
+              key={lens.key}
+              activeOpacity={0.85}
+              onPress={() => setActiveLens(lens.key)}
+              style={[
+                styles.lensTab,
+                {
+                  backgroundColor: isActive ? 'rgba(202, 190, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                  borderColor: isActive ? 'rgba(202, 190, 255, 0.25)' : 'rgba(255, 255, 255, 0.04)',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.lensTabText,
+                  { color: isActive ? colors.primary : colors.textSubtle },
+                ]}
+              >
+                {lens.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <View style={styles.clusterHeaderRow}>
+        <View
+          style={[
+            styles.clusterHeaderIcon,
+            { backgroundColor: 'rgba(202, 190, 255, 0.12)' },
+          ]}
+        >
+          <Text style={styles.clusterHeaderIconText}>{CLUSTER_ICONS[activeCluster]}</Text>
+        </View>
+        <View style={styles.clusterHeaderMeta}>
+          <View style={styles.clusterHeaderTitleRow}>
+            <Text style={[styles.clusterHeaderName, { color: colors.text }]}>{activeCluster}</Text>
+            {activeScore !== null ? (
+              <Text style={[styles.clusterHeaderScore, { color: colors.primary }]}>
+                {activeScore}
+              </Text>
+            ) : null}
+          </View>
+          <Text style={[styles.clusterHeaderSubtitle, { color: colors.textSubtle }]}>
+            {subtitle}
+          </Text>
+        </View>
+      </View>
+
+      {lensSource &&
+      (lensSource.supportPanel || lensSource.challengePanel || lensSource.synthesisPanel) ? (
+        <>
+          <ClusterPanel kind="support" text={lensSource.supportPanel} />
+          <ClusterPanel kind="challenge" text={lensSource.challengePanel} />
+          <ClusterPanel kind="synthesis" text={lensSource.synthesisPanel} colors={colors} />
+        </>
+      ) : (
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+          ]}
+        >
+          <Text style={[styles.cardBody, { color: colors.textMuted }]}>
+            Long-form analysis isn't available for this view yet.
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -687,43 +803,41 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '600',
   },
-  distributionRow: {
+  keystoneCluster: {
+    fontSize: 10,
+    marginTop: 4,
+  },
+  aspectMixRow: {
     flexDirection: 'row',
     gap: 8,
   },
-  distributionCard: {
+  aspectMixCard: {
     flex: 1,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 8,
     alignItems: 'center',
   },
-  distributionCount: {
+  aspectMixCount: {
     fontFamily: 'Georgia',
     fontSize: 22,
     fontWeight: '700',
     marginBottom: 2,
   },
-  distributionLabel: {
+  aspectMixLabel: {
     fontSize: 10,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
-  clusterPillWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
+  dwTheme: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  clusterCountPill: {
-    borderRadius: 100,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  clusterCountPillText: {
-    fontSize: 10.5,
-  },
-  keystoneCluster: {
-    fontSize: 10,
-    marginTop: 4,
+  dwAspectLine: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 1,
   },
   unlockedPill: {
     borderRadius: 100,
@@ -812,86 +926,86 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
   },
-  clusterCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    marginBottom: 10,
-    overflow: 'hidden',
+  pillScroll: {
+    marginHorizontal: -20,
+    marginBottom: 14,
   },
-  clusterHeader: {
+  pillScrollContent: {
+    paddingHorizontal: 20,
+    gap: 6,
+  },
+  clusterPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    padding: 18,
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 100,
+    borderWidth: 1,
   },
-  clusterIcon: {
-    width: 36,
-    height: 36,
+  pillIcon: {
+    fontSize: 14,
+  },
+  pillName: {
+    fontSize: 12.5,
+  },
+  pillScore: {
+    fontFamily: 'Georgia',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  lensRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 18,
+  },
+  lensTab: {
+    flex: 1,
+    paddingVertical: 10,
     borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  lensTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  clusterHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  clusterHeaderIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clusterIconText: {
-    fontSize: 18,
+  clusterHeaderIconText: {
+    fontSize: 22,
   },
-  clusterMeta: {
+  clusterHeaderMeta: {
     flex: 1,
-    gap: 6,
   },
-  clusterTitleRow: {
+  clusterHeaderTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  clusterName: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  clusterScore: {
-    fontFamily: 'Georgia',
+  clusterHeaderName: {
     fontSize: 18,
     fontWeight: '700',
   },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  barTrack: {
-    width: 160,
-    height: 4,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  barFill: {
-    flex: 1,
-    flexDirection: 'row',
-    height: 4,
-  },
-  barLabel: {
-    fontSize: 9,
-  },
-  chevron: {
+  clusterHeaderScore: {
+    fontFamily: 'Georgia',
     fontSize: 22,
-    fontWeight: '500',
+    fontWeight: '700',
   },
-  chevronOpen: {
-    transform: [{ rotate: '90deg' }],
-  },
-  clusterBody: {
-    paddingHorizontal: 18,
-    paddingBottom: 18,
-  },
-  subSection: {
-    marginTop: 10,
-  },
-  subSectionLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 10,
-    paddingTop: 6,
+  clusterHeaderSubtitle: {
+    fontSize: 11.5,
+    marginTop: 2,
   },
   panel: {
     borderRadius: 14,
@@ -941,31 +1055,10 @@ const styles = StyleSheet.create({
   keystoneBody: {
     flex: 1,
   },
-  keystoneTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 3,
-    flexWrap: 'wrap',
-  },
   keystoneTitle: {
     fontSize: 13,
     fontWeight: '600',
     flexShrink: 1,
-  },
-  typeBadge: {
-    borderRadius: 100,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  typeBadgeText: {
-    fontSize: 9,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  keystoneImpact: {
-    fontSize: 12.5,
-    lineHeight: 18,
+    marginBottom: 3,
   },
 });
