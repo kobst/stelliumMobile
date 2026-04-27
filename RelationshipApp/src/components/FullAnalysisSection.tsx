@@ -4,6 +4,8 @@ import type { RelationshipTheme } from '../theme';
 import { decodeAstroCode } from '../utils/astroCode';
 import { AspectFocusChart } from '../../../shared/components/chart/AspectFocusChart';
 import { PlacementFocusChart } from '../../../shared/components/chart/PlacementFocusChart';
+import { FullChartModal } from './FullChartModal';
+import Svg, { Circle, Line as SvgLine } from 'react-native-svg';
 import type { TextStyle, StyleProp } from 'react-native';
 
 const SUPPORT_COLOR = '#82C8B4';
@@ -297,6 +299,7 @@ interface FullAnalysisSectionProps {
   colors: RelationshipTheme['colors'];
   initialOverview: string | null;
   fullAnalysis: any;
+  previewAnalysis?: any;
   personAName?: string;
   personBName?: string;
   selfBirthChart?: { planets?: any[]; houses?: any[] } | null;
@@ -311,6 +314,7 @@ export function FullAnalysisSection({
   colors,
   initialOverview,
   fullAnalysis,
+  previewAnalysis,
   personAName,
   personBName,
   selfBirthChart,
@@ -319,6 +323,7 @@ export function FullAnalysisSection({
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [activeCluster, setActiveCluster] = useState<ClusterName>('Harmony');
   const [activeLens, setActiveLens] = useState<LensKey>('between');
+  const [chartModalOpen, setChartModalOpen] = useState(false);
 
   const overall = fullAnalysis?.overall ?? null;
   const tier = overall?.tier ?? null;
@@ -810,6 +815,50 @@ export function FullAnalysisSection({
 
       {activeTab === 'keyAspects' ? (
         <>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setChartModalOpen(true)}
+            style={[
+              styles.fullChartEntry,
+              { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+            ]}
+          >
+            <View
+              style={[
+                styles.fullChartPreview,
+                { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: colors.ghostBorder },
+              ]}
+            >
+              <Svg width={52} height={52} viewBox="0 0 52 52">
+                <Circle cx={26} cy={26} r={22} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={0.5} />
+                <Circle cx={26} cy={26} r={16} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={0.5} />
+                <Circle cx={26} cy={26} r={10} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={0.5} />
+                <SvgLine x1={18} y1={12} x2={34} y2={36} stroke={SUPPORT_COLOR} strokeWidth={0.8} opacity={0.45} />
+                <SvgLine
+                  x1={38}
+                  y1={18}
+                  x2={14}
+                  y2={32}
+                  stroke={CHALLENGE_COLOR}
+                  strokeWidth={0.8}
+                  opacity={0.45}
+                  strokeDasharray="2,2"
+                />
+                <Circle cx={18} cy={12} r={2.5} fill={colors.primary} opacity={0.7} />
+                <Circle cx={38} cy={18} r={2.5} fill={SUPPORT_COLOR} opacity={0.7} />
+                <Circle cx={14} cy={32} r={2.5} fill={colors.primary} opacity={0.7} />
+                <Circle cx={34} cy={36} r={2.5} fill={SUPPORT_COLOR} opacity={0.7} />
+              </Svg>
+            </View>
+            <View style={styles.fullChartCopy}>
+              <Text style={[styles.fullChartTitle, { color: colors.text }]}>View full chart</Text>
+              <Text style={[styles.fullChartSubtitle, { color: colors.textMuted }]}>
+                Synastry & composite wheels with all planets and aspect lines
+              </Text>
+            </View>
+            <Text style={[styles.fullChartChevron, { color: colors.textSubtle }]}>›</Text>
+          </TouchableOpacity>
+
           <Text style={[styles.sectionSub, { color: colors.textSubtle }]}>
             The highest-impact planetary interactions shaping this relationship, ranked by influence.
           </Text>
@@ -1119,6 +1168,18 @@ export function FullAnalysisSection({
           ) : null}
         </>
       ) : null}
+
+      <FullChartModal
+        visible={chartModalOpen}
+        onClose={() => setChartModalOpen(false)}
+        colors={colors}
+        personAName={personANameForCodes}
+        personBName={personBNameForCodes}
+        personABirthChart={selfBirthChart as any}
+        personBBirthChart={partnerBirthChart as any}
+        compositeChart={previewAnalysis?.compositeChart ?? fullAnalysis?.compositeChart}
+        synastryAspects={previewAnalysis?.synastryAspects ?? fullAnalysis?.synastryAspects}
+      />
     </>
   );
 }
@@ -1785,6 +1846,41 @@ const styles = StyleSheet.create({
   keystoneCluster: {
     fontSize: 10,
     marginTop: 4,
+  },
+  fullChartEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 18,
+  },
+  fullChartPreview: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  fullChartCopy: {
+    flex: 1,
+  },
+  fullChartTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  fullChartSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  fullChartChevron: {
+    fontSize: 22,
+    fontWeight: '500',
+    marginLeft: 4,
   },
   keystonePlacement: {
     fontSize: 11,

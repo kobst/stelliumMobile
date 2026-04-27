@@ -611,6 +611,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             colors={colors}
             initialOverview={initialOverview}
             fullAnalysis={fullAnalysis}
+            previewAnalysis={previewAnalysis}
             personAName={selfName}
             personBName={partnerName}
             selfBirthChart={profile?.subject?.birthChart as any}
