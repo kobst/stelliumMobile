@@ -589,20 +589,27 @@ Response body:
         "Stability": 69,
         "Growth": 73
       },
-      "archetypeKey": "safe_harbor_open_sea",
-      "archetypeLabel": "Safe Harbor, Open Sea",
+      "archetypeKey": "iron_and_honey",
+      "archetypeLabel": "Iron & Honey",
       "archetypeBlurb": "Short relationship archetype summary",
       "archetype": {
-        "version": "archetype-summary-v3",
-        "archetypeKey": "safe_harbor_open_sea",
-        "label": "Safe Harbor, Open Sea",
+        "version": "archetype-summary-v4-shape-family",
+        "archetypeKey": "iron_and_honey",
+        "label": "Iron & Honey",
         "blurb": "Short relationship archetype summary",
         "dominantClusters": ["Harmony", "Passion"],
         "supportClusters": ["Harmony"],
         "tensionClusters": [],
         "shape": "balanced",
         "tone": "magnetic",
-        "confidence": "high"
+        "shapeFamily": "Harmony+Passion / Growth low",
+        "shapeKind": "ridge_missing",
+        "magnitudeTier": "high",
+        "modifiers": ["Magnetic", "Highly Active"],
+        "meanScore": 74.2,
+        "spread": 18.5,
+        "weakestCluster": "Growth",
+        "confidence": 0.93
       },
       "initialOverview": "Initial relationship overview when available",
       "clusterAnalysisGeneratedAt": "2026-04-23T00:00:00.000Z",
@@ -1468,15 +1475,22 @@ Success response:
       "uniformity": "Moderate"
     },
     "summary": {
-      "version": "v1",
-      "archetypeKey": "magnetic-growth",
-      "label": "Magnetic Growth Pair",
+      "version": "archetype-summary-v4-shape-family",
+      "archetypeKey": "forge",
+      "label": "Forge",
       "blurb": "Short overall archetype blurb",
       "dominantClusters": ["Passion", "Growth"],
       "supportClusters": ["Harmony"],
       "tensionClusters": ["Stability"],
       "shape": "balanced",
       "tone": "magnetic",
+      "shapeFamily": "Passion+Growth / Stability low",
+      "shapeKind": "ridge_missing",
+      "magnitudeTier": "high",
+      "modifiers": ["Magnetic", "Highly Active"],
+      "meanScore": 68.4,
+      "spread": 31.2,
+      "weakestCluster": "Stability",
       "confidence": 0.82
     },
     "timeSensitivity": {
@@ -1808,6 +1822,43 @@ Current response shape:
     "score": 82,
     "formula": "Harmony(25%) + Passion(20%) + Connection(20%) + Stability(25%) + Growth(10%)",
     "dominantCluster": "Passion",
+    "keystoneAspects": [
+      {
+        "code": "SynA-...",
+        "description": "Person A's Venus trine Person B's Mars",
+        "primaryCluster": "Passion",
+        "contributingClusters": ["Passion", "Harmony"]
+      }
+    ],
+    "keystoneAspectAnnotations": {
+      "byCode": {
+        "SynA-...": {
+          "code": "SynA-...",
+          "title": "Venus-Mars trine - easy attraction",
+          "sentence": "A short one-sentence annotation explaining why this relationship-wide keystone aspect matters.",
+          "generatedBy": "llm",
+          "version": "v1",
+          "primaryCluster": "Passion",
+          "contributingClusters": ["Passion", "Harmony"],
+          "source": "synastry",
+          "rank": 1
+        }
+      },
+      "synastry": [
+        {
+          "code": "SynA-...",
+          "title": "Venus-Mars trine - easy attraction",
+          "sentence": "A short one-sentence annotation explaining why this relationship-wide keystone aspect matters.",
+          "generatedBy": "llm",
+          "version": "v1",
+          "primaryCluster": "Passion",
+          "contributingClusters": ["Passion", "Harmony"],
+          "source": "synastry",
+          "rank": 1
+        }
+      ],
+      "composite": []
+    },
     "challengeCluster": "Stability",
     "profile": "Deprecated legacy summary string",
     "strengthClusters": ["Harmony", "Passion", "Growth"],
@@ -1915,6 +1966,8 @@ Current response shape:
   }
 }
 ```
+
+`profileAnalysis` is deprecated. It is a legacy Heart/Body/Mind/Life/Soul profiling payload retained only for backward compatibility. Relationship-app clients should ignore it and use `overall.summary`, `clusterAnalysis`, and `completeAnalysis` instead.
 
 The frontend should treat these fields as primary:
 - `completeAnalysis`: relationship-app compact full cluster report on `GET /relationship-app/relationships/:compositeChartId/analysis`; this is populated from `relationshipAppCompleteAnalysis` when available
@@ -2266,6 +2319,7 @@ Read semantics:
 - If the relationship was only created through `POST /relationship-app/enhanced-relationship-analysis`, expect scored data plus `initialOverview`, but `relationshipAppCompleteAnalysis` / `completeAnalysis` may still be `null` or partial.
 - After the relationship-app workflow completes, `completeAnalysis` is the field the mobile app should read for the compact full per-cluster report.
 - Internally, relationship-app full analysis is persisted under `relationshipAppCompleteAnalysis` to avoid collisions with classic `completeAnalysis`.
+- Relationship-app overview scoring may include `clusterAnalysis.overall.keystoneAspectAnnotations`, a compact LLM-generated annotation set for the relationship-wide overall keystone aspects. Use `byCode` for direct lookup from an aspect code, or `synastry` / `composite` arrays for source-grouped display.
 - This route is now public only for celebrity-to-celebrity relationships.
 - For non-celebrity/private relationships, it requires auth plus ownership.
 - Relationship-app clients should prefer `GET /relationship-app/relationships/:compositeChartId/analysis` for private reads.
@@ -2369,6 +2423,8 @@ Observed top-level keys:
 ]
 ```
 
+`profileAnalysis` in the top-level response and inside `_fullData` is deprecated legacy data. It should not be used for archetype labels, blurbs, or current cluster UI.
+
 Observed `overall` excerpt:
 
 ```json
@@ -2394,19 +2450,66 @@ Observed `overall` excerpt:
     "uniformity": "Uniform"
   },
   "summary": {
-    "version": "archetype-summary-v3",
-    "archetypeKey": "safe_harbor_open_sea",
-    "label": "Safe Harbor, Open Sea",
+    "version": "archetype-summary-v4-shape-family",
+    "archetypeKey": "quiet_harbor",
+    "label": "Quiet Harbor",
     "blurb": "This connection is shaped most by Harmony and Stability...",
     "dominantClusters": ["Harmony", "Stability"],
     "supportClusters": ["Harmony", "Stability", "Connection", "Passion"],
     "tensionClusters": ["Growth"],
     "shape": "concentrated",
     "tone": "steady",
+    "shapeFamily": "Harmony+Stability / Passion low",
+    "shapeKind": "ridge_missing",
+    "magnitudeTier": "high",
+    "modifiers": ["Easy-Flowing", "Highly Active"],
+    "meanScore": 73.6,
+    "spread": 35.4,
+    "weakestCluster": "Passion",
     "confidence": 1
   }
 }
 ```
+
+`overall.summary` is the current relationship-app archetype contract. The primary UI label should come from `overall.summary.label`; do not use deprecated `profile`, `tier`, or `profileAnalysis` for current archetype display.
+
+Important rendering contract:
+
+- `summary.label` is the base archetype label, e.g. `Open Channel`.
+- `summary.modifiers` is a separate array of optional texture modifiers, e.g. `["Easy-Flowing", "Magnetic"]`.
+- The backend does **not** concatenate modifiers into the label. Do not expect a prebuilt string such as `Easy-Flowing Open Channel`.
+- Recommended UI: render `summary.label` as the title and render `summary.modifiers` as chips, badges, or subtitle text.
+- Example display: title `Open Channel`, subtitle/chips `Easy-Flowing · Magnetic`.
+
+Current summary fields:
+
+```ts
+type RelationshipArchetypeSummary = {
+  version: "archetype-summary-v4-shape-family";
+  archetypeKey: string;                 // slug for label, e.g. "open_channel"
+  label: string;                        // primary display label, e.g. "Open Channel"
+  blurb: string;                        // deterministic explanatory copy
+  dominantClusters: RelationshipCluster[]; // top two scored clusters
+  supportClusters: RelationshipCluster[];  // clusters with score >= 60
+  tensionClusters: RelationshipCluster[];  // clusters with score < 50
+  shape: "balanced" | "polarized" | "concentrated" | "flat" | "conflicted";
+  tone: "steady" | "easy" | "magnetic" | "growth-heavy" | "volatile" | "mixed";
+  shapeFamily: string;                  // "Top+Second / Weakest low"
+  shapeKind: "even" | "ridge_missing" | "single_spike" | "ridge" | "trough" | "soft_shape";
+  magnitudeTier: "low" | "mid" | "high" | "exceptional";
+  modifiers: Array<"Magnetic" | "Highly Active" | "Tension-Rich" | "Easy-Flowing" | "Low Signal">;
+  meanScore: number;                    // average of the five cluster scores, rounded
+  spread: number;                       // top cluster score - weakest cluster score, rounded
+  weakestCluster: RelationshipCluster;
+  confidence: number;
+};
+```
+
+Shape-family assignment is based on the literal radar topology:
+
+- even shape: `spread < 18`, labeled by magnitude as `Quiet Balance`, `Full Spectrum`, or `Soulbound`
+- oriented shape: top two clusters determine the family; weakest cluster refines the label where useful
+- modifiers are additive texture from advanced metrics and are not mutually exclusive
 
 Observed `clusterAnalysis.clusters.Harmony` excerpt:
 
@@ -2537,15 +2640,22 @@ Observed first row for an authenticated relationship-app user:
       "growthClusters": ["Growth"],
       "tier": "Flourishing",
       "summary": {
-        "version": "archetype-summary-v3",
-        "archetypeKey": "lightning_in_a_bottle",
-        "label": "Lightning in a Bottle",
+        "version": "archetype-summary-v4-shape-family",
+        "archetypeKey": "live_wire",
+        "label": "Live Wire",
         "blurb": "This connection is shaped most by Connection and Passion...",
         "dominantClusters": ["Connection", "Passion"],
         "supportClusters": ["Connection", "Passion", "Harmony", "Stability"],
         "tensionClusters": ["Growth"],
         "shape": "polarized",
         "tone": "easy",
+        "shapeFamily": "Connection+Passion / Growth low",
+        "shapeKind": "single_spike",
+        "magnitudeTier": "high",
+        "modifiers": ["Magnetic"],
+        "meanScore": 66.8,
+        "spread": 42.1,
+        "weakestCluster": "Growth",
         "confidence": 0.696
       },
       "quadrantAnalytics": {
