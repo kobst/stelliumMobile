@@ -50,3 +50,52 @@
 - Notes:
   - Persisting only `previewId` and `claimToken` is not enough for the current UI because the reveal flow also depends on locally stored draft and reveal data.
   - Anonymous guest continuation already claims the preview, so this issue applies specifically to users who exit before `SaveProfile` or `CreateAccount` completes.
+
+### Full-page loading screen on relationship creation
+
+- Problem: When the user picks a partner from the "Add Connection" sheet to create a new relationship, we only show a small inline spinner on the partner row. This is visually inconsistent with the rest of the app — onboarding uses a full-page loading screen for equivalent "we are computing your chart" moments.
+- Goal: Show a full-page loading screen (matching the onboarding loading aesthetic) immediately after the user taps a partner, and keep it on screen until the relationship is created and ready to navigate into.
+- Frontend scope:
+  - Replace the inline row spinner with a full-screen overlay/route that mirrors the onboarding loading screen (copy, animation, branding).
+  - Drive the loading screen from the same async create-relationship state already powering the inline spinner.
+  - On success, transition directly into the relationship detail screen.
+  - On failure, dismiss the loader and surface the error inline on the Add Connection sheet (do not strand the user on a blank loading screen).
+- Backend scope:
+  - Not required.
+
+### Handle navigating away while the full analysis is generating
+
+- Problem: The relationship detail page kicks off the long-running full-analysis generation. If the user navigates away (back to the list, switches tabs, backgrounds the app) before it finishes, there is no signal that work is still in flight, and the user has no breadcrumb back to it.
+- Goal: Make in-progress analysis generation visible from the relationship list so the user can find their way back to it without re-triggering the work.
+- Frontend scope:
+  - Decide and document where generation continues to run when the detail screen unmounts (likely a background task tied to the relationship id, not the screen lifecycle).
+  - On the relationship list row, show a "Generating..." status (small inline spinner + label) for any relationship whose full analysis is still in flight.
+  - Tapping a generating row should re-enter the detail page in its loading state, not re-kick the generation.
+  - Clear the status as soon as the analysis completes (or fails) and reflect the new state on the row.
+- Backend scope:
+  - Confirm the analysis generation request is idempotent / safe to observe from multiple clients, or expose a status endpoint the list can poll if needed.
+- Open questions:
+  - Should we also show a toast / push when generation completes while the user is on a different screen?
+
+### Aspect-scoped mini charts for the user's personal chart sections
+
+- Problem: The personal chart sections (e.g. "Your Romantic Placements") today list planet positions only — sign, degree, house. There is no chart visualization tied to the lens of the section, and no surfacing of the aspects between those planets.
+- Goal: Add a mini chart to each personal chart section that is scoped to the planets relevant to that lens, and that draws the aspects between them — not just their positions.
+- Frontend scope:
+  - Reuse the aspect-focus mini chart component already built for the keystone / double-whammy / cluster-lens rows on the relationship app side, parameterized for a single (personal) chart instead of a composite.
+  - For each section (Romantic Placements, etc.), pass in the relevant planet set and have the mini chart render those planets plus the aspects between them.
+  - Place the mini chart at the top of each section, above the per-planet placement rows.
+- Backend scope:
+  - Confirm the personal chart payload already includes the aspects between planets at the granularity the mini chart needs; if not, extend the personal chart endpoint to return them.
+
+### Aspect-scoped mini charts for user-created subjects and celebrities
+
+- Problem: User-created subjects and celebrity charts currently lack the same aspect-aware mini chart UI we are adding for the user's personal chart.
+- Goal: Bring the same aspect-scoped mini chart UI to subject and celebrity chart screens for visual and conceptual consistency across all single-chart surfaces in the app.
+- Frontend scope:
+  - Once the personal chart mini chart component is in place, reuse it on the subject detail and celebrity detail screens.
+  - Mirror the section structure (lens → mini chart → placement rows) so subjects and celebs feel like the same product surface.
+- Backend scope:
+  - Same as the personal chart item: confirm subject and celebrity chart payloads include aspects between the relevant planets, and extend the endpoints if not.
+- Notes:
+  - Do this after the personal chart version is shipped so the component API is settled before being reused in two more places.

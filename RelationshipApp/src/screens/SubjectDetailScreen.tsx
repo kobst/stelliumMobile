@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -26,6 +25,9 @@ import {
   pickImageFromCamera,
 } from '../../../src/utils/imageHelpers';
 import { uploadSubjectProfilePhoto } from '../utils/subjectPhotoUpload';
+import { AstrologicalProfileView } from '../components/AstrologicalProfileView';
+import { SingleChartModal } from '../components/SingleChartModal';
+import { getRomanticPlacements } from '../utils/placements';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'SubjectDetail'>;
 
@@ -130,6 +132,7 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const [error, setError] = React.useState<string | null>(null);
   const [photoOverride, setPhotoOverride] = React.useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = React.useState(false);
+  const [chartModalVisible, setChartModalVisible] = React.useState(false);
 
   React.useEffect(() => {
     if (!subject?._id) return;
@@ -180,7 +183,7 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const fullName = [subject.firstName, subject.lastName].filter(Boolean).join(' ').trim();
   const initial = subject.firstName?.charAt(0) ?? '?';
-  const { sun: sunSign, moon: moonSign } = getBigThree(subject);
+  const { sun: sunSign, moon: moonSign, rising: risingSign } = getBigThree(subject);
   const venusSign = getSubjectPlanetSign(subject, 'Venus');
   const marsSign = getSubjectPlanetSign(subject, 'Mars');
 
@@ -287,6 +290,9 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const displayPhotoUri =
+    photoOverride ?? (subject.profilePhotoUrl as string | null | undefined) ?? null;
+
   const handleChoosePhoto = () => {
     const hasPhoto = Boolean(displayPhotoUri);
     Alert.alert('Profile photo', 'Choose a source', [
@@ -323,123 +329,119 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     ]);
   };
 
-  const displayPhotoUri =
-    photoOverride ?? (subject.profilePhotoUrl as string | null | undefined) ?? null;
   const formattedDate = formatDateOfBirth(subject.dateOfBirth);
   const formattedTime = formatBirthTime(subject.time);
   const dateLine = [formattedDate, formattedTime].filter(Boolean).join(' · ');
 
+  // Hero (photo + name + dates + chips). Replaces the default IdentityBlock.
+  const identityOverride = (
+    <View style={styles.identityWrap}>
+      <TouchableOpacity
+        activeOpacity={0.86}
+        onPress={handleChoosePhoto}
+        disabled={isUploadingPhoto}
+        accessibilityLabel="Change profile photo"
+      >
+        <Avatar
+          size={120}
+          gradient="green"
+          fallbackInitial={initial}
+          photoUri={displayPhotoUri}
+        />
+        <View
+          style={[
+            styles.photoEditBadge,
+            { backgroundColor: colors.primary, borderColor: colors.surfaceLow },
+          ]}
+        >
+          {isUploadingPhoto ? (
+            <ActivityIndicator size="small" color={colors.onPrimary} />
+          ) : (
+            <Text style={[styles.photoEditBadgeText, { color: colors.onPrimary }]}>
+              {displayPhotoUri ? 'Edit' : 'Add'}
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      <Text style={[styles.title, { color: colors.text }]}>{fullName || 'Your person'}</Text>
+
+      {dateLine ? (
+        <Text style={[styles.meta, { color: colors.textMuted }]}>{dateLine}</Text>
+      ) : null}
+      {subject.placeOfBirth ? (
+        <Text style={[styles.meta, { color: colors.textMuted }]}>{subject.placeOfBirth}</Text>
+      ) : null}
+
+      <View style={styles.pillRow}>
+        {sunSign ? (
+          <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>{sunSign} Sun</Text>
+          </View>
+        ) : null}
+        {moonSign ? (
+          <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>{moonSign} Moon</Text>
+          </View>
+        ) : null}
+        {risingSign ? (
+          <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>{risingSign} Rising</Text>
+          </View>
+        ) : null}
+        {venusSign ? (
+          <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>{venusSign} Venus</Text>
+          </View>
+        ) : null}
+        {marsSign ? (
+          <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>{marsSign} Mars</Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+
+  // The "Your Connection" card sits above the tabs, in headerSlot.
+  const headerSlot = existingRelationship ? (
+    <View style={[styles.connectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={[styles.cardEyebrow, { color: colors.accent }]}>Your Connection</Text>
+      <Text style={[styles.cardBody, { color: colors.text }]}>
+        {archetype ?? 'Compatibility read ready.'}
+      </Text>
+    </View>
+  ) : null;
+
+  const overviewText = isBlurbLoading
+    ? 'Loading romantic profile…'
+    : overview ?? blurb ?? 'No romantic blurb stored yet for this person.';
+
+  const placements = getRomanticPlacements(subject);
+
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.eyebrow, { color: colors.primary }]}>Your Person</Text>
-
-        <View style={styles.heroRow}>
-          <TouchableOpacity
-            activeOpacity={0.86}
-            onPress={handleChoosePhoto}
-            disabled={isUploadingPhoto}
-            accessibilityLabel="Change profile photo"
-          >
-            <Avatar
-              size={120}
-              gradient="green"
-              fallbackInitial={initial}
-              photoUri={displayPhotoUri}
-            />
-            <View
-              style={[
-                styles.photoEditBadge,
-                { backgroundColor: colors.primary, borderColor: colors.surfaceLow },
-              ]}
-            >
-              {isUploadingPhoto ? (
-                <ActivityIndicator size="small" color={colors.onPrimary} />
-              ) : (
-                <Text style={[styles.photoEditBadgeText, { color: colors.onPrimary }]}>
-                  {displayPhotoUri ? 'Edit' : 'Add'}
-                </Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={[styles.title, { color: colors.text }]}>{fullName || 'Your person'}</Text>
-
-        {dateLine ? (
-          <Text style={[styles.meta, { color: colors.textMuted }]}>{dateLine}</Text>
-        ) : null}
-        {subject.placeOfBirth ? (
-          <Text style={[styles.meta, { color: colors.textMuted }]}>{subject.placeOfBirth}</Text>
-        ) : null}
-
-        <View style={styles.pillRow}>
-          {sunSign ? (
-            <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.pillText, { color: colors.text }]}>{sunSign} Sun</Text>
-            </View>
-          ) : null}
-          {moonSign ? (
-            <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.pillText, { color: colors.text }]}>{moonSign} Moon</Text>
-            </View>
-          ) : null}
-          {venusSign ? (
-            <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.pillText, { color: colors.text }]}>{venusSign} Venus</Text>
-            </View>
-          ) : null}
-          {marsSign ? (
-            <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.pillText, { color: colors.text }]}>{marsSign} Mars</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {existingRelationship ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardEyebrow, { color: colors.accent }]}>Your Connection</Text>
-            <Text style={[styles.cardBody, { color: colors.text }]}>
-              {archetype ?? 'Compatibility read ready.'}
-            </Text>
-          </View>
-        ) : null}
-
-        {isBlurbLoading ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.cardBody, { color: colors.textMuted }]}>
-              Loading romantic profile…
-            </Text>
-          </View>
-        ) : null}
-
-        {!isBlurbLoading && blurb ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardEyebrow, { color: colors.accent }]}>Romantic Profile</Text>
-            <Text style={[styles.cardBody, { color: colors.text }]}>{blurb}</Text>
-          </View>
-        ) : null}
-
-        {!isBlurbLoading && overview && overview !== blurb ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardEyebrow, { color: colors.accent }]}>Overview</Text>
-            <Text style={[styles.cardBody, { color: colors.text }]}>{overview}</Text>
-          </View>
-        ) : null}
-
-        {!isBlurbLoading && !blurb && !overview ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardBody, { color: colors.textMuted }]}>
-              No romantic blurb stored yet for this person.
-            </Text>
-          </View>
-        ) : null}
-
+      <View style={styles.body}>
+        <AstrologicalProfileView
+          variant="subject"
+          name={fullName || 'Your person'}
+          sun={sunSign}
+          moon={moonSign}
+          rising={risingSign}
+          source={subject}
+          placements={placements}
+          overview={overviewText}
+          eyebrow="Your Person"
+          headerSlot={headerSlot}
+          identityOverride={identityOverride}
+          onPressViewFullChart={
+            subject.birthChart ? () => setChartModalVisible(true) : undefined
+          }
+        />
         {error ? (
           <Text style={[styles.errorText, { color: colors.primary }]}>{error}</Text>
         ) : null}
-      </ScrollView>
+      </View>
 
       <View style={[styles.actionBar, { backgroundColor: colors.surfaceLow, borderTopColor: colors.border }]}>
         {existingRelationship ? (
@@ -454,7 +456,10 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: isStartingPreview ? colors.primaryMuted : colors.primary }]}
+            style={[
+              styles.primaryButton,
+              { backgroundColor: isStartingPreview ? colors.primaryMuted : colors.primary },
+            ]}
             onPress={() => {
               handleCreateConnection().catch(() => undefined);
             }}
@@ -477,27 +482,25 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Back</Text>
         </TouchableOpacity>
       </View>
+
+      <SingleChartModal
+        visible={chartModalVisible}
+        onClose={() => setChartModalVisible(false)}
+        subjectName={fullName || 'Your person'}
+        birthChart={subject.birthChart}
+        planetColor="#82C8B4"
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-    gap: 12,
-  },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  heroRow: {
+  body: { flex: 1 },
+  identityWrap: {
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 4,
+    gap: 10,
+    paddingVertical: 4,
   },
   photoEditBadge: {
     position: 'absolute',
@@ -516,14 +519,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   title: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: '700',
-    lineHeight: 36,
+    lineHeight: 32,
     textAlign: 'center',
   },
   meta: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     textAlign: 'center',
   },
   pillRow: {
@@ -531,8 +534,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     justifyContent: 'center',
-    marginTop: 6,
-    marginBottom: 4,
+    marginTop: 4,
   },
   pill: {
     paddingHorizontal: 12,
@@ -544,12 +546,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  card: {
+  connectionCard: {
     borderRadius: 18,
     borderWidth: 1,
     padding: 18,
-    gap: 8,
-    marginTop: 6,
+    gap: 6,
   },
   cardEyebrow: {
     fontSize: 11,
@@ -560,11 +561,6 @@ const styles = StyleSheet.create({
   cardBody: {
     fontSize: 15,
     lineHeight: 22,
-  },
-  body: {
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
   },
   errorText: {
     fontSize: 14,

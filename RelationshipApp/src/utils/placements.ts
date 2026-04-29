@@ -141,9 +141,19 @@ export function getRomanticPlacements(
   ];
 }
 
+function ordinalHouse(house: number): string {
+  if (house === 1) return '1st House';
+  if (house === 2) return '2nd House';
+  if (house === 3) return '3rd House';
+  return `${house}th House`;
+}
+
 export function formatPlacementSummary(detail: PlacementDetail): string {
   const sign = detail.sign ?? 'Unknown';
   const degree = detail.degree !== null ? `${detail.degree}°` : '—';
-  const house = detail.house !== null ? ` · ${detail.house}th House` : '';
+  const house =
+    typeof detail.house === 'number' && detail.house > 0
+      ? ` · ${ordinalHouse(detail.house)}`
+      : '';
   return `${sign} ${degree}${house}`;
 }

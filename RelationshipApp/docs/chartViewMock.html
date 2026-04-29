@@ -1,0 +1,375 @@
+import { useState } from "react";
+
+var SANS = "'DM Sans', system-ui, sans-serif";
+var SERIF = "Georgia, 'Times New Roman', serif";
+
+var c = {
+  bg: "#0C0B10", card: "#16151D", border: "rgba(255,255,255,0.06)",
+  gold: "#D4A843", goldDim: "rgba(212,168,67,0.15)",
+  lav: "#B8A0E8", lavBg: "rgba(184,160,232,0.12)",
+  text: "#E8E4F0", dim: "rgba(232,228,240,0.55)", faint: "rgba(232,228,240,0.35)",
+  green: "#82C8B4", greenDim: "rgba(130,200,180,0.12)",
+  coral: "#E8856B", coralDim: "rgba(232,133,107,0.12)",
+};
+
+var signGlyphs = { Aries:"\u2648", Taurus:"\u2649", Gemini:"\u264A", Cancer:"\u264B", Leo:"\u264C", Virgo:"\u264D", Libra:"\u264E", Scorpio:"\u264F", Sagittarius:"\u2650", Capricorn:"\u2651", Aquarius:"\u2652", Pisces:"\u2653" };
+var planetGlyphs = { Sun:"\u2609", Moon:"\u263D", Venus:"\u2640", Mars:"\u2642", Mercury:"\u263F", Jupiter:"\u2643", Saturn:"\u2644", Ascendant:"\u2191", Descendant:"\u2193" };
+var signOrder = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+
+var placements = [
+  { planet: "Sun", sign: "Scorpio", degree: 14, house: 12,
+    reading: "Your Scorpio Sun in the 12th house creates an intensely private emotional world. You process love through deep, sometimes hidden channels \u2014 what you feel is far more than what you show. Intimacy for you requires trust that most people never earn, and when they do, the depth of connection you offer is unlike anything surface-level relationships can touch.",
+    aspects: [
+      { planet: "Moon", type: "quincunx", sign: "Gemini", degree: 14, nature: "tension", desc: "Your core identity and emotional needs pull in different directions \u2014 depth vs lightness, secrecy vs expression" },
+      { planet: "Mercury", type: "conjunction", sign: "Scorpio", degree: 28, nature: "support", desc: "You think and communicate with the same intensity you feel \u2014 words carry emotional weight" },
+      { planet: "Ascendant", type: "conjunction", sign: "Scorpio", degree: 20, nature: "support", desc: "Who you are and who you appear to be are closely aligned \u2014 your presence communicates your depth" },
+    ]
+  },
+  { planet: "Moon", sign: "Gemini", degree: 14, house: 7,
+    reading: "Your Moon in Gemini in the 7th house means you process emotions through conversation and partnership. You need a partner who can talk through feelings, not just sit with them. Emotional safety for you looks like intellectual engagement \u2014 someone who meets your curiosity with their own.",
+    aspects: [
+      { planet: "Sun", type: "quincunx", sign: "Scorpio", degree: 14, nature: "tension", desc: "Your emotional instincts and core identity don't naturally align \u2014 learning to honor both is your ongoing work" },
+      { planet: "Venus", type: "opposition", sign: "Sagittarius", degree: 3, nature: "mixed", desc: "What you need emotionally and what you're attracted to create a productive tension" },
+      { planet: "Jupiter", type: "trine", sign: "Libra", degree: 8, nature: "support", desc: "Emotional expansion through partnership \u2014 relationships make you feel larger, not smaller" },
+    ]
+  },
+  { planet: "Venus", sign: "Sagittarius", degree: 3, house: 1,
+    reading: "Venus in Sagittarius in the 1st house means you lead with warmth, openness, and a desire for adventure in love. You express affection through honesty, exploration, and philosophical conversation. You're drawn to partners who expand your worldview rather than mirror it. Freedom isn't the opposite of commitment for you \u2014 it's a prerequisite.",
+    aspects: [
+      { planet: "Moon", type: "opposition", sign: "Gemini", degree: 14, nature: "mixed", desc: "Your love language and emotional needs create a dynamic polarity \u2014 both want variety, but through different channels" },
+      { planet: "Mars", type: "trine", sign: "Leo", degree: 24, nature: "support", desc: "Desire and values are naturally aligned \u2014 what you want and what attracts you point in the same direction" },
+      { planet: "Mercury", type: "conjunction", sign: "Sagittarius", degree: 28, nature: "support", desc: "You express love through words, ideas, and shared adventures \u2014 conversation is foreplay" },
+      { planet: "Saturn", type: "square", sign: "Virgo", degree: 6, nature: "tension", desc: "Your expansive love nature meets a demand for precision and accountability \u2014 freedom must be earned" },
+    ]
+  },
+  { planet: "Mars", sign: "Leo", degree: 24, house: 9,
+    reading: "Mars in Leo in the 9th house gives you a bold, theatrical approach to desire. You pursue what you want with confidence and generosity, and you're attracted to people who match that energy. Physical connection for you is tied to admiration and creative self-expression \u2014 you want to be seen and celebrated in love.",
+    aspects: [
+      { planet: "Venus", type: "trine", sign: "Sagittarius", degree: 3, nature: "support", desc: "Your drive and your values cooperate naturally \u2014 pursuit feels authentic rather than strategic" },
+      { planet: "Saturn", type: "sextile", sign: "Virgo", degree: 6, nature: "support", desc: "Ambition and discipline work together \u2014 you channel desire into sustained effort" },
+    ]
+  },
+  { planet: "Ascendant", sign: "Scorpio", degree: 20, house: 1,
+    reading: "A Scorpio Ascendant means you enter every room with presence before you speak. People sense your intensity immediately. In love, this creates magnetic first impressions but can also intimidate. The paradox: you want deep connection but your exterior signals caution. Partners who see through the armor and stay are the ones who earn your trust.",
+    aspects: [
+      { planet: "Sun", type: "conjunction", sign: "Scorpio", degree: 14, nature: "support", desc: "Your appearance and your essence are aligned \u2014 what people see is genuinely who you are" },
+    ]
+  },
+  { planet: "Descendant", sign: "Taurus", degree: 20, house: 7,
+    reading: "Your Descendant in Taurus reveals what you seek in a partner: steadiness, sensuality, loyalty, and calm. You're drawn to people who ground your Scorpionic intensity with earthy presence. The ideal partner for your chart offers stability without rigidity \u2014 someone who doesn't flinch at your depth but also doesn't match it with their own chaos.",
+    aspects: []
+  },
+];
+
+var overviewText = "You are a deeply magnetic presence with a paradoxical approach to love. Your Scorpio Sun and Ascendant give you an intense, penetrating gaze and a natural pull toward emotional depth, yet your Moon in Gemini craves lightness, variety, and intellectual stimulation in relationships. This exact quincunx between your Sun and Moon creates an inner tension: part of you wants to merge completely and explore the hidden dimensions of intimacy, while another part needs space, humor, and mental engagement to feel alive.\n\nLearning to honor both needs \u2014 rather than seeing them as contradictory \u2014 is key to your relational growth. Your Venus in Sagittarius, conjunct Mercury, means you express affection through conversation, adventure, and honesty. You love freely and openly, preferring partners who can match your directness and share your appetite for experience.\n\nYour Mars in Leo in the 9th house adds a confident, generous quality to your desire nature. You pursue boldly and want to be admired in return. Trust partners who can handle your intensity without trying to tame it, and who appreciate that your restlessness comes from a soul seeking both profound connection and authentic freedom.";
+
+// Mini aspect chart
+function MiniChart(props) {
+  var s = props.size || 80;
+  var cx = s / 2, cy = s / 2, outerR = s * 0.44, planetR = s * 0.28;
+  var signA = props.signA;
+  var signB = props.signB;
+  var degA = props.degA;
+  var degB = props.degB;
+  var natureColor = props.nature === "support" ? c.green : props.nature === "tension" ? c.coral : c.gold;
+
+  function getAbs(sign, deg) { return signOrder.indexOf(sign) * 30 + deg; }
+  function toXY(absDeg, r) {
+    var rotation = -getAbs(signA, degA) + 60;
+    var ang = ((absDeg + rotation) / 180) * Math.PI - Math.PI / 2;
+    return { x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r };
+  }
+
+  var absA = getAbs(signA, degA);
+  var absB = getAbs(signB, degB);
+  var pA = toXY(absA, planetR);
+  var pB = toXY(absB, planetR);
+
+  var ticks = [];
+  for (var i = 0; i < 12; i++) {
+    var rotation = -getAbs(signA, degA) + 60;
+    var tickAng = ((i * 30 + rotation) / 180) * Math.PI - Math.PI / 2;
+    ticks.push({
+      x1: cx + Math.cos(tickAng) * outerR,
+      y1: cy + Math.sin(tickAng) * outerR,
+      x2: cx + Math.cos(tickAng) * (outerR - 3),
+      y2: cy + Math.sin(tickAng) * (outerR - 3),
+    });
+  }
+
+  var isDashed = props.nature === "tension" || props.nature === "mixed";
+
+  return (
+    <svg viewBox={"0 0 " + s + " " + s} style={{ width: s, height: s, flexShrink: 0 }}>
+      <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+      <circle cx={cx} cy={cy} r={s * 0.18} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+      {ticks.map(function(t, i) { return <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />; })}
+      <line x1={pA.x} y1={pA.y} x2={pB.x} y2={pB.y} stroke={natureColor} strokeWidth="1.2" opacity="0.6" strokeDasharray={isDashed ? "3,2" : "none"} />
+      <circle cx={pA.x} cy={pA.y} r={7} fill={c.bg} stroke={natureColor} strokeWidth="1" />
+      <text x={pA.x} y={pA.y + 3.5} textAnchor="middle" fontSize="7" fill={natureColor} fontFamily={SANS}>{planetGlyphs[props.planetA]}</text>
+      <circle cx={pB.x} cy={pB.y} r={7} fill={c.bg} stroke={natureColor} strokeWidth="1" />
+      <text x={pB.x} y={pB.y + 3.5} textAnchor="middle" fontSize="7" fill={natureColor} fontFamily={SANS}>{planetGlyphs[props.planetB]}</text>
+    </svg>
+  );
+}
+
+function PlacementRow(props) {
+  var p = props.placement;
+  var isOpen = props.isOpen;
+  var toggle = props.onToggle;
+  var openAspect = props.openAspect;
+  var setOpenAspect = props.setOpenAspect;
+
+  return (
+    <div style={{ background: c.card, border: "1px solid " + (isOpen ? "rgba(184,160,232,0.15)" : c.border), borderRadius: 16, marginBottom: 8, overflow: "hidden" }}>
+      {/* Collapsed header */}
+      <div onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px", cursor: "pointer" }}>
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: isOpen ? c.lavBg : "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: isOpen ? c.lav : c.gold, flexShrink: 0 }}>
+          {planetGlyphs[p.planet]}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: c.text }}>{p.planet}</div>
+          <div style={{ fontSize: 12, color: c.faint }}>
+            {signGlyphs[p.sign]} {p.sign} {p.degree}{"\u00b0"} {"\u00b7"} {p.house ? p.house + (p.house === 1 ? "st" : p.house === 2 ? "nd" : p.house === 3 ? "rd" : "th") + " House" : ""}
+          </div>
+        </div>
+        {p.aspects.length > 0 && (
+          <div style={{ fontSize: 10, color: c.faint, background: "rgba(255,255,255,0.04)", borderRadius: 100, padding: "3px 8px" }}>
+            {p.aspects.length} aspect{p.aspects.length !== 1 ? "s" : ""}
+          </div>
+        )}
+        <span style={{ color: c.faint, fontSize: 14, transform: isOpen ? "rotate(90deg)" : "rotate(0)", transition: "transform 0.2s" }}>{"\u203A"}</span>
+      </div>
+
+      {/* Expanded content */}
+      {isOpen && (
+        <div style={{ padding: "0 16px 16px" }}>
+          {/* Placement reading */}
+          <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14, lineHeight: 1.6, color: "rgba(232,228,240,0.75)", paddingTop: 4, borderTop: "1px solid " + c.border, marginBottom: p.aspects.length > 0 ? 16 : 0 }}>
+            {p.reading}
+          </div>
+
+          {/* Aspects */}
+          {p.aspects.length > 0 && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.faint, marginBottom: 10 }}>Aspects</div>
+              {p.aspects.map(function(asp, i) {
+                var aspColor = asp.nature === "support" ? c.green : asp.nature === "tension" ? c.coral : c.gold;
+                var aspBg = asp.nature === "support" ? c.greenDim : asp.nature === "tension" ? c.coralDim : c.goldDim;
+                var isAspOpen = openAspect === p.planet + "-" + i;
+
+                return (
+                  <div key={i} style={{ marginBottom: 6 }}>
+                    <div onClick={function() { setOpenAspect(isAspOpen ? null : p.planet + "-" + i); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "rgba(255,255,255,0.02)", border: "1px solid " + c.border, borderRadius: 12, cursor: "pointer" }}>
+                      <div style={{ width: 4, alignSelf: "stretch", borderRadius: 2, background: aspColor, flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>{p.planet} {asp.type} {asp.planet}</span>
+                          <span style={{ fontSize: 9, background: aspBg, borderRadius: 100, padding: "2px 7px", color: aspColor, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            {asp.nature === "support" ? "Flowing" : asp.nature === "tension" ? "Tension" : "Dynamic"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: c.dim, lineHeight: 1.35 }}>{asp.desc}</div>
+                      </div>
+                      <span style={{ color: c.faint, fontSize: 12, transform: isAspOpen ? "rotate(90deg)" : "rotate(0)", transition: "transform 0.2s" }}>{"\u203A"}</span>
+                    </div>
+
+                    {/* Mini chart on expand */}
+                    {isAspOpen && (
+                      <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+                        <div style={{ textAlign: "center" }}>
+                          <MiniChart
+                            planetA={p.planet} planetB={asp.planet}
+                            signA={p.sign} signB={asp.sign}
+                            degA={p.degree} degB={asp.degree}
+                            nature={asp.nature}
+                            size={120}
+                          />
+                          <div style={{ display: "flex", justifyContent: "center", gap: 14, marginTop: 6 }}>
+                            <div style={{ textAlign: "center" }}>
+                              <div style={{ fontSize: 10.5, fontWeight: 600, color: c.text }}>{p.planet}</div>
+                              <div style={{ fontSize: 9.5, color: c.faint }}>{p.degree}{"\u00b0"} {p.sign}</div>
+                            </div>
+                            <div style={{ fontSize: 11, color: aspColor, alignSelf: "center" }}>{asp.type}</div>
+                            <div style={{ textAlign: "center" }}>
+                              <div style={{ fontSize: 10.5, fontWeight: 600, color: c.text }}>{asp.planet}</div>
+                              <div style={{ fontSize: 9.5, color: c.faint }}>{asp.degree}{"\u00b0"} {asp.sign}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Ask Iris inline */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.02)", border: "1px solid " + c.border, borderRadius: 12, padding: "10px 12px", marginTop: 12, cursor: "pointer" }}>
+            <div style={{ width: 24, height: 24, borderRadius: 6, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: c.green, flexShrink: 0 }}>{"\u2726"}</div>
+            <span style={{ fontSize: 12, color: c.dim, flex: 1 }}>Ask Iris about your {p.planet} placement</span>
+            <span style={{ fontSize: 10, color: c.gold, fontWeight: 600 }}>{"\u25C6"} 1</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ChartView() {
+  var tabState = useState(0);
+  var activeTab = tabState[0];
+  var setActiveTab = tabState[1];
+
+  var placementState = useState(null);
+  var openPlacement = placementState[0];
+  var setOpenPlacement = placementState[1];
+
+  var aspectState = useState(null);
+  var openAspect = aspectState[0];
+  var setOpenAspect = aspectState[1];
+
+  var isOwner = true;
+  var name = "Edmin";
+
+  return (
+    <div style={{ background: c.bg, minHeight: "100vh", maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, paddingBottom: 40 }}>
+      {/* Status bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}>
+        <span>9:41</span><div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} /><span>...</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 20px 12px" }}>
+        <span style={{ fontSize: 15, color: c.dim, cursor: "pointer" }}>{"\u2190"} {isOwner ? "Profile" : "People"}</span>
+        {isOwner && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.goldDim, border: "1px solid rgba(212,168,67,0.25)", borderRadius: 100, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: c.gold }}><span style={{ fontSize: 10 }}>{"\u25C6"}</span><span>391</span></div>
+        )}
+      </div>
+
+      <div style={{ padding: "0 20px" }}>
+        {/* Identity */}
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ width: 72, height: 72, borderRadius: "50%", background: "linear-gradient(135deg, " + c.lav + ", #9B7DD4)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: c.bg, margin: "0 auto 12px" }}>EH</div>
+          <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, marginBottom: 8 }}>{name}</div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
+            {["\u2609 Scorpio Sun", "\u263D Gemini Moon", "\u2191 Scorpio Rising"].map(function(chip) {
+              return <div key={chip} style={{ fontSize: 11.5, background: "rgba(255,255,255,0.04)", border: "1px solid " + c.border, borderRadius: 100, padding: "5px 12px", color: c.dim }}>{chip}</div>;
+            })}
+          </div>
+        </div>
+
+        {/* Tabs: Reading / Chart */}
+        <div style={{ display: "flex", background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: 3, marginBottom: 20 }}>
+          {["Reading", "Chart"].map(function(tab, i) {
+            var isActive = activeTab === i;
+            return (
+              <div key={tab} onClick={function() { setActiveTab(i); }} style={{
+                flex: 1, textAlign: "center", padding: "10px 0", borderRadius: 10, cursor: "pointer",
+                fontSize: 13, fontWeight: 600,
+                background: isActive ? c.card : "transparent",
+                color: isActive ? c.text : c.faint,
+                border: isActive ? "1px solid " + c.border : "1px solid transparent",
+              }}>{tab}</div>
+            );
+          })}
+        </div>
+
+        {/* ── READING TAB ── */}
+        {activeTab === 0 && (
+          <div>
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 6 }}>Your Romantic Profile</div>
+            <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Celestial Blueprint</div>
+            <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: c.dim, marginBottom: 16 }}>Your Romantic and Intimate Nature</div>
+
+            <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "20px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: "radial-gradient(circle, " + c.lavBg + " 0%, transparent 70%)", pointerEvents: "none" }} />
+              {overviewText.split("\n\n").map(function(para, i) {
+                return <p key={i} style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 15, lineHeight: 1.65, color: "rgba(232,228,240,0.82)", margin: i === 0 ? "0 0 16px" : "16px 0 0" }}>{para}</p>;
+              })}
+            </div>
+
+            {/* Ask Iris */}
+            <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "16px", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -40, left: -40, width: 100, height: 100, background: "radial-gradient(circle, " + c.greenDim + " 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: c.green }}>{"\u2726"}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>Ask Iris about you</div>
+                  <div style={{ fontSize: 11, color: c.dim }}>{"\u25C6"} 1 per question</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {["Why do I attract intensity?", "What does my Moon need?", "How do I show love?"].map(function(q, i) {
+                  return <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid " + c.border, borderRadius: 100, padding: "7px 12px", fontSize: 11, color: c.dim, cursor: "pointer" }}>{q}</div>;
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── CHART TAB ── */}
+        {activeTab === 1 && (
+          <div>
+            {/* Birth chart preview */}
+            <div onClick={function() {}} style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "16px 18px", marginBottom: 24, cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid " + c.border, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+                <svg viewBox="0 0 56 56" style={{ width: 56, height: 56 }}>
+                  <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+                  <circle cx="28" cy="28" r="18" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
+                  <circle cx="28" cy="28" r="12" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+                  <circle cx="20" cy="14" r="3" fill={c.lav} opacity="0.5" />
+                  <circle cx="40" cy="20" r="3" fill={c.gold} opacity="0.5" />
+                  <circle cx="16" cy="34" r="3" fill={c.green} opacity="0.5" />
+                  <circle cx="38" cy="38" r="3" fill={c.coral} opacity="0.5" />
+                  <line x1="20" y1="14" x2="38" y2="38" stroke={c.green} strokeWidth="0.6" opacity="0.4" />
+                  <line x1="40" y1="20" x2="16" y2="34" stroke={c.coral} strokeWidth="0.6" opacity="0.4" strokeDasharray="2,2" />
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: c.text, marginBottom: 3 }}>View birth chart</div>
+                <div style={{ fontSize: 12, color: c.dim, lineHeight: 1.35 }}>Full wheel with all planets, houses, and aspect lines</div>
+              </div>
+              <span style={{ color: c.faint, fontSize: 18 }}>{"\u203A"}</span>
+            </div>
+
+            {/* Placements */}
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 6 }}>Romantic Placements</div>
+            <div style={{ fontSize: 12.5, color: c.faint, marginBottom: 16, lineHeight: 1.4 }}>The planets that shape how you love, desire, and connect. Tap any placement to read more and see its aspects.</div>
+
+            {placements.map(function(p, i) {
+              return (
+                <PlacementRow
+                  key={p.planet}
+                  placement={p}
+                  isOpen={openPlacement === i}
+                  onToggle={function() { setOpenPlacement(openPlacement === i ? null : i); setOpenAspect(null); }}
+                  openAspect={openAspect}
+                  setOpenAspect={setOpenAspect}
+                />
+              );
+            })}
+
+            {/* Aspect summary */}
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>Aspect Overview</div>
+              <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "16px", display: "flex", gap: 8 }}>
+                {[
+                  { label: "Flowing", count: 6, color: c.green, bg: c.greenDim },
+                  { label: "Tension", count: 3, color: c.coral, bg: c.coralDim },
+                  { label: "Dynamic", count: 2, color: c.gold, bg: c.goldDim },
+                ].map(function(item) {
+                  return (
+                    <div key={item.label} style={{ flex: 1, background: item.bg, borderRadius: 12, padding: "14px 8px", textAlign: "center" }}>
+                      <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: item.color, marginBottom: 2 }}>{item.count}</div>
+                      <div style={{ fontSize: 10, color: c.faint }}>{item.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -4,7 +4,6 @@ import {
   Alert,
   Image,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -18,6 +17,10 @@ import { useTheme } from '../theme';
 import { Avatar } from '../components/Avatar';
 import { celebrityToSubject, getCelebritySunSign } from '../utils/mainShell';
 import { startRelationshipPreview } from './previewFlow';
+import { AstrologicalProfileView } from '../components/AstrologicalProfileView';
+import { SingleChartModal } from '../components/SingleChartModal';
+import { getRomanticPlacements } from '../utils/placements';
+import type { SubjectDocument } from '../../../shared/types/subject';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CelebrityDetail'>;
 
@@ -67,6 +70,7 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const [isHydrating, setIsHydrating] = React.useState(false);
   const [isStartingPreview, setIsStartingPreview] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [chartModalVisible, setChartModalVisible] = React.useState(false);
 
   React.useEffect(() => {
     if (!celebrityId) return;
@@ -105,7 +109,7 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
     return (
       <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
         <View style={styles.emptyState}>
-          <Text style={[styles.body, { color: colors.textMuted }]}>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
             We couldn't find that celebrity.
           </Text>
           <TouchableOpacity
@@ -141,6 +145,10 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
     getPlanetSignFromBirthChart(hydratedBirthChart, 'Moon') ??
     preview?.moonSign ??
     null;
+  const risingSign =
+    (passedCelebrity ? getPlanetSign(passedCelebrity, 'Ascendant') : null) ??
+    getPlanetSignFromBirthChart(hydratedBirthChart, 'Ascendant') ??
+    null;
   const venusSign =
     (passedCelebrity ? getPlanetSign(passedCelebrity, 'Venus') : null) ??
     getPlanetSignFromBirthChart(hydratedBirthChart, 'Venus') ??
@@ -163,15 +171,14 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const time = passedCelebrity?.time ?? null;
   const placeOfBirth = passedCelebrity?.placeOfBirth ?? null;
 
+  const birthChartSource = passedCelebrity?.birthChart ?? hydratedBirthChart ?? null;
+
   const handleCreateConnection = async () => {
     if (!profile) {
       Alert.alert('Create your profile first', 'Finish onboarding before starting a connection.');
       return;
     }
 
-    // Build a target subject from whichever source is richest. Collection-entry
-    // celebs only have id/name/photo — that's enough for enhanced-relationship-analysis
-    // since it resolves the real subject on the server by id.
     const targetSubject = passedCelebrity
       ? celebrityToSubject(passedCelebrity)
       : {
@@ -229,95 +236,93 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
     }
   };
 
+  const identityOverride = (
+    <View style={styles.identityWrap}>
+      {photoUri ? (
+        <Image source={{ uri: photoUri }} style={styles.heroPhoto} resizeMode="cover" />
+      ) : (
+        <View style={styles.heroPhoto}>
+          <Avatar size={140} gradient="gold" fallbackInitial={initial} />
+        </View>
+      )}
+      <Text style={[styles.title, { color: colors.text }]}>{fullName || 'Unknown'}</Text>
+      {dateOfBirth ? (
+        <Text style={[styles.meta, { color: colors.textMuted }]}>
+          {dateOfBirth}
+          {time ? ` · ${time}` : ''}
+        </Text>
+      ) : null}
+      {placeOfBirth ? (
+        <Text style={[styles.meta, { color: colors.textMuted }]}>{placeOfBirth}</Text>
+      ) : null}
+      <View style={styles.pillRow}>
+        {sunSign ? (
+          <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>{sunSign} Sun</Text>
+          </View>
+        ) : null}
+        {moonSign ? (
+          <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>{moonSign} Moon</Text>
+          </View>
+        ) : null}
+        {risingSign ? (
+          <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>{risingSign} Rising</Text>
+          </View>
+        ) : null}
+        {venusSign ? (
+          <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>{venusSign} Venus</Text>
+          </View>
+        ) : null}
+        {marsSign ? (
+          <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.pillText, { color: colors.text }]}>{marsSign} Mars</Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+
+  const overviewText = isHydrating && !blurb && !overview
+    ? 'Loading romantic profile…'
+    : overview ?? blurb ?? 'No romantic blurb available for this celebrity yet.';
+
+  // getRomanticPlacements reads only `.birthChart` off whatever is passed in,
+  // so a minimal subject-shaped wrapper is enough.
+  const placementsSubject = { birthChart: birthChartSource } as unknown as SubjectDocument;
+  const placements = getRomanticPlacements(placementsSubject);
+
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.eyebrow, { color: colors.primary }]}>Celebrity</Text>
-
-        <View style={styles.heroRow}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.heroPhoto} resizeMode="cover" />
-          ) : (
-            <View style={styles.heroPhoto}>
-              <Avatar size={140} gradient="gold" fallbackInitial={initial} />
-            </View>
-          )}
-        </View>
-
-        <Text style={[styles.title, { color: colors.text }]}>{fullName || 'Unknown'}</Text>
-
-        {dateOfBirth ? (
-          <Text style={[styles.meta, { color: colors.textMuted }]}>
-            {dateOfBirth}
-            {time ? ` · ${time}` : ''}
-          </Text>
-        ) : null}
-        {placeOfBirth ? (
-          <Text style={[styles.meta, { color: colors.textMuted }]}>{placeOfBirth}</Text>
-        ) : null}
-
-        <View style={styles.pillRow}>
-          {sunSign ? (
-            <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.pillText, { color: colors.text }]}>{sunSign} Sun</Text>
-            </View>
-          ) : null}
-          {moonSign ? (
-            <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.pillText, { color: colors.text }]}>{moonSign} Moon</Text>
-            </View>
-          ) : null}
-          {venusSign ? (
-            <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.pillText, { color: colors.text }]}>{venusSign} Venus</Text>
-            </View>
-          ) : null}
-          {marsSign ? (
-            <View style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.pillText, { color: colors.text }]}>{marsSign} Mars</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {isHydrating && !blurb && !overview ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={[styles.cardBody, { color: colors.textMuted }]}>
-              Loading romantic profile…
-            </Text>
-          </View>
-        ) : null}
-
-        {blurb ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardEyebrow, { color: colors.accent }]}>Romantic Profile</Text>
-            <Text style={[styles.cardBody, { color: colors.text }]}>{blurb}</Text>
-          </View>
-        ) : null}
-
-        {overview && overview !== blurb ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardEyebrow, { color: colors.accent }]}>Overview</Text>
-            <Text style={[styles.cardBody, { color: colors.text }]}>{overview}</Text>
-          </View>
-        ) : null}
-
-        {!isHydrating && !blurb && !overview ? (
-          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.cardBody, { color: colors.textMuted }]}>
-              No romantic blurb available for this celebrity yet.
-            </Text>
-          </View>
-        ) : null}
-
+      <View style={styles.body}>
+        <AstrologicalProfileView
+          variant="celebrity"
+          name={fullName || 'Celebrity'}
+          sun={sunSign}
+          moon={moonSign}
+          rising={risingSign}
+          source={{ birthChart: birthChartSource ?? undefined }}
+          placements={placements}
+          overview={overviewText}
+          eyebrow="Celebrity"
+          identityOverride={identityOverride}
+          onPressViewFullChart={
+            birthChartSource ? () => setChartModalVisible(true) : undefined
+          }
+        />
         {error ? (
           <Text style={[styles.errorText, { color: colors.primary }]}>{error}</Text>
         ) : null}
-      </ScrollView>
+      </View>
 
       <View style={[styles.actionBar, { backgroundColor: colors.surfaceLow, borderTopColor: colors.border }]}>
         <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: isStartingPreview ? colors.primaryMuted : colors.primary }]}
+          style={[
+            styles.primaryButton,
+            { backgroundColor: isStartingPreview ? colors.primaryMuted : colors.primary },
+          ]}
           onPress={() => {
             handleCreateConnection().catch(() => undefined);
           }}
@@ -339,27 +344,25 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
           <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Back</Text>
         </TouchableOpacity>
       </View>
+
+      <SingleChartModal
+        visible={chartModalVisible}
+        onClose={() => setChartModalVisible(false)}
+        subjectName={fullName || 'Celebrity'}
+        birthChart={birthChartSource}
+        planetColor="#D4A843"
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-    gap: 12,
-  },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  heroRow: {
+  body: { flex: 1 },
+  identityWrap: {
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 4,
+    gap: 10,
+    paddingVertical: 4,
   },
   heroPhoto: {
     width: 140,
@@ -368,14 +371,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   title: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: '700',
-    lineHeight: 36,
+    lineHeight: 32,
     textAlign: 'center',
   },
   meta: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     textAlign: 'center',
   },
   pillRow: {
@@ -383,8 +386,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     justifyContent: 'center',
-    marginTop: 6,
-    marginBottom: 4,
+    marginTop: 4,
   },
   pill: {
     paddingHorizontal: 12,
@@ -395,28 +397,6 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  card: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 18,
-    gap: 8,
-    marginTop: 6,
-  },
-  cardEyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  cardBody: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  body: {
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
   },
   errorText: {
     fontSize: 14,
@@ -431,6 +411,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
     gap: 16,
+  },
+  emptyText: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
   },
   actionBar: {
     padding: 16,
