@@ -25,6 +25,11 @@ import type {
   ZodiacSign,
 } from './chartTypes';
 
+export interface ChartAspectStyle {
+  color: string;
+  dashed?: boolean;
+}
+
 export interface ChartWheelProps {
   birthChart?: BirthChart;
   showAspects?: boolean;
@@ -38,6 +43,15 @@ export interface ChartWheelProps {
   // index in the (filtered, by-degree-sorted) planet list. Return undefined
   // to fall back to colors.onSurface.
   getPlanetColor?: (planet: BackendPlanet, index: number) => string | undefined;
+  // Optional per-aspect-line style override. When provided, replaces the
+  // built-in red/blue scheme so callers (e.g. composite charts) can opt into
+  // the semantic Flowing/Tension/Fusion palette used by SynastryWheel.
+  getAspectStyle?: (aspectType: string) => ChartAspectStyle | undefined;
+  // When true, render without the boxed card chrome and use the lighter
+  // stroke / opacity treatment that matches SynastryWheel. Use this whenever
+  // the chart needs to sit visually side-by-side with a synastry wheel
+  // (e.g. composite tab in FullChartModal, single-subject SingleChartModal).
+  frameless?: boolean;
 }
 
 export function ChartWheel({
@@ -49,6 +63,8 @@ export function ChartWheel({
   containerBackground,
   containerBorderColor,
   getPlanetColor,
+  getAspectStyle,
+  frameless = false,
 }: ChartWheelProps) {
   const sizeBase = sizeOverride ?? CHART_DIMENSIONS.size;
   const scale = sizeBase / CHART_DIMENSIONS.size;
@@ -79,6 +95,9 @@ export function ChartWheel({
 
   const renderZodiacWheel = (): ReactElement[] => {
     const elements: ReactElement[] = [];
+    const outerStrokeWidth = frameless ? 1.2 * scale : 2;
+    const innerStrokeWidth = frameless ? 1 * scale : 2;
+    const innerStrokeOpacity = frameless ? 0.5 : 1;
     elements.push(
       <Circle
         key="outer-circle"
@@ -87,7 +106,7 @@ export function ChartWheel({
         r={outerRadius}
         fill="none"
         stroke={colors.onSurface}
-        strokeWidth="2"
+        strokeWidth={outerStrokeWidth}
       />
     );
     elements.push(
@@ -98,7 +117,8 @@ export function ChartWheel({
         r={houseOuterRadius}
         fill="none"
         stroke={colors.onSurface}
-        strokeWidth="2"
+        strokeWidth={innerStrokeWidth}
+        opacity={innerStrokeOpacity}
       />
     );
     elements.push(
@@ -109,7 +129,8 @@ export function ChartWheel({
         r={innerRadius}
         fill="none"
         stroke={colors.onSurface}
-        strokeWidth="2"
+        strokeWidth={innerStrokeWidth}
+        opacity={innerStrokeOpacity}
       />
     );
 
@@ -130,7 +151,8 @@ export function ChartWheel({
           x2={x2}
           y2={y2}
           stroke={colors.onSurface}
-          strokeWidth="1"
+          strokeWidth={frameless ? 0.6 * scale : 1}
+          opacity={frameless ? 0.6 : 1}
         />
       );
 
@@ -183,6 +205,10 @@ export function ChartWheel({
       const { x: x1, y: y1 } = getCirclePosition(house.degree, outerRadius, centerX, centerY, ascendantDegree);
       const { x: x2, y: y2 } = getCirclePosition(house.degree, houseOuterRadius, centerX, centerY, ascendantDegree);
       const isAngular = house.house === 1 || house.house === 10;
+      const houseStrokeWidth = frameless
+        ? (isAngular ? 1.6 : 0.6) * scale
+        : (isAngular ? 3 : 1);
+      const houseStrokeOpacity = frameless ? (isAngular ? 0.85 : 0.55) : 1;
       elements.push(
         <Line
           key={`house-${house.house}`}
@@ -191,7 +217,8 @@ export function ChartWheel({
           x2={x2}
           y2={y2}
           stroke={colors.onSurface}
-          strokeWidth={isAngular ? '3' : '1'}
+          strokeWidth={houseStrokeWidth}
+          opacity={houseStrokeOpacity}
         />
       );
       const houseNumberRadius = (outerRadius + houseOuterRadius) / 2;
@@ -207,8 +234,8 @@ export function ChartWheel({
           key={`house-number-${house.house}`}
           x={numX}
           y={numY}
-          fontSize={12 * scale}
-          fill={colors.onSurface}
+          fontSize={frameless ? 10 * scale : 12 * scale}
+          fill={frameless ? colors.onSurfaceVariant : colors.onSurface}
           textAnchor="middle"
           alignmentBaseline="middle"
         >
@@ -324,9 +351,9 @@ export function ChartWheel({
           y1={markerY1}
           x2={planetX}
           y2={planetY}
-          stroke={colors.onSurfaceVariant}
-          strokeWidth="1"
-          opacity="0.3"
+          stroke={frameless ? planetColor : colors.onSurfaceVariant}
+          strokeWidth={frameless ? 0.8 * scale : 1}
+          opacity={frameless ? 0.4 : 0.3}
         />
       );
     });
@@ -344,13 +371,21 @@ export function ChartWheel({
       ) {
         return;
       }
-      const aspectColor = getAspectColor(aspect.aspectType);
+      const overrideStyle = getAspectStyle?.(aspect.aspectType);
+      const aspectColor = overrideStyle?.color ?? getAspectColor(aspect.aspectType);
+      const isDashed = overrideStyle?.dashed ?? false;
       const aspectStrength = getAspectStrength(aspect.orb);
       const planet1 = filteredPlanets.find((p) => p.name === aspect.aspectedPlanet);
       const planet2 = filteredPlanets.find((p) => p.name === aspect.aspectingPlanet);
       if (!planet1 || !planet2) return;
       const { x: x1, y: y1 } = getCirclePosition(planet1.full_degree, innerRadius - 5, centerX, centerY, ascendantDegree);
       const { x: x2, y: y2 } = getCirclePosition(planet2.full_degree, innerRadius - 5, centerX, centerY, ascendantDegree);
+      const dashArray = isDashed ? `${4 * scale},${3 * scale}` : undefined;
+      const stroke = frameless
+        ? aspectColor
+        : hexToRgba(aspectColor, aspectStrength * 0.85);
+      const strokeWidth = frameless ? 1.1 * scale : aspectStrength * 2.2;
+      const strokeOpacity = frameless ? 0.55 : 1;
       elements.push(
         <Line
           key={`aspect-${index}`}
@@ -358,13 +393,28 @@ export function ChartWheel({
           y1={y1}
           x2={x2}
           y2={y2}
-          stroke={hexToRgba(aspectColor, aspectStrength * 0.85)}
-          strokeWidth={aspectStrength * 2.2}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          strokeDasharray={dashArray}
+          opacity={strokeOpacity}
         />
       );
     });
     return elements;
   };
+
+  if (frameless) {
+    return (
+      <View style={{ width: size, height: size }}>
+        <Svg width={size} height={size} viewBox={viewBox}>
+          {renderZodiacWheel()}
+          {renderHouses()}
+          {renderPlanets()}
+          {renderAspects()}
+        </Svg>
+      </View>
+    );
+  }
 
   return (
     <View

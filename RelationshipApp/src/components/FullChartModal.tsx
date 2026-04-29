@@ -181,6 +181,11 @@ export function FullChartModal({
         size={320}
         colors={chartColors}
         getPlanetColor={compositePlanetColor}
+        getAspectStyle={(aspectType) => ({
+          color: aspectColor(aspectType),
+          dashed: isDashedAspect(aspectType),
+        })}
+        frameless
       />
     );
   };

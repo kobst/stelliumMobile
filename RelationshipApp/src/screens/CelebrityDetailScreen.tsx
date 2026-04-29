@@ -294,6 +294,17 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const placementsSubject = { birthChart: birthChartSource } as unknown as SubjectDocument;
   const placements = getRomanticPlacements(placementsSubject);
 
+  const headerSlot = (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => navigation.goBack()}
+      style={styles.backLink}
+      disabled={isStartingPreview}
+    >
+      <Text style={[styles.backLinkText, { color: colors.textMuted }]}>← Back</Text>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
       <View style={styles.body}>
@@ -307,6 +318,7 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
           placements={placements}
           overview={overviewText}
           eyebrow="Celebrity"
+          headerSlot={headerSlot}
           identityOverride={identityOverride}
           onPressViewFullChart={
             birthChartSource ? () => setChartModalVisible(true) : undefined
@@ -336,13 +348,6 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
             </Text>
           )}
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.secondaryButton, { borderColor: colors.border }]}
-          onPress={() => navigation.goBack()}
-          disabled={isStartingPreview}
-        >
-          <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Back</Text>
-        </TouchableOpacity>
       </View>
 
       <SingleChartModal
@@ -359,6 +364,14 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   body: { flex: 1 },
+  backLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+  },
+  backLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   identityWrap: {
     alignItems: 'center',
     gap: 10,

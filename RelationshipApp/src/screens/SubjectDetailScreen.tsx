@@ -403,15 +403,29 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     </View>
   );
 
-  // The "Your Connection" card sits above the tabs, in headerSlot.
-  const headerSlot = existingRelationship ? (
-    <View style={[styles.connectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={[styles.cardEyebrow, { color: colors.accent }]}>Your Connection</Text>
-      <Text style={[styles.cardBody, { color: colors.text }]}>
-        {archetype ?? 'Compatibility read ready.'}
-      </Text>
+  // Top-left back link plus optional "Your Connection" card sit above the
+  // identity / tabs in the header slot, mirroring how RomanticProfileFullScreen
+  // places its `← Profile` link at the top.
+  const headerSlot = (
+    <View style={styles.headerSlotStack}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => navigation.goBack()}
+        style={styles.backLink}
+        disabled={isStartingPreview}
+      >
+        <Text style={[styles.backLinkText, { color: colors.textMuted }]}>← Back</Text>
+      </TouchableOpacity>
+      {existingRelationship ? (
+        <View style={[styles.connectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardEyebrow, { color: colors.accent }]}>Your Connection</Text>
+          <Text style={[styles.cardBody, { color: colors.text }]}>
+            {archetype ?? 'Compatibility read ready.'}
+          </Text>
+        </View>
+      ) : null}
     </View>
-  ) : null;
+  );
 
   const overviewText = isBlurbLoading
     ? 'Loading romantic profile…'
@@ -474,13 +488,6 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
             )}
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          style={[styles.secondaryButton, { borderColor: colors.border }]}
-          onPress={() => navigation.goBack()}
-          disabled={isStartingPreview}
-        >
-          <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Back</Text>
-        </TouchableOpacity>
       </View>
 
       <SingleChartModal
@@ -497,6 +504,17 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   body: { flex: 1 },
+  headerSlotStack: {
+    gap: 10,
+  },
+  backLink: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+  },
+  backLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   identityWrap: {
     alignItems: 'center',
     gap: 10,

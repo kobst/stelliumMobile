@@ -156,6 +156,11 @@ export function SingleChartModal({
                 size={320}
                 colors={chartColors}
                 getPlanetColor={() => tint}
+                getAspectStyle={(aspectType) => ({
+                  color: aspectColor(aspectType),
+                  dashed: isDashedAspect(aspectType),
+                })}
+                frameless
               />
             ) : (
               <View style={[styles.chartFallback, { borderColor: colors.ghostBorder }]}>
