@@ -1,78 +1,160 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import {
+  CompositeNavigationProp,
+  useNavigation,
+} from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MainTabParamList } from '../navigation/MainTabs';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
+import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
 import { getBigThreeSummary } from '../utils/mainShell';
+import { CreditPill } from '../components/CreditPill';
+import { SectionLabel } from '../components/SectionLabel';
 import { TopCelebMatchesRail } from '../components/TopCelebMatchesRail';
+import { PersonalHoroscopeCard } from '../components/PersonalHoroscopeCard';
+import { WeeklyDispatchCard } from '../components/WeeklyDispatchCard';
+import { ThisWeekTogetherSection } from '../components/ThisWeekTogetherSection';
+import { QuickActionsRow, type QuickAction } from '../components/QuickActionsRow';
+import { HomeAskIrisCard } from '../components/HomeAskIrisCard';
+import { buildHistorySelectionState } from './historySelection';
+import type { UserCompositeChart } from '../../../shared/api/relationships';
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'HomeTab'>,
   StackNavigationProp<RelationshipRootParamList>
 >;
 
-function getWeeklyArticle(profileName: string | undefined, summary: string) {
-  return {
-    eyebrow: 'Weekly Dispatch',
-    title: 'The aspect behind your mixed signals',
-    body: profileName
-      ? `${profileName}, ${summary} is the right lens for a weekly editorial module. This slot should rotate through one chart theme, one celebrity example, and one practical reason to open the app again.`
-      : 'This slot should rotate through one chart theme, one celebrity example, and one practical reason to open the app again.',
-  };
-}
-
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeNavigation>();
   const { colors } = useTheme();
   const profile = useRelationshipAppStore((state) => state.profile);
+  const credits = useRelationshipAppStore((state) => state.credits);
+  const relationshipHistory = useRelationshipAppStore((state) => state.relationshipHistory);
+  const selfProfileId = useRelationshipAppStore((state) => state.selfProfileId);
+  const setActiveRelationshipId = useRelationshipAppStore(
+    (state) => state.setActiveRelationshipId
+  );
+  const setActivePartnerRomanticAssets = useRelationshipAppStore(
+    (state) => state.setActivePartnerRomanticAssets
+  );
+  const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
+  const setFullAnalysis = useRelationshipAppStore((state) => state.setFullAnalysis);
+  const setWorkflowState = useRelationshipAppStore((state) => state.setWorkflowState);
 
-  const article = getWeeklyArticle(profile?.firstName, getBigThreeSummary(profile));
+  useRelationshipHistory(true);
+
+  const userId = profile?.id ?? null;
+  const bigThree = useMemo(() => getBigThreeSummary(profile), [profile]);
+
+  const openRelationship = useCallback(
+    (relationship: UserCompositeChart) => {
+      const selectionState = buildHistorySelectionState(relationship);
+      setActivePartnerRomanticAssets(null);
+      setPreviewAnalysis(selectionState.previewAnalysis);
+      setActiveRelationshipId(relationship._id);
+      setFullAnalysis(selectionState.fullAnalysis);
+      setWorkflowState({
+        workflowStatus: null,
+        workflowPhase: selectionState.workflowPhase,
+        workflowError: null,
+      });
+      navigation.navigate('RelationshipPreview');
+    },
+    [
+      navigation,
+      setActivePartnerRomanticAssets,
+      setActiveRelationshipId,
+      setFullAnalysis,
+      setPreviewAnalysis,
+      setWorkflowState,
+    ]
+  );
+
+  const quickActions: QuickAction[] = useMemo(
+    () => [
+      {
+        id: 'add-someone',
+        label: 'Add someone',
+        icon: '+',
+        tint: 'primary',
+        onPress: () => navigation.navigate('AddConnection'),
+      },
+      {
+        id: 'ask-iris',
+        label: 'Ask Iris',
+        icon: '✦',
+        tint: 'tertiary',
+      },
+      {
+        id: 'your-chart',
+        label: 'Your chart',
+        icon: '☉',
+        tint: 'accent',
+        onPress: () => navigation.navigate('RomanticProfileFull'),
+      },
+    ],
+    [navigation]
+  );
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.topBar}>
+          <Text style={[styles.brand, { color: colors.text }]}>Iris</Text>
+          <CreditPill balance={credits?.balance ?? null} onPress={() => {}} />
+        </View>
+
         <View style={styles.headerBlock}>
-          <Text style={[styles.kicker, { color: colors.primary }]}>Home</Text>
+          <SectionLabel>Home</SectionLabel>
           <Text style={[styles.title, { color: colors.text }]}>
-            {profile ? `Hi ${profile.firstName}.` : 'Your feed is ready.'}
+            {profile?.firstName ? `Hi ${profile.firstName}.` : 'Hi.'}
           </Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            {getBigThreeSummary(profile)}
-          </Text>
+          {bigThree ? (
+            <Text style={[styles.subtitle, { color: colors.textSubtle }]}>{bigThree}</Text>
+          ) : null}
         </View>
 
-        <View style={[styles.articleCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.articleEyebrow, { color: colors.accent }]}>{article.eyebrow}</Text>
-          <Text style={[styles.articleTitle, { color: colors.text }]}>{article.title}</Text>
-          <Text style={[styles.articleBody, { color: colors.textMuted }]}>{article.body}</Text>
-          <View style={styles.articleActions}>
-            <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-              onPress={() => navigation.navigate('DiscoverTab')}
-            >
-              <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-                Explore This Theme
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <PersonalHoroscopeCard userId={userId} />
 
-        <TopCelebMatchesRail
-          title="Your Chart in the Wild"
-          subtitle="Celeb overlaps from your saved relationship-app profile."
-          matches={(profile?.topCelebMatches ?? []).slice(0, 5)}
+        <WeeklyDispatchCard />
+
+        <ThisWeekTogetherSection
+          relationships={relationshipHistory}
+          selfProfileId={selfProfileId}
+          onPressCard={openRelationship}
         />
+
+        <View style={styles.celebSection}>
+          <SectionLabel>Your Chart in the Wild</SectionLabel>
+          <Text style={[styles.celebSubtitle, { color: colors.textSubtle }]}>
+            Celebs whose charts resonate with yours this week
+          </Text>
+          <TopCelebMatchesRail
+            title=""
+            subtitle=""
+            matches={(profile?.topCelebMatches ?? []).slice(0, 5)}
+          />
+        </View>
+
+        <View style={styles.quickActionsBlock}>
+          <SectionLabel>Quick Actions</SectionLabel>
+          <QuickActionsRow actions={quickActions} />
+        </View>
+
+        <HomeAskIrisCard />
       </ScrollView>
     </SafeAreaView>
   );
@@ -85,59 +167,37 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 36,
-    gap: 18,
+    gap: 24,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  brand: {
+    fontSize: 22,
+    fontStyle: 'italic',
+    fontWeight: '600',
   },
   headerBlock: {
-    gap: 8,
-    paddingTop: 8,
-  },
-  kicker: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
+    gap: 6,
   },
   title: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '700',
-    lineHeight: 38,
+    lineHeight: 36,
   },
   subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 13,
   },
-  articleCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 18,
-    gap: 12,
+  celebSection: {
+    gap: 4,
   },
-  articleEyebrow: {
+  celebSubtitle: {
     fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+    marginBottom: 8,
   },
-  articleTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    lineHeight: 30,
-  },
-  articleBody: {
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  articleActions: {
-    gap: 10,
-  },
-  primaryButton: {
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 15,
-  },
-  primaryButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
+  quickActionsBlock: {
+    gap: 12,
   },
 });

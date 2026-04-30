@@ -30,6 +30,10 @@ The relationship app now has its own dedicated endpoint namespace for user-cente
 - `GET /relationship-app/me`
 - `GET /relationship-app/discover/collections`
 - `GET /relationship-app/users/:userId/entitlements`
+- `POST /relationship-app/users/:userId/horoscope/romance`
+- `GET /relationship-app/users/:userId/horoscopes/romance`
+- `GET /relationship-app/users/:userId/horoscope/romance/current`
+- `GET /relationship-app/users/:userId/horoscope/romance/latest`
 - `POST /relationship-app/users/:userId/ask-iris`
 - `POST /relationship-app/subjects/:userId/ask-iris`
 - `GET /relationship-app/celebs/:userId/profile`
@@ -40,6 +44,10 @@ The relationship app now has its own dedicated endpoint namespace for user-cente
 - `POST /relationship-app/relationships/:compositeChartId/ask-iris`
 - `POST /relationship-app/relationships/:compositeChartId/enhanced-chat`
 - `GET /relationship-app/relationships/:compositeChartId/analysis`
+- `POST /relationship-app/relationships/:compositeChartId/horoscope/composite`
+- `POST /relationship-app/relationships/:compositeChartId/horoscope/synastry`
+- `GET /relationship-app/relationships/:compositeChartId/horoscopes`
+- `GET /relationship-app/relationships/:compositeChartId/horoscope/latest`
 - `GET /relationship-app/subjects/:userId/romantic-analysis`
 - `POST /relationship-app/subjects/:userId/romantic-analysis/generate`
 
@@ -99,6 +107,19 @@ This section is the quickest survey of the relationship-app-relevant API surface
 - `GET /relationship-app/users/:userId/discover/charts-like-yours`
   - Authenticated personalized Discover endpoint
   - Returns a weekly lead placement plus up to 8 celebrity charts pre-ranked by total placement overlap
+- `POST /relationship-app/users/:userId/horoscope/romance`
+  - Synchronous weekly/monthly romance horoscope for the authenticated relationship-app account holder
+  - Uses the account holder's own natal chart and romance-focused current transits
+  - Returns cached content for the same `period`, normalized date range, user, and mode
+- `GET /relationship-app/users/:userId/horoscopes/romance`
+  - Lists saved account-holder romance horoscopes
+  - Supports `period=weekly|monthly` and `limit`
+- `GET /relationship-app/users/:userId/horoscope/romance/current`
+  - Returns the cached horoscope for the normalized current/requested period
+  - Does not generate on demand; returns `404` with `status=not_ready` if the scheduled job has not generated it
+- `GET /relationship-app/users/:userId/horoscope/romance/latest`
+  - Returns the latest saved account-holder romance horoscope
+  - Supports `period=weekly|monthly`
 - `GET /relationship-app/celebs/:userId/profile`
   - Returns the full celebrity profile payload for detail screens
   - Includes the shared celebrity subject, birth chart, and relationship-app romantic summary fields
@@ -129,6 +150,20 @@ This section is the quickest survey of the relationship-app-relevant API surface
 - `GET /relationship-app/relationships/:compositeChartId/analysis`
   - Authenticated relationship-app read endpoint for a saved relationship analysis payload
   - Use this for private/owned relationship reads in the relationship app
+- `POST /relationship-app/relationships/:compositeChartId/horoscope/composite`
+  - Synchronous weekly/monthly relationship horoscope generated from the relationship's composite chart
+  - Treats the relationship as a shared chart/entity, but addresses User A as the reader
+  - Returns cached content for the same `period`, normalized date range, relationship, and mode
+- `POST /relationship-app/relationships/:compositeChartId/horoscope/synastry`
+  - Synchronous weekly/monthly relationship horoscope generated from partner transits activating stored synastry
+  - Uses User A and User B natal romantic transits plus activated synastry aspects/house overlays
+  - Returns cached content for the same `period`, normalized date range, relationship, and mode
+- `GET /relationship-app/relationships/:compositeChartId/horoscopes`
+  - Lists saved relationship horoscopes for the owned relationship
+  - Supports `period=weekly|monthly`, `mode=composite|synastry`, and `limit`
+- `GET /relationship-app/relationships/:compositeChartId/horoscope/latest`
+  - Returns the latest saved relationship horoscope for the owned relationship
+  - Supports `period=weekly|monthly` and `mode=composite|synastry`
 - `POST /getUserCompositeCharts`
   - Returns saved relationships for the authenticated owner
 - `POST /fetchRelationshipAnalysis`
@@ -176,6 +211,10 @@ If the relationship app wants the simplest stable integration path, the default 
 - List celebrities for browse cards: `POST /getCelebs`
 - Read weekly Discover collections: `GET /relationship-app/discover/collections`
 - Read personalized charts-like-yours carousel: `GET /relationship-app/users/:userId/discover/charts-like-yours`
+- Generate account-holder romance horoscope: `POST /relationship-app/users/:userId/horoscope/romance`
+- Read current cached account-holder romance horoscope: `GET /relationship-app/users/:userId/horoscope/romance/current`
+- List saved account-holder romance horoscopes: `GET /relationship-app/users/:userId/horoscopes/romance`
+- Read latest account-holder romance horoscope: `GET /relationship-app/users/:userId/horoscope/romance/latest`
 - Read celebrity detail: `GET /relationship-app/celebs/:userId/profile`
 - Read celebrity relationship cards: `POST /getCelebRelationships`
 - Read celeb match bank for the signed-in user: `GET /users/:userId/relationship-app/celeb-aspect-bank`
@@ -183,6 +222,11 @@ If the relationship app wants the simplest stable integration path, the default 
 - Start async relationship workflow: `POST /relationship-app/workflow/relationship/start`
 - Poll async relationship workflow: `POST /relationship-app/workflow/relationship/status`
 - Read owned relationship analysis: `GET /relationship-app/relationships/:compositeChartId/analysis`
+- Generate composite-chart relationship horoscope: `POST /relationship-app/relationships/:compositeChartId/horoscope/composite`
+- Generate synastry-activation relationship horoscope: `POST /relationship-app/relationships/:compositeChartId/horoscope/synastry`
+- Read current cached relationship horoscope: `GET /relationship-app/relationships/:compositeChartId/horoscope/current`
+- List saved relationship horoscopes: `GET /relationship-app/relationships/:compositeChartId/horoscopes`
+- Read latest relationship horoscope: `GET /relationship-app/relationships/:compositeChartId/horoscope/latest`
 - AskIris about self: `POST /relationship-app/users/:userId/ask-iris`
 - AskIris about another subject: `POST /relationship-app/subjects/:userId/ask-iris`
 - AskIris about a relationship: `POST /relationship-app/relationships/:compositeChartId/ask-iris`
@@ -208,6 +252,18 @@ If the relationship app wants the simplest stable integration path, the default 
 - `GET /relationship-app/users/:userId/entitlements`
   - Requires app auth via `requireAuth`
   - `userId` must match authenticated user
+- `POST /relationship-app/users/:userId/horoscope/romance`
+  - Requires app auth via `requireAuth`
+  - `userId` must match authenticated relationship-app account holder
+- `GET /relationship-app/users/:userId/horoscopes/romance`
+  - Requires app auth via `requireAuth`
+  - `userId` must match authenticated relationship-app account holder
+- `GET /relationship-app/users/:userId/horoscope/romance/current`
+  - Requires app auth via `requireAuth`
+  - `userId` must match authenticated relationship-app account holder
+- `GET /relationship-app/users/:userId/horoscope/romance/latest`
+  - Requires app auth via `requireAuth`
+  - `userId` must match authenticated relationship-app account holder
 - `POST /relationship-app/users/:userId/ask-iris`
   - Requires app auth via `requireAuth`
   - `userId` must belong to the authenticated user in the relationship app
@@ -231,6 +287,21 @@ If the relationship app wants the simplest stable integration path, the default 
 - `POST /relationship-app/workflow/relationship/start`
   - Requires app auth via `requireAuth`
 - `GET /relationship-app/relationships/:compositeChartId/analysis`
+  - Requires app auth via `requireAuth`
+  - Relationship must belong to the authenticated user
+- `POST /relationship-app/relationships/:compositeChartId/horoscope/composite`
+  - Requires app auth via `requireAuth`
+  - Relationship must belong to the authenticated user
+- `POST /relationship-app/relationships/:compositeChartId/horoscope/synastry`
+  - Requires app auth via `requireAuth`
+  - Relationship must belong to the authenticated user
+- `GET /relationship-app/relationships/:compositeChartId/horoscopes`
+  - Requires app auth via `requireAuth`
+  - Relationship must belong to the authenticated user
+- `GET /relationship-app/relationships/:compositeChartId/horoscope/current`
+  - Requires app auth via `requireAuth`
+  - Relationship must belong to the authenticated user
+- `GET /relationship-app/relationships/:compositeChartId/horoscope/latest`
   - Requires app auth via `requireAuth`
   - Relationship must belong to the authenticated user
 - `POST /relationship-app/relationships/:compositeChartId/ask-iris`
@@ -1984,6 +2055,406 @@ Current error responses:
 - `403` if the authenticated user does not own the relationship
 - `404` if the relationship record or the analysis record does not exist
 
+### Relationship Horoscopes
+
+Relationship-app horoscope endpoints are authenticated and backed by cached horoscope documents. The normal frontend path should use cache-only reads; generation is handled by the scheduled weekly job. There are two scopes:
+
+- Account-holder romance horoscope: individual weekly/monthly romance weather for the authenticated relationship-app account holder
+- Relationship horoscopes: weekly/monthly readings for an owned saved relationship, either from the composite chart or synastry activations
+
+Supported periods:
+- `weekly`
+- `monthly`
+
+Unsupported for now:
+- `daily`
+- credit gating
+- async workflow polling
+
+Scheduled generation:
+- `relationship-app-weekly-horoscope-generator` runs from EventBridge every Monday at `00:15 UTC`.
+- By default it generates next week's cached rows.
+- First pass generates:
+  - account-holder personal romance weekly horoscopes
+  - composite weekly horoscopes for owned relationship-app relationships
+- Generation is idempotent. Existing rows for the same normalized period are skipped.
+
+All relationship horoscope documents are stored in the shared `horoscopes` collection with:
+
+```json
+{
+  "subjectType": "relationship",
+  "mode": "composite | synastry",
+  "compositeChartId": "relationshipId",
+  "userAId": "accountHolderOrRelationshipUserA",
+  "userBId": "partnerUserId",
+  "period": "weekly | monthly",
+  "startDate": "normalizedPeriodStart",
+  "endDate": "normalizedPeriodEnd",
+  "interpretation": "Plain text horoscope",
+  "generatedAt": "timestamp"
+}
+```
+
+Account-holder romance horoscope documents are stored in the same collection with:
+
+```json
+{
+  "subjectType": "relationship-app-user",
+  "mode": "romance",
+  "userId": "accountHolderUserId",
+  "period": "weekly | monthly",
+  "startDate": "normalizedPeriodStart",
+  "endDate": "normalizedPeriodEnd",
+  "interpretation": "Plain text romance horoscope",
+  "generatedAt": "timestamp"
+}
+```
+
+Cache behavior:
+- A relationship generation request first checks for an existing document with the same `compositeChartId`, `mode`, `period`, `startDate`, and `endDate`.
+- An account-holder romance generation request first checks for an existing document with the same `userId`, `mode=romance`, `period`, `startDate`, and `endDate`.
+- Cache hits return the saved horoscope with `cached: true`.
+- Cache misses generate and save a new horoscope with `cached: false`.
+- Cache-only current-period reads never generate. They return `404` with `status: "not_ready"` when the scheduled row is missing.
+
+Period normalization:
+- Weekly periods normalize to Monday 00:00:00 UTC through Sunday 23:59:59.999 UTC.
+- Monthly periods normalize to the first day of month 00:00:00 UTC through the last day 23:59:59.999 UTC.
+
+Recommended frontend reads:
+- Account-holder current romance: `GET /relationship-app/users/:userId/horoscope/romance/current?period=weekly`
+- Relationship current composite: `GET /relationship-app/relationships/:compositeChartId/horoscope/current?period=weekly&mode=composite`
+
+The existing `POST` generation endpoints remain available for manual backfill/regeneration, but should not be used by the normal app display path.
+
+Mid-week creation fallback:
+- If a relationship-app user signs up after the weekly scheduled job has run, `GET /relationship-app/users/:userId/horoscope/romance/current?period=weekly` can return `404` with `status: "not_ready"`.
+- If a relationship is created after the weekly scheduled job has run, `GET /relationship-app/relationships/:compositeChartId/horoscope/current?period=weekly&mode=composite` can return `404` with `status: "not_ready"`.
+- In those cases, the backend still supports generating the current-week row through the existing authenticated generation endpoints:
+  - `POST /relationship-app/users/:userId/horoscope/romance`
+  - `POST /relationship-app/relationships/:compositeChartId/horoscope/composite`
+- After generation succeeds, the frontend should read through the cache-only current endpoint again.
+- A future convenience endpoint can hide this fallback behind an `ensure-current` contract, but that endpoint does not exist yet.
+
+#### `POST /relationship-app/users/:userId/horoscope/romance`
+
+Generates an individual romance horoscope for the authenticated relationship-app account holder.
+
+Use this when the product wants the reading to answer:
+
+> What is happening in my romantic life this week or month?
+
+This endpoint does not use a partner, composite chart, or synastry. It uses the account holder's own natal chart and the same romance-focused transit selector used by the synastry horoscope workflow.
+
+Request body:
+
+```json
+{
+  "period": "weekly",
+  "startDate": "2026-04-28"
+}
+```
+
+Typical response:
+
+```json
+{
+  "success": true,
+  "cached": false,
+  "horoscope": {
+    "_id": "horoscopeId",
+    "subjectType": "relationship-app-user",
+    "mode": "romance",
+    "userId": "accountHolderUserId",
+    "userName": "User",
+    "period": "weekly",
+    "startDate": "2026-04-27T00:00:00.000Z",
+    "endDate": "2026-05-03T23:59:59.999Z",
+    "interpretation": "Plain text individual romance horoscope...",
+    "transitData": {
+      "transits": ["..."],
+      "romanceTransits": ["..."],
+      "retrogrades": []
+    },
+    "components": {
+      "romanceTransits": ["..."],
+      "moonPhases": ["..."],
+      "transitToTransitAspects": ["..."]
+    },
+    "analysis": {
+      "keyThemes": [
+        {
+          "transitingPlanet": "Uranus",
+          "targetPlanet": "Venus",
+          "aspect": "opposition",
+          "exactDate": "2026-05-04T18:00:00.000Z",
+          "description": null,
+          "priority": 10
+        }
+      ],
+      "detailedAnalysis": [],
+      "romance": {
+        "hasKnownBirthTime": true,
+        "romanceTransitCount": 5,
+        "moonPhaseCount": 1,
+        "transitToTransitCount": 59
+      }
+    },
+    "referencedCodes": [],
+    "userPrompt": "Prompt used for generation",
+    "generatedAt": "2026-04-29T..."
+  }
+}
+```
+
+Romance-specific notes:
+- Requires `userId` to match the authenticated relationship-app account holder.
+- Guest subjects, partner subjects, and celebrities are intentionally not supported.
+- The prompt addresses the account holder directly and avoids relationship/composite/synastry framing.
+- If the account holder has no reliable birth time, the prompt suppresses house/Ascendant/Midheaven language.
+
+#### `GET /relationship-app/users/:userId/horoscopes/romance`
+
+Lists saved individual romance horoscopes for the authenticated relationship-app account holder.
+
+Query parameters:
+- `period=weekly|monthly`
+- `limit=1..50`
+
+#### `GET /relationship-app/users/:userId/horoscope/romance/current`
+
+Returns the cached individual romance horoscope for the authenticated relationship-app account holder and normalized period.
+
+Query parameters:
+- `period=weekly|monthly`
+- `date=YYYY-MM-DD` optional; defaults to request time
+
+This endpoint does not generate content. If the scheduled job has not generated the row, it returns:
+
+```json
+{
+  "success": false,
+  "status": "not_ready",
+  "message": "Relationship-app romance horoscope has not been generated for this period",
+  "period": "weekly",
+  "startDate": "2026-04-27T00:00:00.000Z",
+  "endDate": "2026-05-03T23:59:59.999Z"
+}
+```
+
+#### `GET /relationship-app/users/:userId/horoscope/romance/latest`
+
+Returns the latest saved individual romance horoscope for the authenticated relationship-app account holder.
+
+Query parameters:
+- `period=weekly|monthly`
+
+#### `GET /relationship-app/relationships/:compositeChartId/horoscope/current`
+
+Returns the cached relationship horoscope for the normalized period.
+
+Query parameters:
+- `period=weekly|monthly`
+- `mode=composite|synastry`
+- `date=YYYY-MM-DD` optional; defaults to request time
+
+For the scheduled first pass, the expected frontend call is:
+
+```http
+GET /relationship-app/relationships/:compositeChartId/horoscope/current?period=weekly&mode=composite
+```
+
+This endpoint does not generate content. If the scheduled job has not generated the row, it returns `404` with `status: "not_ready"`.
+
+#### `POST /relationship-app/relationships/:compositeChartId/horoscope/composite`
+
+Generates a relationship horoscope from the relationship's composite chart.
+
+Use this when the product wants the reading to answer:
+
+> What is happening to this relationship as a shared field/entity?
+
+The output addresses User A directly as the account holder reading about the relationship, but the astrology is interpreted from the composite chart rather than User A's individual natal chart.
+
+Request body:
+
+```json
+{
+  "period": "weekly",
+  "startDate": "2026-04-28"
+}
+```
+
+Typical response:
+
+```json
+{
+  "success": true,
+  "cached": false,
+  "horoscope": {
+    "_id": "horoscopeId",
+    "subjectType": "relationship",
+    "mode": "composite",
+    "compositeChartId": "relationshipId",
+    "userAId": "userAId",
+    "userBId": "userBId",
+    "userAName": "User A",
+    "userBName": "User B",
+    "period": "weekly",
+    "startDate": "2026-04-27T00:00:00.000Z",
+    "endDate": "2026-05-03T23:59:59.999Z",
+    "interpretation": "Plain text relationship horoscope...",
+    "analysis": {
+      "keyThemes": ["..."],
+      "composite": {
+        "hasKnownBirthTime": true,
+        "mainThemeCount": 3,
+        "immediateEventCount": 5,
+        "moonPhaseCount": 1,
+        "transitToTransitCount": 3
+      }
+    },
+    "referencedCodes": [],
+    "userPrompt": "Prompt used for generation",
+    "generatedAt": "2026-04-29T..."
+  }
+}
+```
+
+Composite-specific notes:
+- The endpoint uses `composite_charts.compositeChart` as the chart input.
+- If the composite chart does not have reliable birth-time-derived houses, the prompt suppresses house/Ascendant/Midheaven language.
+- The prompt uses relationship language such as "your relationship", "this connection", and "the two of you".
+
+#### `POST /relationship-app/relationships/:compositeChartId/horoscope/synastry`
+
+Generates a relationship horoscope from current romantic transits to both partners' natal charts and the stored synastry those transits activate.
+
+Use this when the product wants the reading to answer:
+
+> How are each partner's current romantic transits activating the relationship dynamic between them?
+
+This is not a composite chart reading. It uses:
+- User A's romance-focused transits
+- User B's romance-focused transits
+- activated synastry aspects from `composite_charts.synastryAspects`
+- activated synastry house overlays from `composite_charts.synastryHousePlacements`
+
+Request body:
+
+```json
+{
+  "period": "weekly",
+  "startDate": "2026-04-28"
+}
+```
+
+Typical response:
+
+```json
+{
+  "success": true,
+  "cached": false,
+  "horoscope": {
+    "_id": "horoscopeId",
+    "subjectType": "relationship",
+    "mode": "synastry",
+    "compositeChartId": "relationshipId",
+    "period": "weekly",
+    "startDate": "2026-04-27T00:00:00.000Z",
+    "endDate": "2026-05-03T23:59:59.999Z",
+    "interpretation": "Plain text synastry-based relationship horoscope...",
+    "components": {
+      "partnerATransits": ["..."],
+      "partnerBTransits": ["..."],
+      "activatedSynastryAspects": ["..."],
+      "activatedSynastryHousePlacements": ["..."]
+    },
+    "analysis": {
+      "keyThemes": ["..."],
+      "synastry": {
+        "partnerAHasKnownBirthTime": true,
+        "partnerBHasKnownBirthTime": true,
+        "partnerATransitCount": 5,
+        "partnerBTransitCount": 5,
+        "activatedSynastryAspectCount": 8,
+        "activatedSynastryHousePlacementCount": 6
+      }
+    },
+    "referencedCodes": [],
+    "userPrompt": "Prompt used for generation",
+    "generatedAt": "2026-04-29T..."
+  }
+}
+```
+
+Synastry activation logic:
+- If a transit hits User A's natal `Venus`, `Mars`, `Moon`, `Sun`, or `Mercury`, the endpoint surfaces matching synastry aspects where that planet is `planet1`.
+- If a transit hits User B's natal `Venus`, `Mars`, `Moon`, `Sun`, or `Mercury`, the endpoint surfaces matching synastry aspects where that planet is `planet2`.
+- Venus, Mars, and Moon activations receive the strongest relationship relevance weighting.
+- Synastry house overlays are included when an activated natal planet appears in the partner's house overlay:
+  - User A activated planet: `synastryHousePlacements.AinB`
+  - User B activated planet: `synastryHousePlacements.BinA`
+
+Synastry-specific notes:
+- The prompt addresses User A directly.
+- The prompt avoids composite-chart framing.
+- The output should explain how User A's romantic weather, User B's romantic weather, and activated synastry patterns interact.
+
+#### `GET /relationship-app/relationships/:compositeChartId/horoscopes`
+
+Lists saved relationship horoscopes for an owned relationship.
+
+Query parameters:
+- `period=weekly|monthly`
+- `mode=composite|synastry`
+- `limit=1..50`
+
+Example:
+
+```txt
+GET /relationship-app/relationships/relationshipId/horoscopes?period=weekly&mode=synastry&limit=3
+```
+
+Typical response:
+
+```json
+{
+  "success": true,
+  "horoscopes": ["..."],
+  "count": 1
+}
+```
+
+#### `GET /relationship-app/relationships/:compositeChartId/horoscope/latest`
+
+Returns the latest saved relationship horoscope for an owned relationship.
+
+Query parameters:
+- `period=weekly|monthly`
+- `mode=composite|synastry`
+
+Example:
+
+```txt
+GET /relationship-app/relationships/relationshipId/horoscope/latest?period=weekly&mode=composite
+```
+
+Typical response:
+
+```json
+{
+  "success": true,
+  "horoscope": {
+    "_id": "horoscopeId",
+    "subjectType": "relationship",
+    "mode": "composite",
+    "...": "saved horoscope document"
+  }
+}
+```
+
 ### `POST /relationship-app/relationships/:compositeChartId/enhanced-chat`
 
 Runs relationship chat and charges the relationship-app balance per question.
@@ -2918,6 +3389,16 @@ For pairwise relationship UI in the mobile app, the intended API set is:
 - saved relationship read:
   - private/owned: `GET /relationship-app/relationships/:compositeChartId/analysis`
   - public celebrity-to-celebrity or legacy/shared: `POST /fetchRelationshipAnalysis`
+- relationship horoscopes:
+  - account-holder romance reading: `POST /relationship-app/users/:userId/horoscope/romance`
+  - account-holder current cached romance reading: `GET /relationship-app/users/:userId/horoscope/romance/current`
+  - account-holder saved horoscope list: `GET /relationship-app/users/:userId/horoscopes/romance`
+  - account-holder latest horoscope: `GET /relationship-app/users/:userId/horoscope/romance/latest`
+  - current cached relationship horoscope: `GET /relationship-app/relationships/:compositeChartId/horoscope/current`
+  - composite chart reading: `POST /relationship-app/relationships/:compositeChartId/horoscope/composite`
+  - synastry activation reading: `POST /relationship-app/relationships/:compositeChartId/horoscope/synastry`
+  - saved horoscope list: `GET /relationship-app/relationships/:compositeChartId/horoscopes`
+  - latest saved horoscope: `GET /relationship-app/relationships/:compositeChartId/horoscope/latest`
 - relationship chat:
   - `POST /relationships/:compositeChartId/enhanced-chat`
   - `GET /relationships/:compositeChartId/chat-history`

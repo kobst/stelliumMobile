@@ -50,12 +50,16 @@ export const TopCelebMatchesRail: React.FC<Props> = ({
 
   return (
     <View style={styles.section}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        {subtitle ? (
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
-        ) : null}
-      </View>
+      {title || subtitle ? (
+        <View style={styles.header}>
+          {title ? (
+            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+          ) : null}
+          {subtitle ? (
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
+          ) : null}
+        </View>
+      ) : null}
 
       <ScrollView
         horizontal

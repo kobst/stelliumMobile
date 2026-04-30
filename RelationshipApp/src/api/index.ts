@@ -4,6 +4,15 @@ export { relationshipApiClient } from '../../../shared/api/relationshipClient';
 export { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
 export { usersApi } from '../../../shared/api/users';
 export { relationshipsApi } from './relationships';
+export { relationshipHoroscopesApi } from '../../../shared/api/relationshipHoroscopes';
+export type {
+  HoroscopePeriod,
+  RelationshipHoroscopeMode,
+  HoroscopeKeyTheme,
+  HoroscopeAnalysis,
+  RomanceHoroscopeDocument,
+  RelationshipHoroscopeDocument,
+} from '../../../shared/api/relationshipHoroscopes';
 export { celebritiesApi } from './celebrities';
 export { discoverApi } from './discover';
 export type {
