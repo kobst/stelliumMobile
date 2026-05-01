@@ -3,7 +3,11 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../theme';
 import { Avatar } from './Avatar';
 import { AvatarPair } from './AvatarPair';
-import { MiniRadar, type MiniRadarScores } from './MiniRadar';
+import type { MiniRadarScores } from './MiniRadar';
+import { ShapeBadge } from './shape/ShapeBadge';
+import { ModifierChipRow } from './shape/ModifierChipRow';
+import type { ModifierKey } from './shape/modifierTokens';
+import type { ShapeKind } from './shape/shapeTokens';
 
 export type RelationshipKind = 'celeb' | 'person';
 
@@ -35,6 +39,8 @@ interface PairPartners {
 type RelationshipCardProps = {
   archetype?: string | null;
   scores?: MiniRadarScores | null;
+  shapeKind?: ShapeKind | string | null;
+  modifiers?: readonly (ModifierKey | string)[] | null;
   onPress: () => void;
 } & (
   | ({ mode: 'single' } & SinglePartner)
@@ -43,11 +49,10 @@ type RelationshipCardProps = {
 
 export function RelationshipCard(props: RelationshipCardProps) {
   const { colors } = useTheme();
-  const { archetype, scores, onPress, mode } = props;
+  const { archetype, scores, shapeKind, modifiers, onPress, mode } = props;
   const hasScores = Boolean(scores);
 
-  const displayName =
-    mode === 'single' ? props.name : props.pairLabel;
+  const displayName = mode === 'single' ? props.name : props.pairLabel;
 
   return (
     <TouchableOpacity
@@ -82,27 +87,27 @@ export function RelationshipCard(props: RelationshipCardProps) {
           <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
             {displayName}
           </Text>
-          {!hasScores ? (
+          {hasScores && archetype ? (
+            <Text
+              style={[styles.archetype, { color: colors.accent }]}
+              numberOfLines={1}
+            >
+              {archetype}
+            </Text>
+          ) : !hasScores ? (
             <Text style={[styles.statusLine, { color: colors.textSubtle }]}>
               Analyzing…
             </Text>
           ) : null}
         </View>
 
-        {hasScores && scores ? (
-          <MiniRadar
-            scores={scores}
-            size={60}
-            strokeColor={colors.primary}
-            fillColor="rgba(202, 190, 255, 0.18)"
-          />
+        {hasScores && shapeKind ? (
+          <ShapeBadge kind={shapeKind} />
         ) : null}
       </View>
 
-      {hasScores && archetype ? (
-        <Text style={[styles.archetype, { color: colors.accent }]} numberOfLines={2}>
-          {archetype}
-        </Text>
+      {hasScores && modifiers && modifiers.length > 0 ? (
+        <ModifierChipRow modifiers={modifiers} max={2} />
       ) : null}
 
       {hasScores && scores ? (
@@ -164,7 +169,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   archetype: {
-    fontSize: 16,
+    fontSize: 14.5,
     fontStyle: 'italic',
     fontWeight: '600',
     fontFamily: 'Georgia',

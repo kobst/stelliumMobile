@@ -65,6 +65,23 @@ export interface ClusterMetrics {
   keystoneAspects: KeystoneAspect[];    // Top 5 most impactful aspects for this cluster
 }
 
+export type RelationshipShapeKind =
+  | 'even'
+  | 'single_spike'
+  | 'ridge'
+  | 'ridge_missing'
+  | 'trough'
+  | 'soft_shape';
+
+export type RelationshipMagnitudeTier = 'low' | 'mid' | 'high' | 'exceptional';
+
+export type RelationshipModifier =
+  | 'Magnetic'
+  | 'Highly Active'
+  | 'Tension-Rich'
+  | 'Easy-Flowing'
+  | 'Low Signal';
+
 export interface OverallSummary {
   label?: string;
   blurb?: string;
@@ -76,6 +93,13 @@ export interface OverallSummary {
   tone?: string;
   confidence?: number;
   version?: string;
+  shapeFamily?: string;
+  shapeKind?: RelationshipShapeKind;
+  magnitudeTier?: RelationshipMagnitudeTier;
+  modifiers?: RelationshipModifier[];
+  meanScore?: number;
+  spread?: number;
+  weakestCluster?: string;
 }
 
 export interface OverallAnalysis {

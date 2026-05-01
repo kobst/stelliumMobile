@@ -17,6 +17,9 @@ import { useRelationshipAppStore } from '../store';
 import { Avatar } from '../components/Avatar';
 import { CreditPill } from '../components/CreditPill';
 import { AskIrisCard } from '../components/AskIrisCard';
+import { ModifierChipRow } from '../components/shape/ModifierChipRow';
+import { ShapePatternCard } from '../components/shape/ShapePatternCard';
+import { SHAPE_TOKENS } from '../components/shape/shapeTokens';
 import { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
 import { relationshipsApi } from '../api';
 import { useRelationshipAnalysisWorkflow } from '../hooks/useRelationshipAnalysisWorkflow';
@@ -316,8 +319,14 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
     (activeTargetSubject as { profilePhotoUrl?: string | null } | null)?.profilePhotoUrl ??
     null;
 
-  const archetypeLabel = previewAnalysis?.overall?.summary?.label ?? null;
-  const archetypeBlurb = previewAnalysis?.overall?.summary?.blurb ?? null;
+  const overallSummary = previewAnalysis?.overall?.summary ?? null;
+  const archetypeLabel = overallSummary?.label ?? null;
+  const archetypeBlurb = overallSummary?.blurb ?? null;
+  const shapeKind = overallSummary?.shapeKind ?? null;
+  const modifiers = overallSummary?.modifiers ?? [];
+  const magnitudeTier = overallSummary?.magnitudeTier ?? null;
+  const isExceptionalMagnitude = magnitudeTier === 'exceptional';
+  const patternCount = Object.keys(SHAPE_TOKENS).length;
   const keyAspect = previewAnalysis?.overall?.keystoneAspects?.[0] ?? null;
   const initialOverview = previewAnalysis?.initialOverview ?? null;
   const romanticBlurb = activePartnerRomanticAssets?.romanticProfileBlurb ?? null;
@@ -469,7 +478,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             <Divider color={colors.ghostBorder} />
 
             {/* Archetype */}
-            {archetypeLabel || archetypeBlurb ? (
+            {archetypeLabel || archetypeBlurb || modifiers.length > 0 ? (
               <View style={styles.archetypeBlock}>
                 <SectionLabelCentered color={colors.accent}>
                   Your Connection
@@ -478,6 +487,14 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={[styles.archetypeLabel, { color: colors.text }]}>
                     {archetypeLabel}
                   </Text>
+                ) : null}
+                {modifiers.length > 0 ? (
+                  <ModifierChipRow
+                    modifiers={modifiers}
+                    max={4}
+                    align="center"
+                    style={styles.modifierRow}
+                  />
                 ) : null}
                 {archetypeBlurb ? (
                   <Text style={[styles.archetypeBlurb, { color: colors.textMuted }]}>
@@ -516,7 +533,19 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Compatibility radar */}
             <View>
-              <SectionLabel color={colors.accent}>Compatibility Shape</SectionLabel>
+              <View style={styles.shapeSectionHeader}>
+                <SectionLabel color={colors.accent}>Compatibility Shape</SectionLabel>
+                {shapeKind ? (
+                  <Text style={[styles.shapeSectionHint, { color: colors.textSubtle }]}>
+                    1 of {patternCount} patterns
+                  </Text>
+                ) : null}
+              </View>
+              {shapeKind ? (
+                <View style={styles.patternCardWrap}>
+                  <ShapePatternCard kind={shapeKind} />
+                </View>
+              ) : null}
               <View
                 style={[
                   styles.softCard,
@@ -524,6 +553,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                   { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
                 ]}
               >
+                {isExceptionalMagnitude ? <View style={styles.radarGlow} /> : null}
                 <RadarChart data={clusterScores} colors={colors} />
               </View>
             </View>
@@ -1048,6 +1078,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     gap: 6,
+  },
+  modifierRow: {
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  shapeSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  shapeSectionHint: {
+    fontSize: 10,
+    letterSpacing: 0.4,
+  },
+  patternCardWrap: {
+    marginBottom: 12,
+  },
+  radarGlow: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    bottom: 12,
+    borderRadius: 200,
+    backgroundColor: 'rgba(202, 190, 255, 0.08)',
+    shadowColor: '#cabeff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
   },
   archetypeLabel: {
     fontSize: 28,
