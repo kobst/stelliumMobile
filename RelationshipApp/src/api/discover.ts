@@ -128,6 +128,9 @@ export interface CelebRelationship {
   clusterAnalysisGeneratedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  compositeChart?: Record<string, unknown> | null;
+  synastryAspects?: unknown[] | null;
+  synastryHousePlacements?: Record<string, unknown> | null;
 }
 
 interface CelebRelationshipsResponse {

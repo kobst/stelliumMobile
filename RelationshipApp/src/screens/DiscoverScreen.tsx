@@ -106,10 +106,15 @@ function buildPreviewFromCelebRelationship(
     tensionFlowAnalysis:
       undefined as unknown as EnhancedRelationshipAnalysisResponse['tensionFlowAnalysis'],
     compositeChart:
-      undefined as unknown as EnhancedRelationshipAnalysisResponse['compositeChart'],
-    synastryAspects: [],
+      ((rel.compositeChart && Array.isArray((rel.compositeChart as any).planets)
+        ? rel.compositeChart
+        : undefined) as unknown) as EnhancedRelationshipAnalysisResponse['compositeChart'],
+    synastryAspects: (Array.isArray(rel.synastryAspects)
+      ? (rel.synastryAspects as EnhancedRelationshipAnalysisResponse['synastryAspects'])
+      : []),
     synastryHousePlacements:
-      {} as EnhancedRelationshipAnalysisResponse['synastryHousePlacements'],
+      ((rel.synastryHousePlacements as unknown) as EnhancedRelationshipAnalysisResponse['synastryHousePlacements']) ??
+      ({} as EnhancedRelationshipAnalysisResponse['synastryHousePlacements']),
     status: 'scores_calculated',
     metadata: {
       processingTime: '',

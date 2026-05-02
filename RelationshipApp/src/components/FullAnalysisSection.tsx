@@ -309,6 +309,13 @@ interface FullAnalysisSectionProps {
   onRelationshipUpdated?: (
     next: import('../../../shared/api/relationships').UserCompositeChart
   ) => void;
+  /**
+   * True when both parties are celebrities and the signed-in user is not
+   * one of them. Hides the Horoscope tab and switches second-person copy
+   * ("Between you", "your charts") to third-person ("Between partners",
+   * "their charts").
+   */
+  isCelebPair?: boolean;
 }
 
 type TabKey = 'overview' | 'clusters' | 'keyAspects' | 'horoscope';
@@ -326,8 +333,16 @@ export function FullAnalysisSection({
   partnerBirthChart,
   relationship,
   onRelationshipUpdated,
+  isCelebPair = false,
 }: FullAnalysisSectionProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const hideHoroscope = isCelebPair;
+
+  useEffect(() => {
+    if (hideHoroscope && activeTab === 'horoscope') {
+      setActiveTab('overview');
+    }
+  }, [activeTab, hideHoroscope]);
   const [activeCluster, setActiveCluster] = useState<ClusterName>('Harmony');
   const [activeLens, setActiveLens] = useState<LensKey>('between');
   const [chartModalOpen, setChartModalOpen] = useState(false);
@@ -387,6 +402,32 @@ export function FullAnalysisSection({
     fullAnalysis?.userB_name ??
     fullAnalysis?.userB?.firstName ??
     'Person 2';
+
+  // Backend descriptions for celeb-celeb relationships ship with literal
+  // "Partner A" / "Partner B" placeholders since neither party owns the row.
+  // Swap them with the actual first names so the keystone and breakdown copy
+  // reads naturally.
+  const firstWord = (value: string): string => value.trim().split(/\s+/)[0] ?? value;
+  const personAFirstForCopy = firstWord(personANameForCodes);
+  const personBFirstForCopy = firstWord(personBNameForCodes);
+  const swapPartnerNames = (description: string): string => {
+    if (!description) return description;
+    let out = description;
+    if (personAFirstForCopy && personAFirstForCopy !== 'Person 1') {
+      out = out
+        .replace(/Partner A's/g, `${personAFirstForCopy}'s`)
+        .replace(/Partner A\b/g, personAFirstForCopy);
+    }
+    if (personBFirstForCopy && personBFirstForCopy !== 'Person 2') {
+      out = out
+        .replace(/Partner B's/g, `${personBFirstForCopy}'s`)
+        .replace(/Partner B\b/g, personBFirstForCopy);
+    }
+    return out;
+  };
+  const codeToDescriptionForRender: Record<string, string> = Object.fromEntries(
+    Object.entries(codeToDescription).map(([code, desc]) => [code, swapPartnerNames(desc)])
+  );
 
   // Ascendant degrees per chart source so the focus charts rotate to the
   // owner's frame. Synastry charts are drawn from Person A's perspective.
@@ -512,11 +553,12 @@ export function FullAnalysisSection({
           const code: string | undefined =
             typeof entry?.code === 'string' ? entry.code : undefined;
           const scoredItem = code ? codeToScoredItem[code] : undefined;
-          const description: string | undefined =
+          const rawDescription: string | undefined =
             (typeof entry?.description === 'string' && entry.description) ||
             (typeof scoredItem?.description === 'string' && scoredItem.description) ||
             undefined;
-          if (!description) return null;
+          if (!rawDescription) return null;
+          const description = swapPartnerNames(rawDescription);
           const cluster: string | undefined =
             entry?.primaryCluster ?? entry?.cluster ?? scoredItem?.dominantCluster;
           const chart = scoredItem ? buildChartFromScoredItem(scoredItem) : undefined;
@@ -540,6 +582,9 @@ export function FullAnalysisSection({
       : aggregateKeystoneAspects(fullAnalysis);
   const keystoneAspects: KeystoneAspect[] = keystoneAspectsRaw.map((ka) => {
     const enriched = ka.chart ? { ...ka, chart: enrichAspectChart(ka.chart) } : { ...ka };
+    if (ka.description) {
+      enriched.description = swapPartnerNames(ka.description);
+    }
     if (ka.code && keystoneAnnotationByCode[ka.code]) {
       enriched.annotation = keystoneAnnotationByCode[ka.code];
     }
@@ -619,8 +664,8 @@ export function FullAnalysisSection({
       if (!pairKey || dedup.has(pairKey)) continue;
       const partnerItem = partnerDesc ? byDescription.get(partnerDesc) : undefined;
       dedup.set(pairKey, {
-        description: desc,
-        partnerDescription: partnerDesc,
+        description: desc ? swapPartnerNames(desc) : desc,
+        partnerDescription: partnerDesc ? swapPartnerNames(partnerDesc) : partnerDesc,
         theme: dw.theme,
         complexity: dw.complexity,
         combinedMagnitude:
@@ -648,7 +693,9 @@ export function FullAnalysisSection({
     { key: 'overview', label: 'Overview' },
     { key: 'clusters', label: 'Breakdown' },
     { key: 'keyAspects', label: 'Key Aspects' },
-    { key: 'horoscope', label: 'Horoscope' },
+    ...(hideHoroscope
+      ? []
+      : ([{ key: 'horoscope', label: 'Horoscope' }] as { key: TabKey; label: string }[])),
   ];
 
   return (
@@ -809,7 +856,7 @@ export function FullAnalysisSection({
           setActiveCluster={setActiveCluster}
           activeLens={activeLens}
           setActiveLens={setActiveLens}
-          codeToDescription={codeToDescription}
+          codeToDescription={codeToDescriptionForRender}
           codeToScoredItem={codeToScoredItem}
           personAName={personANameForCodes}
           personBName={personBNameForCodes}
@@ -818,6 +865,7 @@ export function FullAnalysisSection({
           compositePlanetByName={compositePlanetByName}
           selfPlanetByName={selfPlanetByName}
           partnerPlanetByName={partnerPlanetByName}
+          isCelebPair={isCelebPair}
         />
       ) : null}
 
@@ -1177,7 +1225,7 @@ export function FullAnalysisSection({
         </>
       ) : null}
 
-      {activeTab === 'horoscope' ? (
+      {!hideHoroscope && activeTab === 'horoscope' ? (
         relationship && onRelationshipUpdated ? (
           <RelationshipHoroscopeTab
             relationship={relationship}
@@ -1232,6 +1280,7 @@ interface ClustersTabProps {
   compositePlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>;
   selfPlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>;
   partnerPlanetByName: Record<string, { sign?: string; degree?: number; house?: number }>;
+  isCelebPair?: boolean;
 }
 
 function ClustersTab({
@@ -1251,6 +1300,7 @@ function ClustersTab({
   compositePlanetByName,
   selfPlanetByName,
   partnerPlanetByName,
+  isCelebPair = false,
 }: ClustersTabProps) {
   // When the user picks a different cluster, snap the lens back to "between"
   // (matches the mock's behavior).
@@ -1269,11 +1319,13 @@ function ClustersTab({
       : ca.keyAspects?.composite?.codes) ?? [];
   const subtitle =
     activeLens === 'between'
-      ? 'How your charts interact with each other'
+      ? isCelebPair
+        ? 'How their charts interact with each other'
+        : 'How your charts interact with each other'
       : 'What the relationship creates as its own entity';
 
   const lensTabs: { key: LensKey; label: string }[] = [
-    { key: 'between', label: 'Between You' },
+    { key: 'between', label: isCelebPair ? 'Between Partners' : 'Between You' },
     { key: 'relationship', label: 'The Relationship Itself' },
   ];
 

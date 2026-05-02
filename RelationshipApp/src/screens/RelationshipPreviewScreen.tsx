@@ -699,6 +699,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               relationshipHistory.find((entry) => entry._id === activeRelationshipId) ?? null
             }
             onRelationshipUpdated={upsertRelationshipInHistory}
+            isCelebPair={isCelebPairRelationship}
           />
         ) : null}
 
