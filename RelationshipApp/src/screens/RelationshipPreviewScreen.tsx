@@ -21,7 +21,7 @@ import { ModifierChipRow } from '../components/shape/ModifierChipRow';
 import { ShapePatternCard } from '../components/shape/ShapePatternCard';
 import { SHAPE_TOKENS } from '../components/shape/shapeTokens';
 import { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
-import { relationshipsApi } from '../api';
+import { relationshipsApi, discoverApi } from '../api';
 import { useRelationshipAnalysisWorkflow } from '../hooks/useRelationshipAnalysisWorkflow';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
 import { FullAnalysisSection } from '../components/FullAnalysisSection';
@@ -107,28 +107,38 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     if (activePartnerRomanticAssets) return;
     if (!partnerIdForHydration) return;
-    if (isCelebrityRelationship) return;
 
     let cancelled = false;
 
-    relationshipUsersApi
-      .getGuestSubjectRomantic(partnerIdForHydration)
-      .then((result) => {
-        if (cancelled) return;
-        setActivePartnerRomanticAssets({
+    const loader = isCelebrityRelationship
+      ? discoverApi.getCelebrityProfile(partnerIdForHydration).then((result) => ({
+          birthChart: (result.birthChart ?? null) as Record<string, unknown> | null,
+          overview: result.overview ?? null,
+          romanticProfileBlurb: result.romanticProfileBlurb ?? null,
+          referencedCodes: result.referencedCodes ?? [],
+          overviewMode: result.overviewMode ?? null,
+          status: 'celeb_profile_loaded' as const,
+        }))
+      : relationshipUsersApi.getGuestSubjectRomantic(partnerIdForHydration).then((result) => ({
           birthChart: result.birthChart,
           overview: result.overview,
           romanticProfileBlurb: result.romanticProfileBlurb,
           referencedCodes: result.referencedCodes,
           overviewMode: result.overviewMode,
           status: result.status,
-        });
+        }));
+
+    loader
+      .then((assets) => {
+        if (cancelled) return;
+        setActivePartnerRomanticAssets(assets);
       })
       .catch((error) => {
         if (__DEV__) {
           // eslint-disable-next-line no-console
           console.log('[RelationshipPreviewScreen] hydrate romantic assets failed', {
             partnerIdForHydration,
+            isCelebrityRelationship,
             error: error instanceof Error ? error.message : String(error),
           });
         }

@@ -17,7 +17,6 @@ interface ModifierChipProps {
 export function ModifierChip({ modifier }: ModifierChipProps) {
   const token = getModifierToken(modifier);
   if (!token) return null;
-  const labelGlyph = token.glyph ? `${token.glyph} ` : '';
   const displayLabel = token.key.replace(/-/g, ' ');
   return (
     <View
@@ -29,10 +28,7 @@ export function ModifierChip({ modifier }: ModifierChipProps) {
         },
       ]}
     >
-      <Text style={[styles.label, { color: token.color }]}>
-        {labelGlyph}
-        {displayLabel}
-      </Text>
+      <Text style={[styles.label, { color: token.color }]}>{displayLabel}</Text>
     </View>
   );
 }
