@@ -30,6 +30,16 @@ import { useOwnedSubjects } from '../hooks/useOwnedSubjects';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
 import { getUnconnectedSubjects } from '../utils/unconnectedSubjects';
 import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
+import {
+  RELATIONSHIP_THEMES,
+  extractCelebFacts,
+  extractUserChartFacts,
+  pickWeeklyThemes,
+  weekOfFromDate,
+  type CelebFacts,
+  type ResolvedTheme,
+  type UserChartFacts,
+} from '../utils/celebThemes';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
@@ -82,9 +92,10 @@ function toUnconnectedListItem(subject: OwnedGuestSubject): UnconnectedListItem 
   };
 }
 
-const POPULAR_LIMIT = 20;
 const SEARCH_LIMIT = 24;
 const SEARCH_DEBOUNCE_MS = 220;
+const THEMES_PER_WEEK = 3;
+const CELEBS_PER_THEME = 5;
 
 const TIER_ROWS: readonly { glyph: string; text: string; paid: boolean }[] = [
   { glyph: '✓', text: 'Relationship archetype & aspect match', paid: false },
@@ -130,9 +141,10 @@ export function AddConnectionScreen() {
   const [isCreatingConnection, setIsCreatingConnection] = useState(false);
   const [connectingSubjectId, setConnectingSubjectId] = useState<string | null>(null);
 
-  const [popularCelebs, setPopularCelebs] = useState<CelebListItem[]>([]);
-  const [isLoadingPopular, setIsLoadingPopular] = useState(false);
-  const [popularError, setPopularError] = useState<string | null>(null);
+  const [allCelebs, setAllCelebs] = useState<CelebListItem[]>([]);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const hasLoadedCatalogRef = React.useRef(false);
 
   const [searchResults, setSearchResults] = useState<CelebListItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -141,42 +153,66 @@ export function AddConnectionScreen() {
   const isSearchMode = trimmedSearch.length >= 2;
   const isSearchHint = trimmedSearch.length > 0 && trimmedSearch.length < 2;
 
+  // Lazy-load the full celebrity catalog only when the user enters the celeb
+  // step. Theme matching needs the entire dataset; one shot, cached for the
+  // life of the screen.
   useEffect(() => {
+    if (step !== 'celeb' || hasLoadedCatalogRef.current) return;
     let cancelled = false;
-    async function loadPopular() {
-      setIsLoadingPopular(true);
-      setPopularError(null);
+    hasLoadedCatalogRef.current = true;
+    setIsLoadingCatalog(true);
+    setCatalogError(null);
+    (async () => {
       try {
-        const response = await celebritiesApi.getCelebrities({
-          usePagination: true,
-          page: 1,
-          limit: POPULAR_LIMIT,
-          sortBy: 'name',
-          sortOrder: 'asc',
-        });
-        if (cancelled) {
-          return;
-        }
-        const list = 'data' in response ? response.data : response;
-        setPopularCelebs(list.map(toListItem));
+        const response = await celebritiesApi.getCelebrities();
+        if (cancelled) return;
+        const list = Array.isArray(response) ? response : response.data;
+        setAllCelebs(list.map(toListItem));
       } catch (error) {
-        if (cancelled) {
-          return;
-        }
-        setPopularError(
+        if (cancelled) return;
+        hasLoadedCatalogRef.current = false;
+        setCatalogError(
           error instanceof Error ? error.message : 'Could not load celebrities right now.'
         );
       } finally {
-        if (!cancelled) {
-          setIsLoadingPopular(false);
-        }
+        if (!cancelled) setIsLoadingCatalog(false);
       }
-    }
-    loadPopular();
+    })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [step]);
+
+  const userChart: UserChartFacts = useMemo(
+    () => extractUserChartFacts(profile?.subject?.birthChart as never),
+    [profile?.subject?.birthChart]
+  );
+
+  const celebFactsById = useMemo(() => {
+    const map = new Map<string, CelebFacts>();
+    for (const item of allCelebs) {
+      map.set(item.id, extractCelebFacts(item.raw));
+    }
+    return map;
+  }, [allCelebs]);
+
+  const themedSections: ResolvedTheme[] = useMemo(() => {
+    if (!profile?.id || allCelebs.length === 0) return [];
+    return pickWeeklyThemes(
+      RELATIONSHIP_THEMES,
+      Array.from(celebFactsById.values()),
+      userChart,
+      profile.id,
+      weekOfFromDate(),
+      THEMES_PER_WEEK
+    );
+  }, [allCelebs.length, celebFactsById, profile?.id, userChart]);
+
+  const celebItemById = useMemo(() => {
+    const map = new Map<string, CelebListItem>();
+    for (const item of allCelebs) map.set(item.id, item);
+    return map;
+  }, [allCelebs]);
 
   useEffect(() => {
     if (!isSearchMode) {
@@ -223,10 +259,9 @@ export function AddConnectionScreen() {
     };
   }, [isSearchMode, trimmedSearch]);
 
-  const celebListItems = useMemo(
-    () => (isSearchMode ? searchResults : popularCelebs),
-    [isSearchMode, popularCelebs, searchResults]
-  );
+  // Search-mode results pass through directly. Browse-mode (no query) is
+  // rendered via the themed sections below; this list only feeds the search
+  // path.
 
   const handleClose = useCallback(() => {
     navigation.goBack();
@@ -430,10 +465,17 @@ export function AddConnectionScreen() {
               onSearchChange={setSearchValue}
               isSearchMode={isSearchMode}
               isSearchHint={isSearchHint}
-              results={celebListItems}
-              isLoading={isSearchMode ? isSearching : isLoadingPopular}
-              error={isSearchMode ? null : popularError}
+              searchResults={searchResults}
+              isSearching={isSearching}
+              themedSections={themedSections}
+              celebItemById={celebItemById}
+              userChart={userChart}
+              isLoadingCatalog={isLoadingCatalog}
+              catalogError={catalogError}
               onSelect={handleSelectCeleb}
+              onBrowseAll={() =>
+                navigation.navigate('Main', { screen: 'DiscoverTab' } as never)
+              }
             />
           ) : null}
           {step === 'celeb-confirm' && selectedCeleb ? (
@@ -596,10 +638,15 @@ interface CelebStepProps {
   onSearchChange: (value: string) => void;
   isSearchMode: boolean;
   isSearchHint: boolean;
-  results: readonly CelebListItem[];
-  isLoading: boolean;
-  error: string | null;
+  searchResults: readonly CelebListItem[];
+  isSearching: boolean;
+  themedSections: readonly ResolvedTheme[];
+  celebItemById: Map<string, CelebListItem>;
+  userChart: UserChartFacts;
+  isLoadingCatalog: boolean;
+  catalogError: string | null;
   onSelect: (celeb: CelebListItem) => void;
+  onBrowseAll: () => void;
 }
 
 function CelebStep({
@@ -607,10 +654,15 @@ function CelebStep({
   onSearchChange,
   isSearchMode,
   isSearchHint,
-  results,
-  isLoading,
-  error,
+  searchResults,
+  isSearching,
+  themedSections,
+  celebItemById,
+  userChart,
+  isLoadingCatalog,
+  catalogError,
   onSelect,
+  onBrowseAll,
 }: CelebStepProps) {
   const { colors } = useTheme();
   return (
@@ -631,7 +683,9 @@ function CelebStep({
           autoCapitalize="words"
           autoCorrect={false}
         />
-        {isLoading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+        {isSearchMode && isSearching ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : null}
       </View>
 
       {isSearchHint ? (
@@ -640,37 +694,143 @@ function CelebStep({
         </Text>
       ) : null}
 
-      {!isSearchMode ? (
-        <Text style={[styles.sectionLabel, { color: colors.accent }]}>Popular</Text>
-      ) : null}
-
-      {error ? (
-        <Text style={[styles.emptyResults, { color: colors.error }]}>{error}</Text>
-      ) : null}
-
-      {results.map((celeb) => (
-        <CelebRow
-          key={celeb.id}
-          celeb={celeb}
-          onPress={() => onSelect(celeb)}
+      {isSearchMode ? (
+        <>
+          {searchResults.map((celeb) => (
+            <CelebRow key={celeb.id} celeb={celeb} onPress={() => onSelect(celeb)} />
+          ))}
+          {!isSearching && searchResults.length === 0 ? (
+            <Text style={[styles.emptyResults, { color: colors.textMuted }]}>
+              No celebrities match "{searchValue}".
+            </Text>
+          ) : null}
+        </>
+      ) : (
+        <BrowseMode
+          themedSections={themedSections}
+          celebItemById={celebItemById}
+          userChart={userChart}
+          isLoading={isLoadingCatalog}
+          error={catalogError}
+          onSelect={onSelect}
+          onBrowseAll={onBrowseAll}
         />
-      ))}
-
-      {!isLoading && !error && results.length === 0 && isSearchMode ? (
-        <Text style={[styles.emptyResults, { color: colors.textMuted }]}>
-          No celebrities match "{searchValue}".
-        </Text>
-      ) : null}
+      )}
     </View>
+  );
+}
+
+interface BrowseModeProps {
+  themedSections: readonly ResolvedTheme[];
+  celebItemById: Map<string, CelebListItem>;
+  userChart: UserChartFacts;
+  isLoading: boolean;
+  error: string | null;
+  onSelect: (celeb: CelebListItem) => void;
+  onBrowseAll: () => void;
+}
+
+function BrowseMode({
+  themedSections,
+  celebItemById,
+  userChart,
+  isLoading,
+  error,
+  onSelect,
+  onBrowseAll,
+}: BrowseModeProps) {
+  const { colors } = useTheme();
+
+  if (error) {
+    return <Text style={[styles.emptyResults, { color: colors.error }]}>{error}</Text>;
+  }
+
+  if (isLoading && themedSections.length === 0) {
+    return (
+      <View style={styles.themesLoading}>
+        <ActivityIndicator size="small" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (themedSections.length === 0) {
+    return (
+      <>
+        <Text style={[styles.emptyResults, { color: colors.textMuted }]}>
+          We couldn't surface themed picks for your chart yet. Try search above
+          or browse the full directory.
+        </Text>
+        <BrowseAllButton onPress={onBrowseAll} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      {themedSections.map((section) => {
+        const visible = section.matches.slice(0, CELEBS_PER_THEME);
+        return (
+          <View key={section.theme.id} style={styles.themeSection}>
+            <Text style={[styles.themeTitle, { color: colors.text }]}>
+              {section.title}
+            </Text>
+            <Text style={[styles.themeSubtitle, { color: colors.textSubtle }]}>
+              {section.theme.subtitle}
+            </Text>
+            {visible.map((celebFacts) => {
+              const item = celebItemById.get(celebFacts.id);
+              if (!item) return null;
+              const badge =
+                section.theme.badge?.(userChart, celebFacts) ?? null;
+              return (
+                <CelebRow
+                  key={`${section.theme.id}:${celebFacts.id}`}
+                  celeb={item}
+                  badge={badge}
+                  onPress={() => onSelect(item)}
+                />
+              );
+            })}
+          </View>
+        );
+      })}
+
+      <BrowseAllButton onPress={onBrowseAll} />
+    </>
+  );
+}
+
+function BrowseAllButton({ onPress }: { onPress: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={[
+        styles.browseAllButton,
+        { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+      ]}
+    >
+      <View style={styles.browseAllCopy}>
+        <Text style={[styles.browseAllTitle, { color: colors.text }]}>
+          Browse all charts
+        </Text>
+        <Text style={[styles.browseAllBody, { color: colors.textSubtle }]}>
+          Explore by sign, placement, or collection
+        </Text>
+      </View>
+      <Text style={[styles.chev, { color: colors.textSubtle }]}>›</Text>
+    </TouchableOpacity>
   );
 }
 
 interface CelebRowProps {
   celeb: CelebListItem;
   onPress: () => void;
+  badge?: string | null;
 }
 
-function CelebRow({ celeb, onPress }: CelebRowProps) {
+function CelebRow({ celeb, onPress, badge }: CelebRowProps) {
   const { colors } = useTheme();
   return (
     <TouchableOpacity
@@ -686,9 +846,25 @@ function CelebRow({ celeb, onPress }: CelebRowProps) {
       />
       <View style={styles.celebCopy}>
         <Text style={[styles.celebName, { color: colors.text }]}>{celeb.name}</Text>
-        <Text style={[styles.celebMeta, { color: colors.textMuted }]}>
-          {celeb.sun ? `${celeb.sun} Sun` : 'Unknown sign'}
-        </Text>
+        {badge ? (
+          <View
+            style={[
+              styles.celebBadge,
+              {
+                backgroundColor: 'rgba(127, 119, 221, 0.14)',
+                borderColor: 'rgba(127, 119, 221, 0.28)',
+              },
+            ]}
+          >
+            <Text style={[styles.celebBadgeText, { color: colors.primary }]}>
+              {badge.toUpperCase()}
+            </Text>
+          </View>
+        ) : (
+          <Text style={[styles.celebMeta, { color: colors.textMuted }]}>
+            {celeb.sun ? `${celeb.sun} Sun` : 'Unknown sign'}
+          </Text>
+        )}
         {celeb.blurb ? (
           <Text
             style={[styles.celebBlurb, { color: colors.textSubtle }]}
@@ -947,11 +1123,62 @@ const styles = StyleSheet.create({
   celebMeta: {
     fontSize: 12,
   },
+  celebBadge: {
+    alignSelf: 'flex-start',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 100,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    marginTop: 2,
+  },
+  celebBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
   celebBlurb: {
     fontSize: 12,
     lineHeight: 17,
     fontStyle: 'italic',
     marginTop: 2,
+  },
+  themeSection: {
+    gap: 6,
+    marginTop: 6,
+  },
+  themeTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  themeSubtitle: {
+    fontSize: 12.5,
+    marginBottom: 4,
+  },
+  themesLoading: {
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  browseAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginTop: 18,
+  },
+  browseAllCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  browseAllTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  browseAllBody: {
+    fontSize: 12,
   },
   chev: {
     fontSize: 18,
