@@ -400,6 +400,9 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         ) : null}
       </View>
+      {blurb ? (
+        <Text style={[styles.tagline, { color: colors.text }]}>{blurb}</Text>
+      ) : null}
     </View>
   );
 
@@ -563,6 +566,14 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  tagline: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingHorizontal: 8,
+    marginTop: 6,
   },
   connectionCard: {
     borderRadius: 18,

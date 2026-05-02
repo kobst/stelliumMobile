@@ -501,6 +501,7 @@ export const DiscoverScreen: React.FC = () => {
     const initial = celeb.firstName?.charAt(0) ?? '?';
     const sunSign = getCelebritySunSign(celeb) ?? '—';
     const venusSign = getCelebPlanetSign(celeb, 'Venus') ?? '—';
+    const blurb = celeb.romanticProfileBlurb?.trim() || null;
     return (
       <TouchableOpacity
         key={`row-${celeb._id}`}
@@ -523,6 +524,14 @@ export const DiscoverScreen: React.FC = () => {
           <Text style={[styles.listRowMeta, { color: colors.textMuted }]}>
             {sunSign} Sun · {venusSign} Venus
           </Text>
+          {blurb ? (
+            <Text
+              style={[styles.listRowBlurb, { color: colors.textSubtle }]}
+              numberOfLines={2}
+            >
+              {blurb}
+            </Text>
+          ) : null}
         </View>
         <Text style={[styles.chevron, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
@@ -1109,6 +1118,12 @@ const styles = StyleSheet.create({
   listRowMeta: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  listRowBlurb: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   pill: {
     paddingHorizontal: 8,
