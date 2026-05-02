@@ -205,6 +205,29 @@ export interface UserCompositeChart {
   completeAnalysis?: Record<string, ClusterAnalysis>;
   initialOverview?: string;
   relationshipAnalysisStatus?: RelationshipAnalysisStatus;
+  // Horoscope scheduling fields (relationship-app only)
+  horoscopeEnabled?: boolean;
+  horoscopeFreeTrialUsed?: boolean;
+  horoscopeDisabledReason?: HoroscopeDisabledReason | null;
+  horoscopeLastBillingFailureAt?: string | null;
+  horoscopeLastBillingFailureMessage?: string | null;
+}
+
+export type HoroscopeDisabledReason =
+  | 'disabled_by_user'
+  | 'credit_deduction_failed'
+  | 'missing_charge_user';
+
+export interface HoroscopeSettingsResponse {
+  success: boolean;
+  relationship: {
+    _id: string;
+    horoscopeEnabled: boolean;
+    horoscopeFreeTrialUsed: boolean;
+    horoscopeDisabledReason: HoroscopeDisabledReason | null;
+    horoscopeLastBillingFailureAt: string | null;
+    horoscopeLastBillingFailureMessage: string | null;
+  };
 }
 
 export interface SynastryAspect {

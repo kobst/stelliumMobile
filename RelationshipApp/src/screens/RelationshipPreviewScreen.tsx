@@ -86,6 +86,10 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   const setFullAnalysis = useRelationshipAppStore((state) => state.setFullAnalysis);
   const askThreads = useRelationshipAppStore((state) => state.askThreads);
   const activeRelationshipId = useRelationshipAppStore((state) => state.activeRelationshipId);
+  const relationshipHistory = useRelationshipAppStore((state) => state.relationshipHistory);
+  const upsertRelationshipInHistory = useRelationshipAppStore(
+    (state) => state.upsertRelationshipInHistory
+  );
   const { startFullAnalysis } = useRelationshipAnalysisWorkflow(activeRelationshipId);
   const { refreshHistory } = useRelationshipHistory(false);
   const didRefreshAfterCompletionRef = useRef<string | null>(null);
@@ -202,14 +206,49 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
           Object.keys(((result as any)?.completeAnalysis ?? {})).length > 0;
         const workflowDone = (result as any)?.workflowStatus?.status === 'completed';
 
-        // Patch initialOverview into previewAnalysis if missing.
+        // Patch initialOverview and chart payloads into previewAnalysis when
+        // the saved row didn't carry them. The Full Chart modal reads
+        // compositeChart and synastryAspects from previewAnalysis first, so
+        // celebrity-relationship rows that come back without them otherwise
+        // render the "isn't available" empty state.
         // NOTE: store's setPreviewAnalysis side-effect resets fullAnalysis to null,
         // so we always re-apply setFullAnalysis below when the response has it.
-        if (fetchedOverview && current && !current.initialOverview?.trim()) {
-          setPreviewAnalysis({
-            ...current,
-            initialOverview: fetchedOverview,
-          });
+        if (current) {
+          const patches: Partial<typeof current> = {};
+          if (fetchedOverview && !current.initialOverview?.trim()) {
+            patches.initialOverview = fetchedOverview;
+          }
+          const fetchedComposite = (result as any)?.compositeChart;
+          if (
+            fetchedComposite &&
+            !Array.isArray((current.compositeChart as any)?.planets)
+          ) {
+            patches.compositeChart =
+              fetchedComposite as typeof current.compositeChart;
+          }
+          const fetchedSynastry = (result as any)?.synastryAspects;
+          if (
+            Array.isArray(fetchedSynastry) &&
+            (!Array.isArray(current.synastryAspects) ||
+              current.synastryAspects.length === 0)
+          ) {
+            patches.synastryAspects =
+              fetchedSynastry as typeof current.synastryAspects;
+          }
+          const fetchedHouses = (result as any)?.synastryHousePlacements;
+          if (
+            fetchedHouses &&
+            !current.synastryHousePlacements
+          ) {
+            patches.synastryHousePlacements =
+              fetchedHouses as typeof current.synastryHousePlacements;
+          }
+          if (Object.keys(patches).length > 0) {
+            setPreviewAnalysis({
+              ...current,
+              ...patches,
+            });
+          }
         }
 
         // Always restore/set fullAnalysis when the saved analysis is complete,
@@ -656,6 +695,10 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             personBName={partnerName}
             selfBirthChart={profile?.subject?.birthChart as any}
             partnerBirthChart={activePartnerRomanticAssets?.birthChart as any}
+            relationship={
+              relationshipHistory.find((entry) => entry._id === activeRelationshipId) ?? null
+            }
+            onRelationshipUpdated={upsertRelationshipInHistory}
           />
         ) : null}
 

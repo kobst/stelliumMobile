@@ -2,11 +2,14 @@ import { relationshipApiClient } from '../../../shared/api/relationshipClient';
 import type {
   ClusterScoredItem,
   EnhancedRelationshipAnalysisResponse,
+  HoroscopeSettingsResponse,
   RelationshipAnalysisResponse,
   RelationshipWorkflowStartResponse,
   RelationshipWorkflowStatusResponse,
   UserCompositeChart,
 } from '../../../shared/api/relationships';
+
+export const WEEKLY_HOROSCOPE_COST_CREDITS = 2;
 
 export const relationshipsApi = {
   enhancedRelationshipAnalysis: async (
@@ -140,6 +143,32 @@ export const relationshipsApi = {
       }
       throw error;
     }
+  },
+
+  updateHoroscopeSettings: async (
+    compositeChartId: string,
+    horoscopeEnabled: boolean
+  ): Promise<HoroscopeSettingsResponse> => {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipsApi.updateHoroscopeSettings] PATCH', {
+        compositeChartId,
+        horoscopeEnabled,
+      });
+    }
+    const response = await relationshipApiClient.patch<HoroscopeSettingsResponse>(
+      `/relationship-app/relationships/${encodeURIComponent(compositeChartId)}/horoscope/settings`,
+      { horoscopeEnabled }
+    );
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipsApi.updateHoroscopeSettings] response', {
+        success: response?.success,
+        horoscopeEnabled: response?.relationship?.horoscopeEnabled,
+        horoscopeFreeTrialUsed: response?.relationship?.horoscopeFreeTrialUsed,
+      });
+    }
+    return response;
   },
 
   chatForUserRelationship: async (

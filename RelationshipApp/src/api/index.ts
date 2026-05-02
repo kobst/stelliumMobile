@@ -3,7 +3,7 @@ export type { ApiResponse } from '../../../shared/api/client';
 export { relationshipApiClient } from '../../../shared/api/relationshipClient';
 export { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
 export { usersApi } from '../../../shared/api/users';
-export { relationshipsApi } from './relationships';
+export { relationshipsApi, WEEKLY_HOROSCOPE_COST_CREDITS } from './relationships';
 export { relationshipHoroscopesApi } from '../../../shared/api/relationshipHoroscopes';
 export type {
   HoroscopePeriod,

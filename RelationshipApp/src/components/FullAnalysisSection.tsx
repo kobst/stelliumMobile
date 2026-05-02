@@ -5,6 +5,7 @@ import { decodeAstroCode } from '../utils/astroCode';
 import { AspectFocusChart } from '../../../shared/components/chart/AspectFocusChart';
 import { PlacementFocusChart } from '../../../shared/components/chart/PlacementFocusChart';
 import { FullChartModal } from './FullChartModal';
+import { RelationshipHoroscopeTab } from './RelationshipHoroscopeTab';
 import Svg, { Circle, Line as SvgLine } from 'react-native-svg';
 import type { TextStyle, StyleProp } from 'react-native';
 
@@ -304,9 +305,13 @@ interface FullAnalysisSectionProps {
   personBName?: string;
   selfBirthChart?: { planets?: any[]; houses?: any[] } | null;
   partnerBirthChart?: { planets?: any[]; houses?: any[] } | null;
+  relationship?: import('../../../shared/api/relationships').UserCompositeChart | null;
+  onRelationshipUpdated?: (
+    next: import('../../../shared/api/relationships').UserCompositeChart
+  ) => void;
 }
 
-type TabKey = 'overview' | 'clusters' | 'keyAspects';
+type TabKey = 'overview' | 'clusters' | 'keyAspects' | 'horoscope';
 
 type LensKey = 'between' | 'relationship';
 
@@ -319,6 +324,8 @@ export function FullAnalysisSection({
   personBName,
   selfBirthChart,
   partnerBirthChart,
+  relationship,
+  onRelationshipUpdated,
 }: FullAnalysisSectionProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [activeCluster, setActiveCluster] = useState<ClusterName>('Harmony');
@@ -641,6 +648,7 @@ export function FullAnalysisSection({
     { key: 'overview', label: 'Overview' },
     { key: 'clusters', label: 'Breakdown' },
     { key: 'keyAspects', label: 'Key Aspects' },
+    { key: 'horoscope', label: 'Horoscope' },
   ];
 
   return (
@@ -1167,6 +1175,20 @@ export function FullAnalysisSection({
             </View>
           ) : null}
         </>
+      ) : null}
+
+      {activeTab === 'horoscope' ? (
+        relationship && onRelationshipUpdated ? (
+          <RelationshipHoroscopeTab
+            relationship={relationship}
+            partnerName={personBName ?? 'them'}
+            onUpdated={onRelationshipUpdated}
+          />
+        ) : (
+          <Text style={[styles.sectionSub, { color: colors.textSubtle }]}>
+            Horoscope settings are unavailable for this connection.
+          </Text>
+        )
       ) : null}
 
       <FullChartModal

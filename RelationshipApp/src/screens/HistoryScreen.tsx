@@ -331,7 +331,7 @@ export const HistoryScreen: React.FC = () => {
       { key: 'all', label: 'All energies', count: energyCounts.all },
       ...ALL_MODIFIERS.map((modifier) => ({
         key: modifier,
-        label: modifier,
+        label: modifier.replace(/-/g, ' '),
         count: energyCounts[modifier],
         leading: (
           <View
@@ -357,7 +357,7 @@ export const HistoryScreen: React.FC = () => {
       ? 'Pattern'
       : SHAPE_TOKENS[patternFilter].name;
   const energyPillLabel =
-    energyFilter === 'all' ? 'Energy' : energyFilter;
+    energyFilter === 'all' ? 'Energy' : energyFilter.replace(/-/g, ' ');
 
   const openAddConnection = useCallback(() => {
     clearActiveRelationshipFlow();

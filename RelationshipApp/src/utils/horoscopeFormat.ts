@@ -73,6 +73,63 @@ function safeDate(input: string | undefined | null): Date | null {
   return date;
 }
 
+const SUPPORT_ASPECTS = new Set(['trine', 'sextile']);
+const TENSION_ASPECTS = new Set([
+  'square',
+  'opposition',
+  'opposes',
+  'quincunx',
+  'inconjunct',
+  'semisquare',
+  'sesquisquare',
+  'sesquiquadrate',
+]);
+
+export type HighlightNature = 'support' | 'tension' | 'fusion';
+
+export interface DerivedTransitHighlight {
+  key: string;
+  day: string | null;
+  transit: string;
+  nature: HighlightNature;
+  exactDate: string | null;
+}
+
+const WEEKDAY_LABEL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function classifyAspectNature(aspect: string | undefined | null): HighlightNature {
+  const key = (aspect ?? '').trim().toLowerCase();
+  if (SUPPORT_ASPECTS.has(key)) return 'support';
+  if (TENSION_ASPECTS.has(key)) return 'tension';
+  return 'fusion';
+}
+
+function formatWeekday(input: string | undefined | null): string | null {
+  if (!input) return null;
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return null;
+  return WEEKDAY_LABEL[date.getUTCDay()] ?? null;
+}
+
+export function deriveTransitHighlights(
+  keyThemes: HoroscopeKeyTheme[] | undefined,
+  limit = 3
+): DerivedTransitHighlight[] {
+  const themes = (keyThemes ?? [])
+    .filter((theme) => theme && theme.transitingPlanet && theme.targetPlanet);
+  return themes.slice(0, limit).map((theme, index) => {
+    const composed = composeHeadlineFromKeyTheme(theme);
+    const transit = composed?.headline ?? `${theme.transitingPlanet} ${theme.aspect ?? ''} ${theme.targetPlanet}`;
+    return {
+      key: `${theme.transitingPlanet}-${theme.aspect}-${theme.targetPlanet}-${index}`,
+      day: formatWeekday(theme.exactDate),
+      transit: transit.replace(/ this week$/i, ''),
+      nature: classifyAspectNature(theme.aspect),
+      exactDate: theme.exactDate ?? null,
+    };
+  });
+}
+
 export function formatHoroscopeDateRange(
   startDate: string | undefined | null,
   endDate: string | undefined | null

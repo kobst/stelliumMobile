@@ -258,6 +258,7 @@ interface RelationshipAppStore
     historyError?: string | null;
     hasFetchedHistory?: boolean;
   }) => void;
+  upsertRelationshipInHistory: (relationship: UserCompositeChart) => void;
   setOwnedSubjects: (payload: {
     ownedSubjects: OwnedGuestSubject[];
     isSubjectsLoading?: boolean;
@@ -464,6 +465,19 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
         return { ownedSubjects: next };
       }
       return { ownedSubjects: [subject, ...state.ownedSubjects] };
+    }),
+  upsertRelationshipInHistory: (relationship) =>
+    set((state) => {
+      if (!relationship?._id) return state;
+      const existingIndex = state.relationshipHistory.findIndex(
+        (entry) => entry._id === relationship._id
+      );
+      if (existingIndex >= 0) {
+        const next = [...state.relationshipHistory];
+        next[existingIndex] = { ...next[existingIndex], ...relationship };
+        return { relationshipHistory: next };
+      }
+      return { relationshipHistory: [relationship, ...state.relationshipHistory] };
     }),
   clearActiveRelationshipFlow: () =>
     set({

@@ -164,6 +164,9 @@ This section is the quickest survey of the relationship-app-relevant API surface
 - `GET /relationship-app/relationships/:compositeChartId/horoscope/latest`
   - Returns the latest saved relationship horoscope for the owned relationship
   - Supports `period=weekly|monthly` and `mode=composite|synastry`
+- `PATCH /relationship-app/relationships/:compositeChartId/horoscope/settings`
+  - Enables or disables scheduled weekly composite horoscope generation for an owned relationship
+  - Body: `{ "horoscopeEnabled": true | false }`
 - `POST /getUserCompositeCharts`
   - Returns saved relationships for the authenticated owner
 - `POST /fetchRelationshipAnalysis`
@@ -225,6 +228,7 @@ If the relationship app wants the simplest stable integration path, the default 
 - Generate composite-chart relationship horoscope: `POST /relationship-app/relationships/:compositeChartId/horoscope/composite`
 - Generate synastry-activation relationship horoscope: `POST /relationship-app/relationships/:compositeChartId/horoscope/synastry`
 - Read current cached relationship horoscope: `GET /relationship-app/relationships/:compositeChartId/horoscope/current`
+- Enable/disable scheduled relationship horoscopes: `PATCH /relationship-app/relationships/:compositeChartId/horoscope/settings`
 - List saved relationship horoscopes: `GET /relationship-app/relationships/:compositeChartId/horoscopes`
 - Read latest relationship horoscope: `GET /relationship-app/relationships/:compositeChartId/horoscope/latest`
 - AskIris about self: `POST /relationship-app/users/:userId/ask-iris`
@@ -302,6 +306,9 @@ If the relationship app wants the simplest stable integration path, the default 
   - Requires app auth via `requireAuth`
   - Relationship must belong to the authenticated user
 - `GET /relationship-app/relationships/:compositeChartId/horoscope/latest`
+  - Requires app auth via `requireAuth`
+  - Relationship must belong to the authenticated user
+- `PATCH /relationship-app/relationships/:compositeChartId/horoscope/settings`
   - Requires app auth via `requireAuth`
   - Relationship must belong to the authenticated user
 - `POST /relationship-app/relationships/:compositeChartId/ask-iris`
@@ -2068,7 +2075,6 @@ Supported periods:
 
 Unsupported for now:
 - `daily`
-- credit gating
 - async workflow polling
 
 Scheduled generation:
@@ -2076,8 +2082,26 @@ Scheduled generation:
 - By default it generates next week's cached rows.
 - First pass generates:
   - account-holder personal romance weekly horoscopes
-  - composite weekly horoscopes for owned relationship-app relationships
+  - composite weekly horoscopes for owned relationship-app relationships where `horoscopeEnabled === true`
 - Generation is idempotent. Existing rows for the same normalized period are skipped.
+- Composite relationship horoscope scheduling uses relationship-app credits:
+  - `horoscopeFreeTrialUsed !== true`: the first scheduled week is free and then marks `horoscopeFreeTrialUsed=true`
+  - `horoscopeFreeTrialUsed === true`: the cron deducts `RELATIONSHIP_WEEKLY_HOROSCOPE` credits before generation
+  - if credit deduction fails, the cron sets `horoscopeEnabled=false`, records billing failure metadata, emits a billing activity event, and skips generation for that relationship
+
+Relationship documents can include these horoscope scheduling fields:
+
+```json
+{
+  "horoscopeEnabled": false,
+  "horoscopeFreeTrialUsed": false,
+  "horoscopeDisabledReason": "disabled_by_user | credit_deduction_failed | missing_charge_user | null",
+  "horoscopeLastBillingFailureAt": "timestamp | null",
+  "horoscopeLastBillingFailureMessage": "string | null"
+}
+```
+
+New relationships default to `horoscopeEnabled=false` and `horoscopeFreeTrialUsed=false`.
 
 All relationship horoscope documents are stored in the shared `horoscopes` collection with:
 
@@ -2137,6 +2161,13 @@ Mid-week creation fallback:
 - After generation succeeds, the frontend should read through the cache-only current endpoint again.
 - A future convenience endpoint can hide this fallback behind an `ensure-current` contract, but that endpoint does not exist yet.
 
+On-demand composite billing and free-trial behavior:
+- `POST /relationship-app/relationships/:compositeChartId/horoscope/composite` is cache-first. Cache hits are never charged.
+- If `horoscopeEnabled=true` and `horoscopeFreeTrialUsed=false`, an on-demand current-week composite generation is free and does not consume the free trial. The first full scheduled week remains free.
+- If `horoscopeEnabled=true` and `horoscopeFreeTrialUsed=true`, an on-demand weekly composite cache miss deducts `RELATIONSHIP_WEEKLY_HOROSCOPE` credits before generation.
+- If credit deduction fails for an on-demand weekly composite generation, the backend sets `horoscopeEnabled=false`, records billing failure metadata, and returns a billing failure response.
+- If `horoscopeEnabled=false`, manual composite generation remains available as an explicit backfill/debug path and is not billed by the relationship-horoscope scheduler contract.
+
 #### `POST /relationship-app/users/:userId/horoscope/romance`
 
 Generates an individual romance horoscope for the authenticated relationship-app account holder.
@@ -2162,6 +2193,11 @@ Typical response:
 {
   "success": true,
   "cached": false,
+  "billing": {
+    "charged": false,
+    "amount": 0,
+    "reason": "pre_trial_on_demand | manual_generation | cached | on_demand_after_free_trial"
+  },
   "horoscope": {
     "_id": "horoscopeId",
     "subjectType": "relationship-app-user",
@@ -2326,6 +2362,7 @@ Composite-specific notes:
 - The endpoint uses `composite_charts.compositeChart` as the chart input.
 - If the composite chart does not have reliable birth-time-derived houses, the prompt suppresses house/Ascendant/Midheaven language.
 - The prompt uses relationship language such as "your relationship", "this connection", and "the two of you".
+- On-demand weekly generation after `horoscopeFreeTrialUsed=true` is charged only on cache miss. Repeating the same request for an already generated normalized week returns cached content and does not charge again.
 
 #### `POST /relationship-app/relationships/:compositeChartId/horoscope/synastry`
 
@@ -2454,6 +2491,39 @@ Typical response:
   }
 }
 ```
+
+#### `PATCH /relationship-app/relationships/:compositeChartId/horoscope/settings`
+
+Updates scheduled horoscope settings for an owned relationship.
+
+Request body:
+
+```json
+{
+  "horoscopeEnabled": true
+}
+```
+
+Typical response:
+
+```json
+{
+  "success": true,
+  "relationship": {
+    "_id": "relationshipId",
+    "horoscopeEnabled": true,
+    "horoscopeFreeTrialUsed": false,
+    "horoscopeDisabledReason": null,
+    "horoscopeLastBillingFailureAt": null,
+    "horoscopeLastBillingFailureMessage": null
+  }
+}
+```
+
+Notes:
+- `horoscopeEnabled=true` opts the relationship into scheduled weekly composite horoscope generation.
+- `horoscopeEnabled=false` opts the relationship out.
+- The scheduler can also set `horoscopeEnabled=false` automatically when the weekly credit deduction fails.
 
 ### `POST /relationship-app/relationships/:compositeChartId/enhanced-chat`
 

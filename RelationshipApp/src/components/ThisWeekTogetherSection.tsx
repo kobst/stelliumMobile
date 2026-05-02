@@ -28,7 +28,8 @@ export function ThisWeekTogetherSection({
   const { colors } = useTheme();
 
   const ranked = useMemo(() => {
-    return [...relationships]
+    return relationships
+      .filter((entry) => entry.horoscopeEnabled === true)
       .sort((a, b) => recencyTimestamp(b) - recencyTimestamp(a))
       .slice(0, maxCards);
   }, [relationships, maxCards]);

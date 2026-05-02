@@ -1,0 +1,403 @@
+import { useState } from "react";
+
+var SANS = "'DM Sans', system-ui, sans-serif";
+var SERIF = "Georgia, 'Times New Roman', serif";
+
+var c = {
+  bg: "#0C0B10", card: "#16151D", border: "rgba(255,255,255,0.06)",
+  gold: "#D4A843", goldDim: "rgba(212,168,67,0.15)",
+  lav: "#B8A0E8", lavBg: "rgba(184,160,232,0.12)",
+  text: "#E8E4F0", dim: "rgba(232,228,240,0.55)", faint: "rgba(232,228,240,0.35)",
+  green: "#82C8B4", greenDim: "rgba(130,200,180,0.12)",
+  coral: "#E8856B", coralDim: "rgba(232,133,107,0.12)",
+};
+
+var scores = { Harmony: 72, Passion: 68, Connection: 81, Stability: 64, Growth: 55 };
+
+function Radar(props) {
+  var s = props.size || 160;
+  var entries = Object.entries(props.scores);
+  var cx = s / 2, cy = s / 2, maxR = s * 0.36, n = entries.length;
+  function ang(i) { return (Math.PI * 2 * i) / n - Math.PI / 2; }
+  function pt(i, r) { var a = ang(i); return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; }
+  function ring(r) { return entries.map(function(_, i) { return pt(i, r).join(","); }).join(" "); }
+  var dataStr = entries.map(function(e, i) { return pt(i, (e[1] / 100) * maxR).join(","); }).join(" ");
+  var labelOff = [
+    { dx: 0, dy: -10, a: "middle" }, { dx: 12, dy: 4, a: "start" },
+    { dx: 8, dy: 14, a: "start" }, { dx: -8, dy: 14, a: "end" }, { dx: -12, dy: 4, a: "end" }
+  ];
+  return (
+    <svg viewBox={"0 0 " + s + " " + s} style={{ width: "100%", maxWidth: s }}>
+      <g stroke="rgba(255,255,255,0.06)" fill="none" strokeWidth="0.8">
+        <polygon points={ring(maxR)} /><polygon points={ring(maxR * 0.66)} /><polygon points={ring(maxR * 0.33)} />
+      </g>
+      <polygon points={dataStr} fill="rgba(184,160,232,0.18)" stroke={c.lav} strokeWidth="1.5" strokeLinejoin="round" />
+      {entries.map(function(e, i) { var p = pt(i, (e[1] / 100) * maxR); return <circle key={i} cx={p[0]} cy={p[1]} r={2.5} fill={c.lav} stroke={c.bg} strokeWidth="1" />; })}
+      {entries.map(function(e, i) {
+        var p = pt(i, maxR); var o = labelOff[i];
+        return (
+          <g key={"l" + i}>
+            <text x={p[0] + o.dx} y={p[1] + o.dy} textAnchor={o.a} fontFamily={SANS} fontSize="8" fill="rgba(232,228,240,0.45)" fontWeight="500">{e[0]}</text>
+            <text x={p[0] + o.dx} y={p[1] + o.dy + 10} textAnchor={o.a} fontFamily={SERIF} fontSize="10" fill={c.lav} fontWeight="700">{e[1]}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function Toggle(props) {
+  var isOn = props.value;
+  return (
+    <div onClick={props.onToggle} style={{ width: 44, height: 26, borderRadius: 13, background: isOn ? c.lav : "rgba(255,255,255,0.1)", padding: 3, cursor: "pointer", transition: "background 0.2s", flexShrink: 0 }}>
+      <div style={{ width: 20, height: 20, borderRadius: "50%", background: isOn ? "#fff" : "rgba(255,255,255,0.3)", transform: isOn ? "translateX(18px)" : "translateX(0)", transition: "transform 0.2s" }} />
+    </div>
+  );
+}
+
+function Av(props) {
+  var size = props.size || 40;
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: "linear-gradient(135deg, " + (props.color || c.green) + ", " + (props.color || c.green) + "cc)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: size * 0.4, fontWeight: 700, color: c.bg, flexShrink: 0 }}>
+      {props.initial || "?"}
+    </div>
+  );
+}
+
+export default function RelationshipWithHoroscope() {
+  var tabState = useState(3);
+  var activeTab = tabState[0];
+  var setActiveTab = tabState[1];
+
+  var horoState = useState("off");
+  var horo = horoState[0];
+  var setHoro = horoState[1];
+
+  var expandState = useState(false);
+  var isExpanded = expandState[0];
+  var setExpanded = expandState[1];
+
+  var hasFullAnalysis = true;
+  var name = "Danielle";
+  var archetype = "Shared Frequency";
+
+  var weeklyForecast = {
+    headline: "The conversation you\u2019ve been avoiding finds its moment.",
+    dateRange: "Apr 28 \u2013 May 4",
+    preview: "Mercury\u2019s transit through Danielle\u2019s 8th house this week deepens every exchange between you. What usually stays on the surface \u2014 practical plans, daily logistics \u2014 keeps drifting toward what\u2019s underneath. Your Moon-Mercury trine, the backbone of your Connection score, activates strongly on Wednesday.",
+    full: "Mercury\u2019s transit through Danielle\u2019s 8th house this week deepens every exchange between you. What usually stays on the surface \u2014 practical plans, daily logistics \u2014 keeps drifting toward what\u2019s underneath. Your Moon-Mercury trine, the backbone of your Connection score, activates strongly on Wednesday.\n\nThis is the week to ask the question you\u2019ve been holding. Not because the stars force it, but because your synastry\u2019s natural communication channel is as open as it gets. Danielle\u2019s Mercury receives a sextile from transiting Venus on Thursday, which means she\u2019s more receptive to vulnerability than usual \u2014 and more willing to match it.\n\nThe one caution: Mars squares your composite Saturn on Friday. If the deeper conversation from midweek didn\u2019t land well, Friday could feel tense. But if it did land, Friday\u2019s energy actually reinforces the new ground you\u2019ve claimed together. The square tests whether the openness was real.\n\nOverall, this is a week that rewards the Connection dimension of your Shared Frequency dynamic. The intellectual shorthand between you becomes a bridge to emotional territory you don\u2019t always visit. Let it.",
+    transitHighlights: [
+      { day: "Wednesday", transit: "Moon trine Mercury activates", effect: "Communication channel opens fully", nature: "support" },
+      { day: "Thursday", transit: "Venus sextile Danielle\u2019s Mercury", effect: "Receptivity to vulnerability increases", nature: "support" },
+      { day: "Friday", transit: "Mars square composite Saturn", effect: "Tests whether new ground holds", nature: "tension" },
+    ]
+  };
+
+  var pastForecasts = [
+    { dateRange: "Apr 21 \u2013 27", headline: "A quieter week \u2014 the shared frequency hums at lower volume" },
+    { dateRange: "Apr 14 \u2013 20", headline: "Jupiter trine your composite Venus \u2014 generosity flows both ways" },
+  ];
+
+  return (
+    <div style={{ background: c.bg, minHeight: "100vh", maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, paddingBottom: 40 }}>
+      {/* Status bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}>
+        <span>9:41</span><div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} /><span>...</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 20px 12px" }}>
+        <span style={{ fontSize: 15, color: c.dim, cursor: "pointer" }}>{"\u2190"} Back</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.goldDim, border: "1px solid rgba(212,168,67,0.25)", borderRadius: 100, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: c.gold }}><span style={{ fontSize: 10 }}>{"\u25C6"}</span><span>326</span></div>
+      </div>
+
+      <div style={{ padding: "0 20px" }}>
+        {/* Identity */}
+        <div style={{ textAlign: "center", marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+            <div style={{ position: "relative", width: 68, height: 46 }}>
+              <div style={{ position: "absolute", left: 0, top: 0, zIndex: 1, width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, " + c.lav + ", #9B7DD4)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 16, fontWeight: 700, color: c.bg, border: "3px solid " + c.bg }}>E</div>
+              <div style={{ position: "absolute", right: 0, top: 4, border: "3px solid " + c.bg, borderRadius: "50%" }}>
+                <Av initial="D" color={c.green} size={40} />
+              </div>
+            </div>
+          </div>
+          <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>You & {name}</div>
+          <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 17, color: c.gold, marginBottom: 2 }}>{archetype}</div>
+          <div style={{ fontSize: 11, color: c.faint }}>Connection & Harmony dominant</div>
+        </div>
+
+        {/* Compact radar */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+          <Radar scores={scores} size={150} />
+        </div>
+
+        {/* Full analysis badge */}
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: c.greenDim, border: "1px solid rgba(130,200,180,0.15)", borderRadius: 100, padding: "5px 14px", fontSize: 11, fontWeight: 600, color: c.green }}>
+            {"\u2713"} Full analysis unlocked
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════ */}
+        {/* FOUR TABS                      */}
+        {/* ═══════════════════════════════ */}
+        <div style={{ display: "flex", background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: 3, marginBottom: 20 }}>
+          {["Overview", "Breakdown", "Key Aspects", "Horoscope"].map(function(tab, i) {
+            var isActive = activeTab === i;
+            var hasNotif = i === 3 && horo === "off";
+            return (
+              <div key={tab} onClick={function() { setActiveTab(i); }} style={{
+                flex: 1, textAlign: "center", padding: "9px 0", borderRadius: 10, cursor: "pointer",
+                fontSize: 11.5, fontWeight: 600, position: "relative",
+                background: isActive ? c.card : "transparent",
+                color: isActive ? c.text : c.faint,
+                border: isActive ? "1px solid " + c.border : "1px solid transparent",
+              }}>
+                {tab}
+                {hasNotif && <div style={{ position: "absolute", top: 4, right: "calc(50% - 26px)", width: 6, height: 6, borderRadius: "50%", background: c.lav }} />}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── OVERVIEW TAB ── */}
+        {activeTab === 0 && (
+          <div>
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>Overall Reading</div>
+            <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "18px", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: "radial-gradient(circle, " + c.goldDim + " 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+                <div style={{ background: c.lavBg, border: "1px solid rgba(184,160,232,0.2)", borderRadius: 100, padding: "4px 12px", fontSize: 11, fontWeight: 600, color: c.lav }}>Flourishing {"\u00b7"} 69/100</div>
+                <div style={{ background: c.greenDim, border: "1px solid rgba(130,200,180,0.15)", borderRadius: 100, padding: "4px 10px", fontSize: 10, color: c.green, fontWeight: 500 }}>Strongest: Connection</div>
+                <div style={{ background: c.coralDim, border: "1px solid rgba(232,133,107,0.15)", borderRadius: 100, padding: "4px 10px", fontSize: 10, color: c.coral, fontWeight: 500 }}>Weakest: Growth</div>
+              </div>
+              <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14.5, lineHeight: 1.6, color: "rgba(232,228,240,0.8)" }}>
+                Edmin and {name} share a relationship built on intellectual resonance and emotional ease. The Connection-Harmony signature means you rarely misread each other {"\u2014"} conversation is both the foundation and the primary love language. The moderate Growth score suggests the comfort itself can become a ceiling if neither of you pushes past it.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── BREAKDOWN TAB (placeholder) ── */}
+        {activeTab === 1 && (
+          <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "40px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 13, color: c.faint, fontStyle: "italic" }}>Cluster pills, lens sub-tabs, and panel breakdowns would appear here</div>
+          </div>
+        )}
+
+        {/* ── KEY ASPECTS TAB (placeholder) ── */}
+        {activeTab === 2 && (
+          <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "40px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 13, color: c.faint, fontStyle: "italic" }}>View full chart button, keystone aspects list, and mini aspect charts would appear here</div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════ */}
+        {/* HOROSCOPE TAB                  */}
+        {/* ═══════════════════════════════ */}
+        {activeTab === 3 && (
+          <div>
+
+            {/* ── STATE: OFF ── */}
+            {horo === "off" && (
+              <div>
+                <div style={{ textAlign: "center", padding: "20px 0 8px" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>{"\u2728"}</div>
+                  <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Weekly Horoscope</div>
+                  <div style={{ fontSize: 13.5, color: c.dim, lineHeight: 1.5, maxWidth: 280, margin: "0 auto" }}>
+                    See how this week's transits affect your {archetype} dynamic with {name}.
+                  </div>
+                </div>
+
+                <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 20, padding: "22px 20px", marginTop: 20, position: "relative", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: "radial-gradient(circle, " + c.lavBg + " 0%, transparent 70%)", pointerEvents: "none" }} />
+
+                  <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 14 }}>What you get</div>
+
+                  {[
+                    { icon: "\uD83D\uDCC5", text: "Fresh forecast every Monday morning" },
+                    { icon: "\uD83D\uDD2E", text: "Transit-by-transit breakdown for your specific aspects" },
+                    { icon: "\u2726", text: "Day-by-day highlights with Ask Iris follow-ups" },
+                    { icon: "\uD83D\uDCC8", text: "Access to past weekly forecasts" },
+                  ].map(function(item, i) {
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: i < 3 ? 12 : 0 }}>
+                        <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
+                        <span style={{ fontSize: 13.5, color: "rgba(232,228,240,0.75)", lineHeight: 1.4 }}>{item.text}</span>
+                      </div>
+                    );
+                  })}
+
+                  <div style={{ marginTop: 22 }}>
+                    <div onClick={function(){ setHoro("trial"); }} style={{
+                      width: "100%", textAlign: "center", padding: "14px 0", borderRadius: 14, cursor: "pointer",
+                      background: "linear-gradient(135deg, " + c.lav + ", #9B7DD4)",
+                      color: c.bg, fontSize: 15, fontWeight: 600, fontFamily: SANS,
+                      boxShadow: "0 4px 16px rgba(184,160,232,0.25)",
+                    }}>Try free this week</div>
+                    <div style={{ textAlign: "center", marginTop: 10, fontSize: 12, color: c.faint }}>
+                      {"\u25C6"} {hasFullAnalysis ? "2" : "1"}/month after first week {"\u00b7"} Cancel anytime
+                    </div>
+                  </div>
+                </div>
+
+                {/* What it looks like preview */}
+                <div style={{ marginTop: 20 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.faint, marginBottom: 10 }}>Preview</div>
+                  <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "18px", opacity: 0.5, position: "relative", overflow: "hidden" }}>
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 30%, " + c.bg + " 100%)", zIndex: 1 }} />
+                    <div style={{ fontSize: 11, color: c.faint, marginBottom: 8 }}>Apr 28 {"\u2013"} May 4</div>
+                    <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 700, lineHeight: 1.3, marginBottom: 10, color: c.text }}>{weeklyForecast.headline}</div>
+                    <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13, lineHeight: 1.5, color: "rgba(232,228,240,0.6)" }}>{weeklyForecast.preview}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── STATE: TRIAL ── */}
+            {horo === "trial" && (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.lav }}>This Week</div>
+                    <div style={{ fontSize: 9, background: c.greenDim, borderRadius: 100, padding: "3px 8px", color: c.green, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Free trial</div>
+                  </div>
+                  <div style={{ fontSize: 10, color: c.faint }}>{weeklyForecast.dateRange}</div>
+                </div>
+
+                {/* Forecast content */}
+                <div style={{ background: c.card, border: "1px solid rgba(184,160,232,0.15)", borderRadius: 20, padding: "20px", position: "relative", overflow: "hidden", marginBottom: 16 }}>
+                  <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: "radial-gradient(circle, " + c.lavBg + " 0%, transparent 70%)", pointerEvents: "none" }} />
+                  {hasFullAnalysis && <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: c.lavBg, borderRadius: 100, padding: "3px 8px", fontSize: 9, color: c.lav, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>Synastry-based forecast</div>}
+                  <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 700, lineHeight: 1.3, marginBottom: 14 }}>{weeklyForecast.headline}</div>
+                  <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14.5, lineHeight: 1.65, color: "rgba(232,228,240,0.78)" }}>
+                    {isExpanded ? weeklyForecast.full : weeklyForecast.preview}
+                  </div>
+                  <div onClick={function(){ setExpanded(!isExpanded); }} style={{ marginTop: 14, fontSize: 13, color: c.lav, fontWeight: 600, cursor: "pointer" }}>{isExpanded ? "Show less" : "Read full forecast \u2192"}</div>
+                </div>
+
+                {/* Transit highlights */}
+                <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>Key days this week</div>
+                <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "4px 16px", marginBottom: 20 }}>
+                  {weeklyForecast.transitHighlights.map(function(t, i) {
+                    var tColor = t.nature === "support" ? c.green : c.coral;
+                    var tBg = t.nature === "support" ? c.greenDim : c.coralDim;
+                    return (
+                      <div key={i} style={{ display: "flex", gap: 12, padding: "14px 0", borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                        <div style={{ width: 4, alignSelf: "stretch", borderRadius: 2, background: tColor, flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>{t.day}</span>
+                            <span style={{ fontSize: 9, background: tBg, borderRadius: 100, padding: "2px 7px", color: tColor, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{t.nature === "support" ? "Flowing" : "Tension"}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: c.dim, marginBottom: 2 }}>{t.transit}</div>
+                          <div style={{ fontSize: 11.5, color: c.faint }}>{t.effect}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Subscribe prompt */}
+                <div style={{ background: c.card, border: "1px solid rgba(184,160,232,0.12)", borderRadius: 18, padding: "18px", marginBottom: 16 }}>
+                  <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Keep receiving weekly forecasts?</div>
+                  <div style={{ fontSize: 13, color: c.dim, lineHeight: 1.4, marginBottom: 14 }}>Your trial ends Sunday. Subscribe to get a new forecast every Monday and access to past forecasts.</div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <div onClick={function(){ setHoro("active"); }} style={{ flex: 1, textAlign: "center", padding: "12px 0", borderRadius: 12, background: "linear-gradient(135deg, " + c.lav + ", #9B7DD4)", color: c.bg, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Subscribe {"\u00b7"} {"\u25C6"} {hasFullAnalysis ? "2" : "1"}/mo</div>
+                    <div onClick={function(){ setHoro("off"); }} style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid " + c.border, fontSize: 13, fontWeight: 600, color: c.faint, cursor: "pointer" }}>Not now</div>
+                  </div>
+                </div>
+
+                {/* Ask Iris */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.02)", border: "1px solid " + c.border, borderRadius: 12, padding: "12px 14px", cursor: "pointer" }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: c.green, flexShrink: 0 }}>{"\u2726"}</div>
+                  <span style={{ flex: 1, fontSize: 12.5, color: c.dim }}>Ask Iris about this week's forecast</span>
+                  <span style={{ fontSize: 10, color: c.gold, fontWeight: 600 }}>{"\u25C6"} 1</span>
+                </div>
+              </div>
+            )}
+
+            {/* ── STATE: ACTIVE ── */}
+            {horo === "active" && (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.lav }}>This Week</div>
+                    {hasFullAnalysis && <div style={{ fontSize: 9, background: c.lavBg, borderRadius: 100, padding: "3px 8px", color: c.lav, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Detailed</div>}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: 10, color: c.faint }}>{"\u25C6"} {hasFullAnalysis ? "2" : "1"}/mo</div>
+                    <Toggle value={true} onToggle={function(){ setHoro("off"); }} />
+                  </div>
+                </div>
+
+                {/* Forecast content */}
+                <div style={{ background: c.card, border: "1px solid rgba(184,160,232,0.15)", borderRadius: 20, padding: "20px", position: "relative", overflow: "hidden", marginBottom: 16 }}>
+                  <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: "radial-gradient(circle, " + c.lavBg + " 0%, transparent 70%)", pointerEvents: "none" }} />
+                  <div style={{ fontSize: 11, color: c.faint, marginBottom: 12 }}>{weeklyForecast.dateRange}</div>
+                  <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 700, lineHeight: 1.3, marginBottom: 14 }}>{weeklyForecast.headline}</div>
+                  <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14.5, lineHeight: 1.65, color: "rgba(232,228,240,0.78)" }}>
+                    {isExpanded ? weeklyForecast.full : weeklyForecast.preview}
+                  </div>
+                  <div onClick={function(){ setExpanded(!isExpanded); }} style={{ marginTop: 14, fontSize: 13, color: c.lav, fontWeight: 600, cursor: "pointer" }}>{isExpanded ? "Show less" : "Read full forecast \u2192"}</div>
+                </div>
+
+                {/* Transit highlights */}
+                <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>Key days this week</div>
+                <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "4px 16px", marginBottom: 20 }}>
+                  {weeklyForecast.transitHighlights.map(function(t, i) {
+                    var tColor = t.nature === "support" ? c.green : c.coral;
+                    var tBg = t.nature === "support" ? c.greenDim : c.coralDim;
+                    return (
+                      <div key={i} style={{ display: "flex", gap: 12, padding: "14px 0", borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                        <div style={{ width: 4, alignSelf: "stretch", borderRadius: 2, background: tColor, flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>{t.day}</span>
+                            <span style={{ fontSize: 9, background: tBg, borderRadius: 100, padding: "2px 7px", color: tColor, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{t.nature === "support" ? "Flowing" : "Tension"}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: c.dim, marginBottom: 2 }}>{t.transit}</div>
+                          <div style={{ fontSize: 11.5, color: c.faint }}>{t.effect}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Past forecasts */}
+                <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>Past Forecasts</div>
+                <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "4px 16px", marginBottom: 20 }}>
+                  {pastForecasts.map(function(pf, i) {
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 0", borderBottom: i < pastForecasts.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", cursor: "pointer" }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 11, color: c.faint, marginBottom: 3 }}>{pf.dateRange}</div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: c.text, lineHeight: 1.3 }}>{pf.headline}</div>
+                        </div>
+                        <span style={{ color: c.faint, fontSize: 14 }}>{"\u203A"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Subscription info */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px", marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, color: c.faint }}>Renews May 28 {"\u00b7"} {"\u25C6"} {hasFullAnalysis ? "2" : "1"}/month</div>
+                  <div style={{ fontSize: 11, color: c.coral, cursor: "pointer" }}>Cancel subscription</div>
+                </div>
+
+                {/* Ask Iris */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.02)", border: "1px solid " + c.border, borderRadius: 12, padding: "12px 14px", cursor: "pointer" }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: c.green, flexShrink: 0 }}>{"\u2726"}</div>
+                  <span style={{ flex: 1, fontSize: 12.5, color: c.dim }}>Ask Iris about this week's transits</span>
+                  <span style={{ fontSize: 10, color: c.gold, fontWeight: 600 }}>{"\u25C6"} 1</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{ height: 20 }} />
+      </div>
+    </div>
+  );
+}
