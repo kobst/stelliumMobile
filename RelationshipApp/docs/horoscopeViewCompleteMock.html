@@ -1,0 +1,345 @@
+import { useState } from "react";
+
+var SANS = "'DM Sans', system-ui, sans-serif";
+var SERIF = "Georgia, 'Times New Roman', serif";
+
+var c = {
+  bg: "#0C0B10", card: "#16151D", border: "rgba(255,255,255,0.06)",
+  gold: "#D4A843", goldDim: "rgba(212,168,67,0.15)",
+  lav: "#B8A0E8", lavBg: "rgba(184,160,232,0.12)",
+  text: "#E8E4F0", dim: "rgba(232,228,240,0.55)", faint: "rgba(232,228,240,0.35)",
+  green: "#82C8B4", greenDim: "rgba(130,200,180,0.12)",
+  coral: "#E8856B", coralDim: "rgba(232,133,107,0.12)",
+};
+
+var planetGlyphs = { Sun:"\u2609", Moon:"\u263D", Mercury:"\u263F", Venus:"\u2640", Mars:"\u2642", Jupiter:"\u2643", Saturn:"\u2644", Uranus:"\u2645", Neptune:"\u2646", Pluto:"\u2647" };
+var signGlyphs = { Aries:"\u2648", Taurus:"\u2649", Gemini:"\u264A", Cancer:"\u264B", Leo:"\u264C", Virgo:"\u264D", Libra:"\u264E", Scorpio:"\u264F", Sagittarius:"\u2650", Capricorn:"\u2651", Aquarius:"\u2652", Pisces:"\u2653" };
+var signOrder = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+
+var days = [
+  { label: "Mon", date: "27" }, { label: "Tue", date: "28" }, { label: "Wed", date: "29" },
+  { label: "Thu", date: "1" }, { label: "Fri", date: "2" }, { label: "Sat", date: "3" }, { label: "Sun", date: "4" },
+];
+
+var timelineEvents = [
+  { day: 0, type: "tension", label: "Mars qx Sun" },
+  { day: 0, type: "support", label: "Merc tri Nep" },
+  { day: 1, type: "tension", label: "Ven opp Merc" },
+  { day: 1, type: "tension", label: "Merc opp Plu" },
+  { day: 3, type: "moon", label: "Full Moon" },
+  { day: 6, type: "tension", label: "Ura opp Ven" },
+  { day: 6, type: "support", label: "Mars tri Nep" },
+];
+
+var activePlanets = [
+  { name: "Sun", glyph: "\u2609", active: true, count: 1 },
+  { name: "Mercury", glyph: "\u263F", active: true, count: 4 },
+  { name: "Venus", glyph: "\u2640", active: true, count: 2 },
+  { name: "Neptune", glyph: "\u2646", active: true, count: 2 },
+  { name: "Moon", glyph: "\u263D", active: false, count: 0 },
+  { name: "Mars", glyph: "\u2642", active: false, count: 0 },
+];
+
+var romanceTransits = [
+  { id: "t0", transiting: "Uranus", target: "Venus", aspect: "opposition", tSign: "Gemini", nSign: "Sagittarius", tHouse: 7, nHouse: 1, exact: "May 4", speed: "Very slow", nature: "tension", desc: "Wake-up call to your relationship patterns \u2014 what felt stable may suddenly need reinventing", tDeg: 0, nDeg: 3, involves: ["Venus"] },
+  { id: "t1", transiting: "Venus", target: "Mercury", aspect: "opposition", tSign: "Gemini", nSign: "Sagittarius", tHouse: 7, nHouse: 1, exact: "Apr 28", speed: "Fast", nature: "tension", desc: "How you think about love and how you experience it pull in different directions", tDeg: 5, nDeg: 5, involves: ["Venus", "Mercury"] },
+  { id: "t2", transiting: "Mars", target: "Sun", aspect: "quincunx", tSign: "Aries", nSign: "Scorpio", tHouse: 5, nHouse: 12, exact: "Apr 27", speed: "Medium", nature: "mixed", desc: "Restlessness beneath the surface \u2014 craving authenticity but friction with what you keep private", tDeg: 13, nDeg: 14, involves: ["Sun"] },
+  { id: "t3", transiting: "Mercury", target: "Neptune", aspect: "trine", tSign: "Aries", nSign: "Sagittarius", tHouse: 5, nHouse: 1, exact: "Apr 27", speed: "Fast", nature: "support", desc: "Communication turns intuitive \u2014 words carry an almost magical quality this week", tDeg: 19, nDeg: 19, involves: ["Mercury", "Neptune"] },
+  { id: "t4", transiting: "Mercury", target: "Pluto", aspect: "opposition", tSign: "Aries", nSign: "Libra", tHouse: 5, nHouse: 11, exact: "Apr 28", speed: "Fast", nature: "tension", desc: "Conversations cut to the bone \u2014 compulsive honesty reveals what you usually keep controlled", tDeg: 20, nDeg: 20, involves: ["Mercury"] },
+  { id: "t5", transiting: "Mars", target: "Neptune", aspect: "trine", tSign: "Aries", nSign: "Sagittarius", tHouse: 5, nHouse: 1, exact: "May 4", speed: "Medium", nature: "support", desc: "Desire aligns with your deeper vision \u2014 pursuit feels inspired rather than forced", tDeg: 19, nDeg: 19, involves: ["Neptune"] },
+  { id: "t6", transiting: "Uranus", target: "Mercury", aspect: "opposition", tSign: "Gemini", nSign: "Sagittarius", tHouse: 7, nHouse: 1, exact: "May 4", speed: "Very slow", nature: "tension", desc: "Your thinking patterns about relationships get disrupted \u2014 sudden insights replace gradual understanding", tDeg: 0, nDeg: 5, involves: ["Mercury"] },
+];
+
+var interpretation = [
+  "Edmin, this week brings a profound reckoning with how you present yourself romantically and what you truly want from partnership. The intensity builds toward a Full Moon in Scorpio on May 1st that illuminates your deepest self, forcing honest reflection about your emotional authenticity in love.",
+  "Early in the week, Mercury in Aries activates your fifth house of romance, and its trine to your natal Neptune softens your communication style. You're naturally more imaginative and intuitive about what draws you to someone. This is excellent for genuine connection, but be careful not to romanticize potential partners through rose-colored lenses.",
+  "The real tension arrives as Venus opposes your Mercury mid-week, and Uranus begins its exact opposition to your Venus by week's end. These are wake-up calls. Your usual way of thinking about love is being challenged. Someone or something may disrupt your romantic expectations \u2014 this isn't punishment, it's liberation.",
+  "Mars quincunx your hidden Sun suggests restlessness beneath the surface. You're craving authenticity and depth, but there's friction between what you want to express and what you typically keep private. The Full Moon amplifies this, demanding you stop hiding your true romantic self.",
+  "By week's end, expect clarity about what you're willing to accept in love and what no longer serves you. Trust the disruption."
+];
+
+function MiniChart(props) {
+  var s = props.size || 90;
+  var cx = s / 2, cy = s / 2, outerR = s * 0.44, pR = s * 0.28;
+  var nColor = props.nature === "support" ? c.green : props.nature === "tension" ? c.coral : c.gold;
+  function getAbs(sign, deg) { return signOrder.indexOf(sign) * 30 + deg; }
+  function toXY(absDeg, r) {
+    var rot = -getAbs(props.signA, props.degA) + 60;
+    var ang = ((absDeg + rot) / 180) * Math.PI - Math.PI / 2;
+    return { x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r };
+  }
+  var absA = getAbs(props.signA, props.degA);
+  var absB = getAbs(props.signB, props.degB);
+  var pA = toXY(absA, pR); var pB = toXY(absB, pR);
+  var isDashed = props.nature === "tension" || props.nature === "mixed";
+  var ticks = [];
+  for (var i = 0; i < 12; i++) {
+    var rot = -getAbs(props.signA, props.degA) + 60;
+    var ta = ((i * 30 + rot) / 180) * Math.PI - Math.PI / 2;
+    ticks.push({ x1: cx + Math.cos(ta) * outerR, y1: cy + Math.sin(ta) * outerR, x2: cx + Math.cos(ta) * (outerR - 2), y2: cy + Math.sin(ta) * (outerR - 2) });
+  }
+  return (
+    <svg viewBox={"0 0 " + s + " " + s} style={{ width: s, height: s, flexShrink: 0 }}>
+      <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+      <circle cx={cx} cy={cy} r={s * 0.16} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+      {ticks.map(function(t, i) { return <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />; })}
+      <line x1={pA.x} y1={pA.y} x2={pB.x} y2={pB.y} stroke={nColor} strokeWidth="1.2" opacity="0.6" strokeDasharray={isDashed ? "3,2" : "none"} />
+      <circle cx={pA.x} cy={pA.y} r={8} fill={c.bg} stroke={nColor} strokeWidth="1" />
+      <text x={pA.x} y={pA.y + 3.5} textAnchor="middle" fontSize="8" fill={nColor} fontFamily={SANS}>{planetGlyphs[props.planetA]}</text>
+      <circle cx={pB.x} cy={pB.y} r={8} fill={c.bg} stroke={nColor} strokeWidth="1" />
+      <text x={pB.x} y={pB.y + 3.5} textAnchor="middle" fontSize="8" fill={nColor} fontFamily={SANS}>{planetGlyphs[props.planetB]}</text>
+    </svg>
+  );
+}
+
+export default function HoroscopeComplete() {
+  var readingExp = useState(false);
+  var isReadingOpen = readingExp[0]; var setReadingOpen = readingExp[1];
+
+  var planetFilter = useState(null);
+  var selectedPlanet = planetFilter[0]; var setSelectedPlanet = planetFilter[1];
+
+  var transitExp = useState(null);
+  var expandedTransit = transitExp[0]; var setExpandedTransit = transitExp[1];
+
+  var pulseState = useState(false);
+  var isPulsing = pulseState[0]; var setPulsing = pulseState[1];
+
+  var filteredTransits = selectedPlanet
+    ? romanceTransits.filter(function(t) { return t.involves.indexOf(selectedPlanet) !== -1; })
+    : romanceTransits;
+
+  function handlePlanetTap(name) {
+    if (selectedPlanet === name) { setSelectedPlanet(null); setExpandedTransit(null); }
+    else { setSelectedPlanet(name); setExpandedTransit(null); setPulsing(true); setTimeout(function() { setPulsing(false); }, 500); }
+  }
+
+  return (
+    <div style={{ background: c.bg, minHeight: "100vh", maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, paddingBottom: 96 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}>
+        <span>9:41</span><div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} /><span>...</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 20px 12px" }}>
+        <span style={{ fontSize: 15, color: c.dim, cursor: "pointer" }}>{"\u2190"} Home</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.goldDim, border: "1px solid rgba(212,168,67,0.25)", borderRadius: 100, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: c.gold }}><span style={{ fontSize: 10 }}>{"\u25C6"}</span><span>391</span></div>
+      </div>
+
+      <div style={{ padding: "0 20px" }}>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.lav }}>Your Week in Love</div>
+          <div style={{ fontSize: 11, color: c.faint }}>Apr 27 {"\u2013"} May 3</div>
+        </div>
+        <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, lineHeight: 1.25, marginBottom: 20 }}>Uranus opposes your Venus this week.</div>
+
+        {/* ── TIMELINE ── */}
+        <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "14px 10px 10px", marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", position: "relative" }}>
+            <div style={{ position: "absolute", top: 11, left: 16, right: 16, height: 1, background: "rgba(255,255,255,0.06)" }} />
+            {days.map(function(day, i) {
+              var evts = timelineEvents.filter(function(e) { return e.day === i; });
+              var hasMoon = evts.some(function(e) { return e.type === "moon"; });
+              var hasSupp = evts.some(function(e) { return e.type === "support"; });
+              var hasTens = evts.some(function(e) { return e.type === "tension"; });
+              var hasEvt = evts.length > 0;
+              return (
+                <div key={i} style={{ flex: 1, textAlign: "center", position: "relative", zIndex: 1 }}>
+                  <div style={{ height: 22, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2 }}>
+                    {hasMoon && <div style={{ width: 14, height: 14, borderRadius: "50%", background: c.goldDim, border: "1.5px solid " + c.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, color: c.gold }}>{"\u263D"}</div>}
+                    {!hasMoon && hasEvt && <div style={{ display: "flex", gap: 2 }}>{hasTens && <div style={{ width: 7, height: 7, borderRadius: "50%", background: c.coral }} />}{hasSupp && <div style={{ width: 7, height: 7, borderRadius: "50%", background: c.green }} />}</div>}
+                    {!hasEvt && <div style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />}
+                  </div>
+                  <div style={{ fontSize: 9.5, fontWeight: hasEvt ? 600 : 400, color: hasEvt ? c.text : c.faint, marginTop: 5 }}>{day.label}</div>
+                  <div style={{ fontSize: 8, color: c.faint, marginTop: 1 }}>{day.date}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 10, paddingTop: 7, borderTop: "1px solid " + c.border, justifyContent: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 5, height: 5, borderRadius: "50%", background: c.green }} /><span style={{ fontSize: 8.5, color: c.faint }}>Flowing</span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 5, height: 5, borderRadius: "50%", background: c.coral }} /><span style={{ fontSize: 8.5, color: c.faint }}>Tension</span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 9, height: 9, borderRadius: "50%", border: "1px solid " + c.gold, fontSize: 5, color: c.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u263D"}</div><span style={{ fontSize: 8.5, color: c.faint }}>Moon</span></div>
+          </div>
+        </div>
+
+        {/* ── ACTIVE PLANETS (tappable) ── */}
+        <div style={{ marginBottom: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.faint, marginBottom: 10 }}>Your planets this week</div>
+          <div style={{ display: "flex", gap: 5 }}>
+            {activePlanets.map(function(p) {
+              var isSel = selectedPlanet === p.name;
+              return (
+                <div key={p.name} onClick={p.active ? function() { handlePlanetTap(p.name); } : undefined} style={{
+                  flex: 1, textAlign: "center", padding: "9px 2px 7px", borderRadius: 12, cursor: p.active ? "pointer" : "default",
+                  background: isSel ? c.lavBg : p.active ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.01)",
+                  border: isSel ? "1.5px solid " + c.lav : "1px solid " + (p.active ? c.border : "rgba(255,255,255,0.03)"),
+                  transform: isSel ? "scale(1.05)" : "scale(1)", transition: "all 0.2s",
+                }}>
+                  <div style={{ fontSize: 17, marginBottom: 3, color: isSel ? c.lav : p.active ? c.dim : c.faint, opacity: p.active ? 1 : 0.25 }}>{p.glyph}</div>
+                  <div style={{ fontSize: 8, color: isSel ? c.text : p.active ? c.dim : c.faint, fontWeight: isSel ? 700 : 400 }}>{p.name}</div>
+                  {p.active && <div style={{ fontSize: 7.5, color: isSel ? c.lav : c.faint, marginTop: 1 }}>{p.count}</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Filter indicator */}
+        <div style={{ height: 28, display: "flex", alignItems: "center", marginBottom: 4 }}>
+          {selectedPlanet ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 11, color: c.lav, fontWeight: 600 }}>{filteredTransits.length} transit{filteredTransits.length !== 1 ? "s" : ""} involving {selectedPlanet}</span>
+              <span onClick={function() { setSelectedPlanet(null); setExpandedTransit(null); }} style={{ fontSize: 10, color: c.faint, cursor: "pointer", textDecoration: "underline" }}>Clear</span>
+            </div>
+          ) : <div style={{ fontSize: 11, color: c.faint }}>Tap a planet to filter {"\u00b7"} {romanceTransits.length} transits total</div>}
+        </div>
+
+        {/* ── READING ── */}
+        <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 20, padding: "20px", marginBottom: 20, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: "radial-gradient(circle, " + c.lavBg + " 0%, transparent 70%)", pointerEvents: "none" }} />
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginBottom: 12 }}>The Reading</div>
+          {(isReadingOpen ? interpretation : interpretation.slice(0, 2)).map(function(para, i) {
+            return <p key={i} style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14.5, lineHeight: 1.65, color: "rgba(232,228,240,0.82)", margin: i === 0 ? "0 0 14px" : "14px 0 0" }}>{para}</p>;
+          })}
+          <div onClick={function() { setReadingOpen(!isReadingOpen); }} style={{ marginTop: 14, fontSize: 13, color: c.lav, fontWeight: 600, cursor: "pointer" }}>{isReadingOpen ? "Show less" : "Read full forecast \u2192"}</div>
+        </div>
+
+        {/* ── FULL MOON ── */}
+        <div style={{ background: c.goldDim, border: "1px solid rgba(212,168,67,0.2)", borderRadius: 18, padding: "16px", marginBottom: 20, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -30, left: -30, width: 90, height: 90, background: "radial-gradient(circle, rgba(212,168,67,0.15) 0%, transparent 70%)", pointerEvents: "none" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "radial-gradient(circle at 40% 40%, #F5E6C8 0%, " + c.gold + " 60%, #8B6914 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 16px rgba(212,168,67,0.3)" }}>
+              <div style={{ fontSize: 18 }}>{"\u263D"}</div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: c.gold, marginBottom: 3 }}>May 1st</div>
+              <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 700, color: c.text, marginBottom: 3 }}>Full Moon in Scorpio</div>
+              <div style={{ fontSize: 12, color: c.dim, lineHeight: 1.35 }}>Conjunct your natal Sun {"\u2014"} emotional illumination and clarity about what you truly want.</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── ROMANCE TRANSITS ── */}
+        <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 6 }}>Romance Transits</div>
+        <div style={{ fontSize: 12, color: c.faint, marginBottom: 12, lineHeight: 1.4 }}>Tap any transit to see the chart and details.</div>
+
+        <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "4px 16px", marginBottom: 20 }}>
+          {filteredTransits.length === 0 && <div style={{ padding: "24px 0", textAlign: "center", fontSize: 12, color: c.faint }}>No romance transits for {selectedPlanet}</div>}
+          {filteredTransits.map(function(t, i) {
+            var tColor = t.nature === "support" ? c.green : t.nature === "tension" ? c.coral : c.gold;
+            var tBg = t.nature === "support" ? c.greenDim : t.nature === "tension" ? c.coralDim : c.goldDim;
+            var isOpen = expandedTransit === t.id;
+            var hasFilter = selectedPlanet !== null;
+            var transitingIsTarget = t.transiting === selectedPlanet;
+            var natalIsTarget = t.target === selectedPlanet;
+
+            return (
+              <div key={t.id} style={{ borderBottom: i < filteredTransits.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", animation: isPulsing ? "pulseIn 0.4s ease" : "none" }}>
+                <div onClick={function() { setExpandedTransit(isOpen ? null : t.id); }} style={{ display: "flex", gap: 12, padding: "14px 0", cursor: "pointer", alignItems: "center" }}>
+                  <div style={{ width: 4, alignSelf: "stretch", borderRadius: 2, background: tColor, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 15, fontWeight: 600 }}>
+                        <span style={{ color: hasFilter && transitingIsTarget ? c.lav : tColor }}>{planetGlyphs[t.transiting]}</span>
+                        <span style={{ color: c.faint }}> {t.aspect} </span>
+                        <span style={{ color: hasFilter && natalIsTarget ? c.lav : c.text }}>{planetGlyphs[t.target]}</span>
+                      </span>
+                      <span style={{ fontSize: 9, background: tBg, borderRadius: 100, padding: "2px 7px", color: tColor, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        {t.nature === "support" ? "Flowing" : t.nature === "tension" ? "Tension" : "Dynamic"}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12.5, fontWeight: 500, color: c.text, marginBottom: 2 }}>
+                      <span style={{ color: hasFilter && transitingIsTarget ? c.lav : c.text, fontWeight: hasFilter && transitingIsTarget ? 700 : 500 }}>{t.transiting}</span>
+                      <span style={{ color: c.faint }}> {t.aspect} </span>
+                      <span style={{ color: hasFilter && natalIsTarget ? c.lav : c.text, fontWeight: hasFilter && natalIsTarget ? 700 : 500 }}>{t.target}</span>
+                    </div>
+                    <div style={{ fontSize: 10.5, color: c.faint }}>Exact: {t.exact} {"\u00b7"} {t.speed}</div>
+                  </div>
+                  <span style={{ color: c.faint, fontSize: 14, transform: isOpen ? "rotate(90deg)" : "rotate(0)", transition: "transform 0.2s", flexShrink: 0 }}>{"\u203A"}</span>
+                </div>
+
+                {isOpen && (
+                  <div style={{ paddingBottom: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
+                      <MiniChart planetA={t.transiting} planetB={t.target} signA={t.tSign} signB={t.nSign} degA={t.tDeg} degB={t.nDeg} nature={t.nature} size={100} />
+                      <div style={{ flex: 1, display: "flex", gap: 16 }}>
+                        <div>
+                          <div style={{ fontSize: 9, color: c.faint, marginBottom: 2 }}>Transiting</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: tColor }}>{planetGlyphs[t.transiting]} {t.transiting}</div>
+                          <div style={{ fontSize: 10, color: c.faint }}>{signGlyphs[t.tSign]} {t.tSign}</div>
+                          <div style={{ fontSize: 9, color: c.faint }}>{t.tHouse}th house</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: c.faint, marginBottom: 2 }}>Your natal</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: c.lav }}>{planetGlyphs[t.target]} {t.target}</div>
+                          <div style={{ fontSize: 10, color: c.faint }}>{signGlyphs[t.nSign]} {t.nSign}</div>
+                          <div style={{ fontSize: 9, color: c.faint }}>{t.nHouse}st house</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13.5, lineHeight: 1.55, color: "rgba(232,228,240,0.68)", padding: "0 4px", marginBottom: 10 }}>{t.desc}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.02)", border: "1px solid " + c.border, borderRadius: 10, padding: "9px 12px", cursor: "pointer" }}>
+                      <span style={{ fontSize: 12, color: c.green }}>{"\u2726"}</span>
+                      <span style={{ flex: 1, fontSize: 11.5, color: c.dim }}>Ask Iris about {t.transiting} {t.aspect} {t.target}</span>
+                      <span style={{ fontSize: 9, color: c.gold, fontWeight: 600 }}>{"\u25C6"} 1</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── SKY PATTERNS ── */}
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.faint, marginBottom: 10 }}>Background Sky Patterns</div>
+        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid " + c.border, borderRadius: 14, padding: "12px 16px", marginBottom: 24 }}>
+          {[
+            { label: "Neptune conjunction Saturn in Aries", desc: "Old structures dissolving \u2014 background energy all week" },
+            { label: "Jupiter square Mercury", desc: "Big ideas meet communication friction" },
+          ].map(function(sky, i) {
+            return (
+              <div key={i} style={{ display: "flex", gap: 10, padding: i > 0 ? "10px 0 0" : "0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none", paddingTop: i > 0 ? 10 : 0 }}>
+                <div style={{ width: 4, height: 4, borderRadius: 2, background: c.faint, marginTop: 6, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: c.dim }}>{sky.label}</div>
+                  <div style={{ fontSize: 10.5, color: c.faint }}>{sky.desc}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── ASK IRIS ── */}
+        <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "18px", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -40, left: -40, width: 100, height: 100, background: "radial-gradient(circle, " + c.greenDim + " 0%, transparent 70%)", pointerEvents: "none" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: c.green }}>{"\u2726"}</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Ask Iris about this week</div>
+              <div style={{ fontSize: 11, color: c.dim }}>{"\u25C6"} 1 per question</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {["What does Uranus opp Venus mean long-term?", "How do I use the Full Moon?", "Is this a good week to make a move?"].map(function(q, i) {
+              return <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid " + c.border, borderRadius: 100, padding: "7px 12px", fontSize: 11, color: c.dim, cursor: "pointer" }}>{q}</div>;
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Tab bar */}
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 393, background: "rgba(12,11,16,0.94)", backdropFilter: "blur(20px)", borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", padding: "10px 0 22px", zIndex: 200 }}>
+        {[["Home", true], ["Relationships", false], ["Discover", false], ["Profile", false]].map(function(item, i) {
+          var icons = ["\u2302", "\u2661", "\u2726", "\u25C9"];
+          return (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontSize: 10, color: item[1] ? c.lav : c.faint, cursor: "pointer", fontFamily: SANS }}>
+              <span style={{ fontSize: 18 }}>{icons[i]}</span><span>{item[0]}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <style>{"\n@keyframes pulseIn {\n  0% { opacity: 0.5; transform: translateY(4px); }\n  100% { opacity: 1; transform: translateY(0); }\n}\n"}</style>
+    </div>
+  );
+}

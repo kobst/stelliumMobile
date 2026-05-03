@@ -34,6 +34,7 @@ import { EditNameScreen } from '../screens/EditNameScreen';
 import { EditGenderScreen } from '../screens/EditGenderScreen';
 import { MainTabs } from './MainTabs';
 import { BootstrapStatusScreen } from '../screens/BootstrapStatusScreen';
+import { WeeklyHoroscopeDetailScreen } from '../screens/WeeklyHoroscopeDetailScreen';
 import { useRelationshipAppStore } from '../store';
 
 export type RelationshipRootParamList = {
@@ -81,6 +82,7 @@ export type RelationshipRootParamList = {
   HelpSupport: undefined;
   CreditHistory: undefined;
   ManageSubscription: undefined;
+  WeeklyHoroscopeDetail: undefined;
   Main: undefined;
 };
 
@@ -163,6 +165,10 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
+        <Stack.Screen
+          name="WeeklyHoroscopeDetail"
+          component={WeeklyHoroscopeDetailScreen}
+        />
         <Stack.Screen name="Main" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>

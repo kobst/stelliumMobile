@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../theme';
 import { relationshipHoroscopesApi, type RomanceHoroscopeDocument } from '../api';
 import {
@@ -7,6 +9,7 @@ import {
   formatHoroscopeDateRange,
   splitInterpretationParagraphs,
 } from '../utils/horoscopeFormat';
+import type { RelationshipRootParamList } from '../navigation/RootNavigator';
 
 interface PersonalHoroscopeCardProps {
   userId: string | null;
@@ -15,13 +18,16 @@ interface PersonalHoroscopeCardProps {
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
 const FALLBACK_HEADLINE = 'Your weekly love forecast';
+const PREVIEW_LINE_COUNT = 3;
+
+type Navigation = StackNavigationProp<RelationshipRootParamList>;
 
 export function PersonalHoroscopeCard({ userId }: PersonalHoroscopeCardProps) {
   const { colors } = useTheme();
+  const navigation = useNavigation<Navigation>();
   const [horoscope, setHoroscope] = useState<RomanceHoroscopeDocument | null>(null);
   const [state, setState] = useState<LoadState>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -47,8 +53,7 @@ export function PersonalHoroscopeCard({ userId }: PersonalHoroscopeCardProps) {
     : FALLBACK_HEADLINE;
   const paragraphs = splitInterpretationParagraphs(horoscope?.interpretation);
   const dateRange = formatHoroscopeDateRange(horoscope?.startDate, horoscope?.endDate);
-  const visibleParagraphs = expanded ? paragraphs : paragraphs.slice(0, 1);
-  const hasMore = paragraphs.length > 1;
+  const previewText = paragraphs[0] ?? '';
 
   return (
     <View
@@ -88,25 +93,24 @@ export function PersonalHoroscopeCard({ userId }: PersonalHoroscopeCardProps) {
         <>
           <Text style={[styles.headline, { color: colors.text }]}>{headline}.</Text>
 
-          <View style={styles.bodyBlock}>
-            {visibleParagraphs.map((paragraph, index) => (
-              <Text
-                key={`para-${index}`}
-                style={[styles.body, { color: colors.textMuted }]}
-              >
-                {paragraph}
-              </Text>
-            ))}
-          </View>
+          {previewText ? (
+            <Text
+              style={[styles.body, { color: colors.textMuted }]}
+              numberOfLines={PREVIEW_LINE_COUNT}
+              ellipsizeMode="tail"
+            >
+              {previewText}
+            </Text>
+          ) : null}
 
-          {hasMore ? (
+          {paragraphs.length > 0 ? (
             <TouchableOpacity
-              onPress={() => setExpanded((prev) => !prev)}
+              onPress={() => navigation.navigate('WeeklyHoroscopeDetail')}
               accessibilityRole="button"
-              accessibilityLabel={expanded ? 'Show less' : 'Read full forecast'}
+              accessibilityLabel="Read full forecast"
             >
               <Text style={[styles.expandToggle, { color: colors.primary }]}>
-                {expanded ? 'Show less' : 'Read full forecast →'}
+                Read full forecast →
               </Text>
             </TouchableOpacity>
           ) : null}
@@ -142,9 +146,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     lineHeight: 26,
-  },
-  bodyBlock: {
-    gap: 10,
   },
   body: {
     fontSize: 14,

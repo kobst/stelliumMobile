@@ -12,6 +12,12 @@ export type {
   HoroscopeAnalysis,
   RomanceHoroscopeDocument,
   RelationshipHoroscopeDocument,
+  RomanceTransit,
+  MoonPhase,
+  MoonPhaseAspectToNatal,
+  TransitToTransitAspect,
+  HoroscopeTransitData,
+  HoroscopeComponents,
 } from '../../../shared/api/relationshipHoroscopes';
 export { celebritiesApi } from './celebrities';
 export { discoverApi } from './discover';

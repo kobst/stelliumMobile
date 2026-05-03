@@ -24,6 +24,77 @@ export interface HoroscopeAnalysis {
   };
 }
 
+export interface RomanceTransit {
+  type?: 'transit-to-natal' | string;
+  start?: string;
+  exact: string;
+  end?: string;
+  priority?: number | null;
+  transitingPlanet: string;
+  targetPlanet: string;
+  aspect: string;
+  transitingSign?: string;
+  transitingSigns?: string[];
+  targetSign?: string;
+  transitingHouse?: number | null;
+  targetHouse?: number | null;
+  isRetrograde?: boolean;
+  targetIsRetrograde?: boolean;
+}
+
+export interface MoonPhaseAspectToNatal {
+  planet: string;
+  aspect: string;
+}
+
+export interface MoonPhase {
+  type?: 'moon-phase' | string;
+  exact: string;
+  start?: string;
+  end?: string;
+  priority?: number | null;
+  transitingPlanet?: 'Moon' | string;
+  description?: string | null;
+  moonPhaseData?: {
+    phase?: string;
+    angle?: number;
+    waxing?: boolean;
+    moonSign?: string;
+    description?: string | null;
+  };
+  aspectsToPersonalPlanets?: MoonPhaseAspectToNatal[];
+}
+
+export interface TransitToTransitAspect {
+  type?: 'transit-to-transit' | string;
+  start?: string;
+  exact: string;
+  end?: string;
+  priority?: number | null;
+  transitingPlanet: string;
+  targetPlanet: string;
+  aspect: string;
+  transitingSign?: string;
+  targetSign?: string;
+  transitingHouse?: number | null;
+  targetHouse?: number | null;
+  description?: string | null;
+  isRetrograde?: boolean;
+  targetIsRetrograde?: boolean;
+}
+
+export interface HoroscopeTransitData {
+  transits?: unknown[];
+  romanceTransits?: RomanceTransit[];
+  retrogrades?: unknown[];
+}
+
+export interface HoroscopeComponents {
+  romanceTransits?: RomanceTransit[];
+  moonPhases?: MoonPhase[];
+  transitToTransitAspects?: TransitToTransitAspect[];
+}
+
 export interface RomanceHoroscopeDocument {
   _id: string;
   subjectType: 'relationship-app-user';
@@ -37,6 +108,8 @@ export interface RomanceHoroscopeDocument {
   interpretation: string;
   analysis?: HoroscopeAnalysis;
   referencedCodes?: string[];
+  transitData?: HoroscopeTransitData;
+  components?: HoroscopeComponents;
 }
 
 export interface RelationshipHoroscopeDocument {
@@ -93,6 +166,18 @@ export const relationshipHoroscopesApi = {
           hasHoroscope: Boolean(envelope?.horoscope),
           status: envelope?.status,
         });
+        // eslint-disable-next-line no-console
+        console.log(
+          '[relationshipHoroscopesApi.getRomanceCurrent] FULL RESPONSE\n' +
+            JSON.stringify(envelope, null, 2)
+        );
+        if (envelope?.horoscope) {
+          // eslint-disable-next-line no-console
+          console.log(
+            '[relationshipHoroscopesApi.getRomanceCurrent] horoscope top-level keys',
+            Object.keys(envelope.horoscope as unknown as Record<string, unknown>)
+          );
+        }
       }
       return envelope?.horoscope ?? null;
     } catch (error: unknown) {
@@ -131,6 +216,18 @@ export const relationshipHoroscopesApi = {
         cached: envelope?.cached,
         hasHoroscope: Boolean(envelope?.horoscope),
       });
+      // eslint-disable-next-line no-console
+      console.log(
+        '[relationshipHoroscopesApi.generateRomance] FULL RESPONSE\n' +
+          JSON.stringify(envelope, null, 2)
+      );
+      if (envelope?.horoscope) {
+        // eslint-disable-next-line no-console
+        console.log(
+          '[relationshipHoroscopesApi.generateRomance] horoscope top-level keys',
+          Object.keys(envelope.horoscope as unknown as Record<string, unknown>)
+        );
+      }
     }
     return unwrapHoroscope(envelope, 'generateRomance');
   },
@@ -168,6 +265,18 @@ export const relationshipHoroscopesApi = {
           hasHoroscope: Boolean(envelope?.horoscope),
           status: envelope?.status,
         });
+        // eslint-disable-next-line no-console
+        console.log(
+          '[relationshipHoroscopesApi.getRelationshipCurrent] FULL RESPONSE\n' +
+            JSON.stringify(envelope, null, 2)
+        );
+        if (envelope?.horoscope) {
+          // eslint-disable-next-line no-console
+          console.log(
+            '[relationshipHoroscopesApi.getRelationshipCurrent] horoscope top-level keys',
+            Object.keys(envelope.horoscope as unknown as Record<string, unknown>)
+          );
+        }
       }
       return envelope?.horoscope ?? null;
     } catch (error: unknown) {
@@ -209,6 +318,18 @@ export const relationshipHoroscopesApi = {
         cached: envelope?.cached,
         hasHoroscope: Boolean(envelope?.horoscope),
       });
+      // eslint-disable-next-line no-console
+      console.log(
+        '[relationshipHoroscopesApi.generateRelationshipComposite] FULL RESPONSE\n' +
+          JSON.stringify(envelope, null, 2)
+      );
+      if (envelope?.horoscope) {
+        // eslint-disable-next-line no-console
+        console.log(
+          '[relationshipHoroscopesApi.generateRelationshipComposite] horoscope top-level keys',
+          Object.keys(envelope.horoscope as unknown as Record<string, unknown>)
+        );
+      }
     }
     return unwrapHoroscope(envelope, 'generateRelationshipComposite');
   },
