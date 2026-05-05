@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import type { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
 import {
   relationshipHoroscopesApi,
@@ -68,16 +71,21 @@ function disabledReasonCopy(
   return null;
 }
 
+type Navigation = StackNavigationProp<
+  RelationshipRootParamList,
+  'WeeklyRelationshipHoroscopeDetail'
+>;
+
 export function RelationshipHoroscopeTab({
   relationship,
   partnerName,
   onUpdated,
 }: RelationshipHoroscopeTabProps) {
   const { colors } = useTheme();
+  const navigation = useNavigation<Navigation>();
   const [horoscope, setHoroscope] = useState<RelationshipHoroscopeDocument | null>(null);
   const [state, setState] = useState<LoadState>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
   const [toggleBusy, setToggleBusy] = useState(false);
 
   const compositeChartId = relationship._id;
@@ -91,10 +99,17 @@ export function RelationshipHoroscopeTab({
     setState('loading');
     setError(null);
     try {
-      const result = await relationshipHoroscopesApi.ensureCurrentRelationshipComposite(
+      const result = await relationshipHoroscopesApi.ensureCurrentRelationshipUnified(
         compositeChartId,
         'weekly'
       );
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log(
+          '[RelationshipHoroscopeTab] unified horoscope FULL RESPONSE\n' +
+            JSON.stringify(result, null, 2)
+        );
+      }
       setHoroscope(result);
       setState('ready');
     } catch (err: unknown) {
@@ -205,8 +220,7 @@ export function RelationshipHoroscopeTab({
     ? composeHoroscopeHeadline(horoscope.analysis?.keyThemes, '')
     : '';
   const paragraphs = splitInterpretationParagraphs(horoscope?.interpretation);
-  const visibleParagraphs = expanded ? paragraphs : paragraphs.slice(0, 1);
-  const hasMore = paragraphs.length > 1;
+  const previewParagraph = paragraphs[0] ?? null;
   const dateRange = formatHoroscopeDateRange(horoscope?.startDate, horoscope?.endDate);
   const highlights = deriveTransitHighlights(horoscope?.analysis?.keyThemes, 3);
 
@@ -271,23 +285,30 @@ export function RelationshipHoroscopeTab({
           {headline ? (
             <Text style={[styles.headline, { color: colors.text }]}>{headline}.</Text>
           ) : null}
-          <View style={styles.bodyBlock}>
-            {visibleParagraphs.map((paragraph, index) => (
+          {previewParagraph ? (
+            <View style={styles.bodyBlock}>
               <Text
-                key={`para-${index}`}
                 style={[styles.body, { color: colors.textMuted }]}
+                numberOfLines={4}
+                ellipsizeMode="tail"
               >
-                {paragraph}
+                {previewParagraph}
               </Text>
-            ))}
-          </View>
-          {hasMore ? (
-            <TouchableOpacity onPress={() => setExpanded((prev) => !prev)}>
-              <Text style={[styles.expandToggle, { color: colors.primary }]}>
-                {expanded ? 'Show less' : 'Read full forecast →'}
-              </Text>
-            </TouchableOpacity>
+            </View>
           ) : null}
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('WeeklyRelationshipHoroscopeDetail', {
+                compositeChartId,
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Read full forecast"
+          >
+            <Text style={[styles.expandToggle, { color: colors.primary }]}>
+              Read full forecast →
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : null}
 

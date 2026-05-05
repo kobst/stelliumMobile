@@ -35,6 +35,7 @@ import { EditGenderScreen } from '../screens/EditGenderScreen';
 import { MainTabs } from './MainTabs';
 import { BootstrapStatusScreen } from '../screens/BootstrapStatusScreen';
 import { WeeklyHoroscopeDetailScreen } from '../screens/WeeklyHoroscopeDetailScreen';
+import { WeeklyRelationshipHoroscopeDetailScreen } from '../screens/WeeklyRelationshipHoroscopeDetailScreen';
 import { useRelationshipAppStore } from '../store';
 
 export type RelationshipRootParamList = {
@@ -83,6 +84,9 @@ export type RelationshipRootParamList = {
   CreditHistory: undefined;
   ManageSubscription: undefined;
   WeeklyHoroscopeDetail: undefined;
+  WeeklyRelationshipHoroscopeDetail: {
+    compositeChartId: string;
+  };
   Main: undefined;
 };
 
@@ -168,6 +172,10 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen
           name="WeeklyHoroscopeDetail"
           component={WeeklyHoroscopeDetailScreen}
+        />
+        <Stack.Screen
+          name="WeeklyRelationshipHoroscopeDetail"
+          component={WeeklyRelationshipHoroscopeDetailScreen}
         />
         <Stack.Screen name="Main" component={MainTabs} />
       </Stack.Navigator>

@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import type { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
 import { relationshipHoroscopesApi, type RelationshipHoroscopeDocument } from '../api';
 import type { UserCompositeChart } from '../../../shared/api/relationships';
@@ -50,16 +53,21 @@ function resolveSides(
   };
 }
 
+type Navigation = StackNavigationProp<
+  RelationshipRootParamList,
+  'WeeklyRelationshipHoroscopeDetail'
+>;
+
 export function RelationshipHoroscopeCard({
   relationship,
   selfProfileId,
   onPress,
 }: RelationshipHoroscopeCardProps) {
   const { colors } = useTheme();
+  const navigation = useNavigation<Navigation>();
   const [horoscope, setHoroscope] = useState<RelationshipHoroscopeDocument | null>(null);
   const [state, setState] = useState<LoadState>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
 
   const compositeChartId = relationship._id;
 
@@ -68,10 +76,17 @@ export function RelationshipHoroscopeCard({
     setState('loading');
     setError(null);
     try {
-      const result = await relationshipHoroscopesApi.ensureCurrentRelationshipComposite(
+      const result = await relationshipHoroscopesApi.ensureCurrentRelationshipUnified(
         compositeChartId,
         'weekly'
       );
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log(
+          '[RelationshipHoroscopeCard] unified horoscope FULL RESPONSE\n' +
+            JSON.stringify(result, null, 2)
+        );
+      }
       setHoroscope(result);
       setState('ready');
     } catch (err: unknown) {
@@ -93,8 +108,7 @@ export function RelationshipHoroscopeCard({
     ? composeHoroscopeHeadline(horoscope.analysis?.keyThemes, '')
     : '';
   const paragraphs = splitInterpretationParagraphs(horoscope?.interpretation);
-  const visibleParagraphs = expanded ? paragraphs : paragraphs.slice(0, 1);
-  const hasMore = paragraphs.length > 1;
+  const previewParagraph = paragraphs[0] ?? null;
 
   return (
     <TouchableOpacity
@@ -149,28 +163,32 @@ export function RelationshipHoroscopeCard({
             <Text style={[styles.headline, { color: colors.text }]}>{headline}.</Text>
           ) : null}
 
-          <View style={styles.bodyBlock}>
-            {visibleParagraphs.map((paragraph, index) => (
-              <Text key={`para-${index}`} style={[styles.body, { color: colors.textMuted }]}>
-                {paragraph}
+          {previewParagraph ? (
+            <View style={styles.bodyBlock}>
+              <Text
+                style={[styles.body, { color: colors.textMuted }]}
+                numberOfLines={4}
+                ellipsizeMode="tail"
+              >
+                {previewParagraph}
               </Text>
-            ))}
-          </View>
-
-          {hasMore ? (
-            <TouchableOpacity
-              onPress={(event) => {
-                event.stopPropagation();
-                setExpanded((prev) => !prev);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={expanded ? 'Show less' : 'Read full horoscope'}
-            >
-              <Text style={[styles.expandToggle, { color: colors.primary }]}>
-                {expanded ? 'Show less' : 'Read full horoscope →'}
-              </Text>
-            </TouchableOpacity>
+            </View>
           ) : null}
+
+          <TouchableOpacity
+            onPress={(event) => {
+              event.stopPropagation();
+              navigation.navigate('WeeklyRelationshipHoroscopeDetail', {
+                compositeChartId,
+              });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Read full horoscope"
+          >
+            <Text style={[styles.expandToggle, { color: colors.primary }]}>
+              Read full horoscope →
+            </Text>
+          </TouchableOpacity>
         </>
       ) : null}
     </TouchableOpacity>

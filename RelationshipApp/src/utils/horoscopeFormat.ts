@@ -1,9 +1,23 @@
 import type {
   HoroscopeKeyTheme,
+  HoroscopeTransitData,
   MoonPhase,
+  RelationshipHoroscopeDocument,
   RomanceTransit,
   TransitToTransitAspect,
+  UnifiedKeyThemes,
 } from '../api';
+
+type KeyThemesInput = HoroscopeKeyTheme[] | UnifiedKeyThemes | undefined;
+
+// Unified mode returns `{ composite, synastry }`. Composite/synastry single-layer
+// modes return a flat array. Normalize to a flat array, composite first, so
+// downstream consumers can stay shape-agnostic.
+function flattenKeyThemes(input: KeyThemesInput): HoroscopeKeyTheme[] {
+  if (!input) return [];
+  if (Array.isArray(input)) return input;
+  return [...(input.composite ?? []), ...(input.synastry ?? [])];
+}
 
 const ASPECT_VERB: Record<string, string> = {
   conjunction: 'meets',
@@ -50,10 +64,10 @@ export function composeHeadlineFromKeyTheme(theme?: HoroscopeKeyTheme | null): C
 }
 
 export function composeHoroscopeHeadline(
-  keyThemes: HoroscopeKeyTheme[] | undefined,
+  keyThemes: KeyThemesInput,
   fallback: string
 ): string {
-  const top = (keyThemes ?? []).find(
+  const top = flattenKeyThemes(keyThemes).find(
     (theme) => theme && theme.transitingPlanet && theme.targetPlanet
   );
   const composed = composeHeadlineFromKeyTheme(top);
@@ -117,10 +131,10 @@ function formatWeekday(input: string | undefined | null): string | null {
 }
 
 export function deriveTransitHighlights(
-  keyThemes: HoroscopeKeyTheme[] | undefined,
+  keyThemes: KeyThemesInput,
   limit = 3
 ): DerivedTransitHighlight[] {
-  const themes = (keyThemes ?? [])
+  const themes = flattenKeyThemes(keyThemes)
     .filter((theme) => theme && theme.transitingPlanet && theme.targetPlanet);
   return themes.slice(0, limit).map((theme, index) => {
     const composed = composeHeadlineFromKeyTheme(theme);
@@ -330,4 +344,178 @@ export function formatExactWeekdayShort(exactIso: string | undefined | null): st
   const date = safeDate(exactIso);
   if (!date) return null;
   return MOON_DAY_LABEL[date.getUTCDay()] ?? null;
+}
+
+export type RelationshipTransitLens = 'between' | 'composite';
+
+export interface LensTransitRow {
+  id: string;
+  // null when the row represents the relationship-as-entity (composite).
+  owner: string | null;
+  transitingPlanet: string;
+  targetPlanet: string;
+  aspect: string;
+  transitingSign: string | null;
+  targetSign: string | null;
+  exact: string;
+  speed: PlanetSpeed;
+  nature: AspectNature;
+  priority: number | null;
+}
+
+function toLensRow(
+  transit: RomanceTransit,
+  ownerLabel: string | null,
+  idPrefix: string,
+  index: number
+): LensTransitRow {
+  return {
+    id: `${idPrefix}-${transit.transitingPlanet}-${transit.aspect}-${transit.targetPlanet}-${index}`,
+    owner: ownerLabel,
+    transitingPlanet: transit.transitingPlanet,
+    targetPlanet: transit.targetPlanet,
+    aspect: transit.aspect,
+    transitingSign: transit.transitingSign ?? null,
+    targetSign: transit.targetSign ?? null,
+    exact: transit.exact,
+    speed: getPlanetSpeed(transit.transitingPlanet),
+    nature: classifyAspectNature(transit.aspect),
+    priority: typeof transit.priority === 'number' ? transit.priority : null,
+  };
+}
+
+function compareByExactAsc(a: LensTransitRow, b: LensTransitRow): number {
+  const ad = safeDate(a.exact)?.getTime() ?? 0;
+  const bd = safeDate(b.exact)?.getTime() ?? 0;
+  return ad - bd;
+}
+
+/**
+ * Lens-specific transit list for the unified relationship horoscope view.
+ *
+ * - `between`: transits hitting each partner's natal chart, owned by partner names.
+ *   Pulled from `transitData.synastry.partnerA.romanceTransits` + `partnerB.romanceTransits`.
+ * - `composite`: transits hitting the composite chart, no owner.
+ *   Pulled from `transitData.composite.immediateEvents` + `mainThemes` (deduped).
+ */
+export function buildLensTransits(
+  horoscope: RelationshipHoroscopeDocument | null | undefined,
+  lens: RelationshipTransitLens,
+  userAName: string | null | undefined,
+  userBName: string | null | undefined
+): LensTransitRow[] {
+  if (!horoscope) return [];
+  const transitData = horoscope.transitData;
+  if (!transitData) return [];
+
+  if (lens === 'between') {
+    const aLabel = userAName?.trim() || horoscope.userAName?.trim() || 'Partner A';
+    const bLabel = userBName?.trim() || horoscope.userBName?.trim() || 'Partner B';
+    const a = (transitData.synastry?.partnerA?.romanceTransits ?? []).map((t, i) =>
+      toLensRow(t, aLabel, 'a', i)
+    );
+    const b = (transitData.synastry?.partnerB?.romanceTransits ?? []).map((t, i) =>
+      toLensRow(t, bLabel, 'b', i)
+    );
+    return [...a, ...b].sort(compareByExactAsc);
+  }
+
+  // Composite lens: union of immediate events + main themes, deduped on planet/aspect/target.
+  const immediate = transitData.composite?.immediateEvents ?? [];
+  const main = transitData.composite?.mainThemes ?? [];
+  const seen = new Set<string>();
+  const rows: LensTransitRow[] = [];
+  let idx = 0;
+  for (const t of [...immediate, ...main]) {
+    const key = `${t.transitingPlanet}|${t.aspect}|${t.targetPlanet}|${t.exact ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rows.push(toLensRow(t, null, 'c', idx++));
+  }
+  return rows.sort(compareByExactAsc);
+}
+
+export interface KeyDayRow {
+  key: string;
+  weekday: string | null;
+  monthDay: string;
+  exactIso: string;
+  description: string;
+  nature: AspectNature;
+}
+
+const FULL_WEEKDAY = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+function formatFullWeekday(exactIso: string | undefined | null): string | null {
+  const date = safeDate(exactIso);
+  if (!date) return null;
+  return FULL_WEEKDAY[date.getUTCDay()] ?? null;
+}
+
+/**
+ * Top key days for the week, fused from composite + synastry key themes.
+ * Output is sorted by exact date ascending.
+ */
+export function buildRelationshipKeyDays(
+  horoscope: RelationshipHoroscopeDocument | null | undefined,
+  limit = 6
+): KeyDayRow[] {
+  if (!horoscope) return [];
+  const themes = flattenKeyThemes(horoscope.analysis?.keyThemes);
+  const seen = new Set<string>();
+  const rows: KeyDayRow[] = [];
+  for (const theme of themes) {
+    if (!theme?.transitingPlanet || !theme.targetPlanet || !theme.exactDate) continue;
+    const dayKey = (safeDate(theme.exactDate)?.toISOString() ?? '').slice(0, 10);
+    if (!dayKey) continue;
+    // Collapse multiple themes that hit the same calendar day into the first one.
+    if (seen.has(dayKey)) continue;
+    seen.add(dayKey);
+    const composed = composeHeadlineFromKeyTheme(theme);
+    const description =
+      composed?.headline.replace(/ this week$/i, '') ??
+      `${theme.transitingPlanet} ${theme.aspect ?? ''} ${theme.targetPlanet}`;
+    rows.push({
+      key: `${theme.transitingPlanet}-${theme.aspect}-${theme.targetPlanet}-${dayKey}`,
+      weekday: formatFullWeekday(theme.exactDate),
+      monthDay: formatExactMonthDay(theme.exactDate),
+      exactIso: theme.exactDate,
+      description,
+      nature: classifyAspectNature(theme.aspect),
+    });
+  }
+  rows.sort((a, b) => {
+    const ad = safeDate(a.exactIso)?.getTime() ?? 0;
+    const bd = safeDate(b.exactIso)?.getTime() ?? 0;
+    return ad - bd;
+  });
+  return rows.slice(0, limit);
+}
+
+/**
+ * Adapter for the existing `buildTimelineBuckets` helper. Unified payloads keep
+ * transits in nested buckets; merge them into the flat shape the timeline
+ * builder expects so we can reuse that visualization.
+ */
+export function flattenUnifiedTransitsForTimeline(
+  transitData: HoroscopeTransitData | null | undefined
+): { romanceTransits: RomanceTransit[]; moonPhases: MoonPhase[] } {
+  if (!transitData) return { romanceTransits: [], moonPhases: [] };
+  const romance: RomanceTransit[] = [];
+  const compositeImmediate = transitData.composite?.immediateEvents ?? [];
+  const compositeMain = transitData.composite?.mainThemes ?? [];
+  const partnerA = transitData.synastry?.partnerA?.romanceTransits ?? [];
+  const partnerB = transitData.synastry?.partnerB?.romanceTransits ?? [];
+  // Composite first so timeline dots favor relationship-level events; synastry is supplementary.
+  romance.push(...compositeImmediate, ...compositeMain, ...partnerA, ...partnerB);
+  const moonPhases = transitData.composite?.moonPhases ?? [];
+  return { romanceTransits: romance, moonPhases };
 }
