@@ -9,7 +9,6 @@ import { getBigThree } from '../utils/mainShell';
 import { CreditPill } from '../components/CreditPill';
 import { IdentityBlock } from '../components/IdentityBlock';
 import { RomanticSummaryCard } from '../components/RomanticSummaryCard';
-import { BirthChartComingSoonCard } from '../components/BirthChartComingSoonCard';
 import { AskIrisCard } from '../components/AskIrisCard';
 import { CreditsMembershipCard } from '../components/CreditsMembershipCard';
 import { SettingsList, type SettingsRowConfig } from '../components/SettingsList';
@@ -231,9 +230,6 @@ export function ProfileSettingsScreen() {
           summary={summaryText}
           onPressFullReading={() => navigation.navigate('RomanticProfileFull')}
         />
-
-        <Text style={[styles.sectionLabel, { color: colors.accent }]}>Your Chart</Text>
-        <BirthChartComingSoonCard />
 
         <Text style={[styles.sectionLabel, { color: colors.accent }]}>Ask Iris About You</Text>
         <AskIrisCard
