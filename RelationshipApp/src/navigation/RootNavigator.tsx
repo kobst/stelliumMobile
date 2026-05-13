@@ -36,6 +36,7 @@ import { MainTabs } from './MainTabs';
 import { BootstrapStatusScreen } from '../screens/BootstrapStatusScreen';
 import { WeeklyHoroscopeDetailScreen } from '../screens/WeeklyHoroscopeDetailScreen';
 import { WeeklyRelationshipHoroscopeDetailScreen } from '../screens/WeeklyRelationshipHoroscopeDetailScreen';
+import { WeeklyArticleDetailScreen } from '../screens/WeeklyArticleDetailScreen';
 import { useRelationshipAppStore } from '../store';
 
 export type RelationshipRootParamList = {
@@ -87,6 +88,7 @@ export type RelationshipRootParamList = {
   WeeklyRelationshipHoroscopeDetail: {
     compositeChartId: string;
   };
+  WeeklyArticleDetail: undefined;
   Main: undefined;
 };
 
@@ -176,6 +178,10 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen
           name="WeeklyRelationshipHoroscopeDetail"
           component={WeeklyRelationshipHoroscopeDetailScreen}
+        />
+        <Stack.Screen
+          name="WeeklyArticleDetail"
+          component={WeeklyArticleDetailScreen}
         />
         <Stack.Screen name="Main" component={MainTabs} />
       </Stack.Navigator>

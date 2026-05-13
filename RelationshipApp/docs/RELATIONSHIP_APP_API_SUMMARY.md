@@ -8,6 +8,7 @@ It covers:
 - Romantic subject creation endpoints that are already implemented
 - Relationship-app celebrity aspect bank APIs that are now implemented
 - Relationship-app Discover tab collection APIs
+- Weekly Iris article read API
 - Relationship-app celebrity romantic profile APIs
 - Relationship-app romantic analysis read/generate APIs
 - Shared relationship analysis endpoints the mobile app can use today
@@ -29,6 +30,7 @@ The current backend split is:
 The relationship app now has its own dedicated endpoint namespace for user-centered romantic analysis:
 - `GET /relationship-app/me`
 - `GET /relationship-app/discover/collections`
+- `GET /relationship-app/discover/weekly-article`
 - `GET /relationship-app/users/:userId/entitlements`
 - `POST /relationship-app/users/:userId/horoscope/romance`
 - `GET /relationship-app/users/:userId/horoscopes/romance`
@@ -97,7 +99,7 @@ This section is the quickest survey of the relationship-app-relevant API surface
 - `DELETE /relationship-app/subjects/:subjectId/profile-photo`
   - Deletes the current profile photo for the authenticated relationship-app user’s own subject or owned guest subject
 
-### Celebrity APIs
+### Celebrity And Discover APIs
 
 - `POST /getCelebs`
   - Returns celebrity subjects
@@ -106,6 +108,11 @@ This section is the quickest survey of the relationship-app-relevant API surface
   - Public read endpoint for Discover tab editorial collections
   - Returns exactly 2 weekly-rotating collections, each populated with up to 8 matching celebrity cards
   - Does not require authentication and can be used by relationship-app or legacy landing-page surfaces
+- `GET /relationship-app/discover/weekly-article`
+  - Returns the current published Weekly Iris article for the authenticated relationship-app user
+  - Supports optional `weekStartDate=YYYY-MM-DD`; the date must be a Monday
+  - Returns the universal article with `personalization: null` until personalized hook generation is implemented
+  - Articles are published weekly by a scheduled backend job; clients should treat this as a cache-only read
 - `GET /relationship-app/users/:userId/discover/charts-like-yours`
   - Authenticated personalized Discover endpoint
   - Returns a weekly lead placement plus up to 8 celebrity charts pre-ranked by total placement overlap
@@ -222,6 +229,7 @@ If the relationship app wants the simplest stable integration path, the default 
 - Delete subject profile photo: `DELETE /relationship-app/subjects/:subjectId/profile-photo`
 - List celebrities for browse cards: `POST /getCelebs`
 - Read weekly Discover collections: `GET /relationship-app/discover/collections`
+- Read current weekly article: `GET /relationship-app/discover/weekly-article`
 - Read personalized charts-like-yours carousel: `GET /relationship-app/users/:userId/discover/charts-like-yours`
 - Generate account-holder romance horoscope: `POST /relationship-app/users/:userId/horoscope/romance`
 - Read current cached account-holder romance horoscope: `GET /relationship-app/users/:userId/horoscope/romance/current`
@@ -290,6 +298,8 @@ If the relationship app wants the simplest stable integration path, the default 
 - `GET /relationship-app/discover/collections`
   - Public read
   - No auth required
+- `GET /relationship-app/discover/weekly-article`
+  - Requires app auth via `requireAuth`
 - `POST /getCelebRelationships`
   - Public read
   - Returns celebrity-to-celebrity composite relationship cards with scoring/archetype fields when available
@@ -403,6 +413,8 @@ Relationship-app billing is now beginning to separate at the storage layer as we
 - relationship-app entitlements/balance: `relationship_user_entitlements`
 - relationship-app credit transactions: `relationship_credit_transactions`
 
+Weekly Iris articles are stored in `weekly_articles`, keyed by `weekStartDate`, where `weekStartDate` is the Monday date for the article week.
+
 For now, the first relationship-app billing cutover is:
 - `GET /relationship-app/users/:userId/entitlements`
 - `POST /relationship-app/users/:userId/ask-iris`
@@ -501,6 +513,68 @@ Notes for clients:
 - `risingSign` can be `null` for celebrities without a usable Ascendant
 - `romanticProfileBlurb` can be `null` if a celebrity has not been backfilled yet
 - `gender` is included in the current response but is not required for display
+
+### `GET /relationship-app/discover/weekly-article`
+
+Authenticated cache-only endpoint for the current Weekly Iris article.
+
+Auth:
+- Requires `requireAuth`
+
+Query params:
+- `weekStartDate` optional Monday date in `YYYY-MM-DD` format
+- If omitted, the backend uses the current Monday-Sunday week in UTC
+
+Behavior:
+- Returns only articles with `status=published`
+- Does not generate articles on demand
+- The universal article is the same for every user
+- `personalization` is currently always `null`; the response shape is reserved for a later personalized hook workflow
+- If no article exists for the requested week, returns `404`
+
+Response body:
+
+```json
+{
+  "success": true,
+  "article": {
+    "id": "articleId",
+    "weekStartDate": "2026-05-11",
+    "weekEndDate": "2026-05-17",
+    "source": "automated",
+    "status": "published",
+    "publishedAt": "2026-05-10T22:00:00.000Z",
+    "updatedAt": "2026-05-10T22:00:00.000Z",
+    "topic": {
+      "title": "The Week Venus Gets Honest",
+      "subtitle": "A relationship transit asks what desire can actually sustain.",
+      "transitReference": "Venus square Saturn",
+      "planetPair": ["Venus", "Saturn"],
+      "aspectType": "square",
+      "readTimeMinutes": 5,
+      "category": "transit"
+    },
+    "content": {
+      "headline": "The Week Venus Gets Honest",
+      "heroSymbols": ["Venus", "Saturn", "square"],
+      "body": "Full article text...",
+      "generatedAt": "2026-05-10T22:00:00.000Z"
+    },
+    "personalization": null,
+    "celebLink": null
+  }
+}
+```
+
+Error responses:
+- `400` if `weekStartDate` is present but is not a Monday `YYYY-MM-DD` date
+- `401` if auth is missing or invalid
+- `404` if no published article exists for the requested week
+
+Notes for clients:
+- Render the article without a personalized section when `personalization` is `null`
+- Do not poll this endpoint expecting generation to start; generation is handled by backend schedule/admin flows
+- Future personalization can add matched relationship cards and user-specific notes under the existing `personalization` key
 
 ### `GET /relationship-app/users/:userId/discover/charts-like-yours`
 

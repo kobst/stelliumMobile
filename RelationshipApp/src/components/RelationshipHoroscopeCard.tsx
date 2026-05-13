@@ -80,13 +80,6 @@ export function RelationshipHoroscopeCard({
         compositeChartId,
         'weekly'
       );
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log(
-          '[RelationshipHoroscopeCard] unified horoscope FULL RESPONSE\n' +
-            JSON.stringify(result, null, 2)
-        );
-      }
       setHoroscope(result);
       setState('ready');
     } catch (err: unknown) {

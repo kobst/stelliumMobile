@@ -32,6 +32,12 @@ export type {
   ChartsLikeYoursResponse,
   ChartsLikeYoursMatchedPlacement,
 } from './discover';
+export { weeklyArticlesApi } from './weeklyArticles';
+export type {
+  WeeklyArticle,
+  WeeklyArticleTopic,
+  WeeklyArticleContent,
+} from './weeklyArticles';
 export { externalApi } from '../../../shared/api/external';
 export { onboardingApi } from '../../../shared/api/onboarding';
 export type {

@@ -1,26 +1,133 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../theme';
+import type { WeeklyArticle } from '../api';
+import type { WeeklyArticleLoadState } from '../hooks/useWeeklyArticle';
 
-const WEEKLY_DISPATCH = {
-  eyebrow: 'Weekly Dispatch',
-  readMinutes: 5,
-  symbols: '♀ □ ♂',
-  symbolLabel: 'Venus square Mars',
-  title: 'When desire and friction share the same room',
-  preview:
-    "Venus square Mars is the aspect that makes you want someone and argue with them in the same breath. This week, it's active for everyone — here's what it means for your chart.",
-  ctaLabel: 'Read article',
-  // For v1 we hide the personalized hook because we don't have the per-relationship aspect index yet.
-  showRelationshipHook: false,
+const PLANET_GLYPHS: Record<string, string> = {
+  Sun: '☉',
+  Moon: '☽',
+  Mercury: '☿',
+  Venus: '♀',
+  Mars: '♂',
+  Jupiter: '♃',
+  Saturn: '♄',
+  Uranus: '♅',
+  Neptune: '♆',
+  Pluto: '♇',
+  Chiron: '⚷',
+  Node: '☊',
+  'True Node': '☊',
 };
 
+const ASPECT_GLYPHS: Record<string, string> = {
+  conjunction: '☌',
+  opposition: '☍',
+  square: '□',
+  trine: '△',
+  sextile: '⚹',
+  quincunx: '⊻',
+};
+
+function tokenToGlyph(token: string): string {
+  if (PLANET_GLYPHS[token]) {return PLANET_GLYPHS[token];}
+  const aspect = ASPECT_GLYPHS[token.toLowerCase()];
+  if (aspect) {return aspect;}
+  return token;
+}
+
+function buildHeroGlyphs(article: WeeklyArticle): string {
+  const symbols = article.content.heroSymbols;
+  if (Array.isArray(symbols) && symbols.length > 0) {
+    return symbols.map(tokenToGlyph).join(' ');
+  }
+  return article.topic.transitReference ?? '';
+}
+
+function firstParagraph(body: string | undefined): string {
+  if (!body) {return '';}
+  const trimmed = body.trim();
+  const split = trimmed.split(/\n\s*\n/);
+  return split[0] ?? '';
+}
+
 interface WeeklyDispatchCardProps {
+  article: WeeklyArticle | null;
+  state: WeeklyArticleLoadState;
   onPress?: () => void;
 }
 
-export function WeeklyDispatchCard({ onPress }: WeeklyDispatchCardProps) {
+export function WeeklyDispatchCard({ article, state, onPress }: WeeklyDispatchCardProps) {
   const { colors } = useTheme();
+
+  const heroGlyphs = useMemo(
+    () => (article ? buildHeroGlyphs(article) : ''),
+    [article]
+  );
+  const symbolLabel = article?.topic.transitReference ?? '';
+  const title = article?.content.headline ?? article?.topic.title ?? '';
+  const preview = useMemo(() => firstParagraph(article?.content.body), [article]);
+  const readMinutes = article?.topic.readTimeMinutes ?? 5;
+
+  if (state === 'loading' || state === 'idle') {
+    return (
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+        ]}
+      >
+        <View style={[styles.imageBlock, { backgroundColor: colors.surfaceLow }]}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+        <View style={styles.body}>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Weekly Dispatch</Text>
+          <Text style={[styles.statusText, { color: colors.textMuted }]}>
+            Pulling this week's dispatch…
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (state === 'empty') {
+    return (
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+        ]}
+      >
+        <View style={[styles.imageBlock, { backgroundColor: colors.surfaceLow }]}>
+          <Text style={[styles.symbolGlyph, { color: colors.textSubtle }]}>✦</Text>
+        </View>
+        <View style={styles.body}>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Weekly Dispatch</Text>
+          <Text style={[styles.statusText, { color: colors.textMuted }]}>
+            No dispatch this week — check back Monday.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (state === 'error' || !article) {
+    return (
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+        ]}
+      >
+        <View style={styles.body}>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Weekly Dispatch</Text>
+          <Text style={[styles.statusText, { color: colors.error }]}>
+            Couldn't load this week's dispatch.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View
@@ -30,35 +137,41 @@ export function WeeklyDispatchCard({ onPress }: WeeklyDispatchCardProps) {
       ]}
     >
       <View style={[styles.imageBlock, { backgroundColor: colors.surfaceLow }]}>
-        <Text style={[styles.symbolGlyph, { color: colors.text }]}>{WEEKLY_DISPATCH.symbols}</Text>
-        <Text style={[styles.symbolLabel, { color: colors.textSubtle }]}>
-          {WEEKLY_DISPATCH.symbolLabel.toUpperCase()}
-        </Text>
+        {heroGlyphs ? (
+          <Text style={[styles.symbolGlyph, { color: colors.text }]}>{heroGlyphs}</Text>
+        ) : null}
+        {symbolLabel ? (
+          <Text style={[styles.symbolLabel, { color: colors.textSubtle }]}>
+            {symbolLabel.toUpperCase()}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.body}>
         <View style={styles.metaRow}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>
-            {WEEKLY_DISPATCH.eyebrow}
-          </Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Weekly Dispatch</Text>
           <View style={[styles.dot, { backgroundColor: colors.textSubtle }]} />
           <Text style={[styles.metaText, { color: colors.textSubtle }]}>
-            {WEEKLY_DISPATCH.readMinutes} min read
+            {readMinutes} min read
           </Text>
         </View>
 
-        <Text style={[styles.title, { color: colors.text }]}>{WEEKLY_DISPATCH.title}</Text>
-        <Text style={[styles.preview, { color: colors.textMuted }]}>
-          {WEEKLY_DISPATCH.preview}
-        </Text>
+        {title ? (
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        ) : null}
+        {preview ? (
+          <Text style={[styles.preview, { color: colors.textMuted }]} numberOfLines={4}>
+            {preview}
+          </Text>
+        ) : null}
 
         <TouchableOpacity
           onPress={onPress}
           accessibilityRole="button"
-          accessibilityLabel={WEEKLY_DISPATCH.ctaLabel}
+          accessibilityLabel="Read article"
           disabled={!onPress}
         >
-          <Text style={[styles.cta, { color: colors.primary }]}>{WEEKLY_DISPATCH.ctaLabel}</Text>
+          <Text style={[styles.cta, { color: colors.primary }]}>Read article</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -122,5 +235,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginTop: 4,
+  },
+  statusText: {
+    fontSize: 13.5,
+    lineHeight: 20,
   },
 });

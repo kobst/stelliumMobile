@@ -17,6 +17,7 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
+import { useWeeklyArticle } from '../hooks/useWeeklyArticle';
 import { getBigThreeSummary } from '../utils/mainShell';
 import { CreditPill } from '../components/CreditPill';
 import { SectionLabel } from '../components/SectionLabel';
@@ -52,6 +53,7 @@ export const HomeScreen: React.FC = () => {
   const setWorkflowState = useRelationshipAppStore((state) => state.setWorkflowState);
 
   useRelationshipHistory(true);
+  const { article: weeklyArticle, state: weeklyArticleState } = useWeeklyArticle();
 
   const userId = profile?.id ?? null;
   const bigThree = useMemo(() => getBigThreeSummary(profile), [profile]);
@@ -129,7 +131,11 @@ export const HomeScreen: React.FC = () => {
 
         <PersonalHoroscopeCard userId={userId} />
 
-        <WeeklyDispatchCard />
+        <WeeklyDispatchCard
+          article={weeklyArticle}
+          state={weeklyArticleState}
+          onPress={() => navigation.navigate('WeeklyArticleDetail')}
+        />
 
         <ThisWeekTogetherSection
           relationships={relationshipHistory}

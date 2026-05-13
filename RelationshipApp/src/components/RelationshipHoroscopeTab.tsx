@@ -103,13 +103,6 @@ export function RelationshipHoroscopeTab({
         compositeChartId,
         'weekly'
       );
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log(
-          '[RelationshipHoroscopeTab] unified horoscope FULL RESPONSE\n' +
-            JSON.stringify(result, null, 2)
-        );
-      }
       setHoroscope(result);
       setState('ready');
     } catch (err: unknown) {

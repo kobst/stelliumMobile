@@ -1,4 +1,5 @@
 import { relationshipApiClient } from '../../../shared/api/relationshipClient';
+import { devLog } from '../../../shared/api/devLog';
 import type {
   ClusterScoredItem,
   EnhancedRelationshipAnalysisResponse,
@@ -20,7 +21,7 @@ export const relationshipsApi = {
   ): Promise<EnhancedRelationshipAnalysisResponse> => {
     const payload = { userIdA, userIdB, ownerUserId, celebRelationship };
     if (__DEV__) {
-      // eslint-disable-next-line no-console
+
       console.log('[relationshipsApi.enhancedRelationshipAnalysis] request', {
         userIdA,
         userIdB,
@@ -39,7 +40,7 @@ export const relationshipsApi = {
         payload
       );
       if (__DEV__) {
-        // eslint-disable-next-line no-console
+
         console.log('[relationshipsApi.enhancedRelationshipAnalysis] success', {
           compositeChartId: result?.compositeChartId,
         });
@@ -47,7 +48,7 @@ export const relationshipsApi = {
       return result;
     } catch (error) {
       if (__DEV__) {
-        // eslint-disable-next-line no-console
+
         console.log('[relationshipsApi.enhancedRelationshipAnalysis] error', {
           userIdA,
           userIdB,
@@ -108,7 +109,7 @@ export const relationshipsApi = {
         { ownerUserId }
       );
       if (__DEV__) {
-        // eslint-disable-next-line no-console
+
         console.log('[relationshipsApi.getUserCompositeCharts] response', {
           ownerUserId,
           durationMs: Date.now() - startedAt,
@@ -118,7 +119,7 @@ export const relationshipsApi = {
         if (Array.isArray(result) && result.length > 0) {
           const sample = result[0];
           const status = sample?.relationshipAnalysisStatus;
-          // eslint-disable-next-line no-console
+
           console.log('[relationshipsApi.getUserCompositeCharts] sample[0] archetype shape', {
             id: sample?._id,
             statusKeys: status ? Object.keys(status) : null,
@@ -133,7 +134,7 @@ export const relationshipsApi = {
       return result;
     } catch (error) {
       if (__DEV__) {
-        // eslint-disable-next-line no-console
+
         console.log('[relationshipsApi.getUserCompositeCharts] error', {
           ownerUserId,
           durationMs: Date.now() - startedAt,
@@ -149,25 +150,19 @@ export const relationshipsApi = {
     compositeChartId: string,
     horoscopeEnabled: boolean
   ): Promise<HoroscopeSettingsResponse> => {
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipsApi.updateHoroscopeSettings] PATCH', {
-        compositeChartId,
-        horoscopeEnabled,
-      });
-    }
+    devLog('relationshipsApi.updateHoroscopeSettings PATCH', {
+      compositeChartId,
+      horoscopeEnabled,
+    });
     const response = await relationshipApiClient.patch<HoroscopeSettingsResponse>(
       `/relationship-app/relationships/${encodeURIComponent(compositeChartId)}/horoscope/settings`,
       { horoscopeEnabled }
     );
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipsApi.updateHoroscopeSettings] response', {
-        success: response?.success,
-        horoscopeEnabled: response?.relationship?.horoscopeEnabled,
-        horoscopeFreeTrialUsed: response?.relationship?.horoscopeFreeTrialUsed,
-      });
-    }
+    devLog('relationshipsApi.updateHoroscopeSettings response', {
+      success: response?.success,
+      horoscopeEnabled: response?.relationship?.horoscopeEnabled,
+      horoscopeFreeTrialUsed: response?.relationship?.horoscopeFreeTrialUsed,
+    });
     return response;
   },
 

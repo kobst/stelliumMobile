@@ -1,5 +1,6 @@
 import { relationshipApiClient } from './relationshipClient';
 import { ApiError } from './baseClient';
+import { devLog } from './devLog';
 
 export type HoroscopePeriod = 'weekly' | 'monthly';
 export type RelationshipHoroscopeMode = 'composite' | 'synastry' | 'unified';
@@ -222,40 +223,19 @@ export const relationshipHoroscopesApi = {
     period: HoroscopePeriod = 'weekly'
   ): Promise<RomanceHoroscopeDocument | null> {
     const path = `/relationship-app/users/${encodeURIComponent(userId)}/horoscope/romance/current?period=${period}`;
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipHoroscopesApi.getRomanceCurrent] GET', path);
-    }
+    devLog('relationshipHoroscopesApi.getRomanceCurrent GET', { path });
     try {
       const envelope = await relationshipApiClient.get<HoroscopeEnvelope<RomanceHoroscopeDocument>>(
         path
       );
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log('[relationshipHoroscopesApi.getRomanceCurrent] response', {
-          hasHoroscope: Boolean(envelope?.horoscope),
-          status: envelope?.status,
-        });
-        // eslint-disable-next-line no-console
-        console.log(
-          '[relationshipHoroscopesApi.getRomanceCurrent] FULL RESPONSE\n' +
-            JSON.stringify(envelope, null, 2)
-        );
-        if (envelope?.horoscope) {
-          // eslint-disable-next-line no-console
-          console.log(
-            '[relationshipHoroscopesApi.getRomanceCurrent] horoscope top-level keys',
-            Object.keys(envelope.horoscope as unknown as Record<string, unknown>)
-          );
-        }
-      }
+      devLog('relationshipHoroscopesApi.getRomanceCurrent response', {
+        hasHoroscope: Boolean(envelope?.horoscope),
+        status: envelope?.status,
+      });
       return envelope?.horoscope ?? null;
     } catch (error: unknown) {
       if (isNotReadyError(error)) {
-        if (__DEV__) {
-          // eslint-disable-next-line no-console
-          console.log('[relationshipHoroscopesApi.getRomanceCurrent] not_ready (404)');
-        }
+        devLog('relationshipHoroscopesApi.getRomanceCurrent not_ready (404)');
         return null;
       }
       throw error;
@@ -271,34 +251,16 @@ export const relationshipHoroscopesApi = {
       period: payload.period ?? 'weekly',
       ...(payload.startDate ? { startDate: payload.startDate } : {}),
     };
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipHoroscopesApi.generateRomance] POST', path, body);
-    }
+    devLog('relationshipHoroscopesApi.generateRomance POST', { path, body });
     const envelope = await relationshipApiClient.post<HoroscopeEnvelope<RomanceHoroscopeDocument>>(
       path,
       body
     );
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipHoroscopesApi.generateRomance] response', {
-        success: envelope?.success,
-        cached: envelope?.cached,
-        hasHoroscope: Boolean(envelope?.horoscope),
-      });
-      // eslint-disable-next-line no-console
-      console.log(
-        '[relationshipHoroscopesApi.generateRomance] FULL RESPONSE\n' +
-          JSON.stringify(envelope, null, 2)
-      );
-      if (envelope?.horoscope) {
-        // eslint-disable-next-line no-console
-        console.log(
-          '[relationshipHoroscopesApi.generateRomance] horoscope top-level keys',
-          Object.keys(envelope.horoscope as unknown as Record<string, unknown>)
-        );
-      }
-    }
+    devLog('relationshipHoroscopesApi.generateRomance response', {
+      success: envelope?.success,
+      cached: envelope?.cached,
+      hasHoroscope: Boolean(envelope?.horoscope),
+    });
     return unwrapHoroscope(envelope, 'generateRomance');
   },
 
@@ -307,7 +269,7 @@ export const relationshipHoroscopesApi = {
     period: HoroscopePeriod = 'weekly'
   ): Promise<RomanceHoroscopeDocument> {
     const cached = await this.getRomanceCurrent(userId, period);
-    if (cached) return cached;
+    if (cached) {return cached;}
     // POST returns the freshly generated doc directly — no second GET needed.
     return this.generateRomance(userId, { period });
   },
@@ -321,42 +283,21 @@ export const relationshipHoroscopesApi = {
     const path = `/relationship-app/relationships/${encodeURIComponent(
       compositeChartId
     )}/horoscope/current?period=${period}&mode=${mode}`;
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipHoroscopesApi.getRelationshipCurrent] GET', path);
-    }
+    devLog('relationshipHoroscopesApi.getRelationshipCurrent GET', { path });
     try {
       const envelope = await relationshipApiClient.get<
         HoroscopeEnvelope<RelationshipHoroscopeDocument>
       >(path);
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log('[relationshipHoroscopesApi.getRelationshipCurrent] response', {
-          hasHoroscope: Boolean(envelope?.horoscope),
-          status: envelope?.status,
-        });
-        // eslint-disable-next-line no-console
-        console.log(
-          '[relationshipHoroscopesApi.getRelationshipCurrent] FULL RESPONSE\n' +
-            JSON.stringify(envelope, null, 2)
-        );
-        if (envelope?.horoscope) {
-          // eslint-disable-next-line no-console
-          console.log(
-            '[relationshipHoroscopesApi.getRelationshipCurrent] horoscope top-level keys',
-            Object.keys(envelope.horoscope as unknown as Record<string, unknown>)
-          );
-        }
-      }
+      devLog('relationshipHoroscopesApi.getRelationshipCurrent response', {
+        hasHoroscope: Boolean(envelope?.horoscope),
+        status: envelope?.status,
+      });
       return envelope?.horoscope ?? null;
     } catch (error: unknown) {
       if (isNotReadyError(error)) {
-        if (__DEV__) {
-          // eslint-disable-next-line no-console
-          console.log('[relationshipHoroscopesApi.getRelationshipCurrent] not_ready (404)', {
-            compositeChartId,
-          });
-        }
+        devLog('relationshipHoroscopesApi.getRelationshipCurrent not_ready (404)', {
+          compositeChartId,
+        });
         return null;
       }
       throw error;
@@ -374,33 +315,15 @@ export const relationshipHoroscopesApi = {
       period: payload.period ?? 'weekly',
       ...(payload.startDate ? { startDate: payload.startDate } : {}),
     };
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipHoroscopesApi.generateRelationshipComposite] POST', path, body);
-    }
+    devLog('relationshipHoroscopesApi.generateRelationshipComposite POST', { path, body });
     const envelope = await relationshipApiClient.post<
       HoroscopeEnvelope<RelationshipHoroscopeDocument>
     >(path, body);
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipHoroscopesApi.generateRelationshipComposite] response', {
-        success: envelope?.success,
-        cached: envelope?.cached,
-        hasHoroscope: Boolean(envelope?.horoscope),
-      });
-      // eslint-disable-next-line no-console
-      console.log(
-        '[relationshipHoroscopesApi.generateRelationshipComposite] FULL RESPONSE\n' +
-          JSON.stringify(envelope, null, 2)
-      );
-      if (envelope?.horoscope) {
-        // eslint-disable-next-line no-console
-        console.log(
-          '[relationshipHoroscopesApi.generateRelationshipComposite] horoscope top-level keys',
-          Object.keys(envelope.horoscope as unknown as Record<string, unknown>)
-        );
-      }
-    }
+    devLog('relationshipHoroscopesApi.generateRelationshipComposite response', {
+      success: envelope?.success,
+      cached: envelope?.cached,
+      hasHoroscope: Boolean(envelope?.horoscope),
+    });
     return unwrapHoroscope(envelope, 'generateRelationshipComposite');
   },
 
@@ -409,7 +332,7 @@ export const relationshipHoroscopesApi = {
     period: HoroscopePeriod = 'weekly'
   ): Promise<RelationshipHoroscopeDocument> {
     const cached = await this.getRelationshipCurrent(compositeChartId, { period, mode: 'composite' });
-    if (cached) return cached;
+    if (cached) {return cached;}
     // POST returns the freshly generated doc directly — no second GET needed.
     return this.generateRelationshipComposite(compositeChartId, { period });
   },
@@ -425,34 +348,16 @@ export const relationshipHoroscopesApi = {
       period: payload.period ?? 'weekly',
       ...(payload.startDate ? { startDate: payload.startDate } : {}),
     };
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipHoroscopesApi.generateRelationshipUnified] POST', path, body);
-    }
+    devLog('relationshipHoroscopesApi.generateRelationshipUnified POST', { path, body });
     const envelope = await relationshipApiClient.post<
       HoroscopeEnvelope<RelationshipHoroscopeDocument>
     >(path, body);
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipHoroscopesApi.generateRelationshipUnified] response', {
-        success: envelope?.success,
-        cached: envelope?.cached,
-        billing: envelope?.billing,
-        hasHoroscope: Boolean(envelope?.horoscope),
-      });
-      // eslint-disable-next-line no-console
-      console.log(
-        '[relationshipHoroscopesApi.generateRelationshipUnified] FULL RESPONSE\n' +
-          JSON.stringify(envelope, null, 2)
-      );
-      if (envelope?.horoscope) {
-        // eslint-disable-next-line no-console
-        console.log(
-          '[relationshipHoroscopesApi.generateRelationshipUnified] horoscope top-level keys',
-          Object.keys(envelope.horoscope as unknown as Record<string, unknown>)
-        );
-      }
-    }
+    devLog('relationshipHoroscopesApi.generateRelationshipUnified response', {
+      success: envelope?.success,
+      cached: envelope?.cached,
+      billing: envelope?.billing,
+      hasHoroscope: Boolean(envelope?.horoscope),
+    });
     return unwrapHoroscope(envelope, 'generateRelationshipUnified');
   },
 
@@ -466,10 +371,7 @@ export const relationshipHoroscopesApi = {
     const path = `/relationship-app/relationships/${encodeURIComponent(
       compositeChartId
     )}/horoscopes?period=${period}&mode=${mode}&limit=${limit}`;
-    if (__DEV__) {
-      // eslint-disable-next-line no-console
-      console.log('[relationshipHoroscopesApi.listRelationship] GET', path);
-    }
+    devLog('relationshipHoroscopesApi.listRelationship GET', { path });
     const response = await relationshipApiClient.get<{
       success?: boolean;
       horoscopes?: RelationshipHoroscopeDocument[];
@@ -483,13 +385,10 @@ export const relationshipHoroscopesApi = {
   ): Promise<RelationshipHoroscopeDocument> {
     const cached = await this.getRelationshipCurrent(compositeChartId, { period, mode: 'unified' });
     if (cached) {
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log(
-          '[relationshipHoroscopesApi.ensureCurrentRelationshipUnified] cache hit\n' +
-            JSON.stringify(cached, null, 2)
-        );
-      }
+      devLog('relationshipHoroscopesApi.ensureCurrentRelationshipUnified cache hit', {
+        compositeChartId,
+        period,
+      });
       return cached;
     }
     // POST returns the freshly generated doc directly — no second GET needed.
