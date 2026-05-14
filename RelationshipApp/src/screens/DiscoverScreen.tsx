@@ -26,6 +26,7 @@ import type { EnhancedRelationshipAnalysisResponse } from '../../../shared/api/r
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import {
   celebrityToSubject,
   getCelebritySunSign,
@@ -33,6 +34,8 @@ import {
 } from '../utils/mainShell';
 import { Avatar } from '../components/Avatar';
 import { FloatingAddButton } from '../components/FloatingAddButton';
+import { Stardust } from '../components/atmosphere/Stardust';
+import { Halo } from '../components/atmosphere/Halo';
 import { useOwnedSubjects } from '../hooks/useOwnedSubjects';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
 import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
@@ -629,7 +632,7 @@ export const DiscoverScreen: React.FC = () => {
         key={`like-${celeb.id}`}
         onPress={() => openCollectionCeleb(preview)}
         activeOpacity={0.86}
-        style={[styles.likeCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        style={[styles.likeCard, { backgroundColor: colors.surfaceLow }]}
       >
         <Avatar
           size={52}
@@ -749,7 +752,7 @@ export const DiscoverScreen: React.FC = () => {
         onPress={() => openCelebRelationshipAnalysis(rel)}
         style={[
           styles.connectionCard,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          { backgroundColor: colors.surfaceLow },
         ]}
       >
         <View style={styles.connectionHeaderRow}>
@@ -817,7 +820,7 @@ export const DiscoverScreen: React.FC = () => {
     return (
       <View
         key={collection.id}
-        style={[styles.collectionCard, { backgroundColor: colors.surfaceHigh, borderColor: colors.border }]}
+        style={[styles.collectionCard, { backgroundColor: colors.surfaceHigh }]}
       >
         <Text style={[styles.collectionEyebrow, { color: accentColor }]}>Collection</Text>
         <Text style={[styles.collectionTitle, { color: colors.text }]}>{collection.title}</Text>
@@ -836,29 +839,35 @@ export const DiscoverScreen: React.FC = () => {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Stardust density={60} seed={7} color={colors.primary} />
+      </View>
+      <Halo color={colors.primary} size={460} opacity={0.1} top={60} left="50%" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerBlock}>
           <Text style={[styles.eyebrow, { color: colors.primary }]}>Discover</Text>
-          <Text style={[styles.title, { color: colors.text }]}>Explore charts.</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Explore charts<Text style={{ color: colors.accent }}>.</Text>
+          </Text>
           <Text style={[styles.body, { color: colors.textMuted }]}>
             Browse by placement, explore collections, or search anyone in the database.
           </Text>
         </View>
 
-        <View style={[styles.searchCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.searchCard, { backgroundColor: colors.surfaceLow }]}>
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Search by name, sign, or placement"
             placeholderTextColor={colors.textSubtle}
-            style={[styles.searchInput, { color: colors.text, borderColor: colors.border }]}
+            style={[styles.searchInput, { color: colors.text }]}
           />
           {isSearching ? <ActivityIndicator size="small" color={colors.primary} /> : null}
         </View>
 
         {showSearchHint ? (
-          <View style={[styles.loadingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.loadingCard, { backgroundColor: colors.surfaceLow }]}>
             <Text style={[styles.loadingText, { color: colors.textMuted }]}>
               Type at least 2 characters to search.
             </Text>
@@ -882,7 +891,7 @@ export const DiscoverScreen: React.FC = () => {
             {!isSearching &&
             unifiedSearchRows.subjectMatches.length === 0 &&
             unifiedSearchRows.celebMatches.length === 0 ? (
-              <View style={[styles.loadingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.loadingCard, { backgroundColor: colors.surfaceLow }]}>
                 <Text style={[styles.loadingText, { color: colors.textMuted }]}>
                   No results for "{trimmedSearchQuery}".
                 </Text>
@@ -932,7 +941,7 @@ export const DiscoverScreen: React.FC = () => {
                 <Text style={[styles.sectionMeta, { color: colors.textMuted }]}>
                   New charts in the database.
                 </Text>
-                <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={[styles.listCard, { backgroundColor: colors.surfaceLow }]}>
                   {recentlyAdded.map((c) => renderCelebRow(c, 'New'))}
                 </View>
               </View>
@@ -975,16 +984,16 @@ export const DiscoverScreen: React.FC = () => {
                 </Text>
                 {popularMode === 'popular' ? (
                   popularCelebs.length > 0 ? (
-                    <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <View style={[styles.listCard, { backgroundColor: colors.surfaceLow }]}>
                       {popularCelebs.map((c) => renderCelebRow(c))}
                     </View>
                   ) : null
                 ) : ownedSubjects.length > 0 ? (
-                  <View style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <View style={[styles.listCard, { backgroundColor: colors.surfaceLow }]}>
                     {ownedSubjects.map(renderUserRow)}
                   </View>
                 ) : (
-                  <View style={[styles.loadingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <View style={[styles.loadingCard, { backgroundColor: colors.surfaceLow }]}>
                     <Text style={[styles.loadingText, { color: colors.textMuted }]}>
                       You haven&apos;t added anyone yet. Tap the + button to start.
                     </Text>
@@ -996,7 +1005,7 @@ export const DiscoverScreen: React.FC = () => {
         ) : null}
 
         {isLoading ? (
-          <View style={[styles.loadingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.loadingCard, { backgroundColor: colors.surfaceLow }]}>
             <ActivityIndicator size="small" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.textMuted }]}>
               Loading celebrity database…
@@ -1005,7 +1014,7 @@ export const DiscoverScreen: React.FC = () => {
         ) : null}
 
         {error ? (
-          <View style={[styles.loadingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.loadingCard, { backgroundColor: colors.surfaceLow }]}>
             <Text style={[styles.loadingText, { color: colors.textMuted }]}>{error}</Text>
           </View>
         ) : null}
@@ -1033,30 +1042,33 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   eyebrow: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1.4,
+    letterSpacing: 2.2,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 30,
-    fontWeight: '700',
-    lineHeight: 36,
+    fontFamily: SERIF_FONT,
+    fontSize: 48,
+    fontWeight: '500',
+    letterSpacing: -0.6,
+    lineHeight: 52,
+    marginTop: 4,
   },
   body: {
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 22,
+    maxWidth: 320,
   },
   searchCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 14,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     gap: 12,
   },
   searchInput: {
-    borderWidth: 1,
     borderRadius: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: 4,
     paddingVertical: 14,
     fontSize: 15,
   },
@@ -1064,9 +1076,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    lineHeight: 26,
+    fontFamily: SERIF_FONT,
+    fontSize: 24,
+    fontWeight: '500',
+    letterSpacing: -0.3,
+    lineHeight: 28,
   },
   sectionMeta: {
     fontSize: 13,
@@ -1089,9 +1103,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    paddingHorizontal: 14,
+    borderRadius: 22,
+    paddingHorizontal: 16,
     marginTop: 6,
   },
   listRow: {
@@ -1151,9 +1164,8 @@ const styles = StyleSheet.create({
   likeCard: {
     flexDirection: 'row',
     gap: 14,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
+    padding: 18,
+    borderRadius: 22,
     marginTop: 4,
   },
   likeCardBody: {
@@ -1161,8 +1173,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   likeCardName: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 20,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   likeCardPills: {
     flexDirection: 'row',
@@ -1181,8 +1195,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   likeCardBlurb: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontFamily: SERIF_FONT,
+    fontSize: 14.5,
+    lineHeight: 22,
     fontStyle: 'italic',
   },
   inlineAction: {
@@ -1191,24 +1206,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   collectionCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 18,
+    borderRadius: 22,
+    padding: 20,
     gap: 8,
   },
   collectionEyebrow: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1.4,
+    letterSpacing: 2.2,
     textTransform: 'uppercase',
   },
   collectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 24,
+    fontWeight: '500',
+    letterSpacing: -0.3,
   },
   collectionBody: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 13.5,
+    lineHeight: 20,
     marginBottom: 6,
   },
   miniRail: {
@@ -1255,9 +1271,8 @@ const styles = StyleSheet.create({
   },
   connectionCard: {
     width: 280,
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 16,
+    borderRadius: 22,
+    padding: 18,
     gap: 8,
   },
   connectionHeaderRow: {
@@ -1276,18 +1291,22 @@ const styles = StyleSheet.create({
     marginLeft: -14,
   },
   connectionPair: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 21,
+    fontWeight: '500',
+    letterSpacing: -0.2,
     marginTop: 8,
   },
   connectionArchetype: {
+    fontFamily: SERIF_FONT,
     fontSize: 14,
     fontStyle: 'italic',
-    fontWeight: '600',
+    fontWeight: '500',
   },
   connectionBlurb: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontFamily: SERIF_FONT,
+    fontSize: 14,
+    lineHeight: 21,
     fontStyle: 'italic',
   },
   connectionScoreRow: {
@@ -1312,9 +1331,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   loadingCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 18,
+    borderRadius: 22,
+    padding: 20,
     gap: 10,
     alignItems: 'center',
   },

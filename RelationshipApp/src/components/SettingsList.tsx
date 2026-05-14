@@ -18,15 +18,7 @@ export function SettingsList({ rows }: SettingsListProps) {
   const { colors } = useTheme();
 
   return (
-    <View
-      style={[
-        styles.list,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.ghostBorder,
-        },
-      ]}
-    >
+    <View style={[styles.list, { backgroundColor: colors.surfaceLow }]}>
       {rows.map((row, index) => (
         <TouchableOpacity
           key={row.key}
@@ -35,19 +27,25 @@ export function SettingsList({ rows }: SettingsListProps) {
           style={[
             styles.row,
             index < rows.length - 1 ? styles.rowDivider : null,
-            index < rows.length - 1 ? { borderBottomColor: colors.ghostBorder } : null,
+            index < rows.length - 1 ? { borderBottomColor: 'rgba(202, 190, 255, 0.07)' } : null,
           ]}
         >
           <View
             style={[
               styles.iconBubble,
               {
-                backgroundColor: colors.surfaceHigh,
-                borderColor: colors.ghostBorder,
+                backgroundColor: 'rgba(202, 190, 255, 0.08)',
               },
             ]}
           >
-            <Text style={[styles.iconText, { color: colors.textMuted }]}>{row.icon}</Text>
+            <Text
+              style={[
+                styles.iconText,
+                { color: row.destructive ? colors.error : colors.primary },
+              ]}
+            >
+              {row.icon}
+            </Text>
           </View>
           <Text
             style={[
@@ -66,8 +64,7 @@ export function SettingsList({ rows }: SettingsListProps) {
 
 const styles = StyleSheet.create({
   list: {
-    borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 22,
     overflow: 'hidden',
   },
   row: {
@@ -75,25 +72,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingVertical: 16,
   },
   rowDivider: {
     borderBottomWidth: 1,
   },
   iconBubble: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    borderWidth: 1,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconText: {
-    fontSize: 14,
+    fontSize: 15,
   },
   label: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '500',
   },
   chev: {

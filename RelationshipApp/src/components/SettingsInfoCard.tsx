@@ -22,12 +22,7 @@ export function SettingsInfoCard({ rows }: SettingsInfoCardProps) {
   const { colors } = useTheme();
 
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-      ]}
-    >
+    <View style={[styles.card, { backgroundColor: colors.surfaceLow }]}>
       {rows.map((row, index) => {
         const isLast = index === rows.length - 1;
         const content = (
@@ -35,7 +30,7 @@ export function SettingsInfoCard({ rows }: SettingsInfoCardProps) {
             style={[
               styles.row,
               row.alignTop ? styles.rowAlignTop : null,
-              isLast ? null : { borderBottomWidth: 1, borderBottomColor: colors.ghostBorder },
+              isLast ? null : { borderBottomWidth: 1, borderBottomColor: 'rgba(202, 190, 255, 0.07)' },
             ]}
           >
             {row.icon ? (
@@ -86,8 +81,7 @@ export function SettingsInfoCard({ rows }: SettingsInfoCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 22,
     overflow: 'hidden',
   },
   row: {

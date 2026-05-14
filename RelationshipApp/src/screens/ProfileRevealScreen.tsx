@@ -650,24 +650,30 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   heroTitle: {
-    fontSize: 34,
-    fontWeight: '700',
-    lineHeight: 40,
+    fontFamily: 'Georgia',
+    fontSize: 38,
+    fontWeight: '500',
+    fontStyle: 'italic',
+    letterSpacing: -0.5,
+    lineHeight: 42,
   },
   body: {
-    fontSize: 15,
-    lineHeight: 23,
+    fontFamily: 'Georgia',
+    fontSize: 16,
+    fontStyle: 'italic',
+    lineHeight: 24,
   },
 
   quoteCard: {
     borderRadius: 24,
     paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingTop: 18,
+    paddingBottom: 22,
   },
   quoteText: {
-    fontSize: 16,
-    lineHeight: 26,
+    fontFamily: 'Georgia',
+    fontSize: 17,
+    lineHeight: 27,
     fontStyle: 'italic',
   },
   matchesSection: {
@@ -682,8 +688,10 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   matchesHeading: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontFamily: 'Georgia',
+    fontSize: 30,
+    fontWeight: '500',
+    letterSpacing: -0.4,
     lineHeight: 34,
   },
   inlineStatusCard: {

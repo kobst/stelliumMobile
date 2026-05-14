@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import type { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { relationshipHoroscopesApi, type RelationshipHoroscopeDocument } from '../api';
 import type { UserCompositeChart } from '../../../shared/api/relationships';
 import {
@@ -12,6 +13,43 @@ import {
 } from '../utils/horoscopeFormat';
 import { getInitials, getRelationshipArchetypeLabel } from '../utils/mainShell';
 import { AvatarPair } from './AvatarPair';
+import { SynastryRing } from './SynastryRing';
+
+function extractBalanceScore(relationship: UserCompositeChart): number | null {
+  const fromStatus = relationship.relationshipAnalysisStatus?.clusterScores;
+  if (fromStatus) {
+    const values = [
+      fromStatus.Harmony,
+      fromStatus.Passion,
+      fromStatus.Connection,
+      fromStatus.Stability,
+      fromStatus.Growth,
+    ]
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (values.length === 0) {
+      return null;
+    }
+    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+  }
+  const fromCluster = relationship.clusterScoring?.clusters;
+  if (fromCluster) {
+    const values = [
+      fromCluster.Harmony?.score,
+      fromCluster.Passion?.score,
+      fromCluster.Connection?.score,
+      fromCluster.Stability?.score,
+      fromCluster.Growth?.score,
+    ]
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (values.length === 0) {
+      return null;
+    }
+    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+  }
+  return null;
+}
 
 interface RelationshipHoroscopeCardProps {
   relationship: UserCompositeChart;
@@ -96,6 +134,7 @@ export function RelationshipHoroscopeCard({
   const sides = resolveSides(relationship, selfProfileId);
   const archetype = getRelationshipArchetypeLabel(relationship);
   const pairLabel = `You & ${sides.partnerName}`;
+  const balanceScore = extractBalanceScore(relationship);
 
   const headline = horoscope
     ? composeHoroscopeHeadline(horoscope.analysis?.keyThemes, '')
@@ -108,10 +147,7 @@ export function RelationshipHoroscopeCard({
       activeOpacity={onPress ? 0.85 : 1}
       onPress={onPress}
       disabled={!onPress}
-      style={[
-        styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-      ]}
+      style={[styles.card, { backgroundColor: colors.surfaceLow }]}
     >
       <View style={styles.headerRow}>
         <AvatarPair
@@ -121,13 +157,14 @@ export function RelationshipHoroscopeCard({
           rightInitial={sides.partnerInitial}
           leftGradient="lavender"
           rightGradient="green"
-          size={32}
-          ringColor={colors.surface}
+          size={36}
+          ringColor={colors.surfaceLow}
         />
         <View style={styles.headerCopy}>
           <Text style={[styles.pairLabel, { color: colors.text }]}>{pairLabel}</Text>
           <Text style={[styles.archetype, { color: colors.accent }]}>{archetype}</Text>
         </View>
+        {balanceScore !== null ? <SynastryRing pct={balanceScore} /> : null}
       </View>
 
       {state === 'loading' && !horoscope ? (
@@ -190,10 +227,9 @@ export function RelationshipHoroscopeCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 18,
-    gap: 12,
+    borderRadius: 22,
+    padding: 20,
+    gap: 14,
   },
   headerRow: {
     flexDirection: 'row',
@@ -202,27 +238,32 @@ const styles = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   pairLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15.5,
+    fontWeight: '700',
+    letterSpacing: -0.1,
   },
   archetype: {
-    fontSize: 12,
+    fontFamily: SERIF_FONT,
+    fontSize: 14,
     fontStyle: 'italic',
   },
   headline: {
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 21,
+    fontFamily: SERIF_FONT,
+    fontSize: 19,
+    fontWeight: '500',
+    lineHeight: 25,
+    letterSpacing: -0.2,
   },
   bodyBlock: {
     gap: 8,
   },
   body: {
-    fontSize: 13.5,
-    lineHeight: 20,
+    fontFamily: SERIF_FONT,
+    fontSize: 14.5,
+    lineHeight: 22,
     fontStyle: 'italic',
   },
   expandToggle: {

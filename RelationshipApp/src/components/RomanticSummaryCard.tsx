@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 
 interface RomanticSummaryCardProps {
   summary: string;
@@ -16,21 +17,16 @@ export function RomanticSummaryCard({
   const { colors } = useTheme();
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.ghostBorder,
-        },
-      ]}
-    >
+    <View style={[styles.card, { backgroundColor: colors.surfaceLow }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Celestial Blueprint</Text>
         <TouchableOpacity onPress={onPressFullReading} activeOpacity={0.7}>
           <Text style={[styles.link, { color: colors.primary }]}>Full reading →</Text>
         </TouchableOpacity>
       </View>
+      <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+        Your romantic and intimate nature
+      </Text>
       <Text
         style={[styles.summary, { color: colors.textMuted }]}
         numberOfLines={clampLines}
@@ -43,26 +39,34 @@ export function RomanticSummaryCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: 24,
+    padding: 22,
     gap: 12,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'baseline',
+    gap: 12,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: -0.2,
+    fontFamily: SERIF_FONT,
+    fontSize: 28,
+    fontWeight: '500',
+    letterSpacing: -0.4,
   },
   link: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
+  subtitle: {
+    fontFamily: SERIF_FONT,
+    fontSize: 15,
+    fontStyle: 'italic',
+    color: 'rgba(236,232,255,0.62)',
+  },
   summary: {
+    fontFamily: SERIF_FONT,
     fontSize: 16,
     lineHeight: 24,
     fontStyle: 'italic',

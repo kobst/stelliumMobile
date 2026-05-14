@@ -8,6 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { IdentityBlock } from './IdentityBlock';
 import { PlacementRow } from './PlacementRow';
 import { AspectOverviewCard } from './AspectOverviewCard';
@@ -125,7 +126,7 @@ export function AstrologicalProfileView({
       <View
         style={[
           styles.tabBar,
-          { backgroundColor: colors.surfaceLow, borderColor: colors.ghostBorder },
+          { backgroundColor: 'rgba(255, 255, 255, 0.025)' },
         ]}
       >
         {(['reading', 'chart'] as AstrologicalProfileTab[]).map((tab) => {
@@ -138,8 +139,8 @@ export function AstrologicalProfileView({
               style={[
                 styles.tabButton,
                 isActive && {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.ghostBorder,
+                  backgroundColor: 'rgba(202, 190, 255, 0.13)',
+                  borderColor: 'rgba(202, 190, 255, 0.30)',
                 },
               ]}
             >
@@ -169,7 +170,7 @@ export function AstrologicalProfileView({
           <View
             style={[
               styles.overviewCard,
-              { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+              { backgroundColor: colors.surfaceLow },
             ]}
           >
             <Text style={[styles.overviewText, { color: colors.text }]}>{overview}</Text>
@@ -193,10 +194,15 @@ export function AstrologicalProfileView({
               onPress={onPressViewFullChart}
               style={[
                 styles.fullChartCard,
-                { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                { backgroundColor: colors.surfaceLow },
               ]}
             >
-              <View style={[styles.fullChartIcon, { borderColor: colors.ghostBorder }]}>
+              <View
+                style={[
+                  styles.fullChartIcon,
+                  { backgroundColor: 'rgba(202, 190, 255, 0.10)' },
+                ]}
+              >
                 <Text style={[styles.fullChartGlyph, { color: colors.primary }]}>◯</Text>
               </View>
               <View style={styles.fullChartText}>
@@ -267,22 +273,21 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 3,
+    borderRadius: 100,
+    padding: 4,
     gap: 4,
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: 11,
+    borderRadius: 100,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'transparent',
   },
   tabLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
   tabContent: {
@@ -295,32 +300,33 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.4,
+    fontFamily: SERIF_FONT,
+    fontSize: 32,
+    fontWeight: '500',
+    letterSpacing: -0.5,
     marginTop: 2,
   },
   subtitle: {
-    fontSize: 13,
+    fontFamily: SERIF_FONT,
+    fontSize: 14,
     fontStyle: 'italic',
     marginBottom: 4,
   },
   overviewCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 18,
+    borderRadius: 22,
+    padding: 22,
   },
   overviewText: {
-    fontSize: 15,
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
     lineHeight: 24,
     fontStyle: 'italic',
   },
   fullChartCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingVertical: 14,
+    borderRadius: 22,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     gap: 14,
   },
@@ -328,7 +334,6 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 14,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -340,8 +345,10 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   fullChartTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontFamily: SERIF_FONT,
+    fontSize: 18,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   fullChartSubtitle: {
     fontSize: 12,

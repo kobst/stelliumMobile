@@ -16,7 +16,10 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { Avatar } from '../components/Avatar';
+import { Stardust } from '../components/atmosphere/Stardust';
+import { Halo } from '../components/atmosphere/Halo';
 import { celebritiesApi, relationshipsApi, type Celebrity } from '../api';
 import {
   celebrityToSubject,
@@ -423,7 +426,11 @@ export function AddConnectionScreen() {
   ]);
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Stardust density={50} seed={6} color={colors.primary} />
+      </View>
+      <Halo color={colors.primary} size={420} opacity={0.14} top={60} left="50%" />
       <View style={styles.header}>
         <TouchableOpacity
           onPress={step === 'choose' ? handleClose : handleBackToChoose}
@@ -573,8 +580,7 @@ function UnconnectedRow({ item, busy, disabled, onPress }: UnconnectedRowProps) 
       style={[
         styles.unconnectedRow,
         {
-          backgroundColor: colors.surface,
-          borderColor: colors.ghostBorder,
+          backgroundColor: colors.surfaceLow,
           opacity: disabled ? 0.5 : 1,
         },
       ]}
@@ -619,10 +625,26 @@ function ChooseCard({ iconGlyph, iconColor, iconBg, title, body, onPress }: Choo
       onPress={onPress}
       style={[
         styles.chooseCard,
-        { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+        { backgroundColor: colors.surfaceLow },
       ]}
     >
-      <View style={[styles.chooseIcon, { backgroundColor: iconBg }]}>
+      <View
+        style={[
+          styles.chooseIcon,
+          {
+            backgroundColor: iconBg,
+            ...Platform.select({
+              ios: {
+                shadowColor: iconColor,
+                shadowOpacity: 0.45,
+                shadowRadius: 16,
+                shadowOffset: { width: 0, height: 0 },
+              },
+              android: {},
+            }),
+          },
+        ]}
+      >
         <Text style={[styles.chooseIconText, { color: iconColor }]}>{iconGlyph}</Text>
       </View>
       <View style={styles.chooseCopy}>
@@ -670,7 +692,7 @@ function CelebStep({
       <View
         style={[
           styles.searchField,
-          { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+          { backgroundColor: colors.surfaceLow },
         ]}
       >
         <Text style={[styles.searchIcon, { color: colors.textSubtle }]}>⌕</Text>
@@ -808,7 +830,7 @@ function BrowseAllButton({ onPress }: { onPress: () => void }) {
       onPress={onPress}
       style={[
         styles.browseAllButton,
-        { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+        { backgroundColor: colors.surfaceLow },
       ]}
     >
       <View style={styles.browseAllCopy}>
@@ -912,7 +934,7 @@ function CelebConfirmStep({ celeb, isCreating, onCreate }: CelebConfirmStepProps
       <View
         style={[
           styles.tierCard,
-          { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+          { backgroundColor: colors.surfaceLow },
         ]}
       >
         <Text style={[styles.tierCardHeader, { color: colors.textSubtle }]}>
@@ -984,9 +1006,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontFamily: SERIF_FONT,
+    fontSize: 20,
+    fontWeight: '500',
     fontStyle: 'italic',
+    letterSpacing: -0.2,
   },
   headerSpacer: {
     width: 60,
@@ -999,44 +1023,50 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   stepTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+    fontFamily: SERIF_FONT,
+    fontSize: 32,
+    fontWeight: '500',
+    fontStyle: 'italic',
+    letterSpacing: -0.4,
+    lineHeight: 36,
   },
   stepSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
+    fontStyle: 'italic',
+    lineHeight: 23,
   },
   chooseCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    borderWidth: 1,
-    borderRadius: 16,
+    gap: 16,
+    borderRadius: 22,
     paddingHorizontal: 18,
     paddingVertical: 18,
   },
   chooseIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chooseIconText: {
-    fontSize: 20,
+    fontSize: 22,
   },
   chooseCopy: {
     flex: 1,
     gap: 4,
   },
   chooseTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontFamily: SERIF_FONT,
+    fontSize: 22,
+    fontWeight: '500',
+    letterSpacing: -0.3,
   },
   chooseBody: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 13.5,
+    lineHeight: 19,
   },
   unconnectedBlock: {
     marginTop: 4,
@@ -1059,9 +1089,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    borderRadius: 18,
+    paddingHorizontal: 16,
     paddingVertical: 12,
   },
   unconnectedCopy: {
@@ -1084,9 +1113,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    borderRadius: 100,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 6,
   },
@@ -1163,8 +1191,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 16,
     marginTop: 18,
@@ -1195,27 +1222,32 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   confirmName: {
-    fontSize: 26,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 30,
+    fontStyle: 'italic',
+    fontWeight: '500',
+    letterSpacing: -0.4,
     textAlign: 'center',
+    marginTop: 4,
   },
   confirmMeta: {
     fontSize: 13,
     textAlign: 'center',
     marginBottom: 8,
+    letterSpacing: 0.3,
   },
   confirmBlurb: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
+    lineHeight: 24,
     fontStyle: 'italic',
     textAlign: 'center',
     paddingHorizontal: 8,
     marginBottom: 18,
   },
   tierCard: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 18,
+    borderRadius: 22,
+    padding: 20,
     gap: 12,
   },
   tierCardHeader: {
@@ -1241,14 +1273,16 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   primaryButton: {
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: 22,
+    paddingVertical: 18,
     marginTop: 8,
   },
   primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 17,
+    fontWeight: '600',
     textAlign: 'center',
+    letterSpacing: 0.05,
   },
   helperText: {
     fontSize: 13,

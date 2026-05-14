@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 
 interface SettingsNavBarProps {
   title: string;
@@ -55,9 +56,11 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 17,
-    fontWeight: '600',
+    fontFamily: SERIF_FONT,
+    fontSize: 21,
+    fontWeight: '500',
     fontStyle: 'italic',
+    letterSpacing: -0.2,
   },
   spacer: {
     width: 70,

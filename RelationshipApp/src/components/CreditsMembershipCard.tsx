@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import type { CreditsState, SubscriptionState } from '../store';
 
 interface CreditsMembershipCardProps {
@@ -48,10 +49,7 @@ export function CreditsMembershipCard({
     <View
       style={[
         styles.card,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.ghostBorder,
-        },
+        { backgroundColor: colors.surfaceLow },
       ]}
     >
       <View style={styles.topRow}>
@@ -109,9 +107,8 @@ export function CreditsMembershipCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: 24,
+    padding: 22,
     gap: 16,
   },
   topRow: {
@@ -127,13 +124,18 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   balance: {
-    fontSize: 38,
-    fontWeight: '700',
-    lineHeight: 44,
+    fontFamily: SERIF_FONT,
+    fontSize: 44,
+    fontWeight: '500',
+    fontStyle: 'italic',
+    letterSpacing: -0.6,
+    lineHeight: 48,
   },
   balanceUnit: {
-    fontSize: 15,
-    fontWeight: '500',
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
+    fontStyle: 'italic',
+    fontWeight: '400',
   },
   subBadge: {
     borderRadius: 100,
@@ -175,12 +177,14 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   primaryButton: {
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingVertical: 16,
   },
   primaryButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
+    fontWeight: '600',
     textAlign: 'center',
+    letterSpacing: 0.05,
   },
 });

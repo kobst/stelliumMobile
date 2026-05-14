@@ -1,6 +1,8 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
+import { Halo } from './atmosphere/Halo';
 import type { AskMessage } from '../store';
 
 export interface AskIrisCardCopy {
@@ -31,17 +33,24 @@ export function AskIrisCard({
   const hasHistory = Boolean(lastUserMessage && lastIrisMessage);
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.ghostBorder,
-        },
-      ]}
-    >
+    <View style={[styles.card, { backgroundColor: colors.surfaceLow }]}>
+      <Halo color={colors.tertiary} size={180} opacity={0.16} top={-60} right={-50} />
       <View style={styles.header}>
-        <View style={styles.iconBubble}>
+        <View
+          style={[
+            styles.iconBubble,
+            Platform.select({
+              ios: {
+                shadowColor: colors.tertiary,
+                shadowOpacity: 0.55,
+                shadowRadius: 14,
+                shadowOffset: { width: 0, height: 0 },
+              },
+              android: {},
+              default: {},
+            }) || {},
+          ]}
+        >
           <Text style={[styles.iconText, { color: colors.tertiary }]}>✦</Text>
         </View>
         <View style={styles.headerText}>
@@ -121,10 +130,10 @@ export function AskIrisCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 18,
+    borderRadius: 22,
+    padding: 20,
     gap: 14,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -147,11 +156,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontFamily: SERIF_FONT,
+    fontSize: 18,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 12.5,
   },
   historyBlock: {
     gap: 8,
@@ -161,8 +172,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   irisReply: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontFamily: SERIF_FONT,
+    fontSize: 14.5,
+    lineHeight: 22,
     fontStyle: 'italic',
   },
   continueLink: {
@@ -177,12 +189,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 13,
     gap: 10,
   },
   inputPlaceholder: {
     flex: 1,
-    fontSize: 13,
+    fontFamily: SERIF_FONT,
+    fontSize: 14,
     fontStyle: 'italic',
   },
   costPill: {
@@ -207,6 +220,8 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   suggestionText: {
-    fontSize: 12,
+    fontFamily: SERIF_FONT,
+    fontSize: 13,
+    fontStyle: 'italic',
   },
 });

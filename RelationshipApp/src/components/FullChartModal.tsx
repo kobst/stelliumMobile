@@ -10,8 +10,11 @@ import {
   View,
 } from 'react-native';
 import type { RelationshipTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { ChartWheel } from '../../../shared/components/chart/ChartWheel';
 import { SynastryWheel } from '../../../shared/components/chart/SynastryWheel';
+import { Stardust } from './atmosphere/Stardust';
+import { Halo } from './atmosphere/Halo';
 import type {
   BackendPlanet,
   BirthChart,
@@ -197,7 +200,11 @@ export function FullChartModal({
       onRequestClose={onClose}
       presentationStyle="fullScreen"
     >
-      <View style={[styles.root, { backgroundColor: colors.background, paddingTop: HEADER_TOP_INSET }]}>
+      <View style={[styles.root, { backgroundColor: colors.surface, paddingTop: HEADER_TOP_INSET }]}>
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <Stardust density={50} seed={5} color={colors.primary} />
+        </View>
+        <Halo color={colors.primary} size={420} opacity={0.1} top={140} left="50%" />
         <View style={styles.header}>
           <Pressable
             onPress={onClose}
@@ -259,8 +266,12 @@ export function FullChartModal({
                   style={({ pressed }) => [
                     styles.toggleButton,
                     {
-                      backgroundColor: active ? colors.surface : 'transparent',
-                      borderColor: active ? colors.ghostBorder : 'transparent',
+                      backgroundColor: active
+                        ? 'rgba(202, 190, 255, 0.13)'
+                        : 'transparent',
+                      borderColor: active
+                        ? 'rgba(202, 190, 255, 0.30)'
+                        : 'transparent',
                       opacity: pressed ? 0.7 : 1,
                     },
                   ]}
@@ -293,7 +304,7 @@ export function FullChartModal({
           <View
             style={[
               styles.legendCard,
-              { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+              { backgroundColor: colors.surfaceLow },
             ]}
           >
             <Text style={[styles.legendEyebrow, { color: colors.textSubtle }]}>Legend</Text>
@@ -343,7 +354,7 @@ export function FullChartModal({
           <View
             style={[
               styles.summaryCard,
-              { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+              { backgroundColor: colors.surfaceLow },
             ]}
           >
             {aspectsForList.length === 0 ? (
@@ -461,10 +472,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   headerTitle: {
-    fontFamily: 'Georgia',
+    fontFamily: SERIF_FONT,
     fontStyle: 'italic',
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   headerSpacer: {
     width: 50,
@@ -499,23 +511,23 @@ const styles = StyleSheet.create({
   },
   toggleRow: {
     flexDirection: 'row',
-    borderRadius: 12,
-    padding: 3,
+    borderRadius: 100,
+    padding: 4,
     marginBottom: 20,
   },
   toggleButton: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 100,
     borderWidth: 1,
   },
   toggleLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
   toggleSubtitle: {
-    fontSize: 10,
+    fontSize: 11,
     marginTop: 2,
   },
   chartFrame: {
@@ -536,9 +548,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   legendCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
+    borderRadius: 20,
+    padding: 18,
     marginBottom: 18,
   },
   legendEyebrow: {
@@ -600,9 +611,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summaryCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 16,
+    borderRadius: 20,
+    paddingHorizontal: 18,
     paddingVertical: 4,
     marginBottom: 24,
   },

@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { getInitials } from '../utils/mainShell';
 
 interface IdentityBlockProps {
@@ -27,7 +28,6 @@ export function IdentityBlock({ name, sun, moon, rising }: IdentityBlockProps) {
           styles.avatar,
           {
             backgroundColor: colors.primaryContainer,
-            borderColor: colors.primary,
           },
         ]}
       >
@@ -42,12 +42,12 @@ export function IdentityBlock({ name, sun, moon, rising }: IdentityBlockProps) {
               style={[
                 styles.chip,
                 {
-                  backgroundColor: colors.surfaceHigh,
+                  backgroundColor: 'rgba(255, 255, 255, 0.025)',
                   borderColor: colors.ghostBorder,
                 },
               ]}
             >
-              <Text style={[styles.chipIcon, { color: colors.textMuted }]}>{chip.icon}</Text>
+              <Text style={[styles.chipIcon, { color: colors.accent }]}>{chip.icon}</Text>
               <Text style={[styles.chipLabel, { color: colors.textMuted }]}>{chip.label}</Text>
             </View>
           ))}
@@ -60,25 +60,38 @@ export function IdentityBlock({ name, sun, moon, rising }: IdentityBlockProps) {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 4,
+    gap: 16,
+    paddingVertical: 8,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 1,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#cabeff',
+        shadowOpacity: 0.4,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 8 },
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   avatarText: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 34,
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
   name: {
-    fontSize: 26,
-    fontWeight: '700',
-    letterSpacing: -0.2,
+    fontFamily: SERIF_FONT,
+    fontSize: 32,
+    fontWeight: '500',
+    letterSpacing: -0.4,
   },
   chipRow: {
     flexDirection: 'row',
@@ -89,17 +102,17 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
     borderWidth: 1,
     borderRadius: 100,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
   chipIcon: {
-    fontSize: 11,
+    fontSize: 13,
   },
   chipLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

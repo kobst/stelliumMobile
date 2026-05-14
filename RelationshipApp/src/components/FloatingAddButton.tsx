@@ -49,13 +49,13 @@ export function FloatingAddButton({
 
 const shadowStyle = Platform.select({
   ios: {
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: '#cabeff',
+    shadowOpacity: 0.55,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 10 },
   },
   android: {
-    elevation: 8,
+    elevation: 10,
   },
   default: {},
 });

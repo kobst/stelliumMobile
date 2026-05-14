@@ -16,6 +16,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
 import { useOwnedSubjects } from '../hooks/useOwnedSubjects';
 import { buildHistorySelectionState } from './historySelection';
@@ -27,6 +28,9 @@ import {
 } from '../utils/mainShell';
 import { getUnconnectedSubjects } from '../utils/unconnectedSubjects';
 import { CreditPill } from '../components/CreditPill';
+import { SectionLabel } from '../components/SectionLabel';
+import { Stardust } from '../components/atmosphere/Stardust';
+import { Halo } from '../components/atmosphere/Halo';
 import { FilterDropdown } from '../components/FilterDropdown';
 import { FilterSheet, type FilterSheetOption } from '../components/FilterSheet';
 import { ShapeGlyph } from '../components/shape/ShapeGlyph';
@@ -551,8 +555,14 @@ export const HistoryScreen: React.FC = () => {
     });
   }
 
+  const totalConnections = relationshipHistory.length;
+
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Stardust density={60} seed={2} color={colors.primary} />
+      </View>
+      <Halo color={colors.primary} size={420} opacity={0.1} top={60} left="50%" />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -578,9 +588,14 @@ export const HistoryScreen: React.FC = () => {
         </View>
 
         <View style={styles.headerBlock}>
-          <Text style={[styles.title, { color: colors.text }]}>Relationships</Text>
+          <SectionLabel>
+            {`Relationships · ${totalConnections}`}
+          </SectionLabel>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Connections<Text style={{ color: colors.accent }}>.</Text>
+          </Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            Your connections and how your charts interact.
+            The charts you keep close, ranked by how your skies move together.
           </Text>
         </View>
 
@@ -882,21 +897,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pageTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 26,
+    fontWeight: '500',
     fontStyle: 'italic',
+    letterSpacing: -0.3,
   },
   headerBlock: {
-    gap: 6,
+    gap: 10,
   },
   title: {
-    fontSize: 30,
-    fontWeight: '700',
-    letterSpacing: -0.4,
+    fontFamily: SERIF_FONT,
+    fontSize: 48,
+    fontWeight: '500',
+    letterSpacing: -0.6,
+    lineHeight: 52,
+    marginTop: 4,
   },
   subtitle: {
-    fontSize: 13.5,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 2,
+    maxWidth: 320,
   },
   filterRow: {
     flexDirection: 'row',

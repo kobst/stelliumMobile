@@ -888,11 +888,12 @@ const styles = StyleSheet.create({
   },
   topHeaderTitle: {
     flex: 1,
+    fontFamily: 'Georgia',
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '500',
     fontStyle: 'italic',
     textAlign: 'center',
-    letterSpacing: 3,
+    letterSpacing: -0.2,
   },
   progressRowWrap: {
     marginBottom: 10,
@@ -909,16 +910,21 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   heroTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    lineHeight: 34,
+    fontFamily: 'Georgia',
+    fontSize: 32,
+    fontStyle: 'italic',
+    fontWeight: '500',
+    letterSpacing: -0.4,
+    lineHeight: 36,
     textAlign: 'center',
   },
   heroSubtitle: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontFamily: 'Georgia',
+    fontSize: 16,
+    fontStyle: 'italic',
+    lineHeight: 24,
     textAlign: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
   },
   formCard: {
     flex: 1,
@@ -1001,8 +1007,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   confirmCard: {
-    borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 22,
     overflow: 'hidden',
   },
   confirmRow: {

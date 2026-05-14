@@ -14,6 +14,7 @@ import { Celebrity, CollectionCeleb, discoverApi, relationshipsApi } from '../ap
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { Avatar } from '../components/Avatar';
 import { celebrityToSubject, getCelebritySunSign } from '../utils/mainShell';
 import { startRelationshipPreview } from './previewFlow';
@@ -387,15 +388,20 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    lineHeight: 32,
+    fontFamily: SERIF_FONT,
+    fontSize: 32,
+    fontStyle: 'italic',
+    fontWeight: '500',
+    letterSpacing: -0.5,
+    lineHeight: 36,
     textAlign: 'center',
+    marginTop: 4,
   },
   meta: {
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
   pillRow: {
     flexDirection: 'row',
@@ -415,12 +421,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tagline: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
+    lineHeight: 24,
     fontStyle: 'italic',
     textAlign: 'center',
-    paddingHorizontal: 8,
-    marginTop: 6,
+    paddingHorizontal: 12,
+    marginTop: 8,
   },
   errorText: {
     fontSize: 14,
@@ -447,22 +454,24 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   primaryButton: {
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: 22,
+    paddingVertical: 18,
     alignItems: 'center',
   },
   primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: 0.05,
   },
   secondaryButton: {
-    borderRadius: 14,
+    borderRadius: 22,
     borderWidth: 1,
     paddingVertical: 16,
     alignItems: 'center',
   },
   secondaryButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
 });

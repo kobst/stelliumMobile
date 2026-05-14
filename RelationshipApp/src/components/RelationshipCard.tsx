@@ -1,8 +1,10 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { Avatar } from './Avatar';
 import { AvatarPair } from './AvatarPair';
+import { Halo } from './atmosphere/Halo';
 import type { MiniRadarScores } from './MiniRadar';
 import { ShapeBadge } from './shape/ShapeBadge';
 import { ModifierChipRow } from './shape/ModifierChipRow';
@@ -53,20 +55,27 @@ export function RelationshipCard(props: RelationshipCardProps) {
   const hasScores = Boolean(scores);
 
   const displayName = mode === 'single' ? props.name : props.pairLabel;
+  const isLowSignal = hasScores && scores
+    ? Object.values(scores).every((value) => (value ?? 0) < LOW_THRESHOLD)
+    : false;
 
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onPress}
-      style={[
-        styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-      ]}
+      style={[styles.card, { backgroundColor: colors.surfaceLow }]}
     >
+      <Halo
+        color={isLowSignal ? '#E8856B' : colors.primary}
+        size={180}
+        opacity={isLowSignal ? 0.18 : 0.16}
+        top={-70}
+        right={-50}
+      />
       <View style={styles.topRow}>
         {mode === 'single' ? (
           <Avatar
-            size={44}
+            size={48}
             gradient={props.kind === 'celeb' ? 'gold' : 'green'}
             fallbackInitial={props.initial}
             photoUri={props.photoUri}
@@ -79,7 +88,7 @@ export function RelationshipCard(props: RelationshipCardProps) {
             rightPhotoUri={props.right.photoUri}
             rightInitial={props.right.initial}
             rightGradient="gold"
-            size={36}
+            size={40}
           />
         )}
 
@@ -102,7 +111,9 @@ export function RelationshipCard(props: RelationshipCardProps) {
         </View>
 
         {hasScores && shapeKind ? (
-          <ShapeBadge kind={shapeKind} />
+          <View style={styles.shapeColumn}>
+            <ShapeBadge kind={shapeKind} />
+          </View>
         ) : null}
       </View>
 
@@ -118,15 +129,15 @@ export function RelationshipCard(props: RelationshipCardProps) {
             const isHigh = value >= HIGH_THRESHOLD;
             const isLow = value < LOW_THRESHOLD;
             const valueColor = isHigh
-              ? colors.primary
+              ? colors.accent
               : isLow
               ? COLOR_LOW
               : colors.text;
             const cellBg = isHigh
-              ? 'rgba(202, 190, 255, 0.10)'
+              ? 'rgba(202, 190, 255, 0.06)'
               : isLow
-              ? 'rgba(232, 133, 107, 0.10)'
-              : 'rgba(255, 255, 255, 0.03)';
+              ? 'rgba(232, 133, 107, 0.06)'
+              : 'rgba(255, 255, 255, 0.025)';
             return (
               <View key={item.key} style={[styles.scoreCell, { backgroundColor: cellBg }]}>
                 <Text style={[styles.scoreValue, { color: valueColor }]}>{value}</Text>
@@ -144,11 +155,12 @@ export function RelationshipCard(props: RelationshipCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 14,
+    overflow: 'hidden',
+    position: 'relative',
   },
   topRow: {
     flexDirection: 'row',
@@ -158,42 +170,51 @@ const styles = StyleSheet.create({
   headerCopy: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: 3,
   },
   name: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontFamily: SERIF_FONT,
+    fontSize: 21,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   statusLine: {
     fontSize: 12,
     fontStyle: 'italic',
   },
   archetype: {
-    fontSize: 14.5,
+    fontFamily: SERIF_FONT,
+    fontSize: 15,
     fontStyle: 'italic',
-    fontWeight: '600',
-    fontFamily: 'Georgia',
+    fontWeight: '500',
+  },
+  shapeColumn: {
+    alignItems: 'center',
+    gap: 4,
   },
   scoreStrip: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 6,
   },
   scoreCell: {
     flex: 1,
     alignItems: 'center',
-    borderRadius: 8,
-    paddingVertical: 6,
+    borderRadius: 12,
+    paddingTop: 10,
+    paddingBottom: 8,
     paddingHorizontal: 2,
-    gap: 2,
+    gap: 6,
   },
   scoreValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    fontFamily: 'Georgia',
+    fontFamily: SERIF_FONT,
+    fontSize: 22,
+    fontWeight: '500',
+    fontStyle: 'italic',
+    letterSpacing: -0.4,
   },
   scoreLabel: {
-    fontSize: 8.5,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.4,
   },
 });

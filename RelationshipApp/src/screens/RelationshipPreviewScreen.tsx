@@ -13,6 +13,7 @@ import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { useRelationshipAppStore } from '../store';
 import { Avatar } from '../components/Avatar';
 import { CreditPill } from '../components/CreditPill';
@@ -20,6 +21,8 @@ import { AskIrisCard } from '../components/AskIrisCard';
 import { ModifierChipRow } from '../components/shape/ModifierChipRow';
 import { ShapePatternCard } from '../components/shape/ShapePatternCard';
 import { SHAPE_TOKENS } from '../components/shape/shapeTokens';
+import { Stardust } from '../components/atmosphere/Stardust';
+import { Halo } from '../components/atmosphere/Halo';
 import { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
 import { relationshipsApi, discoverApi } from '../api';
 import { useRelationshipAnalysisWorkflow } from '../hooks/useRelationshipAnalysisWorkflow';
@@ -421,7 +424,11 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   }, [previewAnalysis]);
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Stardust density={60} seed={4} color={colors.primary} />
+      </View>
+      <Halo color={colors.primary} size={460} opacity={0.1} top={120} left="50%" />
       <View style={styles.navBar}>
         <TouchableOpacity
           activeOpacity={0.7}
@@ -495,7 +502,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             <View
               style={[
                 styles.softCard,
-                { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                { backgroundColor: colors.surfaceLow },
               ]}
             >
               <Text style={[styles.serifItalic, { color: colors.text }]}>{romanticBlurb}</Text>
@@ -508,7 +515,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
           <View
             style={[
               styles.loadingCard,
-              { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+              { backgroundColor: colors.surfaceLow },
             ]}
           >
             <PulseDots color={colors.primary} />
@@ -558,7 +565,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               <View
                 style={[
                   styles.keyAspectCard,
-                  { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                  { backgroundColor: colors.surfaceLow },
                 ]}
               >
                 <View
@@ -599,7 +606,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                 style={[
                   styles.softCard,
                   styles.radarCard,
-                  { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                  { backgroundColor: colors.surfaceLow },
                 ]}
               >
                 {isExceptionalMagnitude ? <View style={styles.radarGlow} /> : null}
@@ -616,7 +623,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             <View
               style={[
                 styles.unlockCard,
-                { backgroundColor: colors.surface, borderColor: 'rgba(202, 190, 255, 0.15)' },
+                { backgroundColor: colors.surfaceLow, borderColor: 'rgba(202, 190, 255, 0.20)' },
               ]}
             >
               <Text style={[styles.unlockTitle, { color: colors.text }]}>Go deeper</Text>
@@ -651,7 +658,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               <View
                 style={[
                   styles.progressCard,
-                  { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                  { backgroundColor: colors.surfaceLow },
                 ]}
               >
                 <PulseDots color={colors.primary} />
@@ -668,7 +675,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                 <View
                   style={[
                     styles.progressCard,
-                    { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+                    { backgroundColor: colors.surfaceLow },
                   ]}
                 >
                   <PulseDots color={colors.primary} />
@@ -766,7 +773,7 @@ function ExpandableReading({ text }: { text: string }) {
     <View
       style={[
         styles.softCard,
-        { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+        { backgroundColor: colors.surfaceLow },
       ]}
     >
       <Text
@@ -1039,19 +1046,22 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   identityTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 28,
+    fontWeight: '500',
     fontStyle: 'italic',
-    letterSpacing: 0.2,
-    marginTop: 4,
+    letterSpacing: -0.3,
+    marginTop: 8,
   },
   identitySubtitle: {
     fontSize: 12,
     letterSpacing: 0.4,
     textAlign: 'center',
+    marginHorizontal: 24,
   },
   identitySubtitleItalic: {
-    fontSize: 12,
+    fontFamily: SERIF_FONT,
+    fontSize: 13,
     fontStyle: 'italic',
     textAlign: 'center',
   },
@@ -1071,9 +1081,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   softCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 20,
+    borderRadius: 22,
+    padding: 22,
   },
   radarCard: {
     paddingVertical: 14,
@@ -1081,9 +1090,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   serifItalic: {
-    fontSize: 15,
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
     fontStyle: 'italic',
-    lineHeight: 23,
+    lineHeight: 24,
   },
   expandToggle: {
     alignSelf: 'flex-start',
@@ -1101,8 +1111,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   loadingCard: {
-    borderRadius: 18,
-    borderWidth: 1,
+    borderRadius: 22,
     paddingVertical: 28,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -1164,27 +1173,31 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
   },
   archetypeLabel: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 42,
+    fontWeight: '500',
     fontStyle: 'italic',
+    letterSpacing: -0.6,
     textAlign: 'center',
+    lineHeight: 46,
   },
   archetypeBlurb: {
-    fontSize: 14.5,
-    lineHeight: 22,
+    fontFamily: SERIF_FONT,
+    fontSize: 16,
+    lineHeight: 24,
     fontStyle: 'italic',
     textAlign: 'center',
     paddingHorizontal: 10,
     maxWidth: 320,
+    marginTop: 4,
   },
   keyAspectCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   keyAspectBadge: {
     borderRadius: 8,
@@ -1203,12 +1216,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   unlockCard: {
-    borderRadius: 18,
+    borderRadius: 24,
     borderWidth: 1,
-    paddingVertical: 22,
-    paddingHorizontal: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 22,
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    overflow: 'hidden',
   },
   unlockTitle: {
     fontSize: 16,
@@ -1238,9 +1252,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   progressCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    paddingVertical: 20,
+    borderRadius: 22,
+    paddingVertical: 22,
     paddingHorizontal: 20,
     alignItems: 'center',
     gap: 8,

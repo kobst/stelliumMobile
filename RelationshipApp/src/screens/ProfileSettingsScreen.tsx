@@ -5,8 +5,11 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { getBigThree } from '../utils/mainShell';
 import { CreditPill } from '../components/CreditPill';
+import { Stardust } from '../components/atmosphere/Stardust';
+import { Halo } from '../components/atmosphere/Halo';
 import { IdentityBlock } from '../components/IdentityBlock';
 import { RomanticSummaryCard } from '../components/RomanticSummaryCard';
 import { AskIrisCard } from '../components/AskIrisCard';
@@ -208,7 +211,11 @@ export function ProfileSettingsScreen() {
   }, [resetSession]);
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Stardust density={60} seed={8} color={colors.primary} />
+      </View>
+      <Halo color={colors.primary} size={460} opacity={0.12} top={60} left="50%" />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -286,9 +293,11 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   pageTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 26,
+    fontWeight: '500',
     fontStyle: 'italic',
+    letterSpacing: -0.3,
   },
   sectionLabel: {
     fontSize: 11,

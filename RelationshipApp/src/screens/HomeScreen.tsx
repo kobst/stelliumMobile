@@ -16,17 +16,20 @@ import { MainTabParamList } from '../navigation/MainTabs';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
 import { useWeeklyArticle } from '../hooks/useWeeklyArticle';
-import { getBigThreeSummary } from '../utils/mainShell';
 import { CreditPill } from '../components/CreditPill';
 import { SectionLabel } from '../components/SectionLabel';
+import { SignsRow } from '../components/SignsRow';
 import { TopCelebMatchesRail } from '../components/TopCelebMatchesRail';
 import { PersonalHoroscopeCard } from '../components/PersonalHoroscopeCard';
 import { WeeklyDispatchCard } from '../components/WeeklyDispatchCard';
 import { ThisWeekTogetherSection } from '../components/ThisWeekTogetherSection';
 import { QuickActionsRow, type QuickAction } from '../components/QuickActionsRow';
 import { HomeAskIrisCard } from '../components/HomeAskIrisCard';
+import { Stardust } from '../components/atmosphere/Stardust';
+import { Halo } from '../components/atmosphere/Halo';
 import { buildHistorySelectionState } from './historySelection';
 import type { UserCompositeChart } from '../../../shared/api/relationships';
 
@@ -56,7 +59,6 @@ export const HomeScreen: React.FC = () => {
   const { article: weeklyArticle, state: weeklyArticleState } = useWeeklyArticle();
 
   const userId = profile?.id ?? null;
-  const bigThree = useMemo(() => getBigThreeSummary(profile), [profile]);
 
   const openRelationship = useCallback(
     (relationship: UserCompositeChart) => {
@@ -109,7 +111,11 @@ export const HomeScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Stardust density={70} seed={1} color={colors.primary} />
+      </View>
+      <Halo color={colors.primary} size={520} opacity={0.1} top={40} left="50%" />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -120,13 +126,14 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         <View style={styles.headerBlock}>
+          <View pointerEvents="none">
+            <Halo color={colors.primary} size={280} opacity={0.13} top={-90} left="35%" />
+          </View>
           <SectionLabel>Home</SectionLabel>
           <Text style={[styles.title, { color: colors.text }]}>
             {profile?.firstName ? `Hi ${profile.firstName}.` : 'Hi.'}
           </Text>
-          {bigThree ? (
-            <Text style={[styles.subtitle, { color: colors.textSubtle }]}>{bigThree}</Text>
-          ) : null}
+          <SignsRow profile={profile} />
         </View>
 
         <PersonalHoroscopeCard userId={userId} />
@@ -145,7 +152,7 @@ export const HomeScreen: React.FC = () => {
 
         <View style={styles.celebSection}>
           <SectionLabel>Your Chart in the Wild</SectionLabel>
-          <Text style={[styles.celebSubtitle, { color: colors.textSubtle }]}>
+          <Text style={[styles.celebSubtitle, { color: colors.textMuted }]}>
             Celebs whose charts resonate with yours this week
           </Text>
           <TopCelebMatchesRail
@@ -181,27 +188,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   brand: {
-    fontSize: 22,
+    fontFamily: SERIF_FONT,
+    fontSize: 26,
     fontStyle: 'italic',
-    fontWeight: '600',
+    fontWeight: '500',
+    letterSpacing: -0.3,
   },
   headerBlock: {
-    gap: 6,
+    gap: 10,
+    position: 'relative',
   },
   title: {
-    fontSize: 30,
-    fontWeight: '700',
-    lineHeight: 36,
-  },
-  subtitle: {
-    fontSize: 13,
+    fontFamily: SERIF_FONT,
+    fontSize: 42,
+    fontStyle: 'italic',
+    fontWeight: '400',
+    lineHeight: 46,
+    letterSpacing: -0.5,
   },
   celebSection: {
-    gap: 4,
+    gap: 6,
   },
   celebSubtitle: {
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: 13,
+    marginBottom: 6,
   },
   quickActionsBlock: {
     gap: 12,

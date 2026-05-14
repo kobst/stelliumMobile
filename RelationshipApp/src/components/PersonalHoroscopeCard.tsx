@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../theme';
+import { SERIF_FONT } from '../theme/typography';
 import { relationshipHoroscopesApi, type RomanceHoroscopeDocument } from '../api';
 import {
   composeHoroscopeHeadline,
@@ -10,6 +11,7 @@ import {
   splitInterpretationParagraphs,
 } from '../utils/horoscopeFormat';
 import type { RelationshipRootParamList } from '../navigation/RootNavigator';
+import { Halo } from './atmosphere/Halo';
 
 interface PersonalHoroscopeCardProps {
   userId: string | null;
@@ -56,12 +58,8 @@ export function PersonalHoroscopeCard({ userId }: PersonalHoroscopeCardProps) {
   const previewText = paragraphs[0] ?? '';
 
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-      ]}
-    >
+    <View style={[styles.card, { backgroundColor: colors.surfaceLow }]}>
+      <Halo color={colors.primary} size={220} opacity={0.12} top={-60} right={-60} />
       <View style={styles.headerRow}>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>Your Week in Love</Text>
         {dateRange ? (
@@ -122,9 +120,8 @@ export function PersonalHoroscopeCard({ userId }: PersonalHoroscopeCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 20,
+    borderRadius: 24,
+    padding: 22,
     gap: 12,
     overflow: 'hidden',
   },
@@ -136,19 +133,23 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 2.2,
     textTransform: 'uppercase',
   },
   dateRange: {
-    fontSize: 11,
+    fontSize: 12,
+    letterSpacing: 0.4,
   },
   headline: {
-    fontSize: 20,
-    fontWeight: '700',
-    lineHeight: 26,
+    fontFamily: SERIF_FONT,
+    fontSize: 24,
+    fontWeight: '500',
+    lineHeight: 30,
+    letterSpacing: -0.3,
   },
   body: {
-    fontSize: 14,
+    fontFamily: SERIF_FONT,
+    fontSize: 15,
     lineHeight: 22,
     fontStyle: 'italic',
   },

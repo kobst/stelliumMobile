@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { useTheme } from '../theme';
 
 interface FilterDropdownProps {
@@ -10,15 +10,19 @@ interface FilterDropdownProps {
 
 export function FilterDropdown({ label, active, onPress }: FilterDropdownProps) {
   const { colors } = useTheme();
+  const accentBorder = active
+    ? 'rgba(202, 190, 255, 0.35)'
+    : 'rgba(202, 190, 255, 0.12)';
+  const fill = active ? 'rgba(202, 190, 255, 0.10)' : 'rgba(255, 255, 255, 0.025)';
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.pill,
         {
-          backgroundColor: active ? colors.surfaceHigh : colors.surface,
-          borderColor: active ? colors.ghostBorder : 'transparent',
-          opacity: pressed ? 0.75 : 1,
+          backgroundColor: fill,
+          borderColor: accentBorder,
+          opacity: pressed ? 0.78 : 1,
         },
       ]}
     >
@@ -45,17 +49,19 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     borderRadius: 100,
     borderWidth: 1,
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
   label: {
-    fontSize: 12.5,
+    fontSize: 13,
+    letterSpacing: 0.05,
   },
   caret: {
     fontSize: 10,
     marginTop: 1,
+    opacity: 0.7,
   },
 });
