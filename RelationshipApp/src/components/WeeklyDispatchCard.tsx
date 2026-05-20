@@ -74,7 +74,8 @@ interface HeroTokens {
 }
 
 function buildHeroTokens(article: WeeklyArticle | null): HeroTokens {
-  const symbols = article?.content.heroSymbols ?? [];
+  const raw = article?.content.heroSymbols;
+  const symbols: string[] = Array.isArray(raw) ? raw.filter((value): value is string => typeof value === 'string') : [];
   const planets = symbols.filter(isPlanet);
   const aspect = symbols.find(isAspect) ?? null;
   return {

@@ -3,6 +3,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../theme';
 import { SERIF_FONT } from '../theme/typography';
 import { getInitials } from '../utils/mainShell';
+import { PlacementChip, type PlacementLabel } from './PlacementChip';
 
 interface IdentityBlockProps {
   name: string;
@@ -11,24 +12,27 @@ interface IdentityBlockProps {
   rising: string | null;
 }
 
+interface Item {
+  sign: string;
+  label: PlacementLabel;
+}
+
 export function IdentityBlock({ name, sun, moon, rising }: IdentityBlockProps) {
   const { colors } = useTheme();
   const initial = getInitials(name) || '·';
 
-  const chips = [
-    sun ? { icon: '☉', label: `${sun} Sun` } : null,
-    moon ? { icon: '☽', label: `${moon} Moon` } : null,
-    rising ? { icon: '↑', label: `${rising} Rising` } : null,
-  ].filter((chip): chip is { icon: string; label: string } => chip !== null);
+  const chips: Item[] = [
+    sun ? { sign: sun, label: 'Sun' as const } : null,
+    moon ? { sign: moon, label: 'Moon' as const } : null,
+    rising ? { sign: rising, label: 'Rising' as const } : null,
+  ].filter((chip): chip is Item => chip !== null);
 
   return (
     <View style={styles.container}>
       <View
         style={[
           styles.avatar,
-          {
-            backgroundColor: colors.primaryContainer,
-          },
+          { backgroundColor: colors.primaryContainer },
         ]}
       >
         <Text style={[styles.avatarText, { color: colors.primary }]}>{initial}</Text>
@@ -37,19 +41,7 @@ export function IdentityBlock({ name, sun, moon, rising }: IdentityBlockProps) {
       {chips.length > 0 ? (
         <View style={styles.chipRow}>
           {chips.map((chip) => (
-            <View
-              key={chip.label}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: 'rgba(255, 255, 255, 0.025)',
-                  borderColor: colors.ghostBorder,
-                },
-              ]}
-            >
-              <Text style={[styles.chipIcon, { color: colors.accent }]}>{chip.icon}</Text>
-              <Text style={[styles.chipLabel, { color: colors.textMuted }]}>{chip.label}</Text>
-            </View>
+            <PlacementChip key={chip.label} sign={chip.sign} label={chip.label} />
           ))}
         </View>
       ) : null}
@@ -98,21 +90,5 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 8,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    borderWidth: 1,
-    borderRadius: 100,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  chipIcon: {
-    fontSize: 13,
-  },
-  chipLabel: {
-    fontSize: 13,
-    fontWeight: '500',
   },
 });
