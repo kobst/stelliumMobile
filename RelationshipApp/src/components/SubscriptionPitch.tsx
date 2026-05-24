@@ -1,7 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
-  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -9,7 +7,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../theme';
 import { useRelationshipAppStore } from '../store';
-import { CREDIT_PACKAGES } from '../api/credits';
+import { CREDIT_PACKAGES, getBillingProducts } from '../api/credits';
 
 export type SubscriptionPitchMode = 'settings' | 'paywall' | 'upsell';
 
@@ -28,14 +26,9 @@ interface SubscriptionPitchProps {
 
 const PERKS: readonly string[] = [
   '200 credits every month',
-  'Credits roll over (up to 400)',
-  'Priority access to new features',
-  'Unlimited conversation history',
+  'Full relationship analyses and Ask Iris',
+  'Purchased credit packs never expire',
 ];
-
-const APP_STORE_SUBSCRIPTION_URL = 'https://apps.apple.com/account/subscriptions';
-
-const APP_STORE_FALLBACK_ALERT = 'Open the App Store and manage subscriptions from your account.';
 
 function formatDayMonth(iso: string | null): string | null {
   if (!iso) {
@@ -66,6 +59,27 @@ export function SubscriptionPitch({
   const { colors } = useTheme();
   const credits = useRelationshipAppStore((state) => state.credits);
   const subscription = useRelationshipAppStore((state) => state.subscription);
+  const [creditPackages, setCreditPackages] = useState(CREDIT_PACKAGES);
+  const [monthlyPriceLabel, setMonthlyPriceLabel] = useState('$20.00');
+
+  useEffect(() => {
+    let active = true;
+    getBillingProducts()
+      .then((products) => {
+        if (!active) {
+          return;
+        }
+        setCreditPackages(products.creditPacks);
+        const monthly = products.plans.find((plan) => plan.productKey === 'IRIS_MONTHLY');
+        setMonthlyPriceLabel(monthly?.priceLabel ?? '$20.00');
+      })
+      .catch(() => {
+        // Keep the Iris-only fallback catalog when product discovery is unavailable.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const isSubscribed = subscription ? subscription.tier !== 'free' : false;
 
@@ -104,19 +118,6 @@ export function SubscriptionPitch({
   const handleSubscribePress = () => {
     if (onPressSubscribe) {
       onPressSubscribe();
-      return;
-    }
-    Alert.alert(
-      'Subscribe',
-      'Subscription checkout will open here once RevenueCat is wired.'
-    );
-  };
-
-  const handleManageInAppStore = async () => {
-    try {
-      await Linking.openURL(APP_STORE_SUBSCRIPTION_URL);
-    } catch {
-      Alert.alert('Manage subscription', APP_STORE_FALLBACK_ALERT);
     }
   };
 
@@ -236,7 +237,7 @@ export function SubscriptionPitch({
         {isSubscribed && mode === 'settings' ? 'Buy More Credits' : 'Or buy a credit pack'}
       </Text>
       <View style={styles.packRow}>
-        {CREDIT_PACKAGES.map((pkg) => {
+        {creditPackages.map((pkg) => {
           const isBest = pkg.bonusLabel === 'Most popular' || pkg.bonusLabel === 'Best value';
           return (
             <TouchableOpacity
@@ -268,24 +269,7 @@ export function SubscriptionPitch({
         })}
       </View>
 
-      {isSubscribed && mode === 'settings' ? (
-        <View
-          style={[
-            styles.manageFooter,
-            { borderTopColor: colors.ghostBorder },
-          ]}
-        >
-          <Text style={[styles.manageFooterBody, { color: colors.textSubtle }]}>
-            To change or cancel your subscription, you'll be taken to your device's subscription
-            settings.
-          </Text>
-          <TouchableOpacity activeOpacity={0.7} onPress={handleManageInAppStore}>
-            <Text style={[styles.manageFooterAction, { color: colors.error }]}>
-              Manage in App Store →
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
+      {!isSubscribed || mode !== 'settings' ? (
         <>
           <TouchableOpacity
             activeOpacity={0.85}
@@ -293,12 +277,12 @@ export function SubscriptionPitch({
             style={[styles.subscribeButton, { backgroundColor: colors.primary }]}
           >
             <Text style={[styles.subscribeText, { color: colors.onPrimary }]}>
-              Subscribe · {credits?.planPriceLabel ?? '$9.99'}/month
+              Subscribe · {credits?.planPriceLabel ?? monthlyPriceLabel}/month
             </Text>
           </TouchableOpacity>
           <Text style={[styles.cancelCaption, { color: colors.textSubtle }]}>Cancel anytime</Text>
         </>
-      )}
+      ) : null}
     </View>
   );
 }

@@ -7,12 +7,6 @@ import type {
   SubscriptionTier,
 } from '../store';
 
-const STUB_DELAY_MS = 250;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export interface CreditPackage {
   id: string;
   credits: number;
@@ -21,10 +15,34 @@ export interface CreditPackage {
 }
 
 export const CREDIT_PACKAGES: readonly CreditPackage[] = [
-  { id: 'credits_20', credits: 20, priceLabel: '$1.99' },
-  { id: 'credits_60', credits: 60, priceLabel: '$4.99', bonusLabel: 'Most popular' },
-  { id: 'credits_150', credits: 150, priceLabel: '$9.99', bonusLabel: 'Best value' },
+  { id: 'IRIS_CREDITS_100', credits: 100, priceLabel: '$10.00' },
 ];
+
+interface BillingPlan {
+  productKey: string;
+  displayName: string;
+  interval: 'month' | 'one_time';
+  priceLabel: string;
+  monthlyCredits?: number;
+}
+
+interface BillingProductsResponse {
+  success?: boolean;
+  plans?: BillingPlan[];
+  creditPacks?: Array<{
+    productKey: string;
+    credits: number;
+    priceLabel: string;
+  }>;
+}
+
+export interface BillingProducts {
+  plans: BillingPlan[];
+  creditPacks: CreditPackage[];
+}
+
+const PURCHASE_PROVIDER_PENDING_MESSAGE =
+  'Purchases will be enabled by the configured Iris payment provider.';
 
 // ── /relationship-app/users/:userId/entitlements ────────────────────────────
 interface EntitlementsResponse {
@@ -51,35 +69,43 @@ export interface Entitlements {
 }
 
 function toNumber(value: unknown): number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
   if (typeof value === 'string') {
     const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
   }
   return 0;
 }
 
 function planPriceLabelFor(plan: string | null | undefined): string | null {
-  if (plan === 'monthly') return '$9.99';
-  if (plan === 'annual') return '$79.99';
+  if (plan === 'plus' || plan === 'monthly') {
+    return '$20.00';
+  }
   return null;
 }
 
 function planDisplayName(plan: string | null | undefined): string | null {
-  if (plan === 'monthly') return 'Iris Monthly';
-  if (plan === 'annual') return 'Iris Annual';
+  if (plan === 'plus' || plan === 'monthly') {
+    return 'Iris Monthly';
+  }
   return null;
 }
 
 function subscriptionTier(plan: string | null | undefined): SubscriptionTier {
-  if (plan === 'monthly') return 'monthly';
-  if (plan === 'annual') return 'annual';
+  if (plan === 'plus' || plan === 'monthly') {
+    return 'monthly';
+  }
   return 'free';
 }
 
 function subscriptionLabel(tier: SubscriptionTier): string {
-  if (tier === 'monthly') return 'Monthly';
-  if (tier === 'annual') return 'Annual';
+  if (tier === 'monthly') {
+    return 'Monthly';
+  }
   return 'Free';
 }
 
@@ -133,6 +159,36 @@ export async function getCreditBalance(userId: string): Promise<CreditsState> {
 export async function getSubscription(userId: string): Promise<SubscriptionState> {
   const { subscription } = await getEntitlements(userId);
   return subscription;
+}
+
+export async function getBillingProducts(): Promise<BillingProducts> {
+  const response = await relationshipApiClient.get<BillingProductsResponse>(
+    '/relationship-app/billing/products'
+  );
+  if (response && response.success === false) {
+    throw new Error('Failed to load billing products');
+  }
+
+  return {
+    plans: response?.plans ?? [],
+    creditPacks:
+      response?.creditPacks?.map((pack) => ({
+        id: pack.productKey,
+        credits: pack.credits,
+        priceLabel: pack.priceLabel,
+      })) ?? [...CREDIT_PACKAGES],
+  };
+}
+
+export async function purchaseCredits(packageId: string): Promise<CreditsState> {
+  if (packageId !== 'IRIS_CREDITS_100') {
+    throw new Error('This credit pack is no longer available.');
+  }
+  throw new Error(PURCHASE_PROVIDER_PENDING_MESSAGE);
+}
+
+export async function restorePurchases(): Promise<CreditsState> {
+  throw new Error(PURCHASE_PROVIDER_PENDING_MESSAGE);
 }
 
 // ── /api/credits/transactions ───────────────────────────────────────────────
@@ -269,20 +325,4 @@ export async function getCreditHistory(): Promise<CreditTransaction[]> {
       const bValid = Number.isFinite(bTs) ? bTs : 0;
       return bValid - aValid;
     });
-}
-
-// ── Unimplemented: purchase/restore still use local stubs until the store
-// ── endpoints ship.  Keep these here so existing call sites don't break.
-export async function purchaseCredits(packageId: string): Promise<CreditsState> {
-  await delay(STUB_DELAY_MS);
-  const pkg = CREDIT_PACKAGES.find((candidate) => candidate.id === packageId);
-  if (!pkg) {
-    throw new Error(`Unknown credit package: ${packageId}`);
-  }
-  throw new Error('Credit purchases are not wired to the backend yet.');
-}
-
-export async function restorePurchases(): Promise<CreditsState> {
-  await delay(STUB_DELAY_MS);
-  throw new Error('Restore purchases is not wired to the backend yet.');
 }

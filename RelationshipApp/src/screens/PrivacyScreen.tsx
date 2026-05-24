@@ -67,7 +67,7 @@ export function PrivacyScreen() {
       key: 'purchases',
       icon: '◆',
       label: 'Purchase history',
-      subtitle: 'Managed securely through the App Store.',
+      subtitle: 'Stored securely with your Iris account.',
       alignTop: true,
     },
   ];
@@ -156,7 +156,7 @@ export function PrivacyScreen() {
               <Text style={[styles.dangerTitle, { color: colors.error }]}>Are you sure?</Text>
               <Text style={[styles.dangerBody, { color: colors.textSubtle }]}>
                 All your data will be permanently deleted. Any remaining credits will be lost.
-                Active subscriptions must be cancelled separately in your App Store settings.
+                Active subscriptions must be cancelled separately before deleting your account.
               </Text>
               <View style={styles.confirmRow}>
                 <TouchableOpacity

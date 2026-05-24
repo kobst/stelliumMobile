@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useTheme } from '../theme';
-import { CREDIT_PACKAGES, type CreditPackage } from '../api/credits';
+import { CREDIT_PACKAGES, getBillingProducts, type CreditPackage } from '../api/credits';
 
 interface PurchaseCreditsSheetProps {
   visible: boolean;
@@ -22,6 +22,26 @@ export function PurchaseCreditsSheet({
   onSelectPackage,
 }: PurchaseCreditsSheetProps) {
   const { colors } = useTheme();
+  const [creditPackages, setCreditPackages] = useState(CREDIT_PACKAGES);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    let active = true;
+    getBillingProducts()
+      .then((products) => {
+        if (active) {
+          setCreditPackages(products.creditPacks);
+        }
+      })
+      .catch(() => {
+        // Keep the Iris-only fallback catalog when product discovery is unavailable.
+      });
+    return () => {
+      active = false;
+    };
+  }, [visible]);
 
   return (
     <Modal
@@ -49,11 +69,11 @@ export function PurchaseCreditsSheet({
           />
           <Text style={[styles.title, { color: colors.text }]}>Buy credits</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            Credits never expire. RevenueCat checkout coming soon.
+            Purchased credits never expire.
           </Text>
 
           <View style={styles.packageList}>
-            {CREDIT_PACKAGES.map((pkg) => (
+            {creditPackages.map((pkg) => (
               <TouchableOpacity
                 key={pkg.id}
                 activeOpacity={0.85}

@@ -21,7 +21,7 @@ export type RelationshipAuthStatus = 'booting' | 'signedOut' | 'signedIn';
 export type RelationshipBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type RelationshipWorkflowPhase = 'idle' | 'starting' | 'polling' | 'completed' | 'error';
 
-export type SubscriptionTier = 'free' | 'monthly' | 'annual';
+export type SubscriptionTier = 'free' | 'monthly';
 
 export interface CreditsState {
   balance: number;
