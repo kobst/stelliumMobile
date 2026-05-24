@@ -18,7 +18,11 @@ import { SettingsList, type SettingsRowConfig } from '../components/SettingsList
 import { PurchaseCreditsSheet } from '../components/PurchaseCreditsSheet';
 import { SignOutSheet } from '../components/SignOutSheet';
 import { DevSessionPanel } from '../components/DevSessionPanel';
-import { getEntitlements, purchaseCredits, restorePurchases } from '../api/credits';
+import { getEntitlements } from '../api/credits';
+import {
+  purchaseIrisCreditPack100,
+  restoreIrisPurchases,
+} from '../services/irisRevenueCatService';
 
 const PROFILE_THREAD_KEY = 'profile' as const;
 
@@ -118,9 +122,17 @@ export function ProfileSettingsScreen() {
   const handleSelectPackage = useCallback(
     async (pkg: { id: string }) => {
       setSheetVisible(false);
+      if (!profileId) {
+        Alert.alert('Sign in required', 'Sign in before purchasing credits.');
+        return;
+      }
       try {
-        const next = await purchaseCredits(pkg.id);
-        setCredits(next);
+        if (pkg.id !== 'IRIS_CREDITS_100') {
+          throw new Error('This credit pack is no longer available.');
+        }
+        const next = await purchaseIrisCreditPack100(profileId);
+        setCredits(next.credits);
+        setSubscription(next.subscription);
       } catch (error) {
         Alert.alert(
           'Purchase failed',
@@ -128,17 +140,22 @@ export function ProfileSettingsScreen() {
         );
       }
     },
-    [setCredits]
+    [profileId, setCredits, setSubscription]
   );
 
   const handleRestore = useCallback(async () => {
+    if (!profileId) {
+      Alert.alert('Sign in required', 'Sign in before restoring purchases.');
+      return;
+    }
     if (isRestoring) {
       return;
     }
     setIsRestoring(true);
     try {
-      const next = await restorePurchases();
-      setCredits(next);
+      const next = await restoreIrisPurchases(profileId);
+      setCredits(next.credits);
+      setSubscription(next.subscription);
       Alert.alert('Purchases restored', 'Your purchases have been restored to this device.');
     } catch (error) {
       Alert.alert(
@@ -148,7 +165,7 @@ export function ProfileSettingsScreen() {
     } finally {
       setIsRestoring(false);
     }
-  }, [isRestoring, setCredits]);
+  }, [isRestoring, profileId, setCredits, setSubscription]);
 
   const settingsRows = useMemo<readonly SettingsRowConfig[]>(
     () => [

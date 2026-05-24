@@ -83,13 +83,21 @@ Iris provider path.
    RevenueCat branch until accepted.
 5. Do not couple Iris purchase work to Stellium mobile billing configuration.
 
-## Next RevenueCat Work
+## RevenueCat Native Configuration
 
-Configure an Iris RevenueCat Test Store offering for:
+The Test Store catalog configured for this branch is:
 
-- `IRIS_MONTHLY`: monthly subscription granting 200 monthly credits.
-- `IRIS_CREDITS_100`: one-time purchase granting 100 non-expiring credits.
+| Iris Product | RevenueCat Product ID | Package |
+| --- | --- | --- |
+| `IRIS_MONTHLY` | `iris_monthly_200_credits` | `$rc_monthly` |
+| `IRIS_CREDITS_100` | `iris_credits_100` | `credits_100` |
 
-Implementation requires the RevenueCat development public API key, offering
-identifier, product identifiers, and the backend RevenueCat webhook
-authorization secret.
+The configured offering identifier is `iris_default`.
+
+For development builds, set `IRIS_REVENUECAT_API_KEY` in
+`RelationshipApp/.env.dev` to the RevenueCat Test Store public API key. Do not
+put a Test Store key in a production build.
+
+After purchase, RevenueCat must deliver events to the Iris backend webhook so
+the server-side credit ledger is updated; the mobile UI refreshes that ledger
+after the native purchase completes.

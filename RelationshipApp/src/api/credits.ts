@@ -41,9 +41,6 @@ export interface BillingProducts {
   creditPacks: CreditPackage[];
 }
 
-const PURCHASE_PROVIDER_PENDING_MESSAGE =
-  'Purchases will be enabled by the configured Iris payment provider.';
-
 // ── /relationship-app/users/:userId/entitlements ────────────────────────────
 interface EntitlementsResponse {
   success?: boolean;
@@ -178,17 +175,6 @@ export async function getBillingProducts(): Promise<BillingProducts> {
         priceLabel: pack.priceLabel,
       })) ?? [...CREDIT_PACKAGES],
   };
-}
-
-export async function purchaseCredits(packageId: string): Promise<CreditsState> {
-  if (packageId !== 'IRIS_CREDITS_100') {
-    throw new Error('This credit pack is no longer available.');
-  }
-  throw new Error(PURCHASE_PROVIDER_PENDING_MESSAGE);
-}
-
-export async function restorePurchases(): Promise<CreditsState> {
-  throw new Error(PURCHASE_PROVIDER_PENDING_MESSAGE);
 }
 
 // ── /api/credits/transactions ───────────────────────────────────────────────
