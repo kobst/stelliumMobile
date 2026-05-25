@@ -3,8 +3,8 @@ import { relationshipAppEnv } from '../config/env';
 import { getEntitlements, type Entitlements } from '../api/credits';
 
 const OFFERING_ID = 'iris_default';
-const MONTHLY_PRODUCT_ID = 'iris_monthly_200_credits';
-const CREDITS_100_PRODUCT_ID = 'iris_credits_100';
+const MONTHLY_PRODUCT_ID = 'IRIS_SUB_MONTHLY';
+const CREDIT_PACK_PRODUCT_IDS = new Set(['IRIS_CREDITS_SMALL', 'IRIS_CREDITS_LARGE']);
 
 let configuredUserId: string | null = null;
 
@@ -72,8 +72,14 @@ export async function purchaseIrisMonthly(userId: string): Promise<Entitlements>
   return refreshFulfilledEntitlements(userId);
 }
 
-export async function purchaseIrisCreditPack100(userId: string): Promise<Entitlements> {
-  const purchasePackage = await findPackage(userId, CREDITS_100_PRODUCT_ID);
+export async function purchaseIrisCreditPack(
+  userId: string,
+  productId: string
+): Promise<Entitlements> {
+  if (!CREDIT_PACK_PRODUCT_IDS.has(productId)) {
+    throw new Error('This Iris credit pack is not available.');
+  }
+  const purchasePackage = await findPackage(userId, productId);
   await Purchases.purchasePackage(purchasePackage);
   return refreshFulfilledEntitlements(userId);
 }

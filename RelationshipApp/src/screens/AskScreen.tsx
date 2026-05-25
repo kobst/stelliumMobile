@@ -82,6 +82,7 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const profile = useRelationshipAppStore((state) => state.profile);
   const credits = useRelationshipAppStore((state) => state.credits);
+  const subscription = useRelationshipAppStore((state) => state.subscription);
   const activeRelationshipId = useRelationshipAppStore(
     (state) => state.activeRelationshipId
   );
@@ -244,7 +245,7 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
         question,
       });
       appendAskMessage(threadKey, reply);
-      if (creditsCharged > 0) {
+      if (creditsCharged > 0 && subscription?.tier === 'free') {
         spendCredits(creditsCharged);
       }
     } catch (error) {
@@ -264,6 +265,7 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [
     appendAskMessage,
+    subscription,
     contextLabel,
     inputValue,
     isSending,

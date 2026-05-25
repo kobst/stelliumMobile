@@ -44,7 +44,7 @@ const FAQS: readonly FaqEntry[] = [
     id: 'credits-expire',
     question: 'Do my credits expire?',
     answer:
-      'Monthly plan credits reset at each renewal. Purchased credit packs never expire. When you spend credits, plan credits are used first to maximize the value of your purchased credits.',
+      'Purchased credit packs never expire. Iris Monthly includes everyday features under fair use and a monthly full-analysis allowance; extra full analyses use purchased credits.',
   },
   {
     id: 'privacy',

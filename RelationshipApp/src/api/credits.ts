@@ -15,7 +15,8 @@ export interface CreditPackage {
 }
 
 export const CREDIT_PACKAGES: readonly CreditPackage[] = [
-  { id: 'IRIS_CREDITS_100', credits: 100, priceLabel: '$10.00' },
+  { id: 'IRIS_CREDITS_SMALL', credits: 75, priceLabel: '$9.99' },
+  { id: 'IRIS_CREDITS_LARGE', credits: 250, priceLabel: '$24.99', bonusLabel: 'Best value' },
 ];
 
 interface BillingPlan {
@@ -23,7 +24,8 @@ interface BillingPlan {
   displayName: string;
   interval: 'month' | 'one_time';
   priceLabel: string;
-  monthlyCredits?: number;
+  fullAnalysesPerPeriod?: number;
+  askQuestionsPerDayLimit?: number;
 }
 
 interface BillingProductsResponse {
@@ -53,10 +55,17 @@ interface EntitlementsResponse {
   hasEverSubscribed?: boolean;
   credits?: {
     total?: number;
-    monthly?: number;
-    pack?: number;
-    monthlyLimit?: number;
-    resetDate?: string | null;
+    purchased?: number;
+  };
+  fullAnalysisQuota?: {
+    limit?: number;
+    remaining?: number;
+    resetsAt?: string | null;
+  };
+  fairUse?: {
+    askQuestionsDailyLimit?: number;
+    askQuestionsUsedToday?: number;
+    askQuestionsRemainingToday?: number;
   };
 }
 
@@ -79,21 +88,21 @@ function toNumber(value: unknown): number {
 }
 
 function planPriceLabelFor(plan: string | null | undefined): string | null {
-  if (plan === 'plus' || plan === 'monthly') {
-    return '$20.00';
+  if (plan === 'monthly') {
+    return '$14.99';
   }
   return null;
 }
 
 function planDisplayName(plan: string | null | undefined): string | null {
-  if (plan === 'plus' || plan === 'monthly') {
+  if (plan === 'monthly') {
     return 'Iris Monthly';
   }
   return null;
 }
 
 function subscriptionTier(plan: string | null | undefined): SubscriptionTier {
-  if (plan === 'plus' || plan === 'monthly') {
+  if (plan === 'monthly') {
     return 'monthly';
   }
   return 'free';
@@ -108,27 +117,28 @@ function subscriptionLabel(tier: SubscriptionTier): string {
 
 function normalizeEntitlements(response: EntitlementsResponse): Entitlements {
   const creditsBlock = response.credits ?? {};
-  const total = toNumber(creditsBlock.total);
-  const monthly = toNumber(creditsBlock.monthly);
-  const pack = toNumber(creditsBlock.pack);
-  const monthlyLimit = toNumber(creditsBlock.monthlyLimit);
+  const purchased = toNumber(creditsBlock.purchased ?? creditsBlock.total);
+  const quota = response.fullAnalysisQuota ?? {};
+  const fairUse = response.fairUse ?? {};
   const plan = response.plan ?? 'free';
 
   const tier = subscriptionTier(plan);
 
   const credits: CreditsState = {
-    balance: total,
-    fromPlan: monthly,
-    purchased: pack,
-    planRenewsAt: creditsBlock.resetDate ?? null,
+    balance: purchased,
+    purchased,
+    planRenewsAt: quota.resetsAt ?? null,
     planName: planDisplayName(plan),
     planPriceLabel: planPriceLabelFor(plan),
-    planCreditsPerCycle: monthlyLimit > 0 ? monthlyLimit : null,
+    fullAnalysesRemaining: toNumber(quota.remaining),
+    fullAnalysesLimit: toNumber(quota.limit),
+    askQuestionsRemainingToday: toNumber(fairUse.askQuestionsRemainingToday),
+    askQuestionsDailyLimit: toNumber(fairUse.askQuestionsDailyLimit),
   };
 
   const subscription: SubscriptionState = {
     tier,
-    renewsAt: response.planActiveUntil ?? creditsBlock.resetDate ?? null,
+    renewsAt: response.planActiveUntil ?? quota.resetsAt ?? null,
     label: subscriptionLabel(tier),
   };
 

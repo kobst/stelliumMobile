@@ -20,7 +20,7 @@ import { SignOutSheet } from '../components/SignOutSheet';
 import { DevSessionPanel } from '../components/DevSessionPanel';
 import { getEntitlements } from '../api/credits';
 import {
-  purchaseIrisCreditPack100,
+  purchaseIrisCreditPack,
   restoreIrisPurchases,
 } from '../services/irisRevenueCatService';
 
@@ -127,10 +127,7 @@ export function ProfileSettingsScreen() {
         return;
       }
       try {
-        if (pkg.id !== 'IRIS_CREDITS_100') {
-          throw new Error('This credit pack is no longer available.');
-        }
-        const next = await purchaseIrisCreditPack100(profileId);
+        const next = await purchaseIrisCreditPack(profileId, pkg.id);
         setCredits(next.credits);
         setSubscription(next.subscription);
       } catch (error) {

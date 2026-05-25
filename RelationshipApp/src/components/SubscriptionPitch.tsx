@@ -25,8 +25,8 @@ interface SubscriptionPitchProps {
 }
 
 const PERKS: readonly string[] = [
-  '200 credits every month',
-  'Full relationship analyses and Ask Iris',
+  'Ask Iris, scores, and weekly forecasts included',
+  '4 full relationship analyses each month',
   'Purchased credit packs never expire',
 ];
 
@@ -60,7 +60,7 @@ export function SubscriptionPitch({
   const credits = useRelationshipAppStore((state) => state.credits);
   const subscription = useRelationshipAppStore((state) => state.subscription);
   const [creditPackages, setCreditPackages] = useState(CREDIT_PACKAGES);
-  const [monthlyPriceLabel, setMonthlyPriceLabel] = useState('$20.00');
+  const [monthlyPriceLabel, setMonthlyPriceLabel] = useState('$14.99');
 
   useEffect(() => {
     let active = true;
@@ -70,8 +70,8 @@ export function SubscriptionPitch({
           return;
         }
         setCreditPackages(products.creditPacks);
-        const monthly = products.plans.find((plan) => plan.productKey === 'IRIS_MONTHLY');
-        setMonthlyPriceLabel(monthly?.priceLabel ?? '$20.00');
+        const monthly = products.plans.find((plan) => plan.productKey === 'IRIS_SUB_MONTHLY');
+        setMonthlyPriceLabel(monthly?.priceLabel ?? '$14.99');
       })
       .catch(() => {
         // Keep the Iris-only fallback catalog when product discovery is unavailable.
@@ -91,20 +91,20 @@ export function SubscriptionPitch({
         : 'Keep exploring with Iris Monthly';
       const subtitle = pendingAction?.label
         ? `to ${pendingAction.label.toLowerCase()}.`
-        : 'Subscribe for 200 credits/mo, or buy a pack below.';
+        : 'Subscribe for included everyday features and four full analyses each month.';
       return { title, subtitle, centered: false };
     }
     if (mode === 'upsell') {
       return {
         title: 'Welcome to Iris',
         subtitle:
-          'Unlock deeper analysis across every connection in your life — 200 credits every month.',
+          'Unlock everyday relationship guidance and four full analyses each month.',
         centered: true,
       };
     }
     return {
       title: 'Iris Monthly',
-      subtitle: '200 credits every month to explore your chart and every relationship in your life.',
+      subtitle: 'Everyday guidance included, plus four full relationship analyses each month.',
       centered: true,
     };
   }, [mode, pendingAction]);
@@ -122,11 +122,10 @@ export function SubscriptionPitch({
   };
 
   const renewalShort = formatDayMonth(credits?.planRenewsAt ?? null);
-  const planCreditsTotal = credits?.planCreditsPerCycle ?? 200;
-  const planCreditsUsed =
-    credits && credits.planCreditsPerCycle
-      ? Math.max(credits.planCreditsPerCycle - credits.fromPlan, 0)
-      : null;
+  const planCreditsTotal = credits?.fullAnalysesLimit ?? 4;
+  const planCreditsUsed = credits
+    ? Math.max(planCreditsTotal - credits.fullAnalysesRemaining, 0)
+    : null;
   const planProgress =
     planCreditsUsed !== null && planCreditsTotal > 0
       ? Math.min(Math.max(planCreditsUsed / planCreditsTotal, 0), 1)
@@ -178,16 +177,16 @@ export function SubscriptionPitch({
           </Text>
 
           <View style={styles.statRow}>
-            <StatCell label="Credits/mo" value={`${planCreditsTotal}`} />
+            <StatCell label="Analyses/mo" value={`${planCreditsTotal}`} />
             <StatCell label="Price" value={credits?.planPriceLabel ?? '—'} />
             <StatCell label="Renews" value={renewalShort ?? '—'} />
           </View>
 
           <View style={styles.splitRow}>
             <View style={[styles.splitCard, { backgroundColor: colors.surfaceHigh }]}>
-              <Text style={[styles.splitLabel, { color: colors.textSubtle }]}>Plan credits</Text>
+              <Text style={[styles.splitLabel, { color: colors.textSubtle }]}>Full analyses</Text>
               <Text style={[styles.splitValue, { color: colors.text }]}>
-                {credits?.fromPlan ?? 0}
+                {credits?.fullAnalysesRemaining ?? 0}
                 <Text style={[styles.splitUnit, { color: colors.textSubtle }]}>  remaining</Text>
               </Text>
               {renewalShort ? (

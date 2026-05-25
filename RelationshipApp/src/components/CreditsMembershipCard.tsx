@@ -41,7 +41,7 @@ export function CreditsMembershipCard({
   const renewalLine =
     credits?.planName && credits.planRenewsAt && credits.planPriceLabel
       ? `${credits.planName} renews ${renewalShort ?? credits.planRenewsAt} for ${credits.planPriceLabel}${
-          credits.planCreditsPerCycle ? ` · ${credits.planCreditsPerCycle} credits/mo` : ''
+          credits.fullAnalysesLimit ? ` · ${credits.fullAnalysesLimit} full analyses/mo` : ''
         }`
       : null;
 
@@ -54,7 +54,7 @@ export function CreditsMembershipCard({
     >
       <View style={styles.topRow}>
         <View>
-          <Text style={[styles.eyebrow, { color: colors.textMuted }]}>Current Balance</Text>
+          <Text style={[styles.eyebrow, { color: colors.textMuted }]}>Purchased Credits</Text>
           <Text style={[styles.balance, { color: colors.text }]}>
             {balanceText}
             <Text style={[styles.balanceUnit, { color: colors.textMuted }]}> credits</Text>
@@ -71,13 +71,13 @@ export function CreditsMembershipCard({
 
       <View style={styles.breakdown}>
         <View style={[styles.breakdownItem, { backgroundColor: colors.surfaceHigh }]}>
-          <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>From plan</Text>
+          <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>Full analyses</Text>
           <Text style={[styles.breakdownValue, { color: colors.text }]}>
-            {credits?.fromPlan ?? 0}
+            {credits?.fullAnalysesRemaining ?? 0}
           </Text>
           {renewalShort ? (
             <Text style={[styles.breakdownSub, { color: colors.textSubtle }]}>
-              resets {renewalShort}
+              of {credits?.fullAnalysesLimit ?? 0} left until {renewalShort}
             </Text>
           ) : null}
         </View>

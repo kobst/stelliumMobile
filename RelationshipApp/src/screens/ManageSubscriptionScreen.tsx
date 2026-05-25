@@ -7,7 +7,7 @@ import { SubscriptionPitch } from '../components/SubscriptionPitch';
 import { PurchaseCreditsSheet } from '../components/PurchaseCreditsSheet';
 import type { CreditPackage } from '../api/credits';
 import {
-  purchaseIrisCreditPack100,
+  purchaseIrisCreditPack,
   purchaseIrisMonthly,
 } from '../services/irisRevenueCatService';
 
@@ -30,10 +30,7 @@ export function ManageSubscriptionScreen() {
         return;
       }
       try {
-        if (pkg.id !== 'IRIS_CREDITS_100') {
-          throw new Error('This credit pack is no longer available.');
-        }
-        const next = await purchaseIrisCreditPack100(profileId);
+        const next = await purchaseIrisCreditPack(profileId, pkg.id);
         setCredits(next.credits);
         setSubscription(next.subscription);
       } catch (error) {

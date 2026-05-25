@@ -80,7 +80,7 @@ export function CreditHistoryScreen() {
           ]}
         >
           <View>
-            <Text style={[styles.balanceEyebrow, { color: colors.textMuted }]}>Current Balance</Text>
+            <Text style={[styles.balanceEyebrow, { color: colors.textMuted }]}>Purchased Credits</Text>
             <Text style={[styles.balanceValue, { color: colors.text }]}>
               {credits ? credits.balance.toLocaleString() : '—'}
               <Text style={[styles.balanceUnit, { color: colors.textMuted }]}>  credits</Text>
@@ -88,7 +88,7 @@ export function CreditHistoryScreen() {
           </View>
           <View style={styles.breakdownCol}>
             <Text style={[styles.breakdownText, { color: colors.textMuted }]}>
-              {credits?.fromPlan ?? 0} from plan
+              {credits?.fullAnalysesRemaining ?? 0} full analyses left
             </Text>
             <Text style={[styles.breakdownText, { color: colors.textMuted }]}>
               {credits?.purchased ?? 0} purchased

@@ -25,12 +25,14 @@ export type SubscriptionTier = 'free' | 'monthly';
 
 export interface CreditsState {
   balance: number;
-  fromPlan: number;
   purchased: number;
   planRenewsAt: string | null;
   planName: string | null;
   planPriceLabel: string | null;
-  planCreditsPerCycle: number | null;
+  fullAnalysesRemaining: number;
+  fullAnalysesLimit: number;
+  askQuestionsRemainingToday: number;
+  askQuestionsDailyLimit: number;
 }
 
 export interface SubscriptionState {
@@ -498,17 +500,12 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       if (!state.credits) {
         return {};
       }
-      const purchasedSpend = Math.min(state.credits.purchased, amount);
-      const remainder = amount - purchasedSpend;
-      const planSpend = Math.min(state.credits.fromPlan, remainder);
-      const nextPurchased = state.credits.purchased - purchasedSpend;
-      const nextFromPlan = state.credits.fromPlan - planSpend;
+      const nextPurchased = Math.max(state.credits.purchased - amount, 0);
       return {
         credits: {
           ...state.credits,
           purchased: nextPurchased,
-          fromPlan: nextFromPlan,
-          balance: nextPurchased + nextFromPlan,
+          balance: nextPurchased,
         },
       };
     }),

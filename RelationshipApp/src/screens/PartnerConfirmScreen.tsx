@@ -441,8 +441,8 @@ export function PartnerConfirmScreen() {
           {[
             { glyph: '✓', text: 'Relationship archetype & aspect match', paid: false },
             { glyph: '✓', text: 'Short romantic blurb (free)', paid: false },
-            { glyph: '◆', text: '5-dimension scores & overview (1 credit)', paid: true },
-            { glyph: '◆', text: 'Full synastry & composite analysis (3 credits)', paid: true },
+            { glyph: '◆', text: '5-dimension scores & overview (10 credits)', paid: true },
+            { glyph: '◆', text: 'Full synastry & composite analysis (50 credits)', paid: true },
           ].map((item) => (
             <View key={item.text} style={styles.tierRow}>
               <Text
