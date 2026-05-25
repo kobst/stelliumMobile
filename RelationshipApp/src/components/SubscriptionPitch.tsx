@@ -24,12 +24,6 @@ interface SubscriptionPitchProps {
   onPressSubscribe?: () => void;
 }
 
-const PERKS: readonly string[] = [
-  'Ask Iris, scores, and weekly forecasts included',
-  '4 full relationship analyses each month',
-  'Purchased credit packs never expire',
-];
-
 function formatDayMonth(iso: string | null): string | null {
   if (!iso) {
     return null;
@@ -61,6 +55,7 @@ export function SubscriptionPitch({
   const subscription = useRelationshipAppStore((state) => state.subscription);
   const [creditPackages, setCreditPackages] = useState(CREDIT_PACKAGES);
   const [monthlyPriceLabel, setMonthlyPriceLabel] = useState('$14.99');
+  const [monthlyAnalysesLimit, setMonthlyAnalysesLimit] = useState(4);
 
   useEffect(() => {
     let active = true;
@@ -72,6 +67,7 @@ export function SubscriptionPitch({
         setCreditPackages(products.creditPacks);
         const monthly = products.plans.find((plan) => plan.productKey === 'IRIS_SUB_MONTHLY');
         setMonthlyPriceLabel(monthly?.priceLabel ?? '$14.99');
+        setMonthlyAnalysesLimit(monthly?.fullAnalysesPerPeriod ?? 4);
       })
       .catch(() => {
         // Keep the Iris-only fallback catalog when product discovery is unavailable.
@@ -91,23 +87,23 @@ export function SubscriptionPitch({
         : 'Keep exploring with Iris Monthly';
       const subtitle = pendingAction?.label
         ? `to ${pendingAction.label.toLowerCase()}.`
-        : 'Subscribe for included everyday features and four full analyses each month.';
+        : `Subscribe for included everyday features and ${monthlyAnalysesLimit} full analyses each month.`;
       return { title, subtitle, centered: false };
     }
     if (mode === 'upsell') {
       return {
         title: 'Welcome to Iris',
         subtitle:
-          'Unlock everyday relationship guidance and four full analyses each month.',
+          `Unlock everyday relationship guidance and ${monthlyAnalysesLimit} full analyses each month.`,
         centered: true,
       };
     }
     return {
       title: 'Iris Monthly',
-      subtitle: 'Everyday guidance included, plus four full relationship analyses each month.',
+      subtitle: `Everyday guidance included, plus ${monthlyAnalysesLimit} full relationship analyses each month.`,
       centered: true,
     };
-  }, [mode, pendingAction]);
+  }, [mode, monthlyAnalysesLimit, pendingAction]);
 
   const handlePackPress = (packageId: string) => {
     if (onPressPack) {
@@ -223,7 +219,11 @@ export function SubscriptionPitch({
             { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
           ]}
         >
-          {PERKS.map((perk) => (
+          {[
+            'Ask Iris, scores, and weekly forecasts included',
+            `${monthlyAnalysesLimit} full relationship analyses each month`,
+            'Purchased credit packs never expire',
+          ].map((perk) => (
             <View key={perk} style={styles.perkRow}>
               <Text style={[styles.perkGlyph, { color: colors.success }]}>✓</Text>
               <Text style={[styles.perkText, { color: colors.text }]}>{perk}</Text>
