@@ -55,6 +55,7 @@ export function ProfileSettingsScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [signOutVisible, setSignOutVisible] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   const profileId = profile?.id ?? null;
 
@@ -121,11 +122,17 @@ export function ProfileSettingsScreen() {
 
   const handleSelectPackage = useCallback(
     async (pkg: { id: string }) => {
-      setSheetVisible(false);
+      // The sheet closes itself and only invokes this after it has fully
+      // dismissed, so RevenueCat's purchase alert presents on this screen's
+      // view controller rather than the torn-down modal.
       if (!profileId) {
         Alert.alert('Sign in required', 'Sign in before purchasing credits.');
         return;
       }
+      if (isPurchasing) {
+        return;
+      }
+      setIsPurchasing(true);
       try {
         const next = await purchaseIrisCreditPack(profileId, pkg.id);
         setCredits(next.credits);
@@ -135,9 +142,11 @@ export function ProfileSettingsScreen() {
           'Purchase failed',
           error instanceof Error ? error.message : 'Please try again shortly.'
         );
+      } finally {
+        setIsPurchasing(false);
       }
     },
-    [profileId, setCredits, setSubscription]
+    [isPurchasing, profileId, setCredits, setSubscription]
   );
 
   const handleRestore = useCallback(async () => {
@@ -277,8 +286,13 @@ export function ProfileSettingsScreen() {
 
       <PurchaseCreditsSheet
         visible={sheetVisible}
-        onClose={() => setSheetVisible(false)}
+        onClose={() => {
+          if (!isPurchasing) {
+            setSheetVisible(false);
+          }
+        }}
         onSelectPackage={handleSelectPackage}
+        isPurchasing={isPurchasing}
       />
 
       <SignOutSheet

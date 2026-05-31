@@ -17,6 +17,7 @@ export function ManageSubscriptionScreen() {
   const setCredits = useRelationshipAppStore((state) => state.setCredits);
   const setSubscription = useRelationshipAppStore((state) => state.setSubscription);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   const handlePressPack = useCallback(() => {
     setSheetVisible(true);
@@ -24,11 +25,17 @@ export function ManageSubscriptionScreen() {
 
   const handleSelectPackage = useCallback(
     async (pkg: CreditPackage) => {
-      setSheetVisible(false);
+      // The sheet closes itself and only invokes this after it has fully
+      // dismissed, so RevenueCat's purchase alert presents on this screen's
+      // view controller rather than the torn-down modal.
       if (!profileId) {
         Alert.alert('Sign in required', 'Sign in before purchasing credits.');
         return;
       }
+      if (isPurchasing) {
+        return;
+      }
+      setIsPurchasing(true);
       try {
         const next = await purchaseIrisCreditPack(profileId, pkg.id);
         setCredits(next.credits);
@@ -38,9 +45,11 @@ export function ManageSubscriptionScreen() {
           'Purchase failed',
           error instanceof Error ? error.message : 'Please try again shortly.'
         );
+      } finally {
+        setIsPurchasing(false);
       }
     },
-    [profileId, setCredits, setSubscription]
+    [isPurchasing, profileId, setCredits, setSubscription]
   );
 
   const handleSubscribe = useCallback(async () => {
@@ -48,6 +57,10 @@ export function ManageSubscriptionScreen() {
       Alert.alert('Sign in required', 'Sign in before starting a subscription.');
       return;
     }
+    if (isPurchasing) {
+      return;
+    }
+    setIsPurchasing(true);
     try {
       const next = await purchaseIrisMonthly(profileId);
       setCredits(next.credits);
@@ -57,8 +70,10 @@ export function ManageSubscriptionScreen() {
         'Subscription failed',
         error instanceof Error ? error.message : 'Please try again shortly.'
       );
+    } finally {
+      setIsPurchasing(false);
     }
-  }, [profileId, setCredits, setSubscription]);
+  }, [isPurchasing, profileId, setCredits, setSubscription]);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
@@ -76,8 +91,13 @@ export function ManageSubscriptionScreen() {
 
       <PurchaseCreditsSheet
         visible={sheetVisible}
-        onClose={() => setSheetVisible(false)}
+        onClose={() => {
+          if (!isPurchasing) {
+            setSheetVisible(false);
+          }
+        }}
         onSelectPackage={handleSelectPackage}
+        isPurchasing={isPurchasing}
       />
     </SafeAreaView>
   );
