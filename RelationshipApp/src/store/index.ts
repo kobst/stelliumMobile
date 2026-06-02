@@ -205,9 +205,16 @@ interface RelationshipFlowState {
   hasFetchedSubjects: boolean;
 }
 
+export interface PaywallRequest {
+  label: string;
+  missingCredits?: number;
+  onComplete?: () => void;
+}
+
 interface CreditsFlowState {
   credits: CreditsState | null;
   subscription: SubscriptionState | null;
+  paywall: PaywallRequest | null;
   askThreads: Record<string, AskMessage[]>;
   creditTransactions: CreditTransaction[];
   notificationPrefs: NotificationPrefs;
@@ -272,6 +279,8 @@ interface RelationshipAppStore
   setCredits: (value: CreditsState | null) => void;
   spendCredits: (amount: number) => void;
   setSubscription: (value: SubscriptionState | null) => void;
+  showPaywall: (request: PaywallRequest) => void;
+  hidePaywall: () => void;
   appendAskMessage: (threadKey: AskThreadKey, message: AskMessage) => void;
   clearAskThread: (threadKey: AskThreadKey) => void;
   setCreditTransactions: (value: CreditTransaction[]) => void;
@@ -309,6 +318,7 @@ const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
 const initialCreditsState: CreditsFlowState = {
   credits: null,
   subscription: null,
+  paywall: null,
   askThreads: {},
   creditTransactions: [],
   notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
@@ -510,6 +520,8 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       };
     }),
   setSubscription: (value) => set({ subscription: value }),
+  showPaywall: (request) => set({ paywall: request }),
+  hidePaywall: () => set({ paywall: null }),
   appendAskMessage: (threadKey, message) =>
     set((state) => ({
       askThreads: {

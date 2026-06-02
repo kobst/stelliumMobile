@@ -6,6 +6,9 @@ import {
   RelationshipWorkflowStatusResponse,
 } from '../../../shared/api/relationships';
 import { useRelationshipAppStore } from '../store';
+import { isInsufficientCreditsError } from '../api/paywall';
+
+const FULL_ANALYSIS_COST_CREDITS = 50;
 
 const TERMINAL_STATUSES = new Set([
   'completed',
@@ -150,6 +153,18 @@ export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null
 
       await refreshWorkflowStatus(compositeChartId);
     } catch (error) {
+      if (isInsufficientCreditsError(error)) {
+        const state = useRelationshipAppStore.getState();
+        state.showPaywall({
+          label: 'start the full relationship analysis',
+          missingCredits: Math.max(
+            FULL_ANALYSIS_COST_CREDITS - (state.credits?.purchased ?? 0),
+            1
+          ),
+        });
+        setWorkflowState({ workflowPhase: 'idle', workflowError: null });
+        return;
+      }
       if (__DEV__) {
         // eslint-disable-next-line no-console
         console.log('[useRelationshipAnalysisWorkflow] startFullAnalysis caught error', {
