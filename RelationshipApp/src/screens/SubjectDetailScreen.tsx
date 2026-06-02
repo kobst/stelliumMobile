@@ -16,6 +16,7 @@ import { useTheme } from '../theme';
 import { Avatar } from '../components/Avatar';
 import { getBigThree, getRelationshipArchetypeLabel } from '../utils/mainShell';
 import { startRelationshipPreview } from './previewFlow';
+import { presentRelationshipOverviewPaywall } from '../api/paywall';
 import { buildHistorySelectionState } from './historySelection';
 import { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
 import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
@@ -243,6 +244,9 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
       setRelationshipHistory({ relationshipHistory: updatedHistory });
       navigation.replace('RelationshipPreview');
     } catch (previewError) {
+      if (presentRelationshipOverviewPaywall(previewError)) {
+        return;
+      }
       const message =
         previewError instanceof Error ? previewError.message : 'Could not start the preview.';
       setError(message);

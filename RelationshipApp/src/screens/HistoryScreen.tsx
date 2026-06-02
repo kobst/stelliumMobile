@@ -21,6 +21,7 @@ import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
 import { useOwnedSubjects } from '../hooks/useOwnedSubjects';
 import { buildHistorySelectionState } from './historySelection';
 import { startRelationshipPreview } from './previewFlow';
+import { presentRelationshipOverviewPaywall } from '../api/paywall';
 import {
   getBigThree,
   getRelationshipArchetypeLabel,
@@ -446,6 +447,9 @@ export const HistoryScreen: React.FC = () => {
         setRelationshipHistory({ relationshipHistory: updatedHistory });
         navigation.navigate('RelationshipPreview');
       } catch (error) {
+        if (presentRelationshipOverviewPaywall(error)) {
+          return;
+        }
         Alert.alert(
           'Could not create connection',
           error instanceof Error ? error.message : 'Please try again shortly.'

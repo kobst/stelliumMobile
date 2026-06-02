@@ -22,6 +22,7 @@ import { WizardArrowButton } from '../components/WizardArrowButton';
 import { externalApi, relationshipsApi, relationshipUsersApi } from '../api';
 import { submitPartnerPreview, type PartnerRomanticAssets } from './createPartnerFlow';
 import { startRelationshipPreview } from './previewFlow';
+import { presentGuestSubjectPaywall, presentRelationshipOverviewPaywall } from '../api/paywall';
 import { relationshipAppEnv } from '../config/env';
 import { createLocalPartnerSubject } from '../mocks/demoData';
 import { getBigThree } from '../utils/mainShell';
@@ -176,6 +177,9 @@ export function PartnerConfirmScreen() {
       setPhase('reveal');
     } catch (error) {
       setPhase('review');
+      if (presentGuestSubjectPaywall(error)) {
+        return;
+      }
       Alert.alert(
         'Could not create partner',
         error instanceof Error ? error.message : 'Please try again shortly.'
@@ -225,6 +229,9 @@ export function PartnerConfirmScreen() {
       });
     } catch (error) {
       setPhase('reveal');
+      if (presentRelationshipOverviewPaywall(error)) {
+        return;
+      }
       Alert.alert(
         'Could not create connection',
         error instanceof Error ? error.message : 'Please try again shortly.'

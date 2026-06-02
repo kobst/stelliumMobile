@@ -29,6 +29,7 @@ import {
 } from '../utils/mainShell';
 import { useRelationshipAppStore } from '../store';
 import { startRelationshipPreview } from './previewFlow';
+import { ensureCanAddPersonOrPaywall, presentRelationshipOverviewPaywall } from '../api/paywall';
 import { useOwnedSubjects } from '../hooks/useOwnedSubjects';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
 import { getUnconnectedSubjects } from '../utils/unconnectedSubjects';
@@ -280,6 +281,9 @@ export function AddConnectionScreen() {
   }, []);
 
   const handleOpenPersonFlow = useCallback(() => {
+    if (!ensureCanAddPersonOrPaywall()) {
+      return;
+    }
     navigation.navigate('PartnerIdentity');
   }, [navigation]);
 
@@ -327,6 +331,9 @@ export function AddConnectionScreen() {
           ],
         });
       } catch (error) {
+        if (presentRelationshipOverviewPaywall(error)) {
+          return;
+        }
         Alert.alert(
           'Could not create connection',
           error instanceof Error ? error.message : 'Please try again shortly.'
@@ -402,6 +409,9 @@ export function AddConnectionScreen() {
         ],
       });
     } catch (error) {
+      if (presentRelationshipOverviewPaywall(error)) {
+        return;
+      }
       Alert.alert(
         'Could not create connection',
         error instanceof Error ? error.message : 'Please try again shortly.'

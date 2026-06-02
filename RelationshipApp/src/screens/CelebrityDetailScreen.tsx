@@ -18,6 +18,7 @@ import { SERIF_FONT } from '../theme/typography';
 import { Avatar } from '../components/Avatar';
 import { celebrityToSubject, getCelebritySunSign } from '../utils/mainShell';
 import { startRelationshipPreview } from './previewFlow';
+import { presentRelationshipOverviewPaywall } from '../api/paywall';
 import { AstrologicalProfileView } from '../components/AstrologicalProfileView';
 import { SingleChartModal } from '../components/SingleChartModal';
 import { getRomanticPlacements } from '../utils/placements';
@@ -228,6 +229,9 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       setRelationshipHistory({ relationshipHistory: updatedHistory });
       navigation.replace('RelationshipPreview');
     } catch (previewError) {
+      if (presentRelationshipOverviewPaywall(previewError)) {
+        return;
+      }
       const message =
         previewError instanceof Error ? previewError.message : 'Could not start the preview.';
       setError(message);

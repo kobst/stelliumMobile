@@ -25,6 +25,7 @@ import {
 import type { EnhancedRelationshipAnalysisResponse } from '../../../shared/api/relationships';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
+import { ensureCanAddPersonOrPaywall } from '../api/paywall';
 import { useTheme } from '../theme';
 import { SERIF_FONT } from '../theme/typography';
 import {
@@ -1021,6 +1022,9 @@ export const DiscoverScreen: React.FC = () => {
       </ScrollView>
       <FloatingAddButton
         onPress={() => {
+          if (!ensureCanAddPersonOrPaywall()) {
+            return;
+          }
           clearActiveRelationshipFlow();
           navigation.navigate('PartnerIdentity');
         }}

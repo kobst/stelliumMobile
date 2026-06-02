@@ -17,6 +17,7 @@ import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { SubjectDocument } from '../../../shared/types/subject';
 import { startRelationshipPreview } from './previewFlow';
+import { presentRelationshipOverviewPaywall } from '../api/paywall';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'SelectCelebrity'>;
 
@@ -166,6 +167,9 @@ export const SelectCelebrityScreen: React.FC<Props> = ({ navigation }) => {
       setRelationshipHistory({ relationshipHistory: updatedHistory });
       navigation.replace('RelationshipPreview');
     } catch (selectionError) {
+      if (presentRelationshipOverviewPaywall(selectionError)) {
+        return;
+      }
       const message =
         selectionError instanceof Error
           ? selectionError.message
