@@ -42,6 +42,9 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 const ENDPOINT_CONFIGS: Array<{ pattern: string | RegExp; config: EndpointConfig }> = [
   { pattern: '/chat', config: { timeout: 60000, retryOnTimeout: true } },
   { pattern: '/enhanced-chat', config: { timeout: 60000, retryOnTimeout: true } },
+  // Ask Iris generates an LLM answer and charges on success — give it room, but
+  // never auto-retry (a retry could double-charge / double-generate).
+  { pattern: '/ask-iris', config: { timeout: 60000, retryOnTimeout: false, maxRetries: 0 } },
   { pattern: /\/horoscope\/daily/, config: { timeout: 90000, retryOnTimeout: true, maxRetries: 2, retryDelays: [2000, 5000] } },
   { pattern: /\/horoscope\/weekly/, config: { timeout: 90000, retryOnTimeout: true, maxRetries: 2, retryDelays: [2000, 5000] } },
   { pattern: /\/horoscope\/monthly/, config: { timeout: 120000, retryOnTimeout: true, maxRetries: 2, retryDelays: [3000, 7000] } },

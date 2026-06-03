@@ -50,6 +50,10 @@ export interface AskAspectRef {
   name: string;
   shortName: string;
   type: AskAspectKind;
+  // Backend-shaped payload for Ask Iris context. Self/profile aspects carry a
+  // selectedAspect ({ type:'aspect'|'position', ... }); relationship aspects
+  // leave this undefined until the analysis exposes scored items with codes.
+  payload?: unknown;
 }
 
 export interface AskMessage {

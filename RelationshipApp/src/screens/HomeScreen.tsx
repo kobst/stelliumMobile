@@ -98,6 +98,7 @@ export const HomeScreen: React.FC = () => {
         label: 'Ask Iris',
         icon: '✦',
         tint: 'tertiary',
+        onPress: () => navigation.navigate('AskIris', { context: 'home' }),
       },
       {
         id: 'your-chart',
@@ -167,7 +168,11 @@ export const HomeScreen: React.FC = () => {
           <QuickActionsRow actions={quickActions} />
         </View>
 
-        <HomeAskIrisCard />
+        <HomeAskIrisCard
+          onPressSuggestion={(suggestion) =>
+            navigation.navigate('AskIris', { context: 'home', prefill: suggestion })
+          }
+        />
       </ScrollView>
     </SafeAreaView>
   );

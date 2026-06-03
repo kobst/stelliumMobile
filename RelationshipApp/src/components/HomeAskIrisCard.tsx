@@ -7,7 +7,7 @@ import { Halo } from './atmosphere/Halo';
 const SUGGESTIONS: readonly string[] = [
   'Why do I keep attracting Scorpios?',
   'What should I look for this week?',
-  'Compare my two connections',
+  'What makes me hard to read in love?',
 ];
 
 interface HomeAskIrisCardProps {

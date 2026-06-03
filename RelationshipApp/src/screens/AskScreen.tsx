@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -24,13 +25,38 @@ import { IrisBubble, TypingBubble, UserBubble } from '../components/AskChatBubbl
 import { AskInputBar } from '../components/AskInputBar';
 import { buildProfileAspects, buildRelationshipAspects } from '../utils/askAspects';
 import { getInitials } from '../utils/mainShell';
-import { ASK_COST_PER_MESSAGE, sendAskMessage } from '../api/ask';
+import { ASK_COST_PER_MESSAGE, sendAskMessage, type AskTarget } from '../api/ask';
+import { isDailyLimitError, presentPaywallIfInsufficient } from '../api/paywall';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'AskIris'>;
 
 type AskContext = 'home' | 'profile' | 'relationship';
 
 const MAX_CONTEXTS = 3;
+
+// Resolve which chart/relationship the question is scoped to. `home` and
+// `profile` both ask about the signed-in user's own chart; `relationship` uses
+// the composite id (carried in the thread key, with store fallbacks).
+function resolveAskTarget(
+  context: AskContext,
+  threadKey: AskThreadKey,
+  activeRelationshipId: string | null,
+  previewCompositeId: string | null,
+  selfUserId: string | null
+): AskTarget | null {
+  if (context === 'relationship') {
+    let compositeChartId: string | null = null;
+    if (threadKey.startsWith('relationship:')) {
+      const fromKey = threadKey.slice('relationship:'.length);
+      if (fromKey && fromKey !== 'active') {
+        compositeChartId = fromKey;
+      }
+    }
+    compositeChartId = compositeChartId ?? activeRelationshipId ?? previewCompositeId;
+    return compositeChartId ? { kind: 'relationship', compositeChartId } : null;
+  }
+  return selfUserId ? { kind: 'self', userId: selfUserId } : null;
+}
 
 const RELATIONSHIP_SUGGESTIONS = [
   'What is the strongest part of this connection?',
@@ -82,7 +108,6 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const profile = useRelationshipAppStore((state) => state.profile);
   const credits = useRelationshipAppStore((state) => state.credits);
-  const subscription = useRelationshipAppStore((state) => state.subscription);
   const activeRelationshipId = useRelationshipAppStore(
     (state) => state.activeRelationshipId
   );
@@ -191,14 +216,6 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const canSend = inputValue.trim().length > 0 && !isSending;
 
-  const contextLabel = useMemo(() => {
-    if (context === 'relationship') {
-      return relationshipLabel ?? 'Relationship';
-    }
-    if (context === 'profile') return 'Your chart';
-    return 'Iris';
-  }, [context, relationshipLabel]);
-
   const handleToggleAspect = useCallback((aspect: AskAspectRef) => {
     setSelectedAspects((prev) => {
       if (prev.some((entry) => entry.id === aspect.id)) {
@@ -223,6 +240,21 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
     const question = inputValue.trim();
     if (!question || isSending) return;
 
+    const target = resolveAskTarget(
+      context,
+      threadKey,
+      activeRelationshipId,
+      previewAnalysis?.compositeChartId ?? null,
+      profile?.id ?? null
+    );
+    if (!target) {
+      Alert.alert(
+        'Not available yet',
+        'Iris needs a chart to answer. Open Ask Iris from your profile or a relationship.'
+      );
+      return;
+    }
+
     const userMessage: AskMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -237,19 +269,40 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
     setIsSending(true);
     scrollToEnd();
 
+    const aspectPayloads = selectedAspects
+      .map((aspect) => aspect.payload)
+      .filter((payload): payload is Record<string, unknown> => Boolean(payload));
+
     try {
-      const nextThread = [...thread, userMessage];
-      const { reply, creditsCharged } = await sendAskMessage({
-        context: { threadKey, contextLabel },
-        thread: nextThread,
+      const { reply, billing } = await sendAskMessage({
+        target,
         question,
+        // Aspect-context is wired for the self/profile chart; relationship chips
+        // don't carry a payload yet (the analysis doesn't expose scored items).
+        ...(target.kind === 'self' && aspectPayloads.length > 0
+          ? { selectedAspects: aspectPayloads }
+          : {}),
       });
       appendAskMessage(threadKey, reply);
-      if (creditsCharged > 0 && subscription?.tier === 'free') {
-        spendCredits(creditsCharged);
+      // Trust the server's settlement: 1 credit for non-subscribers, 0 for
+      // subscribers (covered by daily fair-use).
+      if (billing && billing.creditsCharged > 0) {
+        spendCredits(billing.creditsCharged);
       }
     } catch (error) {
-      const failureMessage: AskMessage = {
+      if (presentPaywallIfInsufficient(error, { label: 'ask Iris', cost: ASK_COST_PER_MESSAGE })) {
+        return;
+      }
+      if (isDailyLimitError(error)) {
+        appendAskMessage(threadKey, {
+          id: `iris-limit-${Date.now()}`,
+          role: 'iris',
+          text: "You've reached today's Ask Iris limit. It resets tomorrow.",
+          createdAt: new Date().toISOString(),
+        });
+        return;
+      }
+      appendAskMessage(threadKey, {
         id: `iris-error-${Date.now()}`,
         role: 'iris',
         text:
@@ -257,22 +310,22 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
             ? `Iris couldn't answer that yet — ${error.message}`
             : 'Iris couldn’t answer that yet. Please try again in a moment.',
         createdAt: new Date().toISOString(),
-      };
-      appendAskMessage(threadKey, failureMessage);
+      });
     } finally {
       setIsSending(false);
       scrollToEnd();
     }
   }, [
+    activeRelationshipId,
     appendAskMessage,
-    subscription,
-    contextLabel,
+    context,
     inputValue,
     isSending,
+    previewAnalysis?.compositeChartId,
+    profile?.id,
     scrollToEnd,
     selectedAspects,
     spendCredits,
-    thread,
     threadKey,
   ]);
 

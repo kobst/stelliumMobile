@@ -219,7 +219,12 @@ export function buildRelationshipAspects(
 
 export interface ProfileNatalChart {
   planets?: Array<{ name: string; sign?: string; house?: number }>;
-  aspects?: Array<{ aspectingPlanet: string; aspectedPlanet: string; aspectType: string }>;
+  aspects?: Array<{
+    aspectingPlanet: string;
+    aspectedPlanet: string;
+    aspectType: string;
+    orb?: number;
+  }>;
 }
 
 export function buildProfileAspects(
@@ -227,6 +232,15 @@ export function buildProfileAspects(
 ): RelationshipAspectBundle {
   if (!birthChart) {
     return { aspects: [], countsByType: { ...EMPTY_COUNTS } };
+  }
+
+  // Sign + house for each planet, so an aspect's payload can carry both planets'
+  // positions — that's what lets the backend build the canonical aspect code.
+  const planetPositions = new Map<string, { sign?: string; house?: number }>();
+  if (Array.isArray(birthChart.planets)) {
+    for (const planet of birthChart.planets) {
+      planetPositions.set(planet.name, { sign: planet.sign, house: planet.house });
+    }
   }
 
   const placements: AskAspectRef[] = Array.isArray(birthChart.planets)
@@ -239,17 +253,41 @@ export function buildProfileAspects(
             type: 'Placement' as const,
             name: `${planet.name} in ${houseText} House`,
             shortName: `${planet.name} in ${houseText}`,
+            payload: {
+              type: 'position',
+              planet: planet.name,
+              sign: planet.sign,
+              house: planet.house,
+            },
           };
         })
     : [];
 
   const aspectRefs: AskAspectRef[] = Array.isArray(birthChart.aspects)
-    ? birthChart.aspects.map((aspect, index) => ({
-        id: `natal-asp-${aspect.aspectingPlanet}-${aspect.aspectType}-${aspect.aspectedPlanet}-${index}`,
-        type: 'Aspect' as const,
-        name: `${aspect.aspectingPlanet} ${capitalize(aspect.aspectType)} ${aspect.aspectedPlanet}`,
-        shortName: `${aspect.aspectingPlanet} ${aspectShort(aspect.aspectType)} ${aspect.aspectedPlanet}`,
-      }))
+    ? birthChart.aspects.map((aspect, index) => {
+        const p1 = planetPositions.get(aspect.aspectingPlanet);
+        const p2 = planetPositions.get(aspect.aspectedPlanet);
+        return {
+          id: `natal-asp-${aspect.aspectingPlanet}-${aspect.aspectType}-${aspect.aspectedPlanet}-${index}`,
+          type: 'Aspect' as const,
+          name: `${aspect.aspectingPlanet} ${capitalize(aspect.aspectType)} ${aspect.aspectedPlanet}`,
+          shortName: `${aspect.aspectingPlanet} ${aspectShort(aspect.aspectType)} ${aspect.aspectedPlanet}`,
+          payload: {
+            type: 'aspect',
+            planet1: aspect.aspectingPlanet,
+            planet2: aspect.aspectedPlanet,
+            aspectType: aspect.aspectType,
+            // Both planets' sign + house (+ orb) → backend emits the canonical
+            // aspect code instead of the simple fallback id. Undefined fields
+            // are dropped on serialization.
+            planet1Sign: p1?.sign,
+            planet1House: p1?.house,
+            planet2Sign: p2?.sign,
+            planet2House: p2?.house,
+            orb: aspect.orb,
+          },
+        };
+      })
     : [];
 
   const aspects = [...placements, ...aspectRefs];
