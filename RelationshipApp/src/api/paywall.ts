@@ -73,14 +73,18 @@ export function presentGuestSubjectPaywall(error: unknown): boolean {
  * remains the source of truth at submit, so a stale balance just falls back to
  * the gate at the end.
  */
-export function ensureCanAffordOrPaywall(cost: number, label: string): boolean {
+export function ensureCanAffordOrPaywall(
+  cost: number,
+  label: string,
+  onComplete?: () => void
+): boolean {
   const { credits, subscription, showPaywall } = useRelationshipAppStore.getState();
   const subscribed = (subscription?.tier ?? 'free') !== 'free';
   const purchased = credits?.purchased ?? 0;
   if (subscribed || purchased >= cost) {
     return true;
   }
-  showPaywall({ label, missingCredits: Math.max(cost - purchased, 1) });
+  showPaywall({ label, missingCredits: Math.max(cost - purchased, 1), onComplete });
   return false;
 }
 

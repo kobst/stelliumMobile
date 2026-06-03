@@ -29,6 +29,7 @@ import {
   type DerivedTransitHighlight,
   type HighlightNature,
 } from '../utils/horoscopeFormat';
+import { ensureCanAffordOrPaywall, presentPaywallIfInsufficient } from '../api/paywall';
 import { SectionLabel } from './SectionLabel';
 
 interface RelationshipHoroscopeTabProps {
@@ -106,6 +107,15 @@ export function RelationshipHoroscopeTab({
       setHoroscope(result);
       setState('ready');
     } catch (err: unknown) {
+      if (
+        presentPaywallIfInsufficient(err, {
+          label: "get this week's forecast",
+          cost: WEEKLY_HOROSCOPE_COST_CREDITS,
+        })
+      ) {
+        setState('idle');
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Could not load this week';
       setError(message);
       setState('error');
@@ -122,7 +132,7 @@ export function RelationshipHoroscopeTab({
     }
   }, [horoscopeEnabled, loadCurrent]);
 
-  const setEnabled = useCallback(
+  const applyEnabled = useCallback(
     async (next: boolean) => {
       if (toggleBusy) return;
       setToggleBusy(true);
@@ -144,6 +154,25 @@ export function RelationshipHoroscopeTab({
       }
     },
     [compositeChartId, onUpdated, relationship, toggleBusy]
+  );
+
+  const setEnabled = useCallback(
+    (next: boolean) => {
+      // Turning on a paid week (free trial already used) routes through the
+      // paywall when the user can't cover it, then enables automatically once
+      // they buy. Turning off, or the free first week, is never gated.
+      if (
+        next &&
+        freeTrialUsed &&
+        !ensureCanAffordOrPaywall(WEEKLY_HOROSCOPE_COST_CREDITS, 'turn on weekly forecasts', () => {
+          applyEnabled(true);
+        })
+      ) {
+        return;
+      }
+      applyEnabled(next);
+    },
+    [applyEnabled, freeTrialUsed]
   );
 
   if (!horoscopeEnabled) {
