@@ -286,6 +286,7 @@ interface RelationshipAppStore
   showPaywall: (request: PaywallRequest) => void;
   hidePaywall: () => void;
   appendAskMessage: (threadKey: AskThreadKey, message: AskMessage) => void;
+  setAskThread: (threadKey: AskThreadKey, messages: AskMessage[]) => void;
   clearAskThread: (threadKey: AskThreadKey) => void;
   setCreditTransactions: (value: CreditTransaction[]) => void;
   setNotificationPrefs: (value: NotificationPrefs) => void;
@@ -532,6 +533,10 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
         ...state.askThreads,
         [threadKey]: [...(state.askThreads[threadKey] ?? []), message],
       },
+    })),
+  setAskThread: (threadKey, messages) =>
+    set((state) => ({
+      askThreads: { ...state.askThreads, [threadKey]: messages },
     })),
   clearAskThread: (threadKey) =>
     set((state) => {

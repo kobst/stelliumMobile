@@ -75,3 +75,43 @@ export async function sendAskMessage(input: SendAskMessageInput): Promise<SendAs
 
   return { reply, billing };
 }
+
+interface AskHistoryMessage {
+  role?: string;
+  content?: string;
+  timestamp?: string;
+}
+
+interface AskHistoryResponse {
+  success?: boolean;
+  chatHistory?: AskHistoryMessage[];
+}
+
+/**
+ * Load the persisted chat history for a target (server is the source of truth;
+ * the in-memory thread is wiped on reload). Returns messages oldest-first.
+ */
+export async function fetchAskHistory(target: AskTarget, limit = 20): Promise<AskMessage[]> {
+  const endpoint =
+    target.kind === 'relationship'
+      ? `/relationships/${encodeURIComponent(target.compositeChartId)}/chat-history?limit=${limit}`
+      : `/users/${encodeURIComponent(target.userId)}/birthchart/chat-history?limit=${limit}`;
+
+  const response = await relationshipApiClient.get<AskHistoryResponse>(endpoint);
+  const history = response?.chatHistory ?? [];
+
+  return history
+    .map((message, index): AskMessage | null => {
+      const text = typeof message?.content === 'string' ? message.content.trim() : '';
+      if (!text) {
+        return null;
+      }
+      return {
+        id: `hist-${index}-${message.timestamp ?? ''}`,
+        role: message.role === 'user' ? 'user' : 'iris',
+        text,
+        createdAt: message.timestamp ? String(message.timestamp) : new Date().toISOString(),
+      };
+    })
+    .filter((message): message is AskMessage => message !== null);
+}

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -25,7 +25,7 @@ import { IrisBubble, TypingBubble, UserBubble } from '../components/AskChatBubbl
 import { AskInputBar } from '../components/AskInputBar';
 import { buildProfileAspects, buildRelationshipAspects } from '../utils/askAspects';
 import { getInitials } from '../utils/mainShell';
-import { ASK_COST_PER_MESSAGE, sendAskMessage, type AskTarget } from '../api/ask';
+import { ASK_COST_PER_MESSAGE, fetchAskHistory, sendAskMessage, type AskTarget } from '../api/ask';
 import { isDailyLimitError, presentPaywallIfInsufficient } from '../api/paywall';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'AskIris'>;
@@ -113,11 +113,9 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
   );
   const activeTargetSubject = useRelationshipAppStore((state) => state.activeTargetSubject);
   const previewAnalysis = useRelationshipAppStore((state) => state.previewAnalysis);
-  const activePartnerRomanticAssets = useRelationshipAppStore(
-    (state) => state.activePartnerRomanticAssets
-  );
   const askThreads = useRelationshipAppStore((state) => state.askThreads);
   const appendAskMessage = useRelationshipAppStore((state) => state.appendAskMessage);
+  const setAskThread = useRelationshipAppStore((state) => state.setAskThread);
   const spendCredits = useRelationshipAppStore((state) => state.spendCredits);
 
   const threadKey: AskThreadKey = useMemo(() => {
@@ -173,7 +171,9 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
     if (context !== 'profile') {
       return { aspects: [], countsByType: {} as Record<string, number> };
     }
-    const raw = activePartnerRomanticAssets?.birthChart ?? profileBirthChart;
+    // Use the signed-in user's own chart (same source the Chart tab reads),
+    // not the active partner's — this is the self/profile ask.
+    const raw = profileBirthChart;
     if (!raw || typeof raw !== 'object') {
       return { aspects: [], countsByType: {} as Record<string, number> };
     }
@@ -182,7 +182,7 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
       aspects?: Array<{ aspectingPlanet: string; aspectedPlanet: string; aspectType: string }>;
     };
     return buildProfileAspects(shape);
-  }, [context, activePartnerRomanticAssets?.birthChart, profileBirthChart]);
+  }, [context, profileBirthChart]);
 
   const aspectBundle =
     context === 'relationship' ? relationshipAspectBundle : profileAspectBundle;
@@ -212,7 +212,53 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
   const [selectedAspects, setSelectedAspects] = useState<AskAspectRef[]>([]);
   const [showPicker, setShowPicker] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(false);
   const scrollRef = useRef<ScrollView | null>(null);
+
+  // Hydrate the thread from the server on open — the in-memory store is wiped on
+  // reload, so without this previous messages would be lost. Skip if we already
+  // have messages for this thread in the current session.
+  useEffect(() => {
+    const target = resolveAskTarget(
+      context,
+      threadKey,
+      activeRelationshipId,
+      previewAnalysis?.compositeChartId ?? null,
+      profile?.id ?? null
+    );
+    if (!target) {
+      return;
+    }
+    if ((useRelationshipAppStore.getState().askThreads[threadKey]?.length ?? 0) > 0) {
+      return;
+    }
+    let cancelled = false;
+    setIsHydrating(true);
+    fetchAskHistory(target)
+      .then((messages) => {
+        if (!cancelled && messages.length > 0) {
+          setAskThread(threadKey, messages);
+        }
+      })
+      .catch(() => {
+        // No history yet (or unreachable) — leave the empty state.
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsHydrating(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    context,
+    threadKey,
+    activeRelationshipId,
+    previewAnalysis?.compositeChartId,
+    profile?.id,
+    setAskThread,
+  ]);
 
   const canSend = inputValue.trim().length > 0 && !isSending;
 
@@ -399,24 +445,28 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
           onContentSizeChange={scrollToEnd}
         >
           {thread.length === 0 ? (
-            <EmptyState
-              title={
-                context === 'relationship'
-                  ? 'Ask Iris anything'
-                  : context === 'profile'
-                  ? 'Ask Iris about your chart'
-                  : 'Ask Iris anything'
-              }
-              body={
-                context === 'relationship'
-                  ? `Ask about your connection with ${partnerName}. Add specific aspects for deeper answers.`
-                  : context === 'profile'
-                  ? 'Ask Iris about your own chart. Pin specific placements or aspects for grounded answers.'
-                  : 'Open-ended prompts start here — pick one to get going.'
-              }
-              suggestions={suggestions}
-              onSelect={handleSuggestionTap}
-            />
+            isHydrating ? (
+              <TypingBubble />
+            ) : (
+              <EmptyState
+                title={
+                  context === 'relationship'
+                    ? 'Ask Iris anything'
+                    : context === 'profile'
+                    ? 'Ask Iris about your chart'
+                    : 'Ask Iris anything'
+                }
+                body={
+                  context === 'relationship'
+                    ? `Ask about your connection with ${partnerName}. Add specific aspects for deeper answers.`
+                    : context === 'profile'
+                    ? 'Ask Iris about your own chart. Pin specific placements or aspects for grounded answers.'
+                    : 'Open-ended prompts start here — pick one to get going.'
+                }
+                suggestions={suggestions}
+                onSelect={handleSuggestionTap}
+              />
+            )
           ) : (
             <>
               {thread.map((message) =>
