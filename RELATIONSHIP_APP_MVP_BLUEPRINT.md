@@ -14,6 +14,43 @@ We will not implement it as a large refactor inside the current `StelliumApp` sh
 
 We will keep the existing app intact while extracting shared infrastructure that both apps can use.
 
+## Current Status
+
+The plan is now partially implemented.
+
+Completed so far:
+
+- `RelationshipApp/` scaffold exists as a separate mobile app shell
+- relationship-app Firebase project configs have been added via local env templates and app config files
+- backend user/account lookup is app-domain aware
+- backend auth supports separate Firebase projects by app domain
+- shared API/client extraction has started under `shared/`
+- relationship-app auth/bootstrap flow is wired
+- a basic self-profile form scaffold now submits to the real relationship-app user domain
+- the first real-person compatibility preview path is now wired end to end:
+  - `CreatePartnerScreen` collects partner data
+  - guest subject creation runs against the shared backend
+  - free preview generation calls the shared relationship analysis API
+  - `RelationshipPreviewScreen` renders the real preview payload
+
+Still intentionally placeholder:
+
+- celebrity selection flow
+- unlock flow
+- chat flow
+- romantic profile flow
+
+## Current Next Step
+
+Build the first unlockable post-preview path:
+
+1. Persist preview/composite-chart records into relationship-app history surfaces
+2. Implement `UnlockScreen` against a real entitlement or placeholder unlock contract
+3. Trigger `startFullRelationshipAnalysis` from the preview/unlock flow
+4. Poll workflow status and render the paused/completed states cleanly
+
+This is now the highest-value next milestone because it turns the preview slice into a usable conversion path instead of a dead-end demo.
+
 ## Why
 
 The existing mobile app has reusable backend integration, but its frontend shell is tightly coupled to a different product shape:

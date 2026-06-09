@@ -76,16 +76,44 @@ export const WizardContainer: React.FC<WizardContainerProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Top Header: back arrow, app title, progress bar, step counter */}
+      <View style={styles.headerContainer}>
+        <View style={styles.headerRow}>
+          {!isFirstStep && canGoBack ? (
+            <TouchableOpacity
+              style={styles.headerBackButton}
+              onPress={goBack}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Text style={styles.headerBackArrow}>←</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.headerBackButton} />
+          )}
+          <Text style={styles.headerTitle}>Iris</Text>
+          <View style={styles.headerBackButton} />
+        </View>
+
+        <View style={styles.progressBar}>
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.progressDash,
+                i === currentStep && styles.progressDashActive,
+              ]}
+            />
+          ))}
+        </View>
+
+        <Text style={styles.stepCounterText}>
+          STEP {currentStep + 1} OF {totalSteps}
+        </Text>
+      </View>
+
       {/* Steps Container */}
       <View style={styles.stepsContainer}>
         {children[currentStep]}
-      </View>
-
-      {/* Step Counter Text */}
-      <View style={styles.stepCounterContainer}>
-        <Text style={styles.stepCounterText}>
-          Step {currentStep + 1} of {totalSteps}
-        </Text>
       </View>
 
       {/* Navigation Buttons */}
@@ -141,14 +169,65 @@ const createStyles = (colors: any) => StyleSheet.create({
   stepsContainer: {
     flex: 1,
   },
-  stepCounterContainer: {
-    paddingVertical: 16,
+  headerContainer: {
+    paddingTop: 8,
+    paddingBottom: 12,
+    paddingHorizontal: 20,
     alignItems: 'center',
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 14,
+  },
+  headerBackButton: {
+    width: 36,
+    height: 32,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  headerBackArrow: {
+    fontSize: 24,
+    color: colors.onBackground,
+    fontWeight: '300',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 22,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    color: colors.onBackground,
+    textAlign: 'center',
+    letterSpacing: 3,
+  },
+  progressBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  progressDash: {
+    width: 28,
+    height: 3,
+    borderRadius: 2,
+    marginHorizontal: 4,
+    backgroundColor: colors.strokeMedium,
+  },
+  progressDashActive: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    elevation: 6,
+  },
   stepCounterText: {
-    fontSize: 14,
-    color: colors.onSurfaceMed,
-    fontWeight: '500',
+    fontSize: 11,
+    color: colors.onSurfaceLow,
+    fontWeight: '600',
+    letterSpacing: 2,
   },
   navigationContainer: {
     flexDirection: 'row',

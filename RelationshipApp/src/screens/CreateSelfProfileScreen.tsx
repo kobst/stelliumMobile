@@ -1,96 +1,160 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import auth from '@react-native-firebase/auth';
+import { BirthDatePicker } from '../components/BirthDatePicker';
 import { StackScreenProps } from '@react-navigation/stack';
+import { PlaceAutocompleteInput } from '../components/PlaceAutocompleteInput';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
-import { useRelationshipAppStore } from '../store';
+import { useRelationshipAppStore, GuestProfileDraft } from '../store';
 import { useTheme } from '../theme';
-import { RELATIONSHIP_APP_DOMAIN } from '../../../shared/domain/relationshipUser';
-import { externalApi, relationshipUsersApi } from '../api';
+import { externalApi, onboardingApi, PlaceDetails, OnboardingPreviewResponse } from '../api';
 import { relationshipAppEnv } from '../config/env';
+import {
+  getEpochSeconds,
+  isValidDate,
+  isValidTime,
+  parseNumberInput,
+} from '../utils/birthData';
+import { BirthTimePicker } from '../components/BirthTimePicker';
+import { SubmittingOverlay } from '../components/SubmittingOverlay';
+import { ProgressDashes } from '../components/ProgressDashes';
+import { WizardArrowButton } from '../components/WizardArrowButton';
+import { Avatar } from '../components/Avatar';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
 
-function isValidDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
-  }
+const GENDER_OPTIONS = [
+  { label: 'Female', value: 'female' },
+  { label: 'Male', value: 'male' },
+  { label: 'Other', value: 'other' },
+] as const;
 
-  const [year, month, day] = value.split('-').map(Number);
-  const date = new Date(`${value}T12:00:00`);
-  return (
-    !Number.isNaN(date.getTime()) &&
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() + 1 === month &&
-    date.getUTCDate() === day
-  );
-}
+const PARTNER_GENDER_OPTIONS = [
+  { label: 'Male', value: 'male' },
+  { label: 'Female', value: 'female' },
+  { label: 'All', value: 'all' },
+] as const;
 
-function isValidTime(value: string): boolean {
-  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
-}
-
-function getEpochSeconds(dateOfBirth: string, time: string): number {
-  return Math.floor(new Date(`${dateOfBirth}T${time}:00`).getTime() / 1000);
-}
-
-function parseNumberInput(value: string): number | null {
-  if (!value.trim()) {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
+const STEPS = [
+  {
+    eyebrow: 'Step 1 of 8',
+    title: 'What should we call you?',
+    subtitle: 'Start with your name so we can personalize your romantic profile.',
+  },
+  {
+    eyebrow: 'Step 2 of 8',
+    title: 'Add a photo',
+    subtitle: 'Optional — helps your connections feel real when your relationship list grows.',
+  },
+  {
+    eyebrow: 'Step 3 of 8',
+    title: 'How do you identify?',
+    subtitle: 'Choose what fits you best.',
+  },
+  {
+    eyebrow: 'Step 4 of 8',
+    title: 'Who are you drawn to?',
+    subtitle: 'This helps us filter the first celebrity match set.',
+  },
+  {
+    eyebrow: 'Step 5 of 8',
+    title: 'When were you born?',
+    subtitle: 'We need your birth date to calculate your chart.',
+  },
+  {
+    eyebrow: 'Step 6 of 8',
+    title: 'What time were you born?',
+    subtitle: 'Birth time sharpens house placements, but you can skip it.',
+  },
+  {
+    eyebrow: 'Step 7 of 8',
+    title: 'Where were you born?',
+    subtitle: 'Enter a city and country so we can resolve coordinates and timezone.',
+  },
+  {
+    eyebrow: 'Step 8 of 8',
+    title: 'Does this look right?',
+    subtitle: 'Review your details before we generate your profile.',
+  },
+] as const;
 
 export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
-  const setProfile = useRelationshipAppStore((state) => state.setProfile);
-  const authStatus = useRelationshipAppStore((state) => state.authStatus);
-  const firebaseEmail = useRelationshipAppStore((state) => state.firebaseEmail);
+  const setGuestProfileDraft = useRelationshipAppStore((state) => state.setGuestProfileDraft);
+  const setProfileReveal = useRelationshipAppStore((state) => state.setProfileReveal);
+  const isLocalUxMode =
+    useRelationshipAppStore((state) => state.isLocalUxMode) || relationshipAppEnv.enableLocalUxMode;
 
-  const currentUser = auth().currentUser;
-  const initialNames = useMemo(() => {
-    const displayName = currentUser?.displayName || '';
-    const parts = displayName.trim().split(/\s+/).filter(Boolean);
-
-    return {
-      firstName: parts[0] ?? '',
-      lastName: parts.slice(1).join(' '),
-    };
-  }, [currentUser?.displayName]);
-
-  const [firstName, setFirstName] = useState(initialNames.firstName);
-  const [lastName, setLastName] = useState(initialNames.lastName);
-  const [gender, setGender] = useState('other');
+  const [currentStep, setCurrentStep] = useState(0);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [gender, setGender] = useState('');
+  const [preferredPartnerGender, setPreferredPartnerGender] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('1995-01-01');
   const [timeOfBirth, setTimeOfBirth] = useState('12:00');
   const [birthTimeUnknown, setBirthTimeUnknown] = useState(false);
   const [placeOfBirth, setPlaceOfBirth] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
-  const [timezoneOffset, setTimezoneOffset] = useState('');
   const [isAutofillingLocation, setIsAutofillingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [timeSet, setTimeSet] = useState(false);
+  const [photoAdded, setPhotoAdded] = useState(false);
+
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
+
+  const formatDisplayDate = (iso: string): string => {
+    const [year, month, day] = iso.split('-');
+    return `${month}/${day}/${year}`;
+  };
+
+  const formatDisplayTime = (time: string): string => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+  };
+
+  const getStepError = (step: number): string | null => {
+    switch (step) {
+      case 0:
+        return firstName.trim() ? null : 'Enter your first name.';
+      case 1:
+        return null; // Photo step is always optional.
+      case 2:
+        return gender ? null : 'Select how you identify.';
+      case 3:
+        return preferredPartnerGender ? null : 'Select a partner preference.';
+      case 4:
+        return isValidDate(dateOfBirth) ? null : 'Enter a valid date of birth.';
+      case 5:
+        return birthTimeUnknown || isValidTime(timeOfBirth) ? null : 'Enter a valid birth time.';
+      case 6:
+        return placeOfBirth.trim() ? null : 'Birth location is required.';
+      case 7:
+        return null; // Confirm step has no extra validation.
+      default:
+        return null;
+    }
+  };
+
+  const canContinue = !getStepError(currentStep);
+  const isLastStep = currentStep === STEPS.length - 1;
 
   const resolveLocationFields = async () => {
     let resolvedPlace = placeOfBirth.trim();
     let resolvedLat = parseNumberInput(latitude);
     let resolvedLon = parseNumberInput(longitude);
-    let resolvedTzone = parseNumberInput(timezoneOffset);
+    let resolvedTzone: number | null = null;
 
     if ((resolvedLat === null || resolvedLon === null) && resolvedPlace && canUseGoogleServices) {
       const geocoded = await externalApi.geocodeLocation(resolvedPlace);
@@ -102,11 +166,19 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       setPlaceOfBirth(geocoded.formattedAddress);
     }
 
-    if (resolvedTzone === null && resolvedLat !== null && resolvedLon !== null && canUseGoogleServices) {
+    if (
+      resolvedTzone === null &&
+      resolvedLat !== null &&
+      resolvedLon !== null &&
+      canUseGoogleServices
+    ) {
       const timeForTimezone = birthTimeUnknown ? '12:00' : timeOfBirth;
       const epochTimeSeconds = getEpochSeconds(dateOfBirth, timeForTimezone);
-      resolvedTzone = await externalApi.fetchTimeZone(resolvedLat, resolvedLon, epochTimeSeconds);
-      setTimezoneOffset(String(resolvedTzone));
+      resolvedTzone = await externalApi.fetchTimeZone(
+        resolvedLat,
+        resolvedLon,
+        epochTimeSeconds
+      );
     }
 
     return {
@@ -117,59 +189,93 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     };
   };
 
-  const handleAutofillLocation = async () => {
-    if (!placeOfBirth.trim()) {
-      Alert.alert('Location required', 'Enter a city or place name first.');
-      return;
+  const handlePlaceResolved = async (nextPlace?: string) => {
+    if (nextPlace && nextPlace !== placeOfBirth) {
+      setPlaceOfBirth(nextPlace);
     }
 
-    if (!canUseGoogleServices) {
-      Alert.alert(
-        'Google API key missing',
-        'Manual latitude, longitude, and timezone entry is required until the relationship app environment includes GOOGLE_API_KEY.'
-      );
+    const targetPlace = (nextPlace ?? placeOfBirth).trim();
+    if (!targetPlace || isAutofillingLocation || !canUseGoogleServices) {
       return;
     }
 
     try {
       setIsAutofillingLocation(true);
-      const resolved = await resolveLocationFields();
-      if (resolved.lat === null || resolved.lon === null || resolved.tzone === null) {
-        throw new Error('Could not resolve the full location payload.');
-      }
+      await resolveLocationFields();
     } catch (error) {
-      Alert.alert(
-        'Location lookup failed',
-        error instanceof Error ? error.message : 'Could not resolve this location.'
-      );
+      if (!isLocalUxMode) {
+        setSubmitError(
+          error instanceof Error ? error.message : 'Could not resolve this location.'
+        );
+      }
     } finally {
       setIsAutofillingLocation(false);
     }
   };
 
-  const handleSubmit = async () => {
-    if (authStatus !== 'signedIn' || !currentUser) {
-      setSubmitError('A Firebase session is required before creating the relationship profile.');
+  const handlePlaceSelected = async (selection: PlaceDetails) => {
+    setPlaceOfBirth(selection.formattedAddress || selection.displayName || placeOfBirth);
+    if (selection.lat !== null) {
+      setLatitude(String(selection.lat));
+    }
+    if (selection.lng !== null) {
+      setLongitude(String(selection.lng));
+    }
+  };
+
+  const goBack = () => {
+    setSubmitError(null);
+    if (currentStep === 0) {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.replace('Welcome');
+      }
+      return;
+    }
+    setCurrentStep((step) => Math.max(0, step - 1));
+  };
+
+  const goNext = () => {
+    const stepError = getStepError(currentStep);
+    if (stepError) {
+      setSubmitError(stepError);
       return;
     }
 
-    if (!firstName.trim() || !lastName.trim()) {
-      setSubmitError('First and last name are required.');
+    setSubmitError(null);
+    setCurrentStep((step) => Math.min(STEPS.length - 1, step + 1));
+  };
+
+  const handleSubmit = async () => {
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    if (!fullName) {
+      setSubmitError('Name is required.');
+      return;
+    }
+
+    if (!gender) {
+      setSubmitError('Select how you identify.');
+      return;
+    }
+
+    if (!preferredPartnerGender) {
+      setSubmitError('Select a partner preference.');
       return;
     }
 
     if (!isValidDate(dateOfBirth)) {
-      setSubmitError('Date of birth must use YYYY-MM-DD and be a real date.');
+      setSubmitError('Please enter a valid date of birth.');
       return;
     }
 
     if (!birthTimeUnknown && !isValidTime(timeOfBirth)) {
-      setSubmitError('Birth time must use 24-hour HH:MM format.');
+      setSubmitError('Please enter a valid birth time.');
       return;
     }
 
     if (!placeOfBirth.trim()) {
-      setSubmitError('Place of birth is required.');
+      setSubmitError('Birth location is required.');
       return;
     }
 
@@ -177,323 +283,837 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
     setIsSubmitting(true);
 
     try {
-      const resolved = await resolveLocationFields();
+      const resolved = isLocalUxMode
+        ? {
+            placeOfBirth: placeOfBirth.trim(),
+            lat: null,
+            lon: null,
+            tzone: null,
+          }
+        : await resolveLocationFields();
 
-      if (
-        resolved.lat === null ||
-        resolved.lon === null ||
-        resolved.tzone === null
-      ) {
-        throw new Error(
-          'Latitude, longitude, and timezone offset are required. Use autofill or enter them manually.'
-        );
+      if (!isLocalUxMode && (resolved.lat === null || resolved.lon === null || resolved.tzone === null)) {
+        throw new Error('We could not resolve this birth location. Please choose a clearer place.');
       }
 
-      const profile = birthTimeUnknown
-        ? await relationshipUsersApi.createProfileUnknownTime({
-            firebaseUid: currentUser.uid,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            gender,
-            placeOfBirth: resolved.placeOfBirth,
-            dateOfBirth,
-            email: firebaseEmail ?? '',
-            lat: resolved.lat,
-            lon: resolved.lon,
-            tzone: resolved.tzone,
-          })
-        : await relationshipUsersApi.createProfile({
-            firebaseUid: currentUser.uid,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            dateOfBirth,
-            placeOfBirth: resolved.placeOfBirth,
-            time: timeOfBirth,
-            lat: resolved.lat,
-            lon: resolved.lon,
-            tzone: resolved.tzone,
-            gender,
-            unknownTime: false,
-          });
+      const draft: GuestProfileDraft = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        gender,
+        dateOfBirth,
+        timeOfBirth: birthTimeUnknown ? '12:00' : timeOfBirth,
+        birthTimeUnknown,
+        placeOfBirth: resolved.placeOfBirth,
+        latitude: resolved.lat,
+        longitude: resolved.lon,
+        totalOffsetHours: resolved.tzone,
+        photoUri: photoAdded ? 'local://photo-stub' : null,
+      };
 
-      setProfile(profile);
-      navigation.replace('ChooseTargetType');
+      if (isLocalUxMode) {
+        setGuestProfileDraft(draft);
+        setProfileReveal({
+          previewId: 'local-preview-id',
+          claimToken: 'local-claim-token',
+          overview:
+            `${draft.firstName}, your chart reveals a deeply magnetic romantic nature. ` +
+            'You lead with emotional intensity and crave partnerships that challenge you intellectually.',
+          romanticProfileBlurb:
+            `${draft.firstName}, you love with intensity, curiosity, and a taste for people who keep your heart awake.`,
+          topAspects: [
+            {
+              aspectType: 'venus_mars_conjunction',
+              label: 'Venus-Mars conjunction',
+              shortMeaning: 'magnetic chemistry',
+              primaryCluster: 'Passion',
+              clusterThemes: ['Passion', 'Connection'],
+              matches: [
+                {
+                  celebId: 'demo-1',
+                  celebName: 'Timothee Chalamet',
+                  profilePhotoUrl: null,
+                  orb: 2.1,
+                  annotation: {
+                    title: 'Venus-Mars conjunction · magnetic chemistry',
+                    sentence:
+                      'Your romantic style meets his drive head-on, which makes the first spark immediate and difficult to ignore.',
+                  },
+                },
+              ],
+            },
+            {
+              aspectType: 'moon_venus_trine',
+              label: 'Moon-Venus trine',
+              shortMeaning: 'easy affection',
+              primaryCluster: 'Harmony',
+              clusterThemes: ['Harmony', 'Connection'],
+              matches: [
+                {
+                  celebId: 'demo-2',
+                  celebName: 'Zendaya',
+                  profilePhotoUrl: null,
+                  orb: 3.5,
+                  annotation: {
+                    title: 'Moon-Venus trine · easy affection',
+                    sentence:
+                      'There is softness here from the start, the kind of emotional ease that makes closeness feel natural.',
+                  },
+                },
+              ],
+            },
+          ],
+          topCelebMatches: [],
+          celebAspectBank: null,
+          celebMatchesStatus: { status: 'completed' },
+          celebAnnotationsStatus: { status: 'completed' },
+          birthChart: {},
+          fullResponse: {
+            success: true,
+            previewId: 'local-preview-id',
+            claimToken: 'local-claim-token',
+            user: {
+              _id: 'local-preview-id',
+              firstName: draft.firstName,
+              lastName: draft.lastName,
+              gender: draft.gender,
+              preferredPartnerGender,
+              kind: 'accountSelf',
+              appDomain: 'relationship-app',
+            },
+            birthChart: {},
+            overview:
+              `${draft.firstName}, your chart reveals a deeply magnetic romantic nature. ` +
+              'You lead with emotional intensity and crave partnerships that challenge you intellectually.',
+            romanticProfileBlurb:
+              `${draft.firstName}, you love with intensity, curiosity, and a taste for people who keep your heart awake.`,
+            referencedCodes: [],
+            celebMatchesStatus: { status: 'completed' },
+            celebAnnotationsStatus: { status: 'completed' },
+            celebAspectBank: null,
+            topAspects: [],
+            overviewMode: 'romantic',
+            status: 'onboarding_preview_created',
+          } as OnboardingPreviewResponse,
+        });
+        navigation.replace('ProfileReveal');
+        return;
+      }
+
+      const requestPayload = {
+        firstName: draft.firstName,
+        lastName: draft.lastName,
+        gender: draft.gender,
+        preferredPartnerGender: preferredPartnerGender || undefined,
+        dateOfBirth: draft.dateOfBirth,
+        time: draft.birthTimeUnknown ? undefined : draft.timeOfBirth,
+        placeOfBirth: draft.placeOfBirth,
+        lat: String(draft.latitude ?? 0),
+        lon: String(draft.longitude ?? 0),
+        tzone: String(draft.totalOffsetHours ?? 0),
+        totalOffsetHours: draft.totalOffsetHours ?? 0,
+      };
+
+      console.log('[onboarding-preview] request:', JSON.stringify(requestPayload, null, 2));
+      const previewResponse = await onboardingApi.submitPreview(requestPayload);
+      console.log('[onboarding-preview] response:', JSON.stringify(previewResponse, null, 2));
+
+      setGuestProfileDraft(draft);
+      setProfileReveal({
+        previewId: previewResponse.previewId,
+        claimToken: previewResponse.claimToken,
+        overview: previewResponse.overview,
+        romanticProfileBlurb: previewResponse.romanticProfileBlurb,
+        topAspects: previewResponse.topAspects,
+        topCelebMatches: previewResponse.topCelebMatches ?? [],
+        celebAspectBank: previewResponse.celebAspectBank,
+        celebMatchesStatus: previewResponse.celebMatchesStatus,
+        celebAnnotationsStatus: previewResponse.celebAnnotationsStatus,
+        birthChart: previewResponse.birthChart,
+        fullResponse: previewResponse,
+      });
+
+      navigation.replace('ProfileReveal');
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Could not create the relationship profile.';
+      const message = error instanceof Error ? error.message : 'Could not generate your profile.';
       setSubmitError(message);
-      Alert.alert('Profile creation failed', message);
+      Alert.alert('Profile generation failed', message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.headerBlock}>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>You</Text>
-          <Text style={[styles.title, { color: colors.text }]}>
-            Create the one profile this app will reuse.
-          </Text>
-          <Text style={[styles.body, { color: colors.textMuted }]}>
-            This is intentionally plain. The goal is to make the relationship-app
-            account flow real before we commit to final onboarding design. Data
-            is submitted into the dedicated {RELATIONSHIP_APP_DOMAIN} user domain.
-          </Text>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Identity</Text>
-          <TextInput
-            value={firstName}
-            onChangeText={setFirstName}
-            placeholder="First name"
-            placeholderTextColor={colors.textMuted}
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-          <TextInput
-            value={lastName}
-            onChangeText={setLastName}
-            placeholder="Last name"
-            placeholderTextColor={colors.textMuted}
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-          <TextInput
-            value={gender}
-            onChangeText={setGender}
-            placeholder="Gender"
-            placeholderTextColor={colors.textMuted}
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-          <Text style={[styles.helper, { color: colors.textMuted }]}>
-            Firebase email: {firebaseEmail ?? 'not available on this session'}
-          </Text>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Birth data</Text>
-          <TextInput
-            value={dateOfBirth}
-            onChangeText={setDateOfBirth}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="none"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-
-          <View style={styles.switchRow}>
-            <View style={styles.switchCopy}>
-              <Text style={[styles.switchLabel, { color: colors.text }]}>Birth time unknown</Text>
-              <Text style={[styles.helper, { color: colors.textMuted }]}>
-                If enabled, we submit through the unknown-time backend path.
-              </Text>
-            </View>
-            <Switch
-              value={birthTimeUnknown}
-              onValueChange={setBirthTimeUnknown}
-              thumbColor={colors.surface}
-              trackColor={{ false: colors.surfaceMuted, true: colors.primaryMuted }}
+  const renderStep = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <View style={styles.stepGroup}>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>First Name</Text>
+            <TextInput
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="First name"
+              placeholderTextColor={colors.textSubtle}
+              style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
+              autoFocus
+            />
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Last Name</Text>
+            <TextInput
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Last name (optional)"
+              placeholderTextColor={colors.textSubtle}
+              style={[styles.input, { color: colors.text, backgroundColor: colors.surfaceHigh }]}
             />
           </View>
-
-          {!birthTimeUnknown ? (
-            <TextInput
-              value={timeOfBirth}
-              onChangeText={setTimeOfBirth}
-              placeholder="HH:MM"
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="none"
-              style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+        );
+      case 1:
+        return (
+          <View style={[styles.stepGroup, styles.photoStepGroup]}>
+            <TouchableOpacity
+              onPress={() => setPhotoAdded((value) => !value)}
+              activeOpacity={0.85}
+              style={styles.photoWrap}
+            >
+              {photoAdded ? (
+                <Avatar
+                  size={112}
+                  gradient="lavender"
+                  fallbackInitial={firstName.charAt(0) || 'A'}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.photoPlaceholder,
+                    {
+                      backgroundColor: colors.surfaceHigh,
+                      borderColor: colors.ghostBorder,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.photoIcon, { color: colors.textSubtle }]}>📷</Text>
+                </View>
+              )}
+              <View
+                style={[
+                  styles.photoBadge,
+                  { backgroundColor: colors.primary, borderColor: colors.surface },
+                ]}
+              >
+                <Text style={[styles.photoBadgeText, { color: colors.onPrimary }]}>
+                  {photoAdded ? '✓' : '+'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <Text style={[styles.photoHelper, { color: colors.textSubtle }]}>
+              Tap to add — or skip for now.
+            </Text>
+          </View>
+        );
+      case 2:
+        return (
+          <View style={styles.stepGroup}>
+            <View style={styles.chipRow}>
+              {GENDER_OPTIONS.map((option) => {
+                const active = option.value === gender;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    activeOpacity={0.85}
+                    onPress={() => setGender(option.value)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: active
+                          ? 'rgba(202, 190, 255, 0.14)'
+                          : colors.surfaceHigh,
+                        borderColor: active
+                          ? 'rgba(202, 190, 255, 0.35)'
+                          : 'transparent',
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: active ? colors.primary : colors.text },
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        );
+      case 3:
+        return (
+          <View style={styles.stepGroup}>
+            <View style={styles.chipRow}>
+              {PARTNER_GENDER_OPTIONS.map((option) => {
+                const active = option.value === preferredPartnerGender;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    activeOpacity={0.85}
+                    onPress={() => setPreferredPartnerGender(option.value)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: active
+                          ? 'rgba(202, 190, 255, 0.14)'
+                          : colors.surfaceHigh,
+                        borderColor: active
+                          ? 'rgba(202, 190, 255, 0.35)'
+                          : 'transparent',
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: active ? colors.primary : colors.text },
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        );
+      case 4:
+        return (
+          <View style={styles.stepGroup}>
+            <View style={[styles.valueChip, { backgroundColor: colors.surfaceHigh }]}>
+              <Text style={[styles.valueChipText, { color: colors.text }]}>
+                {formatDisplayDate(dateOfBirth)}
+              </Text>
+            </View>
+            <BirthDatePicker
+              value={dateOfBirth}
+              onChange={setDateOfBirth}
             />
-          ) : null}
+          </View>
+        );
+      case 5:
+        return (
+          <View style={styles.stepGroup}>
+            <View style={styles.unknownToggleRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  setBirthTimeUnknown((value) => !value);
+                  setTimeSet(true);
+                }}
+                activeOpacity={0.7}
+                style={styles.checkboxRow}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <View
+                  style={[
+                    styles.checkboxBox,
+                    {
+                      backgroundColor: birthTimeUnknown ? colors.primary : 'transparent',
+                      borderColor: birthTimeUnknown ? colors.primary : colors.ghostBorder,
+                    },
+                  ]}
+                >
+                  {birthTimeUnknown ? (
+                    <Text style={[styles.checkboxMark, { color: colors.onPrimary }]}>✓</Text>
+                  ) : null}
+                </View>
+                <Text
+                  style={[
+                    styles.checkboxLabel,
+                    { color: birthTimeUnknown ? colors.text : colors.textMuted },
+                  ]}
+                >
+                  {birthTimeUnknown ? 'Birth time unknown' : "I don't know the birth time"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {!birthTimeUnknown ? (
+              <>
+                <View style={[styles.valueChip, { backgroundColor: colors.surfaceHigh }]}>
+                  <Text style={[styles.valueChipText, { color: colors.text }]}>
+                    {timeSet ? formatDisplayTime(timeOfBirth) : formatDisplayTime(timeOfBirth)}
+                  </Text>
+                </View>
+                <BirthTimePicker
+                  value={timeOfBirth}
+                  onChange={(nextValue) => {
+                    setTimeOfBirth(nextValue);
+                    setTimeSet(true);
+                  }}
+                />
+              </>
+            ) : (
+              <View style={[styles.infoBox, { backgroundColor: colors.surfaceHigh }]}>
+                <Text style={[styles.infoText, { color: colors.textMuted }]}>
+                  We&apos;ll calculate without house placements.
+                </Text>
+              </View>
+            )}
+          </View>
+        );
+      case 6:
+        return (
+          <View style={styles.stepGroup}>
+            <PlaceAutocompleteInput
+              value={placeOfBirth}
+              onChangeText={setPlaceOfBirth}
+              onSelectSuggestion={async (selection) => {
+                await handlePlaceSelected(selection);
+              }}
+              onBlur={() => {
+                handlePlaceResolved().catch(() => undefined);
+              }}
+              placeholder="City, Country"
+              canUseSuggestions={canUseGoogleServices}
+            />
+            {isAutofillingLocation ? (
+              <Text style={[styles.infoText, { color: colors.textMuted }]}>Resolving...</Text>
+            ) : null}
+          </View>
+        );
+      case 7:
+        return <ConfirmStep
+          colors={colors}
+          firstName={firstName}
+          lastName={lastName}
+          gender={gender}
+          preferredPartnerGender={preferredPartnerGender}
+          dateOfBirth={dateOfBirth}
+          timeOfBirth={timeOfBirth}
+          birthTimeUnknown={birthTimeUnknown}
+          placeOfBirth={placeOfBirth}
+          photoAdded={photoAdded}
+          formatDisplayDate={formatDisplayDate}
+          formatDisplayTime={formatDisplayTime}
+        />;
+      default:
+        return null;
+    }
+  };
+
+  if (isSubmitting) {
+    return (
+      <SubmittingOverlay
+        title="Iris is reading your chart"
+        subtitle="Mapping your planetary placements and the aspects that shape how you love."
+      />
+    );
+  }
+
+  const step = STEPS[currentStep];
+
+  return (
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
+      <View style={styles.content}>
+        <View style={styles.topHeader}>
+          <View style={styles.topHeaderRow}>
+            <TouchableOpacity
+              style={styles.topHeaderBack}
+              onPress={goBack}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityLabel={currentStep === 0 ? 'Exit onboarding' : 'Go back'}
+            >
+              <Text style={[styles.topHeaderBackArrow, { color: colors.text }]}>←</Text>
+            </TouchableOpacity>
+            <Text style={[styles.topHeaderTitle, { color: colors.text }]}>Iris</Text>
+            <View style={styles.topHeaderBack} />
+          </View>
+
+          <View style={styles.progressRowWrap}>
+            <ProgressDashes current={currentStep} total={STEPS.length} />
+          </View>
+
+          <Text style={[styles.stepCounter, { color: colors.accent }]}>{step.eyebrow.toUpperCase()}</Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Birth location</Text>
-          <TextInput
-            value={placeOfBirth}
-            onChangeText={setPlaceOfBirth}
-            placeholder="City, state, country"
-            placeholderTextColor={colors.textMuted}
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-          <TouchableOpacity
-            style={[styles.utilityButton, { borderColor: colors.border }]}
-            onPress={handleAutofillLocation}
-            disabled={isAutofillingLocation}
-          >
-            <Text style={[styles.utilityButtonText, { color: colors.text }]}>
-              {isAutofillingLocation ? 'Resolving Location...' : 'Autofill Coordinates + Timezone'}
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.helper, { color: colors.textMuted }]}>
-            {canUseGoogleServices
-              ? 'If the Google API key is configured, this will geocode the location and derive timezone automatically.'
-              : 'GOOGLE_API_KEY is not configured for RelationshipApp yet, so enter latitude, longitude, and timezone manually.'}
-          </Text>
+        <View style={styles.heroBlock}>
+          <Text style={[styles.heroTitle, { color: colors.text }]}>{step.title}</Text>
+          <Text style={[styles.heroSubtitle, { color: colors.textMuted }]}>{step.subtitle}</Text>
+        </View>
 
-          <TextInput
-            value={latitude}
-            onChangeText={setLatitude}
-            placeholder="Latitude"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="decimal-pad"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-          <TextInput
-            value={longitude}
-            onChangeText={setLongitude}
-            placeholder="Longitude"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="decimal-pad"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
-          <TextInput
-            value={timezoneOffset}
-            onChangeText={setTimezoneOffset}
-            placeholder="Timezone offset hours, ex: -5"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="decimal-pad"
-            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          />
+        <View style={styles.formCard}>
+          {renderStep()}
         </View>
 
         {submitError ? (
-          <Text style={[styles.errorText, { color: colors.primary }]}>{submitError}</Text>
+          <Text style={[styles.errorText, { color: colors.error }]}>{submitError}</Text>
         ) : null}
 
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-          >
-            <Text style={styles.primaryButtonText}>
-              {isSubmitting ? 'Saving Profile...' : 'Save Profile'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: colors.border }]}
-            onPress={() => navigation.goBack()}
-            disabled={isSubmitting}
-          >
-            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Back</Text>
-          </TouchableOpacity>
+        <View style={styles.actionsRow}>
+          <WizardArrowButton
+            onPress={isLastStep ? handleSubmit : goNext}
+            disabled={!canContinue}
+          />
         </View>
-      </ScrollView>
+
+        <Text style={[styles.privacyText, { color: colors.textSubtle }]}>
+          Your privacy is secured and won&apos;t be shared
+        </Text>
+      </View>
     </SafeAreaView>
   );
 };
+
+interface ConfirmStepProps {
+  colors: ReturnType<typeof useTheme>['colors'];
+  firstName: string;
+  lastName: string;
+  gender: string;
+  preferredPartnerGender: string;
+  dateOfBirth: string;
+  timeOfBirth: string;
+  birthTimeUnknown: boolean;
+  placeOfBirth: string;
+  photoAdded: boolean;
+  formatDisplayDate: (iso: string) => string;
+  formatDisplayTime: (time: string) => string;
+}
+
+function ConfirmStep({
+  colors,
+  firstName,
+  lastName,
+  gender,
+  preferredPartnerGender,
+  dateOfBirth,
+  timeOfBirth,
+  birthTimeUnknown,
+  placeOfBirth,
+  photoAdded,
+  formatDisplayDate,
+  formatDisplayTime,
+}: ConfirmStepProps) {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim() || 'Not set';
+  const genderLabel =
+    GENDER_OPTIONS.find((option) => option.value === gender)?.label ?? 'Not set';
+  const partnerGenderLabel =
+    PARTNER_GENDER_OPTIONS.find((option) => option.value === preferredPartnerGender)?.label ??
+    'Not set';
+
+  const rows: readonly { key: string; label: string; value: string }[] = [
+    { key: 'name', label: 'Name', value: fullName },
+    { key: 'gender', label: 'Identify as', value: genderLabel },
+    { key: 'pref', label: 'Drawn to', value: partnerGenderLabel },
+    { key: 'dob', label: 'Birth Date', value: formatDisplayDate(dateOfBirth) },
+    {
+      key: 'time',
+      label: 'Birth Time',
+      value: birthTimeUnknown ? 'Unknown' : formatDisplayTime(timeOfBirth),
+    },
+    { key: 'city', label: 'Birth City', value: placeOfBirth || 'Not set' },
+  ];
+
+  return (
+    <View style={styles.stepGroup}>
+      <View style={styles.confirmHero}>
+        <Avatar
+          size={80}
+          gradient="lavender"
+          fallbackInitial={firstName.charAt(0) || 'A'}
+          photoUri={photoAdded ? 'local://photo-stub' : null}
+        />
+      </View>
+      <View
+        style={[
+          styles.confirmCard,
+          { backgroundColor: colors.surfaceHigh, borderColor: colors.ghostBorder },
+        ]}
+      >
+        {rows.map((row, index) => {
+          const isLast = index === rows.length - 1;
+          return (
+            <View
+              key={row.key}
+              style={[
+                styles.confirmRow,
+                isLast
+                  ? null
+                  : { borderBottomColor: colors.ghostBorder, borderBottomWidth: 1 },
+              ]}
+            >
+              <Text style={[styles.confirmRowLabel, { color: colors.textMuted }]}>
+                {row.label}
+              </Text>
+              <Text
+                style={[styles.confirmRowValue, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {row.value}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
   content: {
-    padding: 20,
-    paddingBottom: 40,
-    gap: 16,
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    paddingBottom: 24,
   },
-  headerBlock: {
-    gap: 10,
-    paddingTop: 12,
+  topHeader: {
+    alignItems: 'center',
+    paddingTop: 4,
+    paddingBottom: 14,
   },
-  eyebrow: {
-    fontSize: 12,
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 14,
+  },
+  topHeaderBack: {
+    width: 36,
+    height: 32,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  topHeaderBackArrow: {
+    fontSize: 24,
+    fontWeight: '300',
+  },
+  topHeaderTitle: {
+    flex: 1,
+    fontFamily: 'Georgia',
+    fontSize: 22,
+    fontWeight: '500',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  progressRowWrap: {
+    marginBottom: 10,
+  },
+  stepCounter: {
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1.4,
+    letterSpacing: 1.6,
+  },
+  heroBlock: {
+    alignItems: 'center',
+    paddingTop: 6,
+    paddingBottom: 14,
+    gap: 10,
+  },
+  heroTitle: {
+    fontFamily: 'Georgia',
+    fontSize: 32,
+    fontStyle: 'italic',
+    fontWeight: '500',
+    letterSpacing: -0.4,
+    lineHeight: 36,
+    textAlign: 'center',
+  },
+  heroSubtitle: {
+    fontFamily: 'Georgia',
+    fontSize: 16,
+    fontStyle: 'italic',
+    lineHeight: 24,
+    textAlign: 'center',
+    paddingHorizontal: 12,
+  },
+  formCard: {
+    flex: 1,
+    minHeight: 300,
+  },
+  stepGroup: {
+    gap: 12,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.6,
     textTransform: 'uppercase',
   },
-  title: {
-    fontSize: 30,
-    fontWeight: '700',
-    lineHeight: 36,
-  },
-  body: {
-    fontSize: 15,
-    lineHeight: 23,
-  },
-  card: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 16,
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
   input: {
-    borderWidth: 1,
     borderRadius: 12,
     fontSize: 16,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: 'transparent',
   },
-  switchRow: {
+  chipRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  chip: {
+    flexGrow: 1,
+    flexBasis: '30%',
+    borderWidth: 1,
+    borderRadius: 100,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     alignItems: 'center',
-    gap: 12,
   },
-  switchCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  switchLabel: {
+  chipText: {
     fontSize: 15,
     fontWeight: '600',
   },
-  helper: {
+  photoStepGroup: {
+    alignItems: 'center',
+    gap: 14,
+    paddingTop: 16,
+  },
+  photoWrap: {
+    position: 'relative',
+  },
+  photoPlaceholder: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoIcon: {
+    fontSize: 32,
+  },
+  photoBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoBadgeText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  photoHelper: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  confirmHero: {
+    alignItems: 'center',
+    paddingBottom: 6,
+  },
+  confirmCard: {
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  confirmRowLabel: {
+    width: 100,
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+  },
+  confirmRowValue: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  unknownToggleRow: {
+    alignItems: 'center',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  checkboxBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxMark: {
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  valueChip: {
+    alignSelf: 'center',
+    borderRadius: 100,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  valueChipText: {
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textAlign: 'center',
+  },
+  infoBox: {
+    borderRadius: 12,
+    padding: 14,
+  },
+  infoText: {
     fontSize: 13,
     lineHeight: 18,
   },
-  utilityButton: {
-    borderWidth: 1,
+  selectedLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
+    gap: 10,
   },
-  utilityButtonText: {
+  locationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  selectedLocationText: {
     fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: '500',
+    flex: 1,
   },
   errorText: {
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '600',
-  },
-  actions: {
-    gap: 12,
-    marginTop: 8,
-  },
-  primaryButton: {
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-  },
-  primaryButtonText: {
-    color: '#FFF9F0',
-    fontSize: 16,
-    fontWeight: '700',
     textAlign: 'center',
+    marginTop: 16,
   },
-  secondaryButton: {
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 24,
+    paddingHorizontal: 12,
   },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+  privacyText: {
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 8,
   },
 });

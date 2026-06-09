@@ -7,6 +7,13 @@ require Pod::Executable.execute_command('node', ['-p',
 
 platform :ios, '16.0'
 use_modular_headers!
+
+# RevenueCat Test Store purchases hang before completion in the RN 0.79
+# bridgeless build on the iOS simulator. Keep dev builds on the legacy bridge
+# while validating the purchase flow; remove this once the native SDK path is
+# verified against StoreKit/App Store sandbox.
+ENV['RCT_NEW_ARCH_ENABLED'] ||= '0'
+
 prepare_react_native_project!
 
 use_frameworks! :linkage => :static

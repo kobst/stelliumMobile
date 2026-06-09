@@ -34,16 +34,16 @@ This audit identified **63 active API endpoints** across multiple categories:
   - Configuration: Uses Firebase project credentials
   - Files: `AuthScreen.tsx:69-88`, `src/config/firebase.ts`
 
-## 2. Active APIs Used by Frontend
+## 2. Active Backend APIs
 
 ### Base Configuration
 - **Server URL**: Environment variable `REACT_APP_SERVER_URL`
 - **API Client**: Centralized in `src/api/client.ts`
 - **Content Type**: `application/json`
 
-### 2.1 Backend APIs (via apiClient)
+### 2.1 User Management APIs
 
-#### User Management APIs (src/api/users.ts)
+#### Modern APIs (src/api/users.ts)
 1. `POST /createUser` - Create user with known birth time
 2. `POST /createUserUnknownTime` - Create user with unknown birth time
 3. `POST /getUser` - Get user by ID
@@ -54,78 +54,96 @@ This audit identified **63 active API endpoints** across multiple categories:
 8. `DELETE /users/{userId}` - Delete user
 9. `POST /createGuestSubject` - Create guest subject with known birth time
 10. `POST /createGuestSubjectUnknownTime` - Create guest subject with unknown birth time
+11. `POST /createCeleb` - Create celebrity subject with known birth time
+12. `POST /createCelebUnknownTime` - Create celebrity subject with unknown birth time
 
-#### Chart Analysis APIs (src/api/charts.ts)
-11. `POST /getBirthChartAnalysis` - Full birth chart analysis
-12. `POST /fetchAnalysis` - Fetch existing analysis
-13. `POST /analysis/start-full` - Start full analysis workflow
-14. `POST /analysis/full-status` - Poll analysis status
-15. `POST /workflow/get-complete-data` - Get completed workflow data
-16. `POST /getSubtopicAnalysis` - Generate topic analysis
-17. `POST /processBasicAnalysis` - Process and vectorize basic analysis
-18. `POST /processTopicAnalysis` - Process and vectorize topic analysis
-19. `POST /users/{userId}/birthchart/enhanced-chat` - Enhanced birth chart chat
-20. `GET /users/{userId}/birthchart/chat-history` - Birth chart chat history
+#### Legacy APIs (api.ts)
+11. `POST /createUser` - Legacy user creation
+12. `POST /getUser` - Legacy get user
+13. `POST /getUsers` - Legacy get users
+14. `POST /getCompositeCharts` - Legacy composite charts
 
-#### Horoscope APIs (src/api/horoscopes.ts)
-21. `POST /users/{userId}/horoscope/daily` - Daily horoscope
-22. `POST /users/{userId}/horoscope/weekly` - Weekly horoscope
-23. `POST /users/{userId}/horoscope/monthly` - Monthly horoscope
-24. `POST /users/{userId}/horoscope/custom` - Custom horoscope generation
-25. `GET /users/{userId}/horoscope/latest` - Latest horoscope
-26. `POST /getTransitWindows` - Transit windows for custom horoscopes
-27. `POST /generateCustomHoroscope` - Legacy custom horoscope API
-28. `GET /users/{userId}/horoscope/custom` - Custom horoscope history
+### 2.2 Chart Analysis APIs
 
-#### Chat APIs (src/api/chat.ts)
-29. `POST /userChatBirthChartAnalysis` - Chat with birth chart context
-30. `POST /userChatRelationshipAnalysis` - Chat with relationship context
-31. `POST /handleUserQuery` - General chat/query handling
-32. `POST /getChatHistory` - Get chat history
-33. `DELETE /chat/messages/{messageId}` - Delete chat message
-34. `POST /clearChatHistory` - Clear chat history
-35. `POST /getSuggestedQuestions` - Get suggested questions
-36. `POST /rateChatResponse` - Rate chat response
-37. `POST /getChatStats` - Get chat statistics
+#### Modern APIs (src/api/charts.ts)
+15. `POST /getBirthChartAnalysis` - Full birth chart analysis
+16. `POST /fetchAnalysis` - Fetch existing analysis
+17. `POST /analysis/start-full` - Start full analysis workflow
+18. `POST /analysis/full-status` - Poll analysis status
+19. `POST /workflow/get-complete-data` - Get completed workflow data
+20. `POST /getSubtopicAnalysis` - Generate topic analysis
+21. `POST /processBasicAnalysis` - Process and vectorize basic analysis
+22. `POST /processTopicAnalysis` - Process and vectorize topic analysis
+23. `POST /users/{userId}/birthchart/enhanced-chat` - Enhanced birth chart chat
+24. `GET /users/{userId}/birthchart/chat-history` - Birth chart chat history
 
-#### Celebrity APIs (src/api/celebrities.ts)
-38. `POST /getCelebs` - Get celebrities with pagination
-39. `POST /searchCelebrities` - Search celebrities with filters
-40. `POST /getCelebrity` - Get celebrity by ID
-41. `POST /getCelebrityRelationships` - Get celebrity relationships
-42. `POST /analyzeCelebrityCompatibility` - Analyze user-celebrity compatibility
-43. `POST /getCelebritiesByProfession` - Get celebrities by profession
-44. `POST /getCelebritiesBySign` - Get celebrities by zodiac sign
-45. `POST /getTrendingCelebrities` - Get trending celebrities
-46. `POST /getCelebrityChartAnalysis` - Get celebrity chart analysis
-47. `POST /findCelebrityMatches` - Find celebrity matches for user
-48. `GET /getCelebrityProfessions` - Get celebrity professions list
-49. `PUT /celebrities/{celebrityId}` - Update celebrity (admin)
-50. `DELETE /celebrities/{celebrityId}` - Delete celebrity (admin)
+#### Legacy APIs (api.ts)
+25. `POST /getShortOverview` - Short birth chart overview
+26. `POST /getShortOverviewPlanet` - Planet-specific overview
+27. `POST /getBirthChartAnalysis` - Legacy full analysis
 
-#### Relationship Analysis APIs (src/api/relationships.ts)
-51. `POST /enhanced-relationship-analysis` - Enhanced 5-cluster relationship analysis
-52. `POST /workflow/relationship/start` - Start relationship workflow
-53. `POST /workflow/relationship/status` - Get workflow status
-54. `POST /workflow/relationship/resume` - Resume paused workflow
-55. `POST /fetchRelationshipAnalysis` - Fetch existing relationship analysis
-56. `POST /getUserCompositeCharts` - Get user's composite charts
-57. `DELETE /relationships/{relationshipId}` - Delete relationship
-58. `POST /chatForUserRelationship` - Legacy relationship chat
-59. `POST /fetchUserChatRelationshipAnalysis` - Legacy chat history
-60. `POST /relationships/{compositeChartId}/enhanced-chat` - Enhanced relationship chat
-61. `GET /relationships/{compositeChartId}/chat-history` - Relationship chat history
+### 2.3 Relationship Analysis APIs
 
-### 2.2 External APIs (direct fetch)
+#### Modern APIs (src/api/relationships.ts)
+28. `POST /enhanced-relationship-analysis` - Enhanced 5-cluster relationship analysis
+29. `POST /workflow/relationship/start` - Start relationship workflow
+30. `POST /workflow/relationship/status` - Get workflow status
+31. `POST /workflow/relationship/resume` - Resume paused workflow
+32. `POST /fetchRelationshipAnalysis` - Fetch existing relationship analysis
+33. `POST /getUserCompositeCharts` - Get user's composite charts
+34. `DELETE /relationships/{relationshipId}` - Delete relationship
+35. `POST /chatForUserRelationship` - Legacy relationship chat
+36. `POST /fetchUserChatRelationshipAnalysis` - Legacy chat history
+37. `POST /relationships/{compositeChartId}/enhanced-chat` - Enhanced relationship chat
+38. `GET /relationships/{compositeChartId}/chat-history` - Relationship chat history
 
-#### Google Maps APIs (src/api/external.ts)
-62. `GET https://maps.googleapis.com/maps/api/timezone/json` - Timezone lookup
-63. `GET https://maps.googleapis.com/maps/api/geocode/json` - Address to coordinates
-64. `GET https://maps.googleapis.com/maps/api/geocode/json` - Coordinates to address (reverse geocoding)
+#### Legacy APIs (api.ts)
+39. `POST /createRelationship` - Legacy relationship creation
+40. `POST /saveCompositeChartProfile` - Legacy save composite chart
+41. `POST /getRelationshipScore` - Legacy relationship scoring
+42. `POST /generateRelationshipAnalysis` - Legacy generate analysis
+43. `POST /fetchRelationshipAnalysis` - Legacy fetch analysis
 
-#### Google Places APIs (onboarding screens)
-65. `GET https://maps.googleapis.com/maps/api/place/autocomplete/json` - Place autocomplete
-66. `GET https://maps.googleapis.com/maps/api/place/details/json` - Place details
+### 2.4 Horoscope APIs (src/api/horoscopes.ts)
+44. `POST /users/{userId}/horoscope/daily` - Daily horoscope
+45. `POST /users/{userId}/horoscope/weekly` - Weekly horoscope
+46. `POST /users/{userId}/horoscope/monthly` - Monthly horoscope
+47. `POST /users/{userId}/horoscope/custom` - Custom horoscope generation
+48. `GET /users/{userId}/horoscope/latest` - Latest horoscope
+49. `POST /getTransitWindows` - Transit windows for custom horoscopes
+50. `POST /generateCustomHoroscope` - Legacy custom horoscope
+51. `GET /users/{userId}/horoscope/custom` - Custom horoscope history
+
+### 2.5 Celebrity APIs (src/api/celebrities.ts)
+52. `POST /getCelebs` - Get celebrities with pagination
+53. `POST /searchCelebrities` - Search celebrities with filters
+54. `POST /getCelebrity` - Get celebrity by ID
+55. `POST /getCelebrityRelationships` - Get celebrity relationships
+56. `POST /analyzeCelebrityCompatibility` - Analyze user-celebrity compatibility
+57. `POST /getCelebritiesByProfession` - Get celebrities by profession
+58. `POST /getCelebritiesBySign` - Get celebrities by zodiac sign
+59. `POST /getTrendingCelebrities` - Get trending celebrities
+60. `POST /getCelebrityChartAnalysis` - Get celebrity chart analysis
+61. `POST /findCelebrityMatches` - Find celebrity matches for user
+62. `GET /getCelebrityProfessions` - Get celebrity professions list
+63. `PUT /celebrities/{celebrityId}` - Update celebrity (admin)
+64. `DELETE /celebrities/{celebrityId}` - Delete celebrity (admin)
+
+### 2.6 Chat APIs (src/api/chat.ts)
+65. `POST /userChatBirthChartAnalysis` - Chat with birth chart context
+66. `POST /userChatRelationshipAnalysis` - Chat with relationship context
+67. `POST /handleUserQuery` - General chat/query handling
+68. `POST /getChatHistory` - Get chat history
+69. `DELETE /chat/messages/{messageId}` - Delete chat message
+70. `POST /clearChatHistory` - Clear chat history
+71. `POST /getSuggestedQuestions` - Get suggested questions
+72. `POST /rateChatResponse` - Rate chat response
+73. `POST /getChatStats` - Get chat statistics
+
+### 2.7 Legacy Vectorization APIs (api.ts)
+74. `POST /processBasicAnalysis` - Legacy vectorization
+75. `POST /processTopicAnalysis` - Legacy vectorization
+76. `POST /processRelationshipAnalysis` - Legacy vectorization
 
 ## 3. Unused/Legacy API Code
 
@@ -240,22 +258,6 @@ Based on grep analysis, the most frequently used APIs are:
 
 ---
 
-## 9. Cleanup Actions Completed ✅
-
-### Successfully Removed
-1. **Legacy `api.ts` file** - Removed completely (19 unused functions)
-2. **Unused `getPlanetOverview` function** - Removed from `useChart` hook and API interfaces
-3. **Duplicate `ApiError` export** - Fixed duplicate export in `client.ts`
-4. **Missing type exports** - Cleaned up non-existent type exports from `index.ts`
-
-### Verified Working
-- ✅ All components use modular API imports (`src/api/`)
-- ✅ No broken imports detected
-- ✅ Firebase/Google services remain properly configured
-- ✅ External API calls (timezone, geocoding) working via `externalApi`
-
-**Total Active APIs**: 66 endpoints across all services
-- **Backend APIs**: 61 endpoints (via apiClient)
-- **External APIs**: 5 endpoints (Google Maps/Places)
-**Legacy Frontend Functions Removed**: 19 unused implementations from api.ts
-**Status**: ✅ **Cleanup Complete**
+**Total Active APIs**: 76 endpoints across all services
+**Recommended for Removal**: 19 legacy implementations in `api.ts`
+**Net Active APIs After Cleanup**: 57 endpoints

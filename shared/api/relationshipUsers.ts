@@ -8,7 +8,13 @@ import {
   RELATIONSHIP_APP_DOMAIN,
 } from '../domain/relationshipUser';
 
-type SubjectResponse = SubjectDocument | { user: SubjectDocument };
+type SubjectResponse =
+  | SubjectDocument
+  | {
+      user: SubjectDocument;
+      overview?: string;
+      status?: string;
+    };
 
 function unwrapSubjectDocument(response: SubjectResponse): SubjectDocument {
   if ('user' in response && response.user) {
@@ -23,6 +29,14 @@ function normalizeRelationshipAppProfile(
   firebaseUid: string | null
 ): RelationshipAppProfile {
   const subject = unwrapSubjectDocument(response);
+  const romanticOverview =
+    'overview' in response && typeof response.overview === 'string'
+      ? response.overview
+      : undefined;
+  const romanticOverviewStatus =
+    'status' in response && typeof response.status === 'string'
+      ? response.status
+      : undefined;
 
   if (subject.kind !== 'accountSelf') {
     throw new Error(
@@ -60,6 +74,8 @@ function normalizeRelationshipAppProfile(
     subject,
     backendAppDomain,
     isDomainExplicit: backendAppDomain === RELATIONSHIP_APP_DOMAIN,
+    romanticOverview,
+    romanticOverviewStatus,
   };
 }
 
@@ -82,6 +98,41 @@ export const relationshipUsersApi = {
     });
 
     return normalizeRelationshipAppProfile(response, request.firebaseUid);
+  },
+
+  async getMe(): Promise<RelationshipAppProfile> {
+    const response = await relationshipApiClient.get<{
+      user: SubjectDocument;
+      userId: string;
+      birthChart?: Record<string, unknown>;
+      overview?: string | null;
+      romanticProfileBlurb?: string | null;
+      referencedCodes?: string[];
+      celebAspectBank?: import('./onboarding').CelebAspectBank | null;
+      topAspects?: import('./onboarding').TopAspect[];
+      topCelebMatches?: import('./onboarding').TopCelebMatch[];
+    }>('/relationship-app/me');
+
+    const normalized = normalizeRelationshipAppProfile(
+      {
+        user: {
+          ...response.user,
+          _id: response.userId || response.user._id,
+          birthChart: response.birthChart ?? response.user.birthChart,
+        },
+        overview: response.overview ?? undefined,
+      },
+      response.user.firebaseUid ?? null
+    );
+
+    return {
+      ...normalized,
+      romanticProfileBlurb: response.romanticProfileBlurb ?? null,
+      referencedCodes: response.referencedCodes ?? [],
+      celebAspectBank: response.celebAspectBank ?? null,
+      topAspects: response.topAspects ?? [],
+      topCelebMatches: response.topCelebMatches ?? [],
+    };
   },
 
   async createProfileUnknownTime(
@@ -108,4 +159,231 @@ export const relationshipUsersApi = {
 
     return normalizeRelationshipAppProfile(response, null);
   },
+
+  async createGuestSubjectRomantic(request: {
+    firstName: string;
+    lastName: string;
+    gender: string;
+    placeOfBirth: string;
+    dateOfBirth: string;
+    time: string;
+    lat: number;
+    lon: number;
+    tzone: number;
+    ownerUserId: string;
+  }): Promise<CreateGuestSubjectRomanticResult> {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipUsersApi.createGuestSubjectRomantic] request', {
+        ownerUserId: request.ownerUserId,
+      });
+    }
+    const response = await relationshipApiClient.post<CreateGuestSubjectRomanticEnvelope>(
+      '/createGuestSubjectRomantic',
+      {
+        ...request,
+        ...getRelationshipAppRequestMetadata(),
+      }
+    );
+    return normalizeRomanticGuestResponse(response, 'createGuestSubjectRomantic');
+  },
+
+  async createGuestSubjectUnknownTimeRomantic(request: {
+    firstName: string;
+    lastName: string;
+    gender: string;
+    placeOfBirth: string;
+    dateOfBirth: string;
+    lat: number;
+    lon: number;
+    tzone: number;
+    ownerUserId: string;
+  }): Promise<CreateGuestSubjectRomanticResult> {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipUsersApi.createGuestSubjectUnknownTimeRomantic] request', {
+        ownerUserId: request.ownerUserId,
+      });
+    }
+    const response = await relationshipApiClient.post<CreateGuestSubjectRomanticEnvelope>(
+      '/createGuestSubjectUnknownTimeRomantic',
+      {
+        ...request,
+        ...getRelationshipAppRequestMetadata(),
+      }
+    );
+    return normalizeRomanticGuestResponse(response, 'createGuestSubjectUnknownTimeRomantic');
+  },
+
+  async getGuestSubjectRomantic(userId: string): Promise<CreateGuestSubjectRomanticResult> {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipUsersApi.getGuestSubjectRomantic] request', { userId });
+    }
+    const response = await relationshipApiClient.post<CreateGuestSubjectRomanticEnvelope>(
+      '/getGuestSubjectRomantic',
+      {
+        userId,
+        ...getRelationshipAppRequestMetadata(),
+      }
+    );
+    return normalizeRomanticGuestResponse(response, 'getGuestSubjectRomantic');
+  },
+
+  async getUserSubjects(ownerUserId: string): Promise<OwnedGuestSubject[]> {
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[relationshipUsersApi.getUserSubjects] request', { ownerUserId });
+    }
+    const response = await relationshipApiClient.post<
+      OwnedGuestSubject[] | GetUserSubjectsPaginatedResponse
+    >('/getUserSubjects', {
+      ownerUserId,
+      ...getRelationshipAppRequestMetadata(),
+    });
+
+    const rawList = Array.isArray(response) ? response : response?.data ?? [];
+    // Defensive filter: endpoint is already scoped to owned guest subjects,
+    // but keep this in case the backend widens the response later.
+    return rawList.filter(
+      (item) => Boolean(item?._id) && (item.kind === undefined || item.kind === 'guest')
+    );
+  },
+
+  async getSubjectPhotoPresignedUrl(
+    subjectId: string,
+    contentType: string
+  ): Promise<SubjectPhotoPresignedUrlResponse> {
+    if (!subjectId) throw new Error('getSubjectPhotoPresignedUrl requires a subjectId');
+    const response = await relationshipApiClient.post<SubjectPhotoPresignedUrlResponse>(
+      `/relationship-app/subjects/${encodeURIComponent(subjectId)}/profile-photo/presigned-url`,
+      { contentType }
+    );
+    if (!response || response.success === false) {
+      throw new Error('Failed to get photo upload URL');
+    }
+    return response;
+  },
+
+  async confirmSubjectPhotoUpload(
+    subjectId: string,
+    photoKey: string
+  ): Promise<SubjectPhotoConfirmResponse> {
+    if (!subjectId) throw new Error('confirmSubjectPhotoUpload requires a subjectId');
+    const response = await relationshipApiClient.post<SubjectPhotoConfirmResponse>(
+      `/relationship-app/subjects/${encodeURIComponent(subjectId)}/profile-photo/confirm`,
+      { photoKey }
+    );
+    if (!response || response.success === false) {
+      throw new Error('Failed to confirm photo upload');
+    }
+    return response;
+  },
+
+  async deleteSubjectProfilePhoto(subjectId: string): Promise<void> {
+    if (!subjectId) throw new Error('deleteSubjectProfilePhoto requires a subjectId');
+    await relationshipApiClient.delete<{ success?: boolean }>(
+      `/relationship-app/subjects/${encodeURIComponent(subjectId)}/profile-photo`
+    );
+  },
 };
+
+export interface SubjectPhotoPresignedUrlResponse {
+  success?: boolean;
+  uploadUrl: string;
+  photoKey: string;
+  expiresIn?: number;
+  instructions?: string;
+}
+
+export interface SubjectPhotoConfirmResponse {
+  success?: boolean;
+  profilePhotoUrl: string;
+  profilePhotoKey: string;
+  updatedAt?: string;
+}
+
+export interface OwnedGuestSubject extends SubjectDocument {
+  analysisStatus?: {
+    level?: 'none' | 'scores' | 'complete' | string;
+    completedTasks?: number;
+    totalTasks?: number;
+    workflowStatus?: Record<string, unknown>;
+  };
+}
+
+interface GetUserSubjectsPaginatedResponse {
+  success?: boolean;
+  data?: OwnedGuestSubject[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface CreateGuestSubjectRomanticResult {
+  partner: SubjectDocument;
+  birthChart: Record<string, unknown> | null;
+  overview: string | null;
+  romanticProfileBlurb: string | null;
+  referencedCodes: string[];
+  overviewMode: string | null;
+  status: string | null;
+}
+
+interface CreateGuestSubjectRomanticEnvelope {
+  success?: boolean;
+  error?: string;
+  userId?: string;
+  guestSubject?: Partial<SubjectDocument>;
+  birthChart?: Record<string, unknown> | null;
+  overview?: string | null;
+  romanticProfileBlurb?: string | null;
+  referencedCodes?: string[];
+  overviewMode?: string | null;
+  status?: string | null;
+}
+
+function normalizeRomanticGuestResponse(
+  response: CreateGuestSubjectRomanticEnvelope,
+  endpoint: string
+): CreateGuestSubjectRomanticResult {
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.log(`[relationshipUsersApi.${endpoint}] response`, {
+      success: response?.success,
+      hasUserId: Boolean(response?.userId),
+      userId: response?.userId,
+      hasGuestSubject: Boolean(response?.guestSubject),
+      status: response?.status,
+      keys: response ? Object.keys(response) : null,
+    });
+  }
+
+  if (!response || response.success === false) {
+    throw new Error(response?.error || 'Failed to create guest subject');
+  }
+
+  if (!response.userId) {
+    throw new Error('Guest subject response missing userId');
+  }
+
+  const partner = {
+    ...(response.guestSubject ?? {}),
+    _id: response.userId,
+  } as SubjectDocument;
+
+  return {
+    partner,
+    birthChart: response.birthChart ?? null,
+    overview: response.overview ?? null,
+    romanticProfileBlurb: response.romanticProfileBlurb ?? null,
+    referencedCodes: response.referencedCodes ?? [],
+    overviewMode: response.overviewMode ?? null,
+    status: response.status ?? null,
+  };
+}

@@ -42,6 +42,9 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 const ENDPOINT_CONFIGS: Array<{ pattern: string | RegExp; config: EndpointConfig }> = [
   { pattern: '/chat', config: { timeout: 60000, retryOnTimeout: true } },
   { pattern: '/enhanced-chat', config: { timeout: 60000, retryOnTimeout: true } },
+  // Ask Iris generates an LLM answer and charges on success — give it room, but
+  // never auto-retry (a retry could double-charge / double-generate).
+  { pattern: '/ask-iris', config: { timeout: 60000, retryOnTimeout: false, maxRetries: 0 } },
   { pattern: /\/horoscope\/daily/, config: { timeout: 90000, retryOnTimeout: true, maxRetries: 2, retryDelays: [2000, 5000] } },
   { pattern: /\/horoscope\/weekly/, config: { timeout: 90000, retryOnTimeout: true, maxRetries: 2, retryDelays: [2000, 5000] } },
   { pattern: /\/horoscope\/monthly/, config: { timeout: 120000, retryOnTimeout: true, maxRetries: 2, retryDelays: [3000, 7000] } },
@@ -222,6 +225,14 @@ class BaseApiClient {
     });
   }
 
+  async patch<T>(endpoint: string, data?: unknown, headers?: Record<string, string>): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
   async delete<T>(endpoint: string, headers?: Record<string, string>): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'DELETE',
@@ -233,7 +244,8 @@ class BaseApiClient {
     endpoint: string,
     data: unknown,
     interval: number = 3000,
-    maxAttempts: number = 20
+    maxAttempts: number = 20,
+    headers?: Record<string, string>
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       let attempts = 0;
@@ -242,7 +254,7 @@ class BaseApiClient {
         attempts += 1;
 
         try {
-          const response = await this.post<any>(endpoint, data);
+          const response = await this.post<any>(endpoint, data, headers);
 
           if (response.isCompleted || response.status === 'completed') {
             clearInterval(pollInterval);

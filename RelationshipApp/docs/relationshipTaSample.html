@@ -1,0 +1,357 @@
+import { useState } from "react";
+
+const SANS = "'DM Sans', system-ui, sans-serif";
+const SERIF = "Georgia, 'Times New Roman', serif";
+
+const colors = {
+  bg: "#0C0B10",
+  card: "#16151D",
+  cardBorder: "rgba(255,255,255,0.06)",
+  gold: "#D4A843",
+  goldDim: "rgba(212,168,67,0.15)",
+  lavender: "#B8A0E8",
+  lavenderBg: "rgba(184,160,232,0.12)",
+  text: "#E8E4F0",
+  textDim: "rgba(232,228,240,0.55)",
+  textFaint: "rgba(232,228,240,0.35)",
+  green: "#82C8B4",
+  greenDim: "rgba(130,200,180,0.12)",
+};
+
+const relationships = [
+  { id: 1, name: "Emma Watson", type: "celeb", photo: "https://image.tmdb.org/t/p/w200/A14lbfGlFEliAoRUp7fKdJsHMD1.jpg", archetype: "Iron & Honey", topCategory: "Passion", topScore: 82, aspect: "Venus-Mars Trine", locked: false },
+  { id: 2, name: "Sarah Chen", type: "person", initial: "S", photo: null, archetype: "Shared Frequency", topCategory: "Connection", topScore: 76, aspect: "Moon Conjunction", locked: false },
+  { id: 3, name: "Harry Styles", type: "celeb", photo: "https://image.tmdb.org/t/p/w200/wSjFCl4fXbnmxUrumVKJVzEWsGE.jpg", archetype: "Beautiful Tension", topCategory: "Emotional", topScore: 88, aspect: "Moon-Venus Square", locked: true },
+  { id: 4, name: "Alex Rivera", type: "person", initial: "A", photo: null, hasPhoto: true, archetype: "Steady Hearth", topCategory: "Stability", topScore: 71, aspect: "Sun-Moon Trine", locked: false },
+];
+
+const celebs = [
+  { name: "Beyoncé", photo: "https://image.tmdb.org/t/p/w200/bJCkMVEINqMKj2Yv2XGW6RLDPOX.jpg", sun: "Virgo" },
+  { name: "Timothée Chalamet", photo: "https://image.tmdb.org/t/p/w200/BE2sdjpgsa2rNTFa66f7upkaOP.jpg", sun: "Capricorn" },
+  { name: "Zendaya", photo: "https://image.tmdb.org/t/p/w200/tyJFnBCJfksMb3JTfM1fhLpr6hm.jpg", sun: "Virgo" },
+  { name: "Bad Bunny", photo: null, emoji: "🎵", sun: "Pisces" },
+  { name: "Florence Pugh", photo: "https://image.tmdb.org/t/p/w200/6gBVPvVsaQPlrq4Hx5RRnwOjNiK.jpg", sun: "Capricorn" },
+  { name: "Pedro Pascal", photo: "https://image.tmdb.org/t/p/w200/dBOrm29qBhsNhMYe2JHTGhMuXog.jpg", sun: "Aries" },
+  { name: "Rihanna", photo: "https://image.tmdb.org/t/p/w200/mmi02MIh1PBklPdxuT4EcXBNz1X.jpg", sun: "Pisces" },
+  { name: "Oscar Isaac", photo: "https://image.tmdb.org/t/p/w200/dW5U5yrIIPmMjRThR9KT2xH6nTz.jpg", sun: "Pisces" },
+];
+
+const Avatar = ({ src, fallbackInitial, fallbackEmoji, size = 36, gradient = "lavender" }) => {
+  const [imgError, setImgError] = useState(false);
+  const gradients = {
+    lavender: `linear-gradient(135deg, ${colors.lavender}, #9B7DD4)`,
+    gold: `linear-gradient(135deg, ${colors.gold}, #C49530)`,
+    green: `linear-gradient(135deg, ${colors.green}, #5BA890)`,
+  };
+  if (src && !imgError) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: `2px solid ${colors.bg}` }}>
+        <img src={src} onError={() => setImgError(true)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      </div>
+    );
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: fallbackEmoji ? colors.goldDim : gradients[gradient], display: "flex", alignItems: "center", justifyContent: "center", fontSize: fallbackEmoji ? size * 0.45 : size * 0.4, fontWeight: 700, color: fallbackEmoji ? colors.gold : colors.bg, fontFamily: SERIF, flexShrink: 0, border: `2px solid ${colors.bg}` }}>
+      {fallbackEmoji || fallbackInitial || "?"}
+    </div>
+  );
+};
+
+const AvatarPair = ({ userInitial = "J", otherSrc, otherInitial, otherEmoji, otherGradient = "gold" }) => (
+  <div style={{ position: "relative", width: 56, height: 46, flexShrink: 0 }}>
+    <div style={{ position: "absolute", left: 0, top: 0, zIndex: 1 }}>
+      <Avatar fallbackInitial={userInitial} size={38} gradient="lavender" />
+    </div>
+    <div style={{ position: "absolute", right: 0, top: 6 }}>
+      <Avatar src={otherSrc} fallbackInitial={otherInitial} fallbackEmoji={otherEmoji} size={38} gradient={otherGradient} />
+    </div>
+  </div>
+);
+
+const TabBar = ({ active }) => (
+  <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 393, background: "rgba(12,11,16,0.94)", backdropFilter: "blur(20px)", borderTop: `1px solid rgba(255,255,255,0.05)`, display: "flex", padding: "10px 0 22px", zIndex: 200 }}>
+    {[["⌂","Home"],["♡","Relationships"],["✦","Discover"],["◉","Profile"]].map(([icon,label],i) => (
+      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontSize: 10, color: i === active ? colors.lavender : colors.textFaint, cursor: "pointer", fontFamily: SANS }}>
+        <span style={{ fontSize: 18 }}>{icon}</span><span>{label}</span>
+      </div>
+    ))}
+  </div>
+);
+
+const CreditPill = () => (
+  <div style={{ display: "flex", alignItems: "center", gap: 6, background: colors.goldDim, border: "1px solid rgba(212,168,67,0.25)", borderRadius: 100, padding: "6px 12px 6px 10px", fontSize: 13, fontWeight: 600, color: colors.gold }}>
+    <span style={{ fontSize: 12 }}>◆</span><span>147</span>
+  </div>
+);
+
+const EmptyState = ({ onAdd }) => (
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 40px", textAlign: "center" }}>
+    <div style={{ width: 80, height: 80, borderRadius: "50%", background: colors.lavenderBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, marginBottom: 24 }}>♡</div>
+    <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, marginBottom: 10, color: colors.text }}>No connections yet</div>
+    <div style={{ fontSize: 14, lineHeight: 1.5, color: colors.textDim, marginBottom: 28 }}>Add someone from your life or pick a celebrity to see how your charts interact.</div>
+    <button onClick={onAdd} style={{ background: `linear-gradient(135deg, ${colors.lavender}, #9B7DD4)`, color: colors.bg, border: "none", borderRadius: 14, padding: "15px 32px", fontSize: 15, fontWeight: 600, fontFamily: SANS, cursor: "pointer" }}>+ Add your first connection</button>
+  </div>
+);
+
+const RelCard = ({ rel }) => (
+  <div style={{ background: colors.card, border: `1px solid ${colors.cardBorder}`, borderRadius: 16, padding: "16px 14px", marginBottom: 10, cursor: "pointer" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <AvatarPair otherSrc={rel.photo} otherInitial={rel.initial} otherGradient={rel.type === "celeb" ? "gold" : "green"} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+          <span style={{ fontSize: 15, fontWeight: 600, color: colors.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{rel.name}</span>
+          <span style={{ fontSize: 10, color: colors.textFaint, background: "rgba(255,255,255,0.04)", borderRadius: 100, padding: "2px 7px", textTransform: "uppercase", letterSpacing: 0.5, flexShrink: 0 }}>{rel.type === "celeb" ? "Celeb" : "Personal"}</span>
+        </div>
+        <div style={{ fontSize: 14, fontFamily: SERIF, fontStyle: "italic", color: colors.gold, marginBottom: 4 }}>{rel.archetype}</div>
+        <div style={{ fontSize: 11.5, color: colors.textDim }}>{rel.aspect}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: SERIF, color: rel.locked ? colors.textFaint : colors.lavender, filter: rel.locked ? "blur(5px)" : "none", userSelect: "none" }}>{rel.topScore}</div>
+        <div style={{ fontSize: 9.5, color: colors.textFaint, textTransform: "uppercase", letterSpacing: 0.4 }}>{rel.topCategory}</div>
+      </div>
+    </div>
+  </div>
+);
+
+const CelebRow = ({ c, onClick }) => {
+  const [imgErr, setImgErr] = useState(false);
+  return (
+    <div onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer" }}>
+      {c.photo && !imgErr ? (
+        <div style={{ width: 48, height: 48, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
+          <img src={c.photo} onError={() => setImgErr(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
+      ) : (
+        <div style={{ width: 48, height: 48, borderRadius: "50%", background: colors.goldDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{c.emoji || "⭐"}</div>
+      )}
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: colors.text }}>{c.name}</div>
+        <div style={{ fontSize: 12, color: colors.textDim }}>{c.sun} Sun</div>
+      </div>
+      <span style={{ color: colors.textFaint, fontSize: 18 }}>›</span>
+    </div>
+  );
+};
+
+const AddFlow = ({ onClose, step, setStep }) => {
+  const [searchVal, setSearchVal] = useState("");
+  const [personName, setPersonName] = useState("");
+  const [personDate, setPersonDate] = useState("");
+  const [selectedCeleb, setSelectedCeleb] = useState(null);
+  const [relType, setRelType] = useState("Partner");
+  const [personPhotoAdded, setPersonPhotoAdded] = useState(false);
+
+  const filteredCelebs = celebs.filter(c => c.name.toLowerCase().includes(searchVal.toLowerCase()));
+
+  return (
+    <div style={{ position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 393, height: "100vh", background: colors.bg, zIndex: 300, overflowY: "auto", fontFamily: SANS }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "58px 20px 16px" }}>
+        <span onClick={step === "choose" ? onClose : () => { setStep("choose"); }} style={{ fontSize: 16, color: colors.textDim, cursor: "pointer" }}>{step === "choose" ? "✕" : "← Back"}</span>
+        <span style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 18, fontWeight: 600, color: colors.text }}>Add Connection</span>
+        <span style={{ width: 40 }} />
+      </div>
+
+      {step === "choose" && (
+        <div style={{ padding: "20px 20px" }}>
+          <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 700, marginBottom: 8, color: colors.text }}>Who do you want to explore?</div>
+          <div style={{ fontSize: 14, color: colors.textDim, marginBottom: 28, lineHeight: 1.5 }}>See how your chart connects with a celebrity or someone in your life.</div>
+          <div onClick={() => setStep("celeb")} style={{ background: colors.card, border: `1px solid ${colors.cardBorder}`, borderRadius: 16, padding: "22px 20px", marginBottom: 12, cursor: "pointer", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: -40, right: -40, width: 120, height: 120, background: `radial-gradient(circle, ${colors.goldDim} 0%, transparent 70%)`, pointerEvents: "none" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 14, background: colors.goldDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>⭐</div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: colors.text, marginBottom: 3 }}>Celebrity</div>
+                <div style={{ fontSize: 13, color: colors.textDim, lineHeight: 1.4 }}>Explore your chart against hundreds of famous figures</div>
+              </div>
+            </div>
+          </div>
+          <div onClick={() => setStep("person")} style={{ background: colors.card, border: `1px solid ${colors.cardBorder}`, borderRadius: 16, padding: "22px 20px", cursor: "pointer", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: -40, right: -40, width: 120, height: 120, background: `radial-gradient(circle, ${colors.greenDim} 0%, transparent 70%)`, pointerEvents: "none" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 14, background: colors.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>👤</div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: colors.text, marginBottom: 3 }}>Someone in your life</div>
+                <div style={{ fontSize: 13, color: colors.textDim, lineHeight: 1.4 }}>Partner, crush, ex, friend — anyone you know their birth details for</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step === "celeb" && (
+        <div style={{ padding: "12px 20px" }}>
+          <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "14px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ color: colors.textFaint, fontSize: 16 }}>⌕</span>
+            <input value={searchVal} onChange={e => setSearchVal(e.target.value)} placeholder="Search celebrities…" style={{ background: "none", border: "none", outline: "none", color: colors.text, fontSize: 15, fontFamily: SANS, width: "100%", caretColor: colors.lavender }} />
+          </div>
+          {!searchVal && <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: colors.gold, marginBottom: 14 }}>Popular</div>}
+          {filteredCelebs.map((c, i) => (
+            <CelebRow key={i} c={c} onClick={() => { setSelectedCeleb(c); setStep("celeb-confirm"); }} />
+          ))}
+        </div>
+      )}
+
+      {step === "celeb-confirm" && selectedCeleb && (
+        <div style={{ padding: "30px 20px", textAlign: "center" }}>
+          <CelebConfirmAvatar celeb={selectedCeleb} />
+          <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 700, marginBottom: 6, color: colors.text }}>{selectedCeleb.name}</div>
+          <div style={{ fontSize: 13, color: colors.textDim, marginBottom: 32 }}>{selectedCeleb.sun} Sun</div>
+          <div style={{ background: colors.card, border: `1px solid ${colors.cardBorder}`, borderRadius: 16, padding: 20, marginBottom: 16, textAlign: "left" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: colors.textFaint, marginBottom: 10 }}>What you'll get</div>
+            {["Relationship archetype & aspect match", "Short romantic blurb (free)", "5-dimension scores & overview (1 credit)", "Full synastry & composite analysis (3 credits)"].map((t, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: i < 3 ? 10 : 0 }}>
+                <span style={{ color: i < 2 ? colors.green : colors.gold, fontSize: 12, marginTop: 2 }}>{i < 2 ? "✓" : "◆"}</span>
+                <span style={{ fontSize: 13.5, color: i < 2 ? colors.text : colors.textDim, lineHeight: 1.4 }}>{t}</span>
+              </div>
+            ))}
+          </div>
+          <button onClick={onClose} style={{ width: "100%", background: `linear-gradient(135deg, ${colors.lavender}, #9B7DD4)`, color: colors.bg, border: "none", borderRadius: 14, padding: "16px", fontSize: 16, fontWeight: 600, fontFamily: SANS, cursor: "pointer", marginBottom: 12 }}>Create Connection</button>
+          <div style={{ fontSize: 13, color: colors.textDim }}>Short blurb and archetype are free</div>
+        </div>
+      )}
+
+      {step === "person" && (
+        <div style={{ padding: "12px 20px" }}>
+          <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, marginBottom: 6, color: colors.text }}>Add someone you know</div>
+          <div style={{ fontSize: 13, color: colors.textDim, marginBottom: 24, lineHeight: 1.5 }}>We need their birth details to calculate the chart.</div>
+
+          {/* Photo upload */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+            <div onClick={() => setPersonPhotoAdded(!personPhotoAdded)} style={{ position: "relative", cursor: "pointer" }}>
+              <div style={{ width: 80, height: 80, borderRadius: "50%", background: personPhotoAdded ? `linear-gradient(135deg, ${colors.green}, #5BA890)` : "rgba(255,255,255,0.04)", border: personPhotoAdded ? "none" : "2px dashed rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                {personPhotoAdded ? (
+                  <span style={{ fontSize: 34, fontFamily: SERIF, fontWeight: 700, color: colors.bg }}>A</span>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                    <span style={{ fontSize: 20, color: colors.textFaint }}>📷</span>
+                  </div>
+                )}
+              </div>
+              <div style={{ position: "absolute", bottom: -2, right: -2, width: 26, height: 26, borderRadius: "50%", background: colors.lavender, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: colors.bg, border: `2px solid ${colors.bg}` }}>{personPhotoAdded ? "✓" : "+"}</div>
+            </div>
+          </div>
+          <div style={{ textAlign: "center", fontSize: 12, color: colors.textFaint, marginBottom: 24, marginTop: -16 }}>Add a photo (optional)</div>
+
+          {[
+            { label: "Their name", placeholder: "First name", val: personName, set: setPersonName },
+            { label: "Birth date", placeholder: "MM/DD/YYYY", val: personDate, set: setPersonDate },
+          ].map((f, i) => (
+            <div key={i} style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: colors.textDim, marginBottom: 8 }}>{f.label}</div>
+              <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "14px 16px" }}>
+                <input value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} style={{ background: "none", border: "none", outline: "none", color: colors.text, fontSize: 15, fontFamily: SANS, width: "100%", caretColor: colors.lavender }} />
+              </div>
+            </div>
+          ))}
+
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: colors.textDim }}>Birth time</div>
+              <div style={{ fontSize: 12, color: colors.lavender, cursor: "pointer" }}>I don't know</div>
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "14px 16px" }}>
+              <input placeholder="e.g. 3:30 PM" style={{ background: "none", border: "none", outline: "none", color: colors.text, fontSize: 15, fontFamily: SANS, width: "100%", caretColor: colors.lavender }} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: colors.textDim, marginBottom: 8 }}>Birth city</div>
+            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "14px 16px" }}>
+              <input placeholder="City, Country" style={{ background: "none", border: "none", outline: "none", color: colors.text, fontSize: 15, fontFamily: SANS, width: "100%", caretColor: colors.lavender }} />
+            </div>
+          </div>
+
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: colors.textDim, marginBottom: 10 }}>Relationship type</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
+            {["Partner", "Crush", "Ex", "Friend", "Other"].map((t, i) => (
+              <div key={i} onClick={() => setRelType(t)} style={{ background: relType === t ? colors.lavenderBg : "rgba(255,255,255,0.04)", border: `1px solid ${relType === t ? "rgba(184,160,232,0.3)" : "rgba(255,255,255,0.08)"}`, borderRadius: 100, padding: "8px 16px", fontSize: 13, color: relType === t ? colors.lavender : colors.textDim, cursor: "pointer", transition: "all 0.15s" }}>{t}</div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 12, padding: "12px 14px", marginBottom: 24 }}>
+            <span style={{ fontSize: 14 }}>🔒</span>
+            <span style={{ fontSize: 12, color: colors.textFaint, lineHeight: 1.4 }}>Their details are private and only used to calculate the chart.</span>
+          </div>
+
+          <button onClick={onClose} style={{ width: "100%", background: `linear-gradient(135deg, ${colors.lavender}, #9B7DD4)`, color: colors.bg, border: "none", borderRadius: 14, padding: "16px", fontSize: 16, fontWeight: 600, fontFamily: SANS, cursor: "pointer", marginBottom: 20 }}>Create Connection</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CelebConfirmAvatar = ({ celeb }) => {
+  const [err, setErr] = useState(false);
+  if (celeb.photo && !err) {
+    return (
+      <div style={{ width: 88, height: 88, borderRadius: "50%", overflow: "hidden", margin: "0 auto 20px", border: `3px solid ${colors.goldDim}` }}>
+        <img src={celeb.photo} onError={() => setErr(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      </div>
+    );
+  }
+  return (
+    <div style={{ width: 88, height: 88, borderRadius: "50%", background: colors.goldDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, margin: "0 auto 20px" }}>{celeb.emoji || "⭐"}</div>
+  );
+};
+
+export default function RelationshipsTab() {
+  const [view, setView] = useState("populated");
+  const [showAdd, setShowAdd] = useState(false);
+  const [addStep, setAddStep] = useState("choose");
+  const [filter, setFilter] = useState("all");
+
+  const filtered = filter === "all" ? relationships : relationships.filter(r => filter === "celeb" ? r.type === "celeb" : r.type === "person");
+
+  return (
+    <div style={{ background: colors.bg, minHeight: "100vh", maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: colors.text, paddingBottom: 96, position: "relative" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}>
+        <span>9:41</span>
+        <div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} />
+        <span>···</span>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px 8px" }}>
+        <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 22, fontWeight: 600 }}>Iris</div>
+        <CreditPill />
+      </div>
+
+      <div style={{ padding: "16px 20px 0" }}>
+        <div style={{ fontFamily: SERIF, fontSize: 30, fontWeight: 700, marginBottom: 6 }}>Relationships</div>
+        <div style={{ fontSize: 13.5, color: colors.textDim, marginBottom: 20 }}>Your connections and how your charts interact.</div>
+      </div>
+
+      {/* Demo toggle */}
+      <div style={{ display: "flex", gap: 6, padding: "0 20px", marginBottom: 20 }}>
+        {["empty", "populated"].map(v => (
+          <div key={v} onClick={() => setView(v)} style={{ fontSize: 11, padding: "5px 12px", borderRadius: 100, background: view === v ? "rgba(184,160,232,0.15)" : "rgba(255,255,255,0.04)", color: view === v ? colors.lavender : colors.textFaint, cursor: "pointer", textTransform: "capitalize", border: `1px solid ${view === v ? "rgba(184,160,232,0.3)" : "transparent"}` }}>{v}</div>
+        ))}
+      </div>
+
+      {view === "empty" && <EmptyState onAdd={() => { setShowAdd(true); setAddStep("choose"); }} />}
+
+      {view === "populated" && (
+        <>
+          <div style={{ display: "flex", gap: 8, padding: "0 20px", marginBottom: 18 }}>
+            {[["all", "All"], ["person", "People"], ["celeb", "Celebrities"]].map(([key, label]) => (
+              <div key={key} onClick={() => setFilter(key)} style={{ fontSize: 12.5, padding: "7px 14px", borderRadius: 100, background: filter === key ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)", color: filter === key ? colors.text : colors.textDim, cursor: "pointer", border: `1px solid ${filter === key ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.04)"}`, fontWeight: filter === key ? 500 : 400 }}>{label} ({key === "all" ? relationships.length : relationships.filter(r => key === "celeb" ? r.type === "celeb" : r.type === "person").length})</div>
+            ))}
+          </div>
+
+          <div style={{ padding: "0 20px" }}>
+            {filtered.map(r => <RelCard key={r.id} rel={r} />)}
+          </div>
+
+          <div style={{ padding: "16px 20px" }}>
+            <div onClick={() => { setShowAdd(true); setAddStep("choose"); }} style={{ border: "1px dashed rgba(255,255,255,0.12)", borderRadius: 16, padding: "20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer" }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: colors.lavenderBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: colors.lavender }}>+</div>
+              <span style={{ fontSize: 14, color: colors.textDim }}>Add a connection</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showAdd && <AddFlow onClose={() => setShowAdd(false)} step={addStep} setStep={setAddStep} />}
+      <TabBar active={1} />
+    </div>
+  );
+}

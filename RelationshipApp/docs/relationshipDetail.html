@@ -1,0 +1,417 @@
+import { useState } from "react";
+
+const SANS = "'DM Sans', system-ui, sans-serif";
+const SERIF = "Georgia, 'Times New Roman', serif";
+
+const c = {
+  bg: "#0C0B10",
+  card: "#16151D",
+  border: "rgba(255,255,255,0.06)",
+  gold: "#D4A843",
+  goldDim: "rgba(212,168,67,0.15)",
+  lav: "#B8A0E8",
+  lavBg: "rgba(184,160,232,0.12)",
+  text: "#E8E4F0",
+  dim: "rgba(232,228,240,0.55)",
+  faint: "rgba(232,228,240,0.35)",
+  green: "#82C8B4",
+  greenDim: "rgba(130,200,180,0.12)",
+};
+
+const partner = {
+  name: "Sarah Chen",
+  initial: "S",
+  romanticBlurb: "Sarah leads with precision and quiet observation — her Venus in Virgo insists on loyalty and attention to detail before anything else moves forward. Her Scorpio Ascendant draws people in with unmistakable intensity, though her Capricorn Moon keeps her guarded.",
+};
+
+const preview = {
+  archetypeLabel: "Shared Frequency",
+  archetypeBlurb: "This connection is shaped most by Connection and Harmony, creating a bond defined by intellectual alignment and emotional ease. You speak the same language before you've even decided to learn it.",
+  clusters: { Harmony: 68, Passion: 52, Connection: 81, Stability: 59, Growth: 63 },
+  initialOverview: "Your Moon in Libra finds a natural dialogue partner in Sarah's Mercury in Virgo — the conversation between you doesn't just flow, it builds. Where you think in broad relational patterns, she thinks in precise observations, and together you construct understanding that neither of you reaches alone.",
+  keyAspect: { label: "Moon-Mercury Trine", desc: "intellectual resonance", planets: "Moon in Libra · Mercury in Virgo" },
+};
+
+const full = {
+  holisticOverview: "This is a relationship that teaches through understanding rather than friction. The dominant Connection-Harmony signature means you rarely misread each other — but the moderate Passion scores suggest that the ease itself can become a ceiling if neither of you introduces creative tension deliberately.",
+  synastry: [
+    { aspect: "Moon trine Mercury", cat: "Connection", desc: "Your emotional instincts speak directly to her analytical mind. Conversations that start practical end up revealing something neither expected." },
+    { aspect: "Venus sextile Saturn", cat: "Stability", desc: "A quiet, earned trust. This aspect builds slowly but creates lasting loyalty — showing up consistently matters more than grand gestures." },
+    { aspect: "Mars square Neptune", cat: "Growth", desc: "Where confusion lives. Desire gets filtered through idealization on both sides, and the challenge is wanting who the other person actually is." },
+    { aspect: "Sun conjunct Jupiter", cat: "Harmony", desc: "Mutual expansion. You make each other feel like bigger versions of yourselves. The risk is inflation — assuming the relationship can carry more than it's been tested for." },
+    { aspect: "Venus opposite Pluto", cat: "Passion", desc: "The undercurrent. Surface-level this relationship looks calm, but this aspect pulls toward intensity that surprises both of you when it surfaces." },
+  ],
+  composite: [
+    { placement: "Composite Moon in 3rd House", desc: "The relationship itself needs constant communication to feel alive. Silence isn't peaceful here — it's a signal." },
+    { placement: "Composite Venus in 7th House", desc: "Partnership is the point. This placement means the relationship is most itself when operating as a team." },
+  ],
+};
+
+// ── Radar chart component ──
+const RadarChart = ({ clusters, size = "large" }) => {
+  const entries = Object.entries(clusters);
+  const cx = 150, cy = 130;
+  const maxR = size === "large" ? 90 : 70;
+  const rings = 3;
+  const n = entries.length;
+
+  const angleFor = (i) => (Math.PI * 2 * i) / n - Math.PI / 2;
+
+  const pointAt = (i, r) => {
+    const a = angleFor(i);
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+  };
+
+  const ringPoints = (r) => entries.map((_, i) => pointAt(i, r).join(",")).join(" ");
+
+  const dataPoints = entries.map(([, v], i) => {
+    const r = (v / 100) * maxR;
+    return pointAt(i, r).join(",");
+  }).join(" ");
+
+  const labelOffsets = size === "large"
+    ? [{ dx: 0, dy: -14, anchor: "middle" }, { dx: 18, dy: 4, anchor: "start" }, { dx: 12, dy: 18, anchor: "start" }, { dx: -12, dy: 18, anchor: "end" }, { dx: -18, dy: 4, anchor: "end" }]
+    : [{ dx: 0, dy: -10, anchor: "middle" }, { dx: 14, dy: 3, anchor: "start" }, { dx: 8, dy: 14, anchor: "start" }, { dx: -8, dy: 14, anchor: "end" }, { dx: -14, dy: 3, anchor: "end" }];
+
+  const w = 300, h = size === "large" ? 270 : 220;
+  const fontSize = size === "large" ? 10.5 : 9.5;
+  const valSize = size === "large" ? 13 : 11;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", maxWidth: size === "large" ? 280 : 220 }}>
+      {/* Grid rings */}
+      <g stroke="rgba(255,255,255,0.06)" fill="none" strokeWidth="0.8">
+        {Array.from({ length: rings }).map((_, ri) => (
+          <polygon key={ri} points={ringPoints(maxR * (ri + 1) / rings)} />
+        ))}
+      </g>
+      {/* Axes */}
+      <g stroke="rgba(255,255,255,0.04)" strokeWidth="0.8">
+        {entries.map((_, i) => {
+          const [x, y] = pointAt(i, maxR);
+          return <line key={i} x1={cx} y1={cy} x2={x} y2={y} />;
+        })}
+      </g>
+      {/* Data polygon */}
+      <polygon
+        points={dataPoints}
+        fill="rgba(184,160,232,0.18)"
+        stroke={c.lav}
+        strokeWidth="2"
+        strokeLinejoin="round"
+        style={{ animation: "radarGrow 0.8s ease both" }}
+      />
+      {/* Data dots */}
+      <g fill={c.lav} stroke={c.bg} strokeWidth="1.5">
+        {entries.map(([, v], i) => {
+          const r = (v / 100) * maxR;
+          const [x, y] = pointAt(i, r);
+          return <circle key={i} cx={x} cy={y} r={size === "large" ? 4 : 3} />;
+        })}
+      </g>
+      {/* Labels with values */}
+      {entries.map(([label, val], i) => {
+        const [x, y] = pointAt(i, maxR);
+        const off = labelOffsets[i];
+        return (
+          <g key={i}>
+            <text x={x + off.dx} y={y + off.dy} textAnchor={off.anchor} fontFamily={SANS} fontSize={fontSize} fill="rgba(232,228,240,0.5)" fontWeight="500">{label}</text>
+            <text x={x + off.dx} y={y + off.dy + (fontSize + 3)} textAnchor={off.anchor} fontFamily={SERIF} fontSize={valSize} fill={c.lav} fontWeight="700">{val}</text>
+          </g>
+        );
+      })}
+      <style>{`@keyframes radarGrow { from { opacity:0; transform: scale(0.85); transform-origin: ${cx}px ${cy}px; } to { opacity:1; transform: scale(1); } }`}</style>
+    </svg>
+  );
+};
+
+const Pulse = () => (
+  <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "center" }}>
+    {[0, 1, 2].map(i => (
+      <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: c.lav, animation: `pulse 1.4s ease-in-out ${i * 0.2}s infinite` }} />
+    ))}
+    <style>{`@keyframes pulse { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }`}</style>
+  </div>
+);
+
+const FadeIn = ({ children, delay = 0, show = true }) => {
+  if (!show) return null;
+  return (
+    <div style={{ animation: `fadeUp 0.6s ease ${delay}s both` }}>
+      {children}
+      <style>{`@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }`}</style>
+    </div>
+  );
+};
+
+const SectionLabel = ({ children, style: s }) => (
+  <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 12, ...s }}>{children}</div>
+);
+
+const Divider = () => (
+  <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${c.border} 30%, ${c.border} 70%, transparent)`, margin: "28px 0" }} />
+);
+
+export default function RelationshipDetail() {
+  const [stage, setStage] = useState(2);
+
+  return (
+    <div style={{ background: c.bg, minHeight: "100vh", maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, paddingBottom: 40 }}>
+      {/* Status bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}>
+        <span>9:41</span>
+        <div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} />
+        <span>···</span>
+      </div>
+
+      {/* Nav */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 20px 12px" }}>
+        <span style={{ fontSize: 15, color: c.dim, cursor: "pointer" }}>← Back</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.goldDim, border: "1px solid rgba(212,168,67,0.25)", borderRadius: 100, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: c.gold }}>
+          <span style={{ fontSize: 10 }}>◆</span><span>147</span>
+        </div>
+      </div>
+
+      {/* Stage selector (demo) */}
+      <div style={{ display: "flex", gap: 4, padding: "0 20px", marginBottom: 6 }}>
+        {[
+          { n: 1, label: "Partner created" },
+          { n: 2, label: "Preview ready" },
+          { n: 3, label: "Analyzing..." },
+          { n: 4, label: "Complete" },
+        ].map(s => (
+          <div key={s.n} onClick={() => setStage(s.n)} style={{
+            flex: 1, textAlign: "center", padding: "7px 0", borderRadius: 10, cursor: "pointer",
+            fontSize: 10, fontWeight: 600,
+            background: stage === s.n ? c.lavBg : "rgba(255,255,255,0.03)",
+            color: stage === s.n ? c.lav : c.faint,
+            border: `1px solid ${stage === s.n ? "rgba(184,160,232,0.25)" : "transparent"}`,
+          }}>{s.label}</div>
+        ))}
+      </div>
+      <div style={{ padding: "0 20px", marginBottom: 20 }}>
+        <div style={{ fontSize: 10.5, color: c.faint, textAlign: "center", fontStyle: "italic" }}>
+          {stage === 1 && "Showing partner profile while scores calculate"}
+          {stage === 2 && "Scores arrived — archetype, radar chart, initial reading"}
+          {stage === 3 && "User unlocked full analysis — async workflow running"}
+          {stage === 4 && "Everything loaded — synastry, composite, Ask Iris"}
+        </div>
+      </div>
+
+      {/* ═══════════════════════════ */}
+      {/* ALWAYS: Identity header     */}
+      {/* ═══════════════════════════ */}
+      <div style={{ textAlign: "center", padding: "8px 24px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+          <div style={{ position: "relative", width: 80, height: 54 }}>
+            <div style={{ position: "absolute", left: 0, top: 0, zIndex: 1, width: 48, height: 48, borderRadius: "50%", background: `linear-gradient(135deg, ${c.lav}, #9B7DD4)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: c.bg, border: `3px solid ${c.bg}` }}>J</div>
+            <div style={{ position: "absolute", right: 0, top: 6, width: 48, height: 48, borderRadius: "50%", background: `linear-gradient(135deg, ${c.green}, #5BA890)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: c.bg, border: `3px solid ${c.bg}` }}>S</div>
+          </div>
+        </div>
+        <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, marginBottom: 4 }}>You & {partner.name}</div>
+        {stage >= 2 ? (
+          <div style={{ fontSize: 12, color: c.faint }}>{preview.keyAspect.label} · {preview.keyAspect.desc}</div>
+        ) : (
+          <div style={{ fontSize: 12, color: c.faint, fontStyle: "italic" }}>Analyzing charts...</div>
+        )}
+      </div>
+
+      <div style={{ padding: "0 20px" }}>
+
+        {/* ═══════════════════════════ */}
+        {/* STAGE 1+: Partner blurb     */}
+        {/* ═══════════════════════════ */}
+        <SectionLabel>Sarah's Romantic Profile</SectionLabel>
+        <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: `radial-gradient(circle, ${c.greenDim} 0%, transparent 70%)`, pointerEvents: "none" }} />
+          <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 16, lineHeight: 1.55, color: "rgba(232,228,240,0.8)", margin: 0 }}>{partner.romanticBlurb}</p>
+        </div>
+
+        {/* ═══════════════════════════ */}
+        {/* STAGE 1 ONLY: Loading       */}
+        {/* ═══════════════════════════ */}
+        {stage === 1 && (
+          <FadeIn delay={0.1}>
+            <div style={{ marginTop: 28 }}>
+              <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "28px 20px", textAlign: "center" }}>
+                <Pulse />
+                <div style={{ fontSize: 14, color: c.dim, marginTop: 14, fontFamily: SERIF, fontStyle: "italic" }}>Calculating your connection...</div>
+                <div style={{ fontSize: 11.5, color: c.faint, marginTop: 6 }}>Analyzing aspects across both charts</div>
+              </div>
+            </div>
+          </FadeIn>
+        )}
+
+        {/* ═══════════════════════════ */}
+        {/* STAGE 2+: Relationship data */}
+        {/* ═══════════════════════════ */}
+        {stage >= 2 && (
+          <>
+            <Divider />
+
+            {/* Archetype */}
+            <FadeIn>
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <SectionLabel style={{ textAlign: "center" }}>Your Connection</SectionLabel>
+                <div style={{ fontFamily: SERIF, fontSize: 30, fontWeight: 700, color: c.text, marginBottom: 8 }}>{preview.archetypeLabel}</div>
+                <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14.5, lineHeight: 1.55, color: "rgba(232,228,240,0.65)", maxWidth: 300, margin: "0 auto" }}>{preview.archetypeBlurb}</div>
+              </div>
+            </FadeIn>
+
+            {/* Key aspect */}
+            <FadeIn delay={0.08}>
+              <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: 24, display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ background: c.goldDim, borderRadius: 8, padding: "4px 10px", fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: c.gold, whiteSpace: "nowrap" }}>{preview.keyAspect.label}</div>
+                <div>
+                  <div style={{ fontSize: 12.5, color: c.dim }}>{preview.keyAspect.desc}</div>
+                  <div style={{ fontSize: 11, color: c.faint }}>{preview.keyAspect.planets}</div>
+                </div>
+              </div>
+            </FadeIn>
+
+            {/* Radar chart */}
+            <FadeIn delay={0.14}>
+              <SectionLabel>Compatibility Shape</SectionLabel>
+              <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "16px 12px 8px", marginBottom: 24 }}>
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <RadarChart clusters={preview.clusters} size="large" />
+                </div>
+              </div>
+            </FadeIn>
+
+            {/* Initial overview */}
+            <FadeIn delay={0.3}>
+              <SectionLabel>Initial Reading</SectionLabel>
+              <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: -40, left: -40, width: 120, height: 120, background: `radial-gradient(circle, ${c.lavBg} 0%, transparent 70%)`, pointerEvents: "none" }} />
+                <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 15, lineHeight: 1.6, color: "rgba(232,228,240,0.8)", margin: 0 }}>{preview.initialOverview}</p>
+              </div>
+            </FadeIn>
+          </>
+        )}
+
+        {/* ═══════════════════════════ */}
+        {/* STAGE 2 ONLY: Unlock CTA   */}
+        {/* ═══════════════════════════ */}
+        {stage === 2 && (
+          <FadeIn delay={0.4}>
+            <Divider />
+            <div style={{ background: c.card, border: `1px solid rgba(184,160,232,0.15)`, borderRadius: 18, padding: "24px 20px", textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 600, color: c.text, marginBottom: 6 }}>Go deeper</div>
+              <div style={{ fontSize: 13, color: c.dim, lineHeight: 1.5, marginBottom: 18, maxWidth: 280, margin: "0 auto 18px" }}>Unlock full synastry and composite analysis across all 5 dimensions.</div>
+              <button style={{ background: `linear-gradient(135deg, ${c.lav}, #9B7DD4)`, color: c.bg, border: "none", borderRadius: 14, padding: "14px 28px", fontSize: 15, fontWeight: 600, fontFamily: SANS, cursor: "pointer", boxShadow: "0 4px 20px rgba(184,160,232,0.2)" }}>Unlock Full Analysis · ◆ 3</button>
+            </div>
+          </FadeIn>
+        )}
+
+        {/* ═══════════════════════════ */}
+        {/* STAGE 3: In progress        */}
+        {/* ═══════════════════════════ */}
+        {stage === 3 && (
+          <FadeIn delay={0.1}>
+            <Divider />
+            <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "22px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 12, background: c.lavBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: 16, height: 16, border: `2px solid ${c.lav}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: c.text }}>Full analysis in progress</div>
+                  <div style={{ fontSize: 12, color: c.dim }}>Usually 30–60 seconds</div>
+                </div>
+              </div>
+              {[
+                { label: "Synastry aspects", done: true },
+                { label: "Composite chart", done: true },
+                { label: "Cluster deep-dive", active: true },
+                { label: "Holistic narrative", pending: true },
+              ].map((step, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 0" }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: "50%",
+                    background: step.done ? c.greenDim : step.active ? c.lavBg : "rgba(255,255,255,0.03)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10, color: step.done ? c.green : step.active ? c.lav : c.faint,
+                  }}>
+                    {step.done ? "✓" : step.active ? <div style={{ width: 6, height: 6, borderRadius: "50%", background: c.lav, animation: "pulse 1.4s ease-in-out infinite" }} /> : "·"}
+                  </div>
+                  <span style={{ fontSize: 13, color: step.done ? c.dim : step.active ? c.text : c.faint }}>{step.label}</span>
+                </div>
+              ))}
+              <style>{`@keyframes spin { to{transform:rotate(360deg)} }`}</style>
+            </div>
+          </FadeIn>
+        )}
+
+        {/* ═══════════════════════════ */}
+        {/* STAGE 4: Full analysis      */}
+        {/* ═══════════════════════════ */}
+        {stage === 4 && (
+          <>
+            <Divider />
+
+            {/* Holistic overview */}
+            <FadeIn>
+              <SectionLabel>The Full Picture</SectionLabel>
+              <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: `radial-gradient(circle, ${c.goldDim} 0%, transparent 70%)`, pointerEvents: "none" }} />
+                <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 15, lineHeight: 1.6, color: "rgba(232,228,240,0.8)", margin: 0 }}>{full.holisticOverview}</p>
+              </div>
+            </FadeIn>
+
+            {/* Synastry */}
+            <FadeIn delay={0.1}>
+              <SectionLabel>Synastry Aspects</SectionLabel>
+              {full.synastry.map((a, i) => (
+                <FadeIn key={i} delay={0.14 + i * 0.05}>
+                  <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: "16px 18px", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: c.text }}>{a.aspect}</span>
+                      <span style={{ background: "rgba(255,255,255,0.04)", borderRadius: 100, padding: "2px 8px", fontSize: 10, color: c.faint, textTransform: "uppercase", letterSpacing: 0.5 }}>{a.cat}</span>
+                    </div>
+                    <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13.5, lineHeight: 1.5, color: "rgba(232,228,240,0.7)", margin: 0 }}>{a.desc}</p>
+                  </div>
+                </FadeIn>
+              ))}
+            </FadeIn>
+
+            {/* Composite */}
+            <FadeIn delay={0.45}>
+              <div style={{ marginTop: 16 }}>
+                <SectionLabel>Composite Chart</SectionLabel>
+                {full.composite.map((h, i) => (
+                  <div key={i} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: "16px 18px", marginBottom: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: c.text, marginBottom: 6 }}>{h.placement}</div>
+                    <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13.5, lineHeight: 1.5, color: "rgba(232,228,240,0.7)", margin: 0 }}>{h.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </FadeIn>
+
+            {/* Ask Iris */}
+            <FadeIn delay={0.55}>
+              <Divider />
+              <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: -40, left: -40, width: 120, height: 120, background: `radial-gradient(circle, ${c.greenDim} 0%, transparent 70%)`, pointerEvents: "none" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: c.green }}>✦</div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 2 }}>Ask about this connection</div>
+                    <div style={{ fontSize: 12, color: c.dim }}>◆ 1 per question</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {["Why is Passion our lowest?", "What does Mars square Neptune mean?", "How do we keep growing?"].map((q, i) => (
+                    <div key={i} style={{ background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 100, padding: "8px 13px", fontSize: 11.5, color: c.dim, cursor: "pointer" }}>{q}</div>
+                  ))}
+                </div>
+              </div>
+            </FadeIn>
+          </>
+        )}
+
+      </div>
+      <div style={{ height: 40 }} />
+    </div>
+  );
+}

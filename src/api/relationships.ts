@@ -65,6 +65,43 @@ export interface ClusterMetrics {
   keystoneAspects: KeystoneAspect[];    // Top 5 most impactful aspects for this cluster
 }
 
+export type RelationshipShapeKind =
+  | 'even'
+  | 'single_spike'
+  | 'ridge'
+  | 'ridge_missing'
+  | 'trough'
+  | 'soft_shape';
+
+export type RelationshipMagnitudeTier = 'low' | 'mid' | 'high' | 'exceptional';
+
+export type RelationshipModifier =
+  | 'Magnetic'
+  | 'Highly Active'
+  | 'Tension-Rich'
+  | 'Easy-Flowing'
+  | 'Low Signal';
+
+export interface OverallSummary {
+  label?: string;
+  blurb?: string;
+  archetypeKey?: string;
+  dominantClusters?: string[];
+  supportClusters?: string[];
+  tensionClusters?: string[];
+  shape?: string;
+  tone?: string;
+  confidence?: number;
+  version?: string;
+  shapeFamily?: string;
+  shapeKind?: RelationshipShapeKind;
+  magnitudeTier?: RelationshipMagnitudeTier;
+  modifiers?: RelationshipModifier[];
+  meanScore?: number;
+  spread?: number;
+  weakestCluster?: string;
+}
+
 export interface OverallAnalysis {
   score: number;                    // Weighted overall score (0-100)
   formula: string;                  // Weight formula description
@@ -81,6 +118,7 @@ export interface OverallAnalysis {
     uniformity: string;             // 'Uniform'|'Moderate'|'Varied'|'Highly Varied'
   };
   keystoneAspects: KeystoneAspect[];
+  summary?: OverallSummary;         // Archetype label + blurb + metadata
 }
 
 export interface ClusterAnalysis {
@@ -126,6 +164,11 @@ export interface RelationshipAnalysisStatus {
   level: 'complete' | 'scores' | 'none';
   tier?: string;
   profile?: string;
+  overall?: {
+    tier?: string;
+    profile?: string;
+    summary?: OverallSummary;
+  };
   clusterScores?: {
     Harmony: number;
     Passion: number;
@@ -133,6 +176,7 @@ export interface RelationshipAnalysisStatus {
     Growth: number;
     Stability: number;
   };
+  tensionFlowQuadrant?: string;
   hasClusterAnalysis?: boolean;
 }
 
@@ -151,11 +195,39 @@ export interface UserCompositeChart {
   isCelebrityRelationship?: boolean;
   ownerUserId?: string;
   updatedAt?: string;
+  // Partner display fields from getUserCompositeCharts (backfilled server-side)
+  userA_profilePhotoUrl?: string | null;
+  userB_profilePhotoUrl?: string | null;
+  userA_photoUrl?: string | null;
+  userB_photoUrl?: string | null;
   // New 5-Cluster Analysis Data
   clusterScoring?: ClusterScoring;
   completeAnalysis?: Record<string, ClusterAnalysis>;
   initialOverview?: string;
   relationshipAnalysisStatus?: RelationshipAnalysisStatus;
+  // Horoscope scheduling fields (relationship-app only)
+  horoscopeEnabled?: boolean;
+  horoscopeFreeTrialUsed?: boolean;
+  horoscopeDisabledReason?: HoroscopeDisabledReason | null;
+  horoscopeLastBillingFailureAt?: string | null;
+  horoscopeLastBillingFailureMessage?: string | null;
+}
+
+export type HoroscopeDisabledReason =
+  | 'disabled_by_user'
+  | 'credit_deduction_failed'
+  | 'missing_charge_user';
+
+export interface HoroscopeSettingsResponse {
+  success: boolean;
+  relationship: {
+    _id: string;
+    horoscopeEnabled: boolean;
+    horoscopeFreeTrialUsed: boolean;
+    horoscopeDisabledReason: HoroscopeDisabledReason | null;
+    horoscopeLastBillingFailureAt: string | null;
+    horoscopeLastBillingFailureMessage: string | null;
+  };
 }
 
 export interface SynastryAspect {

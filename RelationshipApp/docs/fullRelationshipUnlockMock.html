@@ -1,0 +1,415 @@
+import { useState } from "react";
+
+var SANS = "'DM Sans', system-ui, sans-serif";
+var SERIF = "Georgia, 'Times New Roman', serif";
+
+var c = {
+  bg: "#0C0B10", card: "#16151D", border: "rgba(255,255,255,0.06)",
+  gold: "#D4A843", goldDim: "rgba(212,168,67,0.15)",
+  lav: "#B8A0E8", lavBg: "rgba(184,160,232,0.12)",
+  text: "#E8E4F0", dim: "rgba(232,228,240,0.55)", faint: "rgba(232,228,240,0.35)",
+  green: "#82C8B4", greenDim: "rgba(130,200,180,0.12)",
+  coral: "#E8856B", coralDim: "rgba(232,133,107,0.12)",
+};
+
+var scores = { Harmony: 68, Passion: 52, Connection: 81, Stability: 59, Growth: 63 };
+
+var clusterData = [
+  { name: "Harmony", score: 68, supportPct: 62, challengePct: 38, icon: "\u2764\uFE0F",
+    synastry: {
+      support: "Your Venus in Libra trines her Moon in Aquarius, creating an effortless warmth that doesn't need to perform. The emotional register between you lands in a shared key \u2014 disagreements resolve through tone before they escalate through content.",
+      challenge: "Mars square Saturn between your charts introduces friction around timing. You want to move toward ease; she wants to test whether the ease is earned. This doesn't block harmony \u2014 it interrogates it.",
+      synthesis: "The harmony between you is real but not passive. It's maintained by a Venus-Moon circuit that keeps emotional temperature regulated, while the Mars-Saturn square ensures neither of you mistakes comfort for depth."
+    },
+    composite: {
+      support: "Composite Venus in the 7th house places partnership at the center of this relationship's identity. The relationship itself wants to be a team \u2014 it's most alive when you're operating as a unit.",
+      challenge: "Composite Saturn in the 1st house means the relationship presents itself seriously to the world. There's a weight to how others perceive you as a couple.",
+      synthesis: "You're a team that takes itself seriously \u2014 the challenge is remembering that playfulness isn't a departure from who you are together, it's part of it."
+    }
+  },
+  { name: "Passion", score: 52, supportPct: 41, challengePct: 59, icon: "\uD83D\uDD25",
+    synastry: {
+      support: "Venus opposite Pluto creates an undertow of fascination. This isn't surface attraction \u2014 it's a compulsive quality to how you perceive each other that surfaces in unexpected moments.",
+      challenge: "Your Mars in Sagittarius and her Mars in Virgo operate on completely different frequencies. Neither of you naturally generates the friction that sparks physical charge.",
+      synthesis: "Passion isn't absent \u2014 it's buried under the ease of your Connection and Harmony scores. The Venus-Pluto opposition carries genuine intensity, but the mismatched Mars signs mean it doesn't have a natural ignition pattern."
+    },
+    composite: {
+      support: "Composite Mars in the 5th house gives desire a creative, playful container. Physical connection is most alive when it feels like play \u2014 spontaneity and shared adventures.",
+      challenge: "Composite Venus square Neptune introduces idealization into the desire dynamic. What you want from each other may be filtered through projection.",
+      synthesis: "The physical connection works best when grounded in real, present-moment experience rather than fantasy. Activities that are physically engaging and slightly unpredictable light this up."
+    }
+  },
+  { name: "Connection", score: 81, supportPct: 74, challengePct: 26, icon: "\uD83E\uDDE0",
+    synastry: {
+      support: "Moon trine Mercury is the backbone. Your emotional instincts speak directly to her analytical mind \u2014 conversations that start practical end up revealing something neither expected. There's an intellectual shorthand most relationships take years to develop.",
+      challenge: "Mercury square Pluto can make communication intense in unproductive ways. When you disagree, conversations can spiral into power dynamics rather than understanding.",
+      synthesis: "Connection is your strongest dimension because the Moon-Mercury trine creates mutual intelligibility. The Mercury-Pluto square adds depth but also intensity. You understand each other unusually well, but that understanding sometimes cuts deeper than intended."
+    },
+    composite: {
+      support: "Composite Mercury in the 3rd house makes communication the lifeblood of the relationship. You process the relationship itself through conversation.",
+      challenge: "Composite Chiron conjunct Mercury means the communication channel also carries old wounds. Conversations can inadvertently activate past hurts \u2014 not from each other, but from before.",
+      synthesis: "Mercury in the 3rd gives you an extraordinary communication channel; Chiron's presence means that channel carries emotional weight. Words matter more than usual here \u2014 they heal and wound with equal facility."
+    }
+  },
+  { name: "Stability", score: 59, supportPct: 55, challengePct: 45, icon: "\uD83D\uDC8E",
+    synastry: {
+      support: "Venus sextile Saturn creates a quiet, earned trust. This aspect doesn't flash \u2014 it builds. Loyalty here is demonstrated through consistent showing up rather than grand declarations.",
+      challenge: "Uranus square Moon introduces unpredictability into the emotional foundation. One or both of you may periodically need space that feels abrupt to the other.",
+      synthesis: "Stability here is real but requires tolerance for periodic disruption. The Venus-Saturn sextile provides a reliable foundation, while the Uranus-Moon square ensures it's never static."
+    },
+    composite: {
+      support: "Composite Saturn trine Venus gives the relationship a durable quality. Commitments made feel genuinely binding, not performative.",
+      challenge: "Composite Uranus in the 4th house means the domestic aspects resist convention. What 'home' looks like for you may not match expectations.",
+      synthesis: "The stability is real \u2014 it just doesn't look like other people's stability. Accepting that is the key to making it feel secure rather than uncertain."
+    }
+  },
+  { name: "Growth", score: 63, supportPct: 58, challengePct: 42, icon: "\uD83C\uDF31",
+    synastry: {
+      support: "Sun conjunct Jupiter creates mutual expansion. You make each other feel like bigger versions of yourselves \u2014 more ambitious, more optimistic, more willing to take risks.",
+      challenge: "Saturn opposite Neptune introduces tension between realism and idealism. One of you pushes for practical progress while the other envisions something abstract.",
+      synthesis: "Growth is driven by genuine mutual expansion but complicated by different definitions of progress. You both want to evolve \u2014 you need to regularly recalibrate what 'forward' looks like."
+    },
+    composite: {
+      support: "Composite Jupiter in the 9th house makes shared learning and philosophical exploration a growth engine. Travel, education, spiritual inquiry strengthen the relationship.",
+      challenge: "Composite Pluto in the 8th means growth involves confronting shadow material together. Transformation isn't always comfortable.",
+      synthesis: "This is a relationship that grows through both adventure and confrontation \u2014 the light and the dark. The most significant growth happens when you engage both."
+    }
+  }
+];
+
+var overallData = {
+  tier: "Strong", score: 75,
+  dominantCluster: "Connection", challengeCluster: "Passion",
+  holisticOverview: "This is a relationship that teaches through understanding rather than friction. The dominant Connection-Harmony signature means you rarely misread each other \u2014 but the moderate Passion scores suggest that the ease itself can become a ceiling if neither of you introduces creative tension deliberately. The Growth cluster at 63 indicates real capacity for mutual evolution, but it requires both of you to push past comfort into vulnerability."
+};
+
+var tensionFlow = { quadrant: "Easy-going", supportDensity: 62, challengeDensity: 38, polarityRatio: 1.63 };
+
+var keystoneAspects = [
+  { aspect: "Moon trine Mercury", impact: "Primary communication channel \u2014 the backbone of your Connection score", type: "Support", cluster: "Connection", pts: 11.5 },
+  { aspect: "Venus opposite Pluto", impact: "Hidden intensity driver \u2014 the sleeping Passion potential", type: "Mixed", cluster: "Passion", pts: 8.2 },
+  { aspect: "Venus sextile Saturn", impact: "Long-term trust builder \u2014 quiet loyalty that compounds", type: "Support", cluster: "Stability", pts: 7.8 },
+  { aspect: "Sun conjunct Jupiter", impact: "Mutual expansion \u2014 makes the relationship feel aspirational", type: "Support", cluster: "Growth", pts: 9.1 },
+  { aspect: "Mars square Neptune", impact: "Desire confusion \u2014 idealization filtering physical connection", type: "Challenge", cluster: "Passion", pts: -6.4 },
+  { aspect: "Mars square Saturn", impact: "Timing friction \u2014 tests whether ease is earned or assumed", type: "Challenge", cluster: "Harmony", pts: -5.1 },
+  { aspect: "Mercury square Pluto", impact: "Communication intensity \u2014 conversations that cut deep", type: "Mixed", cluster: "Connection", pts: 4.3 },
+  { aspect: "Uranus square Moon", impact: "Periodic disruption to emotional routine", type: "Challenge", cluster: "Stability", pts: -7.2 },
+];
+
+// ── Radar ──
+function Radar(props) {
+  var s = props.size || 200;
+  var entries = Object.entries(props.scores);
+  var cx = s / 2, cy = s / 2, maxR = s * 0.38, n = entries.length;
+  function ang(i) { return (Math.PI * 2 * i) / n - Math.PI / 2; }
+  function pt(i, r) { var a = ang(i); return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; }
+  function ring(r) { return entries.map(function(_, i) { return pt(i, r).join(","); }).join(" "); }
+  var dataStr = entries.map(function(e, i) { return pt(i, (e[1] / 100) * maxR).join(","); }).join(" ");
+  var labelOff = [
+    { dx: 0, dy: -12, a: "middle" }, { dx: 14, dy: 4, a: "start" },
+    { dx: 10, dy: 16, a: "start" }, { dx: -10, dy: 16, a: "end" }, { dx: -14, dy: 4, a: "end" }
+  ];
+  return (
+    <svg viewBox={"0 0 " + s + " " + s} style={{ width: "100%", maxWidth: s }}>
+      <g stroke="rgba(255,255,255,0.06)" fill="none" strokeWidth="0.8">
+        <polygon points={ring(maxR)} />
+        <polygon points={ring(maxR * 0.66)} />
+        <polygon points={ring(maxR * 0.33)} />
+      </g>
+      <polygon points={dataStr} fill="rgba(184,160,232,0.18)" stroke={c.lav} strokeWidth="1.8" strokeLinejoin="round" />
+      {entries.map(function(e, i) {
+        var p = pt(i, (e[1] / 100) * maxR);
+        return <circle key={i} cx={p[0]} cy={p[1]} r={3} fill={c.lav} stroke={c.bg} strokeWidth="1.5" />;
+      })}
+      {entries.map(function(e, i) {
+        var p = pt(i, maxR);
+        var o = labelOff[i];
+        return (
+          <g key={"l" + i}>
+            <text x={p[0] + o.dx} y={p[1] + o.dy} textAnchor={o.a} fontFamily={SANS} fontSize="9" fill="rgba(232,228,240,0.5)" fontWeight="500">{e[0]}</text>
+            <text x={p[0] + o.dx} y={p[1] + o.dy + 12} textAnchor={o.a} fontFamily={SERIF} fontSize="12" fill={c.lav} fontWeight="700">{e[1]}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── Panel ──
+function Panel(props) {
+  var styles = {
+    support: { bg: c.greenDim, border: "rgba(130,200,180,0.15)", accent: c.green, label: "What works" },
+    challenge: { bg: c.coralDim, border: "rgba(232,133,107,0.15)", accent: c.coral, label: "What's difficult" },
+    synthesis: { bg: c.lavBg, border: "rgba(184,160,232,0.15)", accent: c.lav, label: "The full picture" },
+  };
+  var s = styles[props.type];
+  return (
+    <div style={{ background: s.bg, border: "1px solid " + s.border, borderRadius: 14, padding: "14px 16px", marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <div style={{ width: 6, height: 6, borderRadius: "50%", background: s.accent }} />
+        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: s.accent }}>{s.label}</span>
+      </div>
+      <div style={{ fontFamily: SERIF, fontSize: 13.5, lineHeight: 1.6, color: "rgba(232,228,240,0.78)", fontStyle: "italic" }}>{props.text}</div>
+    </div>
+  );
+}
+
+// ── Cluster Row ──
+function ClusterRow(props) {
+  var cl = props.cluster;
+  var isOpen = props.isOpen;
+  var toggle = props.onToggle;
+  return (
+    <div style={{ background: c.card, border: "1px solid " + (isOpen ? "rgba(184,160,232,0.15)" : c.border), borderRadius: 18, marginBottom: 10, overflow: "hidden" }}>
+      <div onClick={toggle} style={{ padding: "16px 16px " + (isOpen ? "12px" : "16px"), cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ fontSize: 18, width: 34, height: 34, borderRadius: 10, background: isOpen ? c.lavBg : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}>{cl.icon}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: c.text }}>{cl.name}</span>
+            <span style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 700, color: c.lav }}>{cl.score}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 120, height: 4, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden", display: "flex" }}>
+              <div style={{ width: (cl.supportPct / 100) * 120, height: "100%", background: c.green, borderRadius: "4px 0 0 4px" }} />
+              <div style={{ width: (cl.challengePct / 100) * 120, height: "100%", background: c.coral, borderRadius: "0 4px 4px 0" }} />
+            </div>
+            <span style={{ fontSize: 9, color: c.faint }}>{cl.supportPct}% / {cl.challengePct}%</span>
+          </div>
+        </div>
+        <span style={{ color: c.faint, fontSize: 14, transform: isOpen ? "rotate(90deg)" : "rotate(0)", transition: "transform 0.2s" }}>{"\u203A"}</span>
+      </div>
+      {isOpen && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.faint, marginBottom: 8, paddingTop: 4, borderTop: "1px solid " + c.border }}>Synastry</div>
+            <Panel type="support" text={cl.synastry.support} />
+            <Panel type="challenge" text={cl.synastry.challenge} />
+            <Panel type="synthesis" text={cl.synastry.synthesis} />
+          </div>
+          <div>
+            <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: c.faint, marginBottom: 8, paddingTop: 4, borderTop: "1px solid " + c.border }}>Composite</div>
+            <Panel type="support" text={cl.composite.support} />
+            <Panel type="challenge" text={cl.composite.challenge} />
+            <Panel type="synthesis" text={cl.composite.synthesis} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Tab bar component ──
+function AnalysisTabs(props) {
+  var tabs = ["Overview", "Clusters", "Key Aspects"];
+  return (
+    <div style={{ display: "flex", background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: 3, marginBottom: 20 }}>
+      {tabs.map(function(tab, i) {
+        var isActive = props.active === i;
+        return (
+          <div key={tab} onClick={function() { props.onChange(i); }} style={{
+            flex: 1, textAlign: "center", padding: "10px 0", borderRadius: 10, cursor: "pointer",
+            fontSize: 12.5, fontWeight: 600, fontFamily: SANS,
+            background: isActive ? c.card : "transparent",
+            color: isActive ? c.text : c.faint,
+            border: isActive ? "1px solid " + c.border : "1px solid transparent",
+            transition: "all 0.2s",
+          }}>{tab}</div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Main ──
+export default function TabbedAnalysis() {
+  var tabState = useState(0);
+  var activeTab = tabState[0];
+  var setActiveTab = tabState[1];
+  var clusterState = useState(null);
+  var openCluster = clusterState[0];
+  var setOpenCluster = clusterState[1];
+
+  return (
+    <div style={{ background: c.bg, minHeight: "100vh", maxWidth: 393, margin: "0 auto", fontFamily: SANS, color: c.text, paddingBottom: 40 }}>
+      {/* Status bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 8px", fontSize: 15, fontWeight: 600 }}>
+        <span>9:41</span><div style={{ width: 120, height: 32, background: "#1C1B23", borderRadius: 20 }} /><span>...</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 20px 12px" }}>
+        <span style={{ fontSize: 15, color: c.dim, cursor: "pointer" }}>{"\u2190"} Back</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, background: c.goldDim, border: "1px solid rgba(212,168,67,0.25)", borderRadius: 100, padding: "5px 11px", fontSize: 12, fontWeight: 600, color: c.gold }}><span style={{ fontSize: 10 }}>{"\u25C6"}</span><span>142</span></div>
+      </div>
+
+      {/* ═══════════════════════════ */}
+      {/* FIXED PREVIEW CONTENT      */}
+      {/* ═══════════════════════════ */}
+      <div style={{ padding: "0 20px" }}>
+        {/* Identity */}
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+            <div style={{ position: "relative", width: 72, height: 50 }}>
+              <div style={{ position: "absolute", left: 0, top: 0, zIndex: 1, width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, " + c.lav + ", #9B7DD4)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: c.bg, border: "3px solid " + c.bg }}>J</div>
+              <div style={{ position: "absolute", right: 0, top: 5, width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, " + c.green + ", #5BA890)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: c.bg, border: "3px solid " + c.bg }}>S</div>
+            </div>
+          </div>
+          <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, marginBottom: 3 }}>You & Sarah Chen</div>
+          <div style={{ fontSize: 11.5, color: c.faint }}>Moon-Mercury Trine {"\u00b7"} intellectual resonance</div>
+        </div>
+
+        {/* Archetype */}
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <div style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 700, color: c.text, marginBottom: 4 }}>Shared Frequency</div>
+          <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13, lineHeight: 1.5, color: "rgba(232,228,240,0.55)", maxWidth: 300, margin: "0 auto" }}>Intellectual alignment and emotional ease. You speak the same language before you've decided to learn it.</div>
+        </div>
+
+        {/* Radar */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <Radar scores={scores} size={200} />
+        </div>
+
+        {/* Unlocked badge */}
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: c.greenDim, border: "1px solid rgba(130,200,180,0.15)", borderRadius: 100, padding: "5px 14px", fontSize: 11, fontWeight: 600, color: c.green }}>
+            {"\u2713"} Full analysis unlocked
+          </div>
+        </div>
+
+        {/* ═══════════════════════════ */}
+        {/* TABS                        */}
+        {/* ═══════════════════════════ */}
+        <AnalysisTabs active={activeTab} onChange={setActiveTab} />
+
+        {/* ── OVERVIEW TAB ── */}
+        {activeTab === 0 && (
+          <div>
+            {/* Initial Reading */}
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>Initial Reading</div>
+            <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "18px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -40, left: -40, width: 120, height: 120, background: "radial-gradient(circle, " + c.lavBg + " 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14.5, lineHeight: 1.6, color: "rgba(232,228,240,0.8)" }}>Your Moon in Libra finds a natural dialogue partner in Sarah's Mercury in Virgo \u2014 the conversation between you doesn't just flow, it builds. Where you think in broad relational patterns, she thinks in precise observations, and together you construct understanding that neither of you reaches alone.</div>
+            </div>
+
+            {/* Overall Reading */}
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>Overall Reading</div>
+            <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "18px", marginBottom: 24, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: -50, right: -50, width: 140, height: 140, background: "radial-gradient(circle, " + c.goldDim + " 0%, transparent 70%)", pointerEvents: "none" }} />
+              <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+                <div style={{ background: c.lavBg, border: "1px solid rgba(184,160,232,0.2)", borderRadius: 100, padding: "4px 12px", fontSize: 11, fontWeight: 600, color: c.lav }}>{overallData.tier} {"\u00b7"} {overallData.score}/100</div>
+                <div style={{ background: c.greenDim, border: "1px solid rgba(130,200,180,0.15)", borderRadius: 100, padding: "4px 10px", fontSize: 10, color: c.green, fontWeight: 500 }}>Strongest: {overallData.dominantCluster}</div>
+                <div style={{ background: c.coralDim, border: "1px solid rgba(232,133,107,0.15)", borderRadius: 100, padding: "4px 10px", fontSize: 10, color: c.coral, fontWeight: 500 }}>Weakest: {overallData.challengeCluster}</div>
+              </div>
+              <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14.5, lineHeight: 1.6, color: "rgba(232,228,240,0.8)" }}>{overallData.holisticOverview}</div>
+            </div>
+
+            {/* Tension Flow */}
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>Tension Flow</div>
+            <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "16px", marginBottom: 24 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div style={{ background: c.lavBg, borderRadius: 100, padding: "4px 12px", fontSize: 11, color: c.lav, fontWeight: 500 }}>{tensionFlow.quadrant}</div>
+                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 100, padding: "4px 10px", fontSize: 11, color: c.faint }}>Support {tensionFlow.supportDensity}%</div>
+                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 100, padding: "4px 10px", fontSize: 11, color: c.faint }}>Challenge {tensionFlow.challengeDensity}%</div>
+                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 100, padding: "4px 10px", fontSize: 11, color: c.faint }}>Polarity {tensionFlow.polarityRatio}x</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── CLUSTERS TAB ── */}
+        {activeTab === 1 && (
+          <div>
+            <div style={{ fontSize: 12.5, color: c.faint, marginBottom: 16, lineHeight: 1.4 }}>Tap any cluster to read the full synastry and composite breakdown.</div>
+            {clusterData.map(function(cl, i) {
+              return (
+                <ClusterRow
+                  key={cl.name}
+                  cluster={cl}
+                  isOpen={openCluster === i}
+                  onToggle={function() { setOpenCluster(openCluster === i ? null : i); }}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── KEY ASPECTS TAB ── */}
+        {activeTab === 2 && (
+          <div>
+            <div style={{ fontSize: 12.5, color: c.faint, marginBottom: 16, lineHeight: 1.4 }}>The highest-impact planetary interactions shaping this relationship, ranked by influence.</div>
+            <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "6px 16px", marginBottom: 24 }}>
+              {keystoneAspects.map(function(ka, i) {
+                var typeColor = ka.type === "Support" ? c.green : ka.type === "Challenge" ? c.coral : c.gold;
+                var typeBg = ka.type === "Support" ? c.greenDim : ka.type === "Challenge" ? c.coralDim : c.goldDim;
+                var ptsColor = ka.pts > 0 ? c.green : c.coral;
+                return (
+                  <div key={i} style={{ display: "flex", gap: 12, padding: "14px 0", borderBottom: i < keystoneAspects.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                    <div style={{ width: 4, minHeight: 4, borderRadius: 2, background: typeColor, marginTop: 5, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 600, color: c.text }}>{ka.aspect}</span>
+                        <span style={{ fontSize: 9, background: typeBg, borderRadius: 100, padding: "2px 7px", color: typeColor, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{ka.type}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: c.dim, lineHeight: 1.4, marginBottom: 6 }}>{ka.impact}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 10, color: c.faint }}>{ka.cluster}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, fontFamily: SERIF, color: ptsColor }}>{ka.pts > 0 ? "+" : ""}{ka.pts} pts</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Aspect distribution summary */}
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 2.2, textTransform: "uppercase", color: c.gold, marginBottom: 10 }}>Aspect Distribution</div>
+            <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 16, padding: "16px" }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                {[
+                  { label: "Support", count: keystoneAspects.filter(function(a) { return a.type === "Support"; }).length, color: c.green, bg: c.greenDim },
+                  { label: "Challenge", count: keystoneAspects.filter(function(a) { return a.type === "Challenge"; }).length, color: c.coral, bg: c.coralDim },
+                  { label: "Mixed", count: keystoneAspects.filter(function(a) { return a.type === "Mixed"; }).length, color: c.gold, bg: c.goldDim },
+                ].map(function(item) {
+                  return (
+                    <div key={item.label} style={{ flex: 1, background: item.bg, borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
+                      <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, color: item.color, marginBottom: 2 }}>{item.count}</div>
+                      <div style={{ fontSize: 10, color: c.faint }}>{item.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {["Harmony", "Passion", "Connection", "Stability", "Growth"].map(function(cluster) {
+                  var count = keystoneAspects.filter(function(a) { return a.cluster === cluster; }).length;
+                  return (
+                    <div key={cluster} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 100, padding: "4px 10px", fontSize: 10.5, color: c.faint }}>
+                      {cluster}: {count} aspect{count !== 1 ? "s" : ""}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Divider ── */}
+        <div style={{ height: 1, background: "linear-gradient(90deg, transparent, " + c.border + " 30%, " + c.border + " 70%, transparent)", margin: "24px 0" }} />
+
+        {/* ── Ask Iris (always visible) ── */}
+        <div style={{ background: c.card, border: "1px solid " + c.border, borderRadius: 18, padding: "18px", position: "relative", overflow: "hidden", marginBottom: 20 }}>
+          <div style={{ position: "absolute", top: -40, left: -40, width: 120, height: 120, background: "radial-gradient(circle, " + c.greenDim + " 0%, transparent 70%)", pointerEvents: "none" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: c.greenDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: c.green }}>{"\u2726"}</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 1 }}>Ask about this connection</div>
+              <div style={{ fontSize: 11.5, color: c.dim }}>{"\u25C6"} 1 per question</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {["Why is Passion our lowest?", "What does Venus opposite Pluto mean?", "How do we keep growing?"].map(function(q, i) {
+              return <div key={i} style={{ background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 100, padding: "7px 12px", fontSize: 11, color: c.dim, cursor: "pointer" }}>{q}</div>;
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -27,6 +27,13 @@ export const relationshipApiClient = {
     });
   },
 
+  patch<T>(endpoint: string, data?: unknown, headers?: Record<string, string>) {
+    return apiClient.patch<T>(endpoint, data, {
+      ...RELATIONSHIP_APP_HEADERS,
+      ...(headers || {}),
+    });
+  },
+
   delete<T>(endpoint: string, headers?: Record<string, string>) {
     return apiClient.delete<T>(endpoint, {
       ...RELATIONSHIP_APP_HEADERS,
@@ -35,6 +42,12 @@ export const relationshipApiClient = {
   },
 
   poll<T>(endpoint: string, data: unknown, interval?: number, maxAttempts?: number) {
-    return apiClient.poll<T>(endpoint, data, interval, maxAttempts);
+    return apiClient.poll<T>(
+      endpoint,
+      data,
+      interval,
+      maxAttempts,
+      RELATIONSHIP_APP_HEADERS
+    );
   },
 };

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>StelliumApp</string>
+	<string>Iris</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconName</key>
@@ -29,7 +29,8 @@
 			<string></string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio</string>
+				<string>com.googleusercontent.apps.763187884820-8ujnq2ivctmsd4onsu8hal4t390n6ntv</string>
+				<string>com.googleusercontent.apps.825305986047-32hn3ljip3hr5bk6ibn565t56135ptmv</string>
 			</array>
 		</dict>
 		<dict>
@@ -48,7 +49,7 @@
 	<key>FacebookClientToken</key>
 	<string>5590843ccc9144748fc5894ae9fc7d5e</string>
 	<key>FacebookDisplayName</key>
-	<string>StelliumApp</string>
+	<string>Iris</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>fbapi</string>
@@ -66,13 +67,13 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Stellium needs access to your camera to take profile pictures</string>
+	<string>Iris needs access to your camera to take profile pictures</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Stellium needs access to save photos to your library</string>
+	<string>Iris needs access to save photos to your library</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Stellium needs access to your photo library to set profile pictures</string>
+	<string>Iris needs access to your photo library to set profile pictures</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

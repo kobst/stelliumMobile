@@ -13,6 +13,11 @@ export interface Celebrity {
   isCelebrity?: boolean;
   isReadOnly?: boolean;
   kind?: string;
+  profilePhotoUrl?: string | null;
+  photoUrl?: string | null;
+  romanticProfileBlurb?: string | null;
+  romanticOverview?: string | null;
+  romanticReferencedCodes?: string[];
 }
 
 

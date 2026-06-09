@@ -1,37 +1,36 @@
-// Firebase configuration for StelliumApp
-// This file contains the Firebase configuration settings
+// Firebase configuration for the relationship app native shell.
 import Config from 'react-native-config';
 
 // Determine environment-specific Firebase config
 const isDev = Config.ENV === 'development';
 
 export const firebaseConfig = isDev ? {
-  apiKey: 'AIzaSyBPftp0zDH2AmmEU6ajEkFmsh6CS-3-sRw',
-  authDomain: 'stellium-dev.firebaseapp.com',
-  projectId: 'stellium-dev',
-  storageBucket: 'stellium-dev.firebasestorage.app',
-  messagingSenderId: '1056285065517',
-  appId: '1:1056285065517:ios:0b0c7b5212e0cf3cf8d3a4',
-  measurementId: 'G-XXXXXXXXXX', // Add dev measurement ID if you have one
+  apiKey: 'AIzaSyC8p2Hd-5HmM9f4ilxwNtNBv56stBCjSlY',
+  authDomain: 'stellium-relationship-dev.firebaseapp.com',
+  projectId: 'stellium-relationship-dev',
+  storageBucket: 'stellium-relationship-dev.firebasestorage.app',
+  messagingSenderId: '763187884820',
+  appId: '1:763187884820:ios:e95756d6041a27c68d0801',
+  measurementId: 'G-XXXXXXXXXX',
 } : {
-  apiKey: 'AIzaSyBnSYzpgghCC3c-0vdP1mvPeoy2vAz8I4E',
-  authDomain: 'stellium-70a2a.firebaseapp.com',
-  projectId: 'stellium-70a2a',
-  storageBucket: 'stellium-70a2a.firebasestorage.app',
-  messagingSenderId: '63614597334',
-  appId: '1:63614597334:web:13270f94893e38fa357177',
-  measurementId: 'G-TE4T0E0LRF',
+  apiKey: 'AIzaSyC9JBoX54zurKPXKKmq_zf8xqdu0BpDN3U',
+  authDomain: 'stellium-relationship-prod.firebaseapp.com',
+  projectId: 'stellium-relationship-prod',
+  storageBucket: 'stellium-relationship-prod.firebasestorage.app',
+  messagingSenderId: '825305986047',
+  appId: '1:825305986047:ios:34870b01beda5701576dca',
+  measurementId: 'G-XXXXXXXXXX',
 };
 
-// Google Sign-In Web Client ID (for iOS and Android)
+// Google Sign-In client IDs used by the relationship app Firebase projects.
 export const GOOGLE_WEB_CLIENT_ID = isDev
-  ? '1056285065517-bm65rgfa23gehv91ftjl63shphiaqe4b.apps.googleusercontent.com'
-  : '63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio.apps.googleusercontent.com';
+  ? '763187884820-oj1c00j3dn6m0158eo8fkmorpmbrh0hn.apps.googleusercontent.com'
+  : '825305986047-32hn3ljip3hr5bk6ibn565t56135ptmv.apps.googleusercontent.com';
 
 // iOS Client ID from GoogleService-Info.plist (CLIENT_ID)
 export const IOS_GOOGLE_CLIENT_ID = isDev
-  ? '1056285065517-bm65rgfa23gehv91ftjl63shphiaqe4b.apps.googleusercontent.com'
-  : '63614597334-8mamegt0j0lt54p20su2orrvpbt0qeio.apps.googleusercontent.com';
+  ? '763187884820-8ujnq2ivctmsd4onsu8hal4t390n6ntv.apps.googleusercontent.com'
+  : '825305986047-32hn3ljip3hr5bk6ibn565t56135ptmv.apps.googleusercontent.com';
 
 // Facebook App Configuration
 export const FACEBOOK_APP_ID = '561705813647639';

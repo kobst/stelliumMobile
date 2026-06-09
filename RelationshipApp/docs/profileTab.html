@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iris — Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0C0B10;
+    --card: #16151D;
+    --card-border: rgba(255,255,255,0.06);
+    --card-inset: #1C1B23;
+    --gold: #D4A843;
+    --gold-dim: rgba(212,168,67,0.15);
+    --lavender: #B8A0E8;
+    --lavender-bg: rgba(184,160,232,0.12);
+    --text: #E8E4F0;
+    --text-dim: rgba(232,228,240,0.55);
+    --text-faint: rgba(232,228,240,0.35);
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --sans: 'DM Sans', -apple-system, sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    max-width: 393px;
+    margin: 0 auto;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 96px;
+  }
+
+  /* ── Status bar ── */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px 8px;
+    font-size: 15px;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+  }
+  .status-bar .pill {
+    width: 120px; height: 32px;
+    background: #1C1B23;
+    border-radius: 20px;
+  }
+
+  /* ── Top bar with credits pill ── */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px 20px;
+  }
+  .page-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .credit-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--gold-dim);
+    border: 1px solid rgba(212,168,67,0.25);
+    border-radius: 100px;
+    padding: 6px 12px 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold);
+    cursor: pointer;
+  }
+  .credit-pill .diamond {
+    font-size: 12px;
+  }
+
+  /* ── Identity block ── */
+  .identity {
+    padding: 0 20px 28px;
+    text-align: center;
+  }
+  .avatar {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--lavender) 0%, #9B7DD4 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--serif);
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--bg);
+    margin: 0 auto 14px;
+  }
+  .identity .name {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .identity .big-three {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .identity .big-three .chip {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 100px;
+    padding: 5px 12px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .identity .big-three .chip .icon {
+    font-size: 11px;
+  }
+
+  /* ── Section header ── */
+  .section-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    padding: 0 20px;
+    margin-bottom: 12px;
+  }
+
+  /* ── Romantic summary card ── */
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    margin: 0 20px 28px;
+    padding: 22px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 140px; height: 140px;
+    background: radial-gradient(circle, var(--gold-dim) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .summary-card .summary-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .summary-card h3 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .summary-card .expand {
+    font-size: 12px;
+    color: var(--lavender);
+    font-weight: 500;
+  }
+  .summary-card p {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.5;
+    color: rgba(232,228,240,0.75);
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ── Chart section ── */
+  .chart-section {
+    margin-bottom: 28px;
+  }
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    margin: 0 20px;
+    padding: 20px;
+  }
+  .chart-card .chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .chart-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .chart-card .view-full {
+    font-size: 12px;
+    color: var(--lavender);
+    font-weight: 500;
+  }
+
+  /* Radar SVG */
+  .radar-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0 4px;
+  }
+  .radar-wrap svg { width: 260px; height: 220px; }
+
+  .placements-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .place-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+  }
+  .place-row .p-symbol {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+  .place-row .p-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .place-row .p-label {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .place-row .p-value {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* ── Ask Iris card ── */
+  .ask-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    margin: 0 20px 28px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ask-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; left: -40px;
+    width: 140px; height: 140px;
+    background: radial-gradient(circle, rgba(130,200,180,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .ask-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .ask-icon {
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    background: rgba(130,200,180,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #82C8B4;
+  }
+  .ask-head h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .ask-head .sub {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .ask-input {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px 14px 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13.5px;
+    color: var(--text-faint);
+    font-style: italic;
+  }
+  .ask-input .ask-cost {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    font-style: normal;
+    background: var(--gold-dim);
+    padding: 4px 9px;
+    border-radius: 100px;
+    letter-spacing: 0.3px;
+  }
+  .ask-suggestions {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ask-suggestions::-webkit-scrollbar { display: none; }
+  .ask-chip {
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 100px;
+    padding: 7px 12px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  /* ── Credits & Subscription card ── */
+  .credits-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    margin: 0 20px 28px;
+    padding: 22px 20px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .credits-card::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(184,160,232,0.16) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .credits-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .credits-head .cred-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .credits-head .cred-number {
+    font-family: var(--serif);
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text);
+  }
+  .credits-head .cred-number .unit {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-left: 6px;
+    font-family: var(--sans);
+  }
+  .sub-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(135deg, var(--lavender), #9B7DD4);
+    color: var(--bg);
+    padding: 5px 10px;
+    border-radius: 100px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .credit-breakdown {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .breakdown-item {
+    flex: 1;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .breakdown-item .bd-label {
+    font-size: 10.5px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .breakdown-item .bd-value {
+    font-size: 18px;
+    font-weight: 600;
+    font-family: var(--serif);
+  }
+  .breakdown-item .bd-sub {
+    font-size: 10.5px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+
+  .renewal-note {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin-bottom: 16px;
+    padding: 0 2px;
+  }
+
+  .credit-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .credit-btn {
+    flex: 1;
+    padding: 13px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .credit-btn.primary {
+    background: linear-gradient(135deg, var(--lavender) 0%, #9B7DD4 100%);
+    color: var(--bg);
+  }
+  .credit-btn.secondary {
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* ── Settings list ── */
+  .settings-list {
+    margin: 0 20px 28px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  .settings-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 15px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    cursor: pointer;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row .s-icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .settings-row .s-label {
+    flex: 1;
+    font-size: 14px;
+  }
+  .settings-row .s-chev {
+    color: var(--text-faint);
+    font-size: 18px;
+  }
+
+  .version-text {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+  }
+
+  /* ── Bottom tab bar ── */
+  .tab-bar {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 393px;
+    background: rgba(12,11,16,0.92);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    padding: 10px 0 22px;
+    z-index: 200;
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-faint);
+    cursor: pointer;
+  }
+  .tab.active { color: var(--lavender); }
+  .tab .t-icon { font-size: 18px; }
+</style>
+</head>
+<body>
+
+<div class="status-bar">
+  <span>9:41</span>
+  <div class="pill"></div>
+  <span>···</span>
+</div>
+
+<!-- Top bar with credits -->
+<div class="top-bar">
+  <div class="page-title">Iris</div>
+  <div class="credit-pill">
+    <span class="diamond">◆</span>
+    <span>147</span>
+  </div>
+</div>
+
+<!-- Identity -->
+<div class="identity">
+  <div class="avatar">J</div>
+  <div class="name">Josh Palin</div>
+  <div class="big-three">
+    <div class="chip"><span class="icon">☉</span> Scorpio Sun</div>
+    <div class="chip"><span class="icon">☽</span> Libra Moon</div>
+    <div class="chip"><span class="icon">↑</span> Cancer Rising</div>
+  </div>
+</div>
+
+<!-- Romantic summary -->
+<div class="section-label">Your Romantic Profile</div>
+<div class="summary-card">
+  <div class="summary-head">
+    <h3>Celestial Blueprint</h3>
+    <div class="expand">Full reading →</div>
+  </div>
+  <p>You are drawn to partners who can follow your mind before anything else — your Moon in Libra in the 3rd house needs conversation as much as touch, and surface charm leaves you restless. Your Venus in Libra creates genuine warmth and attentiveness, while Mars in Sagittarius in the 5th house pulls you toward intensity and transformation, not comfort.</p>
+</div>
+
+<!-- Chart -->
+<div class="section-label">Your Chart</div>
+<div class="chart-section">
+  <div class="chart-card">
+    <div class="chart-head">
+      <h3>Relationship dimensions</h3>
+      <div class="view-full">View full chart →</div>
+    </div>
+
+    <div class="radar-wrap">
+      <svg viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg">
+        <!-- Grid rings -->
+        <g stroke="rgba(255,255,255,0.05)" fill="none" stroke-width="1">
+          <polygon points="130,30 220,80 200,175 60,175 40,80" />
+          <polygon points="130,60 190,90 178,155 82,155 70,90" />
+          <polygon points="130,90 165,105 158,135 102,135 95,105" />
+        </g>
+        <!-- Axes -->
+        <g stroke="rgba(255,255,255,0.04)" stroke-width="1">
+          <line x1="130" y1="30" x2="130" y2="120" />
+          <line x1="220" y1="80" x2="130" y2="120" />
+          <line x1="200" y1="175" x2="130" y2="120" />
+          <line x1="60" y1="175" x2="130" y2="120" />
+          <line x1="40" y1="80" x2="130" y2="120" />
+        </g>
+        <!-- Data polygon (Harmony 70, Passion 82, Connection 65, Stability 45, Growth 60) -->
+        <polygon
+          points="130,52 203,92 172,154 83,162 72,98"
+          fill="rgba(184,160,232,0.2)"
+          stroke="#B8A0E8"
+          stroke-width="1.8"
+          stroke-linejoin="round"
+        />
+        <!-- Dots -->
+        <g fill="#B8A0E8" stroke="#0C0B10" stroke-width="1.5">
+          <circle cx="130" cy="52" r="4" />
+          <circle cx="203" cy="92" r="4" />
+          <circle cx="172" cy="154" r="4" />
+          <circle cx="83" cy="162" r="4" />
+          <circle cx="72" cy="98" r="4" />
+        </g>
+        <!-- Labels -->
+        <g font-family="DM Sans" font-size="10" fill="rgba(232,228,240,0.7)" font-weight="500">
+          <text x="130" y="20" text-anchor="middle">Harmony</text>
+          <text x="235" y="84" text-anchor="start">Passion</text>
+          <text x="210" y="195" text-anchor="middle">Connection</text>
+          <text x="50" y="195" text-anchor="middle">Stability</text>
+          <text x="25" y="84" text-anchor="end">Growth</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="placements-grid">
+      <div class="place-row">
+        <div class="p-symbol">♀</div>
+        <div class="p-text">
+          <span class="p-label">Venus</span>
+          <span class="p-value">Libra · 12°</span>
+        </div>
+      </div>
+      <div class="place-row">
+        <div class="p-symbol">♂</div>
+        <div class="p-text">
+          <span class="p-label">Mars</span>
+          <span class="p-value">Sagittarius · 8°</span>
+        </div>
+      </div>
+      <div class="place-row">
+        <div class="p-symbol">☽</div>
+        <div class="p-text">
+          <span class="p-label">Moon</span>
+          <span class="p-value">Libra · 24°</span>
+        </div>
+      </div>
+      <div class="place-row">
+        <div class="p-symbol">☉</div>
+        <div class="p-text">
+          <span class="p-label">Sun</span>
+          <span class="p-value">Scorpio · 14°</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ask Iris -->
+<div class="section-label">Ask Iris About You</div>
+<div class="ask-card">
+  <div class="ask-head">
+    <div class="ask-icon">✦</div>
+    <div>
+      <h3>Questions about your chart</h3>
+      <div class="sub">Personal insights grounded in your placements</div>
+    </div>
+  </div>
+  <div class="ask-input">
+    <span>Ask anything about your romantic profile…</span>
+    <span class="ask-cost">◆ 1</span>
+  </div>
+  <div class="ask-suggestions">
+    <div class="ask-chip">Why do I attract distant partners?</div>
+    <div class="ask-chip">What does my Venus in Libra want?</div>
+    <div class="ask-chip">Am I more passionate or romantic?</div>
+  </div>
+</div>
+
+<!-- Credits & Subscription -->
+<div class="section-label">Credits & Membership</div>
+<div class="credits-card">
+  <div class="credits-head">
+    <div>
+      <div class="cred-title">Current Balance</div>
+      <div class="cred-number">147<span class="unit">credits</span></div>
+    </div>
+    <div class="sub-badge">✦ Monthly</div>
+  </div>
+
+  <div class="credit-breakdown">
+    <div class="breakdown-item">
+      <div class="bd-label">From plan</div>
+      <div class="bd-value">127</div>
+      <div class="bd-sub">resets Dec 14</div>
+    </div>
+    <div class="breakdown-item">
+      <div class="bd-label">Purchased</div>
+      <div class="bd-value">20</div>
+      <div class="bd-sub">never expire</div>
+    </div>
+  </div>
+
+  <div class="renewal-note">Iris Monthly renews Dec 14 for $9.99 · 200 credits/mo</div>
+
+  <div class="credit-actions">
+    <button class="credit-btn primary">Buy credits</button>
+    <button class="credit-btn secondary">Manage plan</button>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="settings-list">
+  <div class="settings-row">
+    <div class="s-icon">👤</div>
+    <div class="s-label">Edit birth details</div>
+    <span class="s-chev">›</span>
+  </div>
+  <div class="settings-row">
+    <div class="s-icon">🔔</div>
+    <div class="s-label">Notifications</div>
+    <span class="s-chev">›</span>
+  </div>
+  <div class="settings-row">
+    <div class="s-icon">↻</div>
+    <div class="s-label">Restore purchases</div>
+    <span class="s-chev">›</span>
+  </div>
+  <div class="settings-row">
+    <div class="s-icon">🔒</div>
+    <div class="s-label">Privacy</div>
+    <span class="s-chev">›</span>
+  </div>
+  <div class="settings-row">
+    <div class="s-icon">?</div>
+    <div class="s-label">Help & support</div>
+    <span class="s-chev">›</span>
+  </div>
+  <div class="settings-row">
+    <div class="s-icon">→</div>
+    <div class="s-label">Sign out</div>
+    <span class="s-chev">›</span>
+  </div>
+</div>
+
+<div class="version-text">Iris v1.0.3</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <div class="tab"><span class="t-icon">⌂</span><span>Home</span></div>
+  <div class="tab"><span class="t-icon">♡</span><span>Relationships</span></div>
+  <div class="tab"><span class="t-icon">✦</span><span>Discover</span></div>
+  <div class="tab active"><span class="t-icon">◉</span><span>Profile</span></div>
+</div>
+
+</body>
+</html>
