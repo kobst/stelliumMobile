@@ -27,6 +27,7 @@ import { SubmittingOverlay } from '../components/SubmittingOverlay';
 import { ProgressDashes } from '../components/ProgressDashes';
 import { WizardArrowButton } from '../components/WizardArrowButton';
 import { Avatar } from '../components/Avatar';
+import { pickImageFromLibrary, pickImageFromCamera } from '../../../src/utils/imageHelpers';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
 
@@ -108,7 +109,40 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [timeSet, setTimeSet] = useState(false);
-  const [photoAdded, setPhotoAdded] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoMimeType, setPhotoMimeType] = useState<string | null>(null);
+
+  const applyPickedPhoto = (picked: { uri: string; type: string } | null) => {
+    if (picked) {
+      setPhotoUri(picked.uri);
+      setPhotoMimeType(picked.type);
+    }
+  };
+
+  const handleChoosePhoto = () => {
+    const buttons: Parameters<typeof Alert.alert>[2] = [
+      {
+        text: 'Photo Library',
+        onPress: async () => applyPickedPhoto(await pickImageFromLibrary()),
+      },
+      {
+        text: 'Take Photo',
+        onPress: async () => applyPickedPhoto(await pickImageFromCamera()),
+      },
+    ];
+    if (photoUri) {
+      buttons.push({
+        text: 'Remove Photo',
+        style: 'destructive',
+        onPress: () => {
+          setPhotoUri(null);
+          setPhotoMimeType(null);
+        },
+      });
+    }
+    buttons.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert('Add a photo', 'Choose a source', buttons);
+  };
 
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
 
@@ -307,7 +341,8 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         latitude: resolved.lat,
         longitude: resolved.lon,
         totalOffsetHours: resolved.tzone,
-        photoUri: photoAdded ? 'local://photo-stub' : null,
+        photoUri,
+        photoMimeType,
       };
 
       if (isLocalUxMode) {
@@ -470,15 +505,16 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         return (
           <View style={[styles.stepGroup, styles.photoStepGroup]}>
             <TouchableOpacity
-              onPress={() => setPhotoAdded((value) => !value)}
+              onPress={handleChoosePhoto}
               activeOpacity={0.85}
               style={styles.photoWrap}
             >
-              {photoAdded ? (
+              {photoUri ? (
                 <Avatar
                   size={112}
                   gradient="lavender"
                   fallbackInitial={firstName.charAt(0) || 'A'}
+                  photoUri={photoUri}
                 />
               ) : (
                 <View
@@ -500,7 +536,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
                 ]}
               >
                 <Text style={[styles.photoBadgeText, { color: colors.onPrimary }]}>
-                  {photoAdded ? '✓' : '+'}
+                  {photoUri ? '✓' : '+'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -688,7 +724,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
           timeOfBirth={timeOfBirth}
           birthTimeUnknown={birthTimeUnknown}
           placeOfBirth={placeOfBirth}
-          photoAdded={photoAdded}
+          photoUri={photoUri}
           formatDisplayDate={formatDisplayDate}
           formatDisplayTime={formatDisplayTime}
         />;
@@ -770,7 +806,7 @@ interface ConfirmStepProps {
   timeOfBirth: string;
   birthTimeUnknown: boolean;
   placeOfBirth: string;
-  photoAdded: boolean;
+  photoUri: string | null;
   formatDisplayDate: (iso: string) => string;
   formatDisplayTime: (time: string) => string;
 }
@@ -785,7 +821,7 @@ function ConfirmStep({
   timeOfBirth,
   birthTimeUnknown,
   placeOfBirth,
-  photoAdded,
+  photoUri,
   formatDisplayDate,
   formatDisplayTime,
 }: ConfirmStepProps) {
@@ -816,7 +852,7 @@ function ConfirmStep({
           size={80}
           gradient="lavender"
           fallbackInitial={firstName.charAt(0) || 'A'}
-          photoUri={photoAdded ? 'local://photo-stub' : null}
+          photoUri={photoUri}
         />
       </View>
       <View

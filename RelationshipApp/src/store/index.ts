@@ -143,6 +143,7 @@ export interface GuestProfileDraft {
   longitude: number | null;
   totalOffsetHours: number | null;
   photoUri?: string | null;
+  photoMimeType?: string | null;
 }
 
 export interface ProfileRevealData {

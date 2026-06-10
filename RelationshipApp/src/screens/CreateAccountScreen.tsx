@@ -23,6 +23,7 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { onboardingApi } from '../api';
+import { uploadSubjectProfilePhoto } from '../utils/subjectPhotoUpload';
 import { GOOGLE_WEB_CLIENT_ID, IOS_GOOGLE_CLIENT_ID } from '../../../src/config/firebase';
 
 let GoogleSignin: ReturnType<typeof require> | null = null;
@@ -120,6 +121,25 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
         claimToken: profileReveal.claimToken,
       });
 
+      // The onboarding photo is picked anonymously before this account exists, so
+      // it can only be uploaded now that we have an authenticated account-self
+      // subject. Best-effort: a failed upload must not block account creation.
+      let claimedSubject: typeof claimResponse.user & { profilePhotoUrl?: string } =
+        claimResponse.user;
+      const localPhotoUri = guestProfileDraft.photoUri;
+      if (localPhotoUri && !localPhotoUri.startsWith('local://')) {
+        try {
+          const uploaded = await uploadSubjectProfilePhoto(
+            claimResponse.userId,
+            localPhotoUri,
+            guestProfileDraft.photoMimeType ?? 'image/jpeg'
+          );
+          claimedSubject = { ...claimResponse.user, profilePhotoUrl: uploaded.profilePhotoUrl };
+        } catch (photoError) {
+          console.warn('[onboarding] profile photo upload failed (continuing without it):', photoError);
+        }
+      }
+
       setAuthState({
         authStatus: 'signedIn',
         firebaseUid,
@@ -137,7 +157,7 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
         time: guestProfileDraft.birthTimeUnknown ? undefined : guestProfileDraft.timeOfBirth,
         birthTimeUnknown: guestProfileDraft.birthTimeUnknown,
         totalOffsetHours: guestProfileDraft.totalOffsetHours ?? 0,
-        subject: claimResponse.user as any,
+        subject: claimedSubject as any,
         backendAppDomain: claimResponse.user.appDomain,
         isDomainExplicit: true,
         romanticOverview: claimResponse.overview,
