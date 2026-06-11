@@ -33,6 +33,7 @@ import { EditBirthCityScreen } from '../screens/EditBirthCityScreen';
 import { EditNameScreen } from '../screens/EditNameScreen';
 import { EditGenderScreen } from '../screens/EditGenderScreen';
 import { MainTabs } from './MainTabs';
+import { navigationRef } from './navigationRef';
 import { BootstrapStatusScreen } from '../screens/BootstrapStatusScreen';
 import { WeeklyHoroscopeDetailScreen } from '../screens/WeeklyHoroscopeDetailScreen';
 import { WeeklyRelationshipHoroscopeDetailScreen } from '../screens/WeeklyRelationshipHoroscopeDetailScreen';
@@ -132,7 +133,7 @@ export const RootNavigator: React.FC = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         key={initialRouteName}
         initialRouteName={initialRouteName}

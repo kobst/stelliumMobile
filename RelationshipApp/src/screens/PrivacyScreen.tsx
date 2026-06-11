@@ -13,8 +13,8 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
-import { useRelationshipAppStore } from '../store';
 import { deleteAccount } from '../api/profile';
+import { signOutAndResetSession } from '../utils/session';
 import { SettingsNavBar } from '../components/SettingsNavBar';
 import { SettingsInfoCard } from '../components/SettingsInfoCard';
 import { SectionLabel } from '../components/SectionLabel';
@@ -27,7 +27,6 @@ const PRIVACY_POLICY_URL = 'https://irisapp.com/privacy';
 export function PrivacyScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation<RootNavigation>();
-  const resetSession = useRelationshipAppStore((state) => state.resetSession);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -91,7 +90,7 @@ export function PrivacyScreen() {
     setIsDeleting(true);
     try {
       await deleteAccount();
-      resetSession();
+      await signOutAndResetSession();
       navigation.reset({
         index: 0,
         routes: [{ name: 'Welcome' }],
@@ -103,7 +102,7 @@ export function PrivacyScreen() {
         error instanceof Error ? error.message : 'Please try again shortly.'
       );
     }
-  }, [navigation, resetSession]);
+  }, [navigation]);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>

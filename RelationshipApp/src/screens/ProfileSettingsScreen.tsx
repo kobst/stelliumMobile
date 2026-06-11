@@ -23,6 +23,7 @@ import {
   purchaseIrisCreditPack,
   restoreIrisPurchases,
 } from '../services/irisRevenueCatService';
+import { signOutAndResetSession } from '../utils/session';
 
 const PROFILE_THREAD_KEY = 'profile' as const;
 
@@ -50,7 +51,6 @@ export function ProfileSettingsScreen() {
   const askThreads = useRelationshipAppStore((state) => state.askThreads);
   const setCredits = useRelationshipAppStore((state) => state.setCredits);
   const setSubscription = useRelationshipAppStore((state) => state.setSubscription);
-  const resetSession = useRelationshipAppStore((state) => state.resetSession);
 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [signOutVisible, setSignOutVisible] = useState(false);
@@ -228,10 +228,10 @@ export function ProfileSettingsScreen() {
     [handleRestore, isRestoring, navigation]
   );
 
-  const handleConfirmSignOut = useCallback(() => {
+  const handleConfirmSignOut = useCallback(async () => {
     setSignOutVisible(false);
-    resetSession();
-  }, [resetSession]);
+    await signOutAndResetSession();
+  }, []);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
