@@ -66,7 +66,7 @@ export const BirthTimePicker: React.FC<BirthTimePickerProps> = ({
       <View
         style={[
           styles.selectionBand,
-          { backgroundColor: colors.surfaceLow, borderColor: colors.ghostBorder },
+          { backgroundColor: 'rgba(202,190,255,0.06)', borderColor: 'rgba(202,190,255,0.2)' },
         ]}
       />
 

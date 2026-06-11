@@ -27,6 +27,14 @@ import { SubmittingOverlay } from '../components/SubmittingOverlay';
 import { ProgressDashes } from '../components/ProgressDashes';
 import { WizardArrowButton } from '../components/WizardArrowButton';
 import { Avatar } from '../components/Avatar';
+import { Halo } from '../components/atmosphere/Halo';
+import {
+  OnbHeadline,
+  ChoiceChips,
+  ValuePill,
+  PrivacyFooter,
+  ONB,
+} from '../components/onboarding/atoms';
 import { pickImageFromLibrary, pickImageFromCamera } from '../../../src/utils/imageHelpers';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
@@ -509,124 +517,46 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
               activeOpacity={0.85}
               style={styles.photoWrap}
             >
+              <Halo color={ONB.primary} size={220} opacity={0.18} top={-35} left="50%" />
               {photoUri ? (
                 <Avatar
-                  size={112}
+                  size={150}
                   gradient="lavender"
                   fallbackInitial={firstName.charAt(0) || 'A'}
                   photoUri={photoUri}
                 />
               ) : (
-                <View
-                  style={[
-                    styles.photoPlaceholder,
-                    {
-                      backgroundColor: colors.surfaceHigh,
-                      borderColor: colors.ghostBorder,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.photoIcon, { color: colors.textSubtle }]}>📷</Text>
+                <View style={styles.photoPlaceholder}>
+                  <Text style={[styles.photoIcon, { color: ONB.textMuted }]}>📷</Text>
                 </View>
               )}
-              <View
-                style={[
-                  styles.photoBadge,
-                  { backgroundColor: colors.primary, borderColor: colors.surface },
-                ]}
-              >
-                <Text style={[styles.photoBadgeText, { color: colors.onPrimary }]}>
-                  {photoUri ? '✓' : '+'}
-                </Text>
+              <View style={styles.photoBadge}>
+                <Text style={styles.photoBadgeText}>{photoUri ? '✓' : '+'}</Text>
               </View>
             </TouchableOpacity>
-            <Text style={[styles.photoHelper, { color: colors.textSubtle }]}>
-              Tap to add — or skip for now.
-            </Text>
+            <Text style={styles.photoHelper}>Tap to add — or skip for now.</Text>
           </View>
         );
       case 2:
         return (
           <View style={styles.stepGroup}>
-            <View style={styles.chipRow}>
-              {GENDER_OPTIONS.map((option) => {
-                const active = option.value === gender;
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    activeOpacity={0.85}
-                    onPress={() => setGender(option.value)}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: active
-                          ? 'rgba(202, 190, 255, 0.14)'
-                          : colors.surfaceHigh,
-                        borderColor: active
-                          ? 'rgba(202, 190, 255, 0.35)'
-                          : 'transparent',
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        { color: active ? colors.primary : colors.text },
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <ChoiceChips options={GENDER_OPTIONS} selected={gender} onSelect={setGender} />
           </View>
         );
       case 3:
         return (
           <View style={styles.stepGroup}>
-            <View style={styles.chipRow}>
-              {PARTNER_GENDER_OPTIONS.map((option) => {
-                const active = option.value === preferredPartnerGender;
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    activeOpacity={0.85}
-                    onPress={() => setPreferredPartnerGender(option.value)}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: active
-                          ? 'rgba(202, 190, 255, 0.14)'
-                          : colors.surfaceHigh,
-                        borderColor: active
-                          ? 'rgba(202, 190, 255, 0.35)'
-                          : 'transparent',
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        { color: active ? colors.primary : colors.text },
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <ChoiceChips
+              options={PARTNER_GENDER_OPTIONS}
+              selected={preferredPartnerGender}
+              onSelect={setPreferredPartnerGender}
+            />
           </View>
         );
       case 4:
         return (
           <View style={styles.stepGroup}>
-            <View style={[styles.valueChip, { backgroundColor: colors.surfaceHigh }]}>
-              <Text style={[styles.valueChipText, { color: colors.text }]}>
-                {formatDisplayDate(dateOfBirth)}
-              </Text>
-            </View>
+            <ValuePill>{formatDisplayDate(dateOfBirth)}</ValuePill>
             <BirthDatePicker
               value={dateOfBirth}
               onChange={setDateOfBirth}
@@ -671,11 +601,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             {!birthTimeUnknown ? (
               <>
-                <View style={[styles.valueChip, { backgroundColor: colors.surfaceHigh }]}>
-                  <Text style={[styles.valueChipText, { color: colors.text }]}>
-                    {timeSet ? formatDisplayTime(timeOfBirth) : formatDisplayTime(timeOfBirth)}
-                  </Text>
-                </View>
+                <ValuePill>{formatDisplayTime(timeOfBirth)}</ValuePill>
                 <BirthTimePicker
                   value={timeOfBirth}
                   onChange={(nextValue) => {
@@ -768,10 +694,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.stepCounter, { color: colors.accent }]}>{step.eyebrow.toUpperCase()}</Text>
         </View>
 
-        <View style={styles.heroBlock}>
-          <Text style={[styles.heroTitle, { color: colors.text }]}>{step.title}</Text>
-          <Text style={[styles.heroSubtitle, { color: colors.textMuted }]}>{step.subtitle}</Text>
-        </View>
+        <OnbHeadline title={step.title} sub={step.subtitle} />
 
         <View style={styles.formCard}>
           {renderStep()}
@@ -788,9 +711,9 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
-        <Text style={[styles.privacyText, { color: colors.textSubtle }]}>
-          Your privacy is secured and won&apos;t be shared
-        </Text>
+        <View style={styles.privacyFooterWrap}>
+          <PrivacyFooter />
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -939,32 +862,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.6,
   },
-  heroBlock: {
-    alignItems: 'center',
-    paddingTop: 6,
-    paddingBottom: 14,
-    gap: 10,
-  },
-  heroTitle: {
-    fontFamily: 'Georgia',
-    fontSize: 32,
-    fontStyle: 'italic',
-    fontWeight: '500',
-    letterSpacing: -0.4,
-    lineHeight: 36,
-    textAlign: 'center',
-  },
-  heroSubtitle: {
-    fontFamily: 'Georgia',
-    fontSize: 16,
-    fontStyle: 'italic',
-    lineHeight: 24,
-    textAlign: 'center',
-    paddingHorizontal: 12,
-  },
   formCard: {
     flex: 1,
     minHeight: 300,
+    paddingTop: 32,
   },
   stepGroup: {
     gap: 12,
@@ -981,24 +882,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  chip: {
-    flexGrow: 1,
-    flexBasis: '30%',
-    borderWidth: 1,
-    borderRadius: 100,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  chipText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
   photoStepGroup: {
     alignItems: 'center',
     gap: 14,
@@ -1006,37 +889,54 @@ const styles = StyleSheet.create({
   },
   photoWrap: {
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   photoPlaceholder: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    borderWidth: 2,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 1.5,
     borderStyle: 'dashed',
+    borderColor: 'rgba(202,190,255,0.32)',
+    backgroundColor: ONB.surfaceLow,
     alignItems: 'center',
     justifyContent: 'center',
   },
   photoIcon: {
-    fontSize: 32,
+    fontSize: 40,
   },
   photoBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
+    bottom: 6,
+    right: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: ONB.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: ONB.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 6,
   },
   photoBadgeText: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '700',
+    color: '#1a142e',
+    lineHeight: 22,
   },
   photoHelper: {
-    fontSize: 13,
+    fontFamily: 'Georgia',
+    fontStyle: 'italic',
+    fontSize: 15,
     textAlign: 'center',
+    color: ONB.textFaint,
+  },
+  privacyFooterWrap: {
+    alignItems: 'center',
   },
   confirmHero: {
     alignItems: 'center',
@@ -1091,18 +991,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  valueChip: {
-    alignSelf: 'center',
-    borderRadius: 100,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  valueChipText: {
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    textAlign: 'center',
-  },
   infoBox: {
     borderRadius: 12,
     padding: 14,
@@ -1142,14 +1030,5 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     marginTop: 24,
     paddingHorizontal: 12,
-  },
-  privacyText: {
-    fontSize: 11,
-    fontWeight: '500',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    textAlign: 'center',
-    marginTop: 16,
-    marginBottom: 8,
   },
 });

@@ -1,7 +1,10 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import { useTheme } from '../theme';
-import { PulsingHeroIcon } from './PulsingHeroIcon';
+import { SERIF_FONT } from '../theme/typography';
+import { Stardust } from './atmosphere/Stardust';
+import { Halo } from './atmosphere/Halo';
+import { LoaderEmblem } from './onboarding/LoaderEmblem';
+import { ONB } from './onboarding/atoms';
 
 interface SubmittingOverlayProps {
   title: string;
@@ -9,43 +12,57 @@ interface SubmittingOverlayProps {
 }
 
 export function SubmittingOverlay({ title, subtitle }: SubmittingOverlayProps) {
-  const { colors } = useTheme();
-
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
-      <View style={styles.container}>
-        <PulsingHeroIcon
-          backgroundColor={colors.surfaceHigh}
-          glyphColor={colors.accent}
-          haloColor={colors.accent}
-        />
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
-      </View>
-    </SafeAreaView>
+    <View style={styles.root}>
+      <Stardust density={55} seed={5} />
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.container}>
+          <View style={styles.emblemWrap}>
+            <Halo color={ONB.gold} size={260} opacity={0.2} top={-30} left="50%" />
+            <LoaderEmblem />
+          </View>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  root: {
+    flex: 1,
+    backgroundColor: ONB.surface,
+  },
+  safe: {
     flex: 1,
   },
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
-    gap: 20,
+    paddingHorizontal: 40,
+  },
+  emblemWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
+    fontFamily: SERIF_FONT,
+    fontSize: 34,
+    fontWeight: '500',
+    letterSpacing: -0.4,
+    color: ONB.text,
     textAlign: 'center',
+    marginTop: 36,
   },
   subtitle: {
-    fontSize: 15,
-    lineHeight: 23,
+    fontFamily: SERIF_FONT,
+    fontStyle: 'italic',
+    fontSize: 17,
+    lineHeight: 26,
+    color: ONB.textMuted,
     textAlign: 'center',
-    paddingHorizontal: 16,
+    marginTop: 16,
   },
 });

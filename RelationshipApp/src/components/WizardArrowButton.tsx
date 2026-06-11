@@ -1,12 +1,6 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
-import Svg, {
-  Circle,
-  Defs,
-  LinearGradient as SvgLinearGradient,
-  Path,
-  Stop,
-} from 'react-native-svg';
+import Svg, { Circle, Defs, Path, RadialGradient, Stop } from 'react-native-svg';
 
 interface WizardArrowButtonProps {
   onPress: () => void;
@@ -14,7 +8,7 @@ interface WizardArrowButtonProps {
   accessibilityLabel?: string;
 }
 
-const SIZE = 64;
+const SIZE = 66;
 
 export function WizardArrowButton({
   onPress,
@@ -32,15 +26,16 @@ export function WizardArrowButton({
     >
       <Svg width={SIZE} height={SIZE} style={StyleSheet.absoluteFill}>
         <Defs>
-          <SvgLinearGradient id="wizardArrowGrad" x1="0.5" y1="0" x2="0.5" y2="1">
-            <Stop offset="0" stopColor="#9FE4FF" />
-            <Stop offset="1" stopColor="#A78BFA" />
-          </SvgLinearGradient>
+          <RadialGradient id="wizardArrowGrad" cx="32%" cy="30%" r="75%">
+            <Stop offset="0" stopColor="#d8e7ff" />
+            <Stop offset="0.45" stopColor="#b8c2ff" />
+            <Stop offset="1" stopColor="#cabeff" />
+          </RadialGradient>
         </Defs>
         <Circle cx={SIZE / 2} cy={SIZE / 2} r={SIZE / 2 - 2} fill="url(#wizardArrowGrad)" />
         <Path
-          d="M22 32 H42 M34 24 L42 32 L34 40"
-          stroke="#0B1228"
+          d="M23 33 H43 M35 25 L43 33 L35 41"
+          stroke="#1a142e"
           strokeWidth={3.5}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -58,10 +53,10 @@ const styles = StyleSheet.create({
     borderRadius: SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#9FE4FF',
+    shadowColor: '#b8c2ff',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 14,
+    shadowOpacity: 0.55,
+    shadowRadius: 17,
     elevation: 10,
   },
   buttonDisabled: {
