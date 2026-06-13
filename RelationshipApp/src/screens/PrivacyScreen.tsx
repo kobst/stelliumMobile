@@ -21,8 +21,8 @@ import { SectionLabel } from '../components/SectionLabel';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
-const TERMS_URL = 'https://irisapp.com/terms';
-const PRIVACY_POLICY_URL = 'https://irisapp.com/privacy';
+const TERMS_URL = 'https://irislove.app/terms';
+const PRIVACY_POLICY_URL = 'https://irislove.app/privacy';
 
 export function PrivacyScreen() {
   const { colors } = useTheme();

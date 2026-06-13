@@ -54,8 +54,8 @@ const FAQS: readonly FaqEntry[] = [
   },
 ];
 
-const SUPPORT_EMAIL = 'support@irisapp.com';
-const FEEDBACK_EMAIL = 'feedback@irisapp.com';
+const SUPPORT_EMAIL = 'support@irislove.app';
+const FEEDBACK_EMAIL = 'feedback@irislove.app';
 
 export function HelpSupportScreen() {
   const { colors } = useTheme();
