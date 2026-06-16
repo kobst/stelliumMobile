@@ -360,8 +360,8 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.irisapp;
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=*]" = com.irisapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.irisapp.ios;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=*]" = com.irisapp.ios;
 				PRODUCT_NAME = IrisApp;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
