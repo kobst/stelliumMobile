@@ -352,7 +352,7 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
             <ActivityIndicator color={colors.onPrimary} />
           ) : (
             <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-              Create Connection
+              Create Connection · 10 credits
             </Text>
           )}
         </TouchableOpacity>

@@ -103,8 +103,8 @@ const CELEBS_PER_THEME = 5;
 
 const TIER_ROWS: readonly { glyph: string; text: string; paid: boolean }[] = [
   { glyph: '✓', text: 'Relationship archetype & aspect match', paid: false },
-  { glyph: '✓', text: 'Short romantic blurb (free)', paid: false },
-  { glyph: '◆', text: '5-dimension scores & overview (10 credits)', paid: true },
+  { glyph: '✓', text: 'Short romantic blurb', paid: false },
+  { glyph: '✓', text: '5-dimension scores & overview', paid: false },
   { glyph: '◆', text: 'Full synastry & composite analysis (50 credits)', paid: true },
 ];
 
@@ -948,7 +948,7 @@ function CelebConfirmStep({ celeb, isCreating, onCreate }: CelebConfirmStepProps
         ]}
       >
         <Text style={[styles.tierCardHeader, { color: colors.textSubtle }]}>
-          What you'll get
+          What you'll get · 10 credits
         </Text>
         {TIER_ROWS.map((row) => (
           <View key={row.text} style={styles.tierRow}>
@@ -985,12 +985,12 @@ function CelebConfirmStep({ celeb, isCreating, onCreate }: CelebConfirmStepProps
           <ActivityIndicator size="small" color={colors.onPrimary} />
         ) : (
           <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-            Create Connection
+            Create Connection · 10 credits
           </Text>
         )}
       </TouchableOpacity>
       <Text style={[styles.helperText, { color: colors.textMuted }]}>
-        Short blurb and archetype are free.
+        Creating this connection uses 10 credits.
       </Text>
     </View>
   );
