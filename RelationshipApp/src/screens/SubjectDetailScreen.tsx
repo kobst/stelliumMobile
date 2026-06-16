@@ -134,6 +134,8 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const [photoOverride, setPhotoOverride] = React.useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = React.useState(false);
   const [chartModalVisible, setChartModalVisible] = React.useState(false);
+  const [hydratedChart, setHydratedChart] =
+    React.useState<OwnedGuestSubject['birthChart'] | null>(null);
 
   React.useEffect(() => {
     if (!subject?._id) return;
@@ -145,6 +147,11 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         if (cancelled) return;
         setBlurb(result.romanticProfileBlurb?.trim() || null);
         setOverview(result.overview?.trim() || null);
+        setHydratedChart(
+          (result.birthChart ?? result.partner?.birthChart ?? null) as
+            | OwnedGuestSubject['birthChart']
+            | null
+        );
       })
       .catch((hydrateError) => {
         if (__DEV__) {
@@ -182,11 +189,20 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
+  // The route-param subject (and the People list) omit the birth chart — the
+  // backend returns it as a separate field — so hydrate planets/houses/signs
+  // from the getGuestSubjectRomantic re-fetch; otherwise placements show "Unknown".
+  const subjectChartPlanets = (subject.birthChart as { planets?: unknown[] } | undefined)?.planets;
+  const detailSubject =
+    (Array.isArray(subjectChartPlanets) && subjectChartPlanets.length > 0) || !hydratedChart
+      ? subject
+      : ({ ...subject, birthChart: hydratedChart } as typeof subject);
+
   const fullName = [subject.firstName, subject.lastName].filter(Boolean).join(' ').trim();
   const initial = subject.firstName?.charAt(0) ?? '?';
-  const { sun: sunSign, moon: moonSign, rising: risingSign } = getBigThree(subject);
-  const venusSign = getSubjectPlanetSign(subject, 'Venus');
-  const marsSign = getSubjectPlanetSign(subject, 'Mars');
+  const { sun: sunSign, moon: moonSign, rising: risingSign } = getBigThree(detailSubject);
+  const venusSign = getSubjectPlanetSign(detailSubject, 'Venus');
+  const marsSign = getSubjectPlanetSign(detailSubject, 'Mars');
 
   const existingRelationship = findRelationshipForSubject(
     subject,
@@ -438,7 +454,7 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     ? 'Loading romantic profile…'
     : overview ?? blurb ?? 'No romantic blurb stored yet for this person.';
 
-  const placements = getRomanticPlacements(subject);
+  const placements = getRomanticPlacements(detailSubject);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
@@ -449,14 +465,14 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           sun={sunSign}
           moon={moonSign}
           rising={risingSign}
-          source={subject}
+          source={detailSubject}
           placements={placements}
           overview={overviewText}
           eyebrow="Your Person"
           headerSlot={headerSlot}
           identityOverride={identityOverride}
           onPressViewFullChart={
-            subject.birthChart ? () => setChartModalVisible(true) : undefined
+            detailSubject.birthChart ? () => setChartModalVisible(true) : undefined
           }
         />
         {error ? (
@@ -490,7 +506,7 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
               <ActivityIndicator color={colors.onPrimary} />
             ) : (
               <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-                Create Connection
+                Create Connection · 10 credits
               </Text>
             )}
           </TouchableOpacity>
@@ -501,7 +517,7 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         visible={chartModalVisible}
         onClose={() => setChartModalVisible(false)}
         subjectName={fullName || 'Your person'}
-        birthChart={subject.birthChart}
+        birthChart={detailSubject.birthChart}
         planetColor="#82C8B4"
       />
     </SafeAreaView>

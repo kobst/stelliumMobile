@@ -1,12 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -19,14 +17,11 @@ import { Avatar } from '../components/Avatar';
 import { SubmittingOverlay } from '../components/SubmittingOverlay';
 import { ProgressDashes } from '../components/ProgressDashes';
 import { WizardArrowButton } from '../components/WizardArrowButton';
-import { externalApi, relationshipsApi, relationshipUsersApi } from '../api';
-import { submitPartnerPreview, type PartnerRomanticAssets } from './createPartnerFlow';
-import { startRelationshipPreview } from './previewFlow';
-import { presentGuestSubjectPaywall, presentRelationshipOverviewPaywall } from '../api/paywall';
+import { externalApi, relationshipUsersApi } from '../api';
+import { submitPartnerPreview } from './createPartnerFlow';
+import { presentGuestSubjectPaywall } from '../api/paywall';
 import { relationshipAppEnv } from '../config/env';
 import { createLocalPartnerSubject } from '../mocks/demoData';
-import { getBigThree } from '../utils/mainShell';
-import type { SubjectDocument } from '../../../shared/types/subject';
 import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
@@ -81,23 +76,14 @@ export function PartnerConfirmScreen() {
   const selfProfile = useRelationshipAppStore((state) => state.profile);
   const selfProfileId = useRelationshipAppStore((state) => state.selfProfileId);
   const isLocalUxMode = useRelationshipAppStore((state) => state.isLocalUxMode);
-  const relationshipHistory = useRelationshipAppStore((state) => state.relationshipHistory);
   const setActiveTargetType = useRelationshipAppStore((state) => state.setActiveTargetType);
   const setActiveTargetSubject = useRelationshipAppStore((state) => state.setActiveTargetSubject);
-  const setActiveRelationshipId = useRelationshipAppStore((state) => state.setActiveRelationshipId);
-  const setActivePartnerRomanticAssets = useRelationshipAppStore(
-    (state) => state.setActivePartnerRomanticAssets
-  );
-  const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
-  const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
   const upsertOwnedSubject = useRelationshipAppStore((state) => state.upsertOwnedSubject);
   const clearPartnerDraft = useRelationshipAppStore((state) => state.clearPartnerDraft);
 
-  const [phase, setPhase] = useState<'review' | 'generating' | 'reveal' | 'connecting'>('review');
-  const [createdPartner, setCreatedPartner] = useState<SubjectDocument | null>(null);
-  const [romanticAssets, setRomanticAssets] = useState<PartnerRomanticAssets | null>(null);
+  const [phase, setPhase] = useState<'review' | 'generating'>('review');
 
-  const isBusy = phase === 'generating' || phase === 'connecting';
+  const isBusy = phase === 'generating';
 
   const canUseGoogleServices = Boolean(relationshipAppEnv.googleApiKey);
 
@@ -126,55 +112,47 @@ export function PartnerConfirmScreen() {
       setActiveTargetType('person');
       const legacyDraft = toLegacyDraft(draft);
 
-      if (isLocalUxMode) {
-        const localPartner = createLocalPartnerSubject({
-          firstName: draft.firstName,
-          lastName: draft.lastName,
-          dateOfBirth: draft.dateOfBirth,
-          placeOfBirth: draft.placeOfBirth,
-          time: draft.birthTimeUnknown ? undefined : draft.time,
-          birthTimeUnknown: draft.birthTimeUnknown,
-          ownerUserId: selfProfileId,
-        });
-        const stubbedAssets: PartnerRomanticAssets = {
-          birthChart: null,
-          overview: null,
-          romanticProfileBlurb: null,
-          referencedCodes: [],
-          overviewMode: null,
-          status: null,
-        };
-        setActiveTargetSubject(localPartner);
-        setActivePartnerRomanticAssets(stubbedAssets);
-        setCreatedPartner(localPartner);
-        setRomanticAssets(stubbedAssets);
-        upsertOwnedSubject(localPartner as OwnedGuestSubject);
-        setPhase('reveal');
-        return;
-      }
-
-      const { partner, romanticAssets: assets } = await submitPartnerPreview(
-        legacyDraft,
-        {
-          id: selfProfileId,
-          firebaseUid: selfProfile.firebaseUid,
-        },
-        {
-          canUseGoogleServices,
-          geocodeLocation: externalApi.geocodeLocation,
-          fetchTimeZone: externalApi.fetchTimeZone,
-          createGuestSubjectRomantic: relationshipUsersApi.createGuestSubjectRomantic,
-          createGuestSubjectUnknownTimeRomantic:
-            relationshipUsersApi.createGuestSubjectUnknownTimeRomantic,
-        }
-      );
+      const partner = isLocalUxMode
+        ? createLocalPartnerSubject({
+            firstName: draft.firstName,
+            lastName: draft.lastName,
+            dateOfBirth: draft.dateOfBirth,
+            placeOfBirth: draft.placeOfBirth,
+            time: draft.birthTimeUnknown ? undefined : draft.time,
+            birthTimeUnknown: draft.birthTimeUnknown,
+            ownerUserId: selfProfileId,
+          })
+        : (
+            await submitPartnerPreview(
+              legacyDraft,
+              {
+                id: selfProfileId,
+                firebaseUid: selfProfile.firebaseUid,
+              },
+              {
+                canUseGoogleServices,
+                geocodeLocation: externalApi.geocodeLocation,
+                fetchTimeZone: externalApi.fetchTimeZone,
+                createGuestSubjectRomantic: relationshipUsersApi.createGuestSubjectRomantic,
+                createGuestSubjectUnknownTimeRomantic:
+                  relationshipUsersApi.createGuestSubjectUnknownTimeRomantic,
+              }
+            )
+          ).partner;
 
       setActiveTargetSubject(partner);
-      setActivePartnerRomanticAssets(assets);
-      setCreatedPartner(partner);
-      setRomanticAssets(assets);
       upsertOwnedSubject(partner as OwnedGuestSubject);
-      setPhase('reveal');
+      clearPartnerDraft();
+      // Drop straight into the full profile (placements, chart, romantic reading)
+      // — it carries its own "Create Connection" CTA. Reset so Back returns to the
+      // People list rather than the add wizard.
+      navigation.reset({
+        index: 1,
+        routes: [
+          { name: 'Main', params: { screen: 'RelationshipsTab' } },
+          { name: 'SubjectDetail', params: { subject: partner as OwnedGuestSubject } },
+        ],
+      });
     } catch (error) {
       setPhase('review');
       if (presentGuestSubjectPaywall(error)) {
@@ -187,179 +165,24 @@ export function PartnerConfirmScreen() {
     }
   }, [
     canUseGoogleServices,
+    clearPartnerDraft,
     draft,
     isBusy,
     isLocalUxMode,
+    navigation,
     selfProfile,
     selfProfileId,
-    setActivePartnerRomanticAssets,
     setActiveTargetSubject,
     setActiveTargetType,
     upsertOwnedSubject,
   ]);
 
-  const handleSeeConnection = useCallback(async () => {
-    if (!createdPartner || !selfProfile || phase !== 'reveal') {
-      return;
-    }
-    setPhase('connecting');
-    try {
-      const { preview, updatedHistory } = await startRelationshipPreview(
-        {
-          selfProfile,
-          targetSubject: createdPartner,
-          targetType: 'person',
-          isLocalUxMode,
-          relationshipHistory,
-        },
-        {
-          enhancedRelationshipAnalysis: relationshipsApi.enhancedRelationshipAnalysis,
-        }
-      );
-      setPreviewAnalysis(preview);
-      setActiveRelationshipId(preview.compositeChartId);
-      setRelationshipHistory({ relationshipHistory: updatedHistory });
-      clearPartnerDraft();
-      navigation.reset({
-        index: 1,
-        routes: [
-          { name: 'Main', params: { screen: 'RelationshipsTab' } },
-          { name: 'RelationshipPreview' },
-        ],
-      });
-    } catch (error) {
-      setPhase('reveal');
-      if (presentRelationshipOverviewPaywall(error)) {
-        return;
-      }
-      Alert.alert(
-        'Could not create connection',
-        error instanceof Error ? error.message : 'Please try again shortly.'
-      );
-    }
-  }, [
-    clearPartnerDraft,
-    createdPartner,
-    isLocalUxMode,
-    navigation,
-    phase,
-    relationshipHistory,
-    selfProfile,
-    setActiveRelationshipId,
-    setPreviewAnalysis,
-    setRelationshipHistory,
-  ]);
-
-  const handleDoneForNow = useCallback(() => {
-    if (phase !== 'reveal') {
-      return;
-    }
-    clearPartnerDraft();
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Main', params: { screen: 'RelationshipsTab' } }],
-    });
-  }, [clearPartnerDraft, navigation, phase]);
-
   if (phase === 'generating') {
     return (
       <SubmittingOverlay
-        title={`Reading ${draft?.firstName || 'their'} chart…`}
+        title={`Reading ${draft?.firstName ? `${draft.firstName}'s` : 'their'} chart…`}
         subtitle="Generating the romantic profile."
       />
-    );
-  }
-
-  if ((phase === 'reveal' || phase === 'connecting') && createdPartner) {
-    const isConnecting = phase === 'connecting';
-    const revealName =
-      [createdPartner.firstName, createdPartner.lastName].filter(Boolean).join(' ').trim() ||
-      'Your new connection';
-    const { sun, moon, rising } = getBigThree(createdPartner);
-    const placementLine = [
-      sun ? `${sun} Sun` : null,
-      moon ? `${moon} Moon` : null,
-      rising ? `${rising} Rising` : null,
-    ]
-      .filter(Boolean)
-      .join(' · ');
-    const blurb = romanticAssets?.romanticProfileBlurb?.trim() || null;
-
-    return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
-        <SettingsNavBar title="Added" backLabel="" />
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.hero}>
-            <Avatar
-              size={88}
-              gradient="green"
-              photoUri={createdPartner.profilePhotoUrl ?? null}
-              fallbackInitial={createdPartner.firstName?.charAt(0) ?? 'A'}
-            />
-            <Text style={[styles.heroName, { color: colors.text }]}>{revealName}</Text>
-            {placementLine ? (
-              <Text style={[styles.placementLine, { color: colors.textSubtle }]}>
-                {placementLine}
-              </Text>
-            ) : null}
-          </View>
-
-          {blurb ? (
-            <View
-              style={[
-                styles.blurbCard,
-                { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
-              ]}
-            >
-              <Text style={[styles.blurbEyebrow, { color: colors.accent }]}>
-                {revealName.split(' ')[0]}&apos;s Romantic Profile
-              </Text>
-              <Text style={[styles.blurbText, { color: colors.text }]}>{blurb}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.addedRow}>
-            <Text style={[styles.addedGlyph, { color: colors.success }]}>✓</Text>
-            <Text style={[styles.addedText, { color: colors.textMuted }]}>
-              {revealName} added to your People
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={isConnecting ? 1 : 0.85}
-            onPress={() => {
-              handleSeeConnection().catch(() => undefined);
-            }}
-            disabled={isConnecting}
-            style={[
-              styles.connectCta,
-              {
-                backgroundColor: isConnecting ? colors.primaryMuted : colors.primary,
-              },
-            ]}
-          >
-            {isConnecting ? (
-              <ActivityIndicator color={colors.onPrimary} size="small" />
-            ) : (
-              <Text style={[styles.connectCtaText, { color: colors.onPrimary }]}>
-                See your connection · ◆ 1
-              </Text>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={handleDoneForNow}
-            style={styles.doneLink}
-          >
-            <Text style={[styles.doneLinkText, { color: colors.textMuted }]}>
-              Done for now
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
     );
   }
 
@@ -443,11 +266,11 @@ export function PartnerConfirmScreen() {
           ]}
         >
           <Text style={[styles.tierHeader, { color: colors.textSubtle }]}>
-            What you'll get
+            What you'll get · 1 credit
           </Text>
           {[
-            { glyph: '✓', text: 'Relationship archetype & aspect match', paid: false },
-            { glyph: '✓', text: 'Short romantic blurb (free)', paid: false },
+            { glyph: '✓', text: 'Romantic profile & archetype', paid: false },
+            { glyph: '✓', text: 'Saved to your People', paid: false },
             { glyph: '◆', text: '5-dimension scores & overview (10 credits)', paid: true },
             { glyph: '◆', text: 'Full synastry & composite analysis (50 credits)', paid: true },
           ].map((item) => (
@@ -475,7 +298,7 @@ export function PartnerConfirmScreen() {
 
       <View style={styles.footer}>
         <Text style={[styles.caption, { color: colors.textSubtle }]}>
-          Short blurb and archetype are free
+          Adding to your People uses 1 credit
         </Text>
         <View style={styles.footerActions}>
           <WizardArrowButton

@@ -372,9 +372,16 @@ function normalizeRomanticGuestResponse(
     throw new Error('Guest subject response missing userId');
   }
 
+  // Creation/fetch endpoints return the subject WITHOUT an embedded birthChart
+  // and a separate top-level birthChart (payload-size optimization). Merge the
+  // chart back so the subject carries planets/houses/signs for placement display.
+  const guestSubject: Partial<SubjectDocument> = response.guestSubject ?? {};
   const partner = {
-    ...(response.guestSubject ?? {}),
+    ...guestSubject,
     _id: response.userId,
+    birthChart: (guestSubject.birthChart ??
+      response.birthChart ??
+      null) as SubjectDocument['birthChart'],
   } as SubjectDocument;
 
   return {
