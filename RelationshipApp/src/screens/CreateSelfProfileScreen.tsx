@@ -12,6 +12,7 @@ import { BirthDatePicker } from '../components/BirthDatePicker';
 import { StackScreenProps } from '@react-navigation/stack';
 import { PlaceAutocompleteInput } from '../components/PlaceAutocompleteInput';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
+import { resetRootTo } from '../navigation/navigationRef';
 import { useRelationshipAppStore, GuestProfileDraft } from '../store';
 import { useTheme } from '../theme';
 import { externalApi, onboardingApi, PlaceDetails, OnboardingPreviewResponse } from '../api';
@@ -96,8 +97,9 @@ const STEPS = [
 
 export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
-  const setGuestProfileDraft = useRelationshipAppStore((state) => state.setGuestProfileDraft);
-  const setProfileReveal = useRelationshipAppStore((state) => state.setProfileReveal);
+  const setProfileRevealWithDraft = useRelationshipAppStore(
+    (state) => state.setProfileRevealWithDraft,
+  );
   const isLocalUxMode =
     useRelationshipAppStore((state) => state.isLocalUxMode) || relationshipAppEnv.enableLocalUxMode;
 
@@ -354,8 +356,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       };
 
       if (isLocalUxMode) {
-        setGuestProfileDraft(draft);
-        setProfileReveal({
+        setProfileRevealWithDraft(draft, {
           previewId: 'local-preview-id',
           claimToken: 'local-claim-token',
           overview:
@@ -438,7 +439,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
             status: 'onboarding_preview_created',
           } as OnboardingPreviewResponse,
         });
-        navigation.replace('ProfileReveal');
+        resetRootTo('ProfileReveal');
         return;
       }
 
@@ -460,8 +461,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
       const previewResponse = await onboardingApi.submitPreview(requestPayload);
       console.log('[onboarding-preview] response:', JSON.stringify(previewResponse, null, 2));
 
-      setGuestProfileDraft(draft);
-      setProfileReveal({
+      setProfileRevealWithDraft(draft, {
         previewId: previewResponse.previewId,
         claimToken: previewResponse.claimToken,
         overview: previewResponse.overview,
@@ -475,7 +475,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         fullResponse: previewResponse,
       });
 
-      navigation.replace('ProfileReveal');
+      resetRootTo('ProfileReveal');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not generate your profile.';
       setSubmitError(message);

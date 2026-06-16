@@ -250,6 +250,7 @@ interface RelationshipAppStore
   setSelfProfileOverview: (value: string | null) => void;
   setGuestProfileDraft: (value: GuestProfileDraft | null) => void;
   setProfileReveal: (value: ProfileRevealData | null) => void;
+  setProfileRevealWithDraft: (draft: GuestProfileDraft, reveal: ProfileRevealData) => void;
   updateProfileReveal: (payload: {
     previewId: string;
     value: Partial<ProfileRevealData>;
@@ -412,6 +413,11 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
   setSelfProfileOverview: (value) => set({ selfProfileOverview: value }),
   setGuestProfileDraft: (value) => set({ guestProfileDraft: value }),
   setProfileReveal: (value) => set({ profileReveal: value }),
+  // Set both atomically: RootNavigator routes on (guestProfileDraft, profileReveal),
+  // so a single update avoids an intermediate render with only the draft set —
+  // which would remount the onboarding wizard back at step 1.
+  setProfileRevealWithDraft: (draft, reveal) =>
+    set({ guestProfileDraft: draft, profileReveal: reveal }),
   updateProfileReveal: ({ previewId, value }) =>
     set((state) => ({
       profileReveal: state.profileReveal && state.profileReveal.previewId === previewId
