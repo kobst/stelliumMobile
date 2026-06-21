@@ -19,8 +19,13 @@ import { Avatar } from '../components/Avatar';
 import { CreditPill } from '../components/CreditPill';
 import { AskIrisCard } from '../components/AskIrisCard';
 import { ModifierChipRow } from '../components/shape/ModifierChipRow';
-import { ShapePatternCard } from '../components/shape/ShapePatternCard';
 import { SHAPE_TOKENS } from '../components/shape/shapeTokens';
+import {
+  StrengthBlock,
+  PillarSummary,
+  PatternDetailCard,
+} from '../components/strength/RelationshipStrength';
+import { buildStrengthModel } from '../components/strength/strengthModel';
 import { Stardust } from '../components/atmosphere/Stardust';
 import { Halo } from '../components/atmosphere/Halo';
 import { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
@@ -376,6 +381,9 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   const archetypeBlurb = overallSummary?.blurb ?? null;
   const shapeKind = overallSummary?.shapeKind ?? null;
   const modifiers = overallSummary?.modifiers ?? [];
+  // Strength-first model: a continuous Relationship Strength reading (unweighted
+  // mean of the five pillars) leads; the archetype is demoted to a detail card.
+  const strengthModel = buildStrengthModel(previewAnalysis?.clusters, overallSummary);
   const magnitudeTier = overallSummary?.magnitudeTier ?? null;
   const isExceptionalMagnitude = magnitudeTier === 'exceptional';
   const patternCount = Object.keys(SHAPE_TOKENS).length;
@@ -533,31 +541,34 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
           <>
             <Divider color={colors.ghostBorder} />
 
-            {/* Archetype */}
-            {archetypeLabel || archetypeBlurb || modifiers.length > 0 ? (
-              <View style={styles.archetypeBlock}>
-                <SectionLabelCentered color={colors.accent}>
-                  Your Connection
-                </SectionLabelCentered>
-                {archetypeLabel ? (
-                  <Text style={[styles.archetypeLabel, { color: colors.text }]}>
-                    {archetypeLabel}
-                  </Text>
-                ) : null}
-                {modifiers.length > 0 ? (
-                  <ModifierChipRow
-                    modifiers={modifiers}
-                    max={4}
-                    align="center"
-                    style={styles.modifierRow}
-                  />
-                ) : null}
-                {archetypeBlurb ? (
-                  <Text style={[styles.archetypeBlurb, { color: colors.textMuted }]}>
-                    {archetypeBlurb}
-                  </Text>
-                ) : null}
+            {/* 1. Relationship Strength — leads (continuous ring + flavour tag) */}
+            {strengthModel ? <StrengthBlock model={strengthModel} /> : null}
+
+            {/* 2. Texture chips (energy modifiers) */}
+            {modifiers.length > 0 ? (
+              <ModifierChipRow
+                modifiers={modifiers}
+                max={4}
+                align="center"
+                style={styles.modifierRow}
+              />
+            ) : null}
+
+            {/* 3. Five-pillar bars — why the strength reads as it does */}
+            {strengthModel ? (
+              <View>
+                <SectionLabel color={colors.accent}>Five Pillars</SectionLabel>
+                <PillarSummary scores={strengthModel.scores} />
               </View>
+            ) : null}
+
+            {/* 4. Archetype — demoted to a detail card */}
+            {archetypeLabel || archetypeBlurb ? (
+              <PatternDetailCard
+                pattern={archetypeLabel}
+                blurb={archetypeBlurb}
+                shapeKind={shapeKind}
+              />
             ) : null}
 
             {/* Key aspect badge card */}
@@ -597,11 +608,6 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                   </Text>
                 ) : null}
               </View>
-              {shapeKind ? (
-                <View style={styles.patternCardWrap}>
-                  <ShapePatternCard kind={shapeKind} />
-                </View>
-              ) : null}
               <View
                 style={[
                   styles.softCard,
@@ -752,10 +758,6 @@ interface SectionLabelProps {
 
 function SectionLabel({ children, color }: SectionLabelProps) {
   return <Text style={[styles.sectionEyebrow, { color }]}>{children}</Text>;
-}
-
-function SectionLabelCentered({ children, color }: SectionLabelProps) {
-  return <Text style={[styles.sectionEyebrowCentered, { color }]}>{children}</Text>;
 }
 
 function Divider({ color }: { color: string }) {
@@ -1072,14 +1074,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 10,
   },
-  sectionEyebrowCentered: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 2.2,
-    textTransform: 'uppercase',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
   softCard: {
     borderRadius: 22,
     padding: 22,
@@ -1137,11 +1131,6 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 10,
   },
-  archetypeBlock: {
-    alignItems: 'center',
-    paddingVertical: 6,
-    gap: 6,
-  },
   modifierRow: {
     marginTop: 4,
     marginBottom: 2,
@@ -1156,9 +1145,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.4,
   },
-  patternCardWrap: {
-    marginBottom: 12,
-  },
   radarGlow: {
     position: 'absolute',
     top: 12,
@@ -1171,25 +1157,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 24,
-  },
-  archetypeLabel: {
-    fontFamily: SERIF_FONT,
-    fontSize: 42,
-    fontWeight: '500',
-    fontStyle: 'italic',
-    letterSpacing: -0.6,
-    textAlign: 'center',
-    lineHeight: 46,
-  },
-  archetypeBlurb: {
-    fontFamily: SERIF_FONT,
-    fontSize: 16,
-    lineHeight: 24,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingHorizontal: 10,
-    maxWidth: 320,
-    marginTop: 4,
   },
   keyAspectCard: {
     flexDirection: 'row',
