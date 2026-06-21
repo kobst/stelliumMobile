@@ -762,6 +762,15 @@ Response body:
         "archetypeKey": "iron_and_honey",
         "label": "Iron & Honey",
         "blurb": "Short relationship archetype summary",
+        "headline": {
+          "strengthScore": 74.2,
+          "flavorCluster": "Passion",
+          "flavorPresent": true,
+          "topCluster": "Passion",
+          "secondCluster": "Harmony",
+          "topBoundaryGap": 8.1,
+          "topBoundaryThreshold": 6.5
+        },
         "dominantClusters": ["Harmony", "Passion"],
         "supportClusters": ["Harmony"],
         "tensionClusters": [],
@@ -774,6 +783,10 @@ Response body:
         "meanScore": 74.2,
         "spread": 18.5,
         "weakestCluster": "Growth",
+        "resolvedLabel": "Iron & Honey",
+        "resolvedArchetypeKey": "iron_and_honey",
+        "resolvedLevel": "leaf",
+        "resolvedFamily": "Harmony+Passion / Growth low",
         "confidence": 0.93
       },
       "initialOverview": "Initial relationship overview when available",
@@ -795,6 +808,8 @@ Notes:
 - Scoring/archetype fields can be absent or `null` for older relationships that do not have a matching `relationship_analysis` document
 - `clusterScores` contains the 5 current relationship clusters: `Harmony`, `Passion`, `Connection`, `Stability`, and `Growth`
 - `userA_profilePhotoUrl` and `userB_profilePhotoUrl` are sourced from the joined celebrity subject records and can be `null` if no photo is stored
+- `archetype.headline` follows the A-4 contract: render `strengthScore` as the continuous primary strength signal and add a flavor tag only when `flavorPresent === true`; do not render a discretized strength word or tier in the headline
+- `resolvedLabel` and related resolved fields are detail-tier taxonomy only. Substrate labels such as `Low Broad Connection` must not be rendered on cards or lists as consumer labels; for substrate-level summaries, use the continuous strength visual instead
 
 ## AskIris APIs
 
@@ -3208,7 +3223,22 @@ Observed `overall` excerpt:
     "version": "archetype-summary-v4-shape-family",
     "archetypeKey": "quiet_harbor",
     "label": "Quiet Harbor",
-    "blurb": "This connection is shaped most by Harmony and Stability...",
+    "blurb": "This connection has a steady center with enough warmth to feel reliable without becoming static.",
+    "blurbRendering": {
+      "source": "template",
+      "version": "relationship-archetype-llm-blurb-v3",
+      "decisionHash": "abc123def4567890",
+      "decisionVersion": "relationship-archetype-blurb-decision-v1"
+    },
+    "headline": {
+      "strengthScore": 73.6,
+      "flavorCluster": null,
+      "flavorPresent": false,
+      "topCluster": "Harmony",
+      "secondCluster": "Stability",
+      "topBoundaryGap": 3,
+      "topBoundaryThreshold": 12.5
+    },
     "dominantClusters": ["Harmony", "Stability"],
     "supportClusters": ["Harmony", "Stability", "Connection", "Passion"],
     "tensionClusters": ["Growth"],
@@ -3221,20 +3251,31 @@ Observed `overall` excerpt:
     "meanScore": 73.6,
     "spread": 35.4,
     "weakestCluster": "Passion",
+    "resolvedLabel": "Quiet Harbor",
+    "resolvedArchetypeKey": "quiet_harbor",
+    "resolvedLevel": "leaf",
+    "resolvedFamily": "Harmony+Stability / Passion low",
     "confidence": 1
   }
 }
 ```
 
-`overall.summary` is the current relationship-app archetype contract. The primary UI label should come from `overall.summary.label`; do not use deprecated `profile`, `tier`, or `profileAnalysis` for current archetype display.
+`overall.summary` is the current relationship-app archetype contract. The primary relationship headline is A-4: combine the continuous `overall.summary.headline.strengthScore` with an optional flavor tag from `overall.summary.headline.flavorCluster` only when `overall.summary.headline.flavorPresent === true`. Do not put a discretized strength word or tier in the headline.
 
 Important rendering contract:
 
 - `summary.label` is the base archetype label, e.g. `Open Channel`.
 - `summary.modifiers` is a separate array of optional texture modifiers, e.g. `["Easy-Flowing", "Magnetic"]`.
 - The backend does **not** concatenate modifiers into the label. Do not expect a prebuilt string such as `Easy-Flowing Open Channel`.
-- Recommended UI: render `summary.label` as the title and render `summary.modifiers` as chips, badges, or subtitle text.
-- Example display: title `Open Channel`, subtitle/chips `Easy-Flowing · Magnetic`.
+- Recommended UI: render `summary.headline.strengthScore` as the primary title visual, add a `{Cluster}-Forward` tag only when `summary.headline.flavorPresent === true`, and reserve `summary.label` plus `summary.modifiers` for detail-tier texture.
+- Example headline: strength ring `74`, optional tag `Passion-Forward`; example detail: `Open Channel` with chips `Easy-Flowing · Magnetic`.
+- `summary.headline.strengthScore` is the stable consumer strength signal. Render it as a continuous number, meter, or other visual treatment.
+- `summary.headline.flavorCluster` is a consumer-facing flavor tag only when `summary.headline.flavorPresent === true`; otherwise omit cluster flavor from the headline even though `topCluster` and `secondCluster` remain available for diagnostics/detail.
+- `summary.headline.topCluster`, `secondCluster`, `topBoundaryGap`, and `topBoundaryThreshold` explain why a flavor tag did or did not clear the dominant-cluster boundary. They are useful for debugging and detail views, not as card copy.
+- `summary.resolvedLabel`, `summary.resolvedArchetypeKey`, `summary.resolvedLevel`, and `summary.resolvedFamily` are detail-tier taxonomy. Leaf/family evocative labels may render in detail contexts; substrate labels such as `Low Broad Connection` must not render on cards/lists as consumer labels. For substrate-level summaries, use the strength visual instead.
+- `summary.blurb` is rendered copy. It may come from deterministic templates, LLM generation, cache, or validated fallback as indicated by `summary.blurbRendering`; clients should display the returned copy but must not infer headline shape, cluster dominance, or score claims from the prose.
+- Do not use deprecated `profile`, `tier`, or `profileAnalysis` for current archetype display.
+- `initialOverview` is prose only. Never parse it or display it as a numeric score claim, even if the prose mentions intensity, strength, ease, or challenge.
 
 Current summary fields:
 
@@ -3243,7 +3284,25 @@ type RelationshipArchetypeSummary = {
   version: "archetype-summary-v4-shape-family";
   archetypeKey: string;                 // slug for label, e.g. "open_channel"
   label: string;                        // primary display label, e.g. "Open Channel"
-  blurb: string;                        // deterministic explanatory copy
+  blurb: string;                        // rendered explanatory copy; display directly
+  blurbRendering?: {
+    source: "template" | "llm" | "template_fallback" | "cached";
+    version: string;
+    decisionHash: string;
+    decisionVersion: string;
+    model?: string;
+    generatedAt?: string;
+    fallbackReason?: string;
+  };
+  headline?: {
+    strengthScore: number;              // continuous A-4 strength signal
+    flavorCluster: RelationshipCluster | null;
+    flavorPresent: boolean;             // true only when the top cluster clears the boundary
+    topCluster: RelationshipCluster;
+    secondCluster: RelationshipCluster;
+    topBoundaryGap: number;
+    topBoundaryThreshold: number;
+  };
   dominantClusters: RelationshipCluster[]; // top two scored clusters
   supportClusters: RelationshipCluster[];  // clusters with score >= 60
   tensionClusters: RelationshipCluster[];  // clusters with score < 50
@@ -3256,6 +3315,14 @@ type RelationshipArchetypeSummary = {
   meanScore: number;                    // average of the five cluster scores, rounded
   spread: number;                       // top cluster score - weakest cluster score, rounded
   weakestCluster: RelationshipCluster;
+  resolvedLabel?: string;               // detail-tier label; substrate labels are not card/list copy
+  resolvedArchetypeKey?: string;
+  resolvedLevel?: "leaf" | "family" | "substrate";
+  resolvedFamily?: string;
+  topTwoBoundaryGap?: number;
+  weakestBoundaryGap?: number;
+  topTwoClear?: boolean;
+  weakestClear?: boolean;
   confidence: number;
 };
 ```
@@ -3398,7 +3465,7 @@ Observed first row for an authenticated relationship-app user:
         "version": "archetype-summary-v4-shape-family",
         "archetypeKey": "live_wire",
         "label": "Live Wire",
-        "blurb": "This connection is shaped most by Connection and Passion...",
+        "blurb": "This connection has a clear spark of recognition, with enough momentum to feel lively without forcing a narrow two-pillar claim.",
         "dominantClusters": ["Connection", "Passion"],
         "supportClusters": ["Connection", "Passion", "Harmony", "Stability"],
         "tensionClusters": ["Growth"],
