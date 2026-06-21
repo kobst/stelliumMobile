@@ -131,8 +131,15 @@ interface ClusterLike {
 }
 
 /**
- * Build the full strength model from a preview/full analysis payload. The
- * archetype pattern + blurb are extracted here but rendered in the demoted
+ * Build the full strength model from a preview/full analysis payload.
+ *
+ * The backend-authoritative A-4 `summary.headline` is the source of truth for
+ * the strength score and flavour decision when present — it uses a dynamic
+ * boundary threshold the client cannot reproduce. We fall back to our own
+ * derivation (mean + margin heuristic) only for older relationships whose
+ * payload predates the headline contract.
+ *
+ * The archetype pattern + blurb are extracted here but rendered in the demoted
  * detail tier.
  */
 export function buildStrengthModel(
@@ -153,11 +160,35 @@ export function buildStrengthModel(
     return null;
   }
 
-  const { flavorPresent, flavorCluster } = deriveFlavor(scores, summary);
+  const headline = summary?.headline ?? null;
+  let strengthScore: number;
+  let flavorPresent: boolean;
+  let flavorCluster: ClusterKey | null;
+
+  if (headline && typeof headline.strengthScore === 'number') {
+    // Authoritative A-4 headline: render its values verbatim. Only show a
+    // flavour cluster when the backend says it cleared the boundary.
+    strengthScore = Math.round(Math.max(0, Math.min(100, headline.strengthScore)));
+    flavorPresent = headline.flavorPresent === true;
+    flavorCluster =
+      flavorPresent && headline.flavorCluster
+        ? matchClusterKey(headline.flavorCluster)
+        : null;
+  } else {
+    // Fallback for pre-contract payloads. Prefer the authoritative meanScore
+    // for the strength number, derive the flavour from scores + shape signals.
+    strengthScore =
+      typeof summary?.meanScore === 'number'
+        ? Math.round(Math.max(0, Math.min(100, summary.meanScore)))
+        : strengthOf(scores);
+    const derived = deriveFlavor(scores, summary);
+    flavorPresent = derived.flavorPresent;
+    flavorCluster = derived.flavorCluster;
+  }
 
   return {
     scores,
-    strengthScore: strengthOf(scores),
+    strengthScore,
     flavorPresent,
     flavorCluster,
     pattern: summary?.label ?? null,

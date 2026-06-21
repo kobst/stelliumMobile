@@ -82,9 +82,44 @@ export type RelationshipModifier =
   | 'Easy-Flowing'
   | 'Low Signal';
 
+export type RelationshipCluster =
+  | 'Harmony'
+  | 'Passion'
+  | 'Connection'
+  | 'Stability'
+  | 'Growth';
+
+// A-4 headline contract: the backend-authoritative strength + flavour signal.
+// Render `strengthScore` as the continuous primary visual and add a
+// `{flavorCluster}-Forward` tag ONLY when `flavorPresent === true`. The
+// top/second/boundary fields are diagnostics for detail/debug views, not copy.
+export interface RelationshipHeadline {
+  strengthScore: number;
+  flavorCluster: RelationshipCluster | null;
+  flavorPresent: boolean;
+  topCluster: RelationshipCluster;
+  secondCluster: RelationshipCluster;
+  topBoundaryGap: number;
+  topBoundaryThreshold: number;
+}
+
+// Provenance of `summary.blurb`. Clients display the returned copy but must not
+// infer headline shape, cluster dominance, or score claims from the prose.
+export interface RelationshipBlurbRendering {
+  source: 'template' | 'llm' | 'template_fallback' | 'cached';
+  version: string;
+  decisionHash: string;
+  decisionVersion: string;
+  model?: string;
+  generatedAt?: string;
+  fallbackReason?: string;
+}
+
 export interface OverallSummary {
   label?: string;
   blurb?: string;
+  blurbRendering?: RelationshipBlurbRendering;
+  headline?: RelationshipHeadline;
   archetypeKey?: string;
   dominantClusters?: string[];
   supportClusters?: string[];
@@ -100,6 +135,17 @@ export interface OverallSummary {
   meanScore?: number;
   spread?: number;
   weakestCluster?: string;
+  // Detail-tier taxonomy. Leaf/family labels may render in detail contexts;
+  // substrate-level labels (e.g. "Low Broad Connection") must NOT be rendered
+  // on cards/lists — use the continuous strength visual instead.
+  resolvedLabel?: string;
+  resolvedArchetypeKey?: string;
+  resolvedLevel?: 'leaf' | 'family' | 'substrate';
+  resolvedFamily?: string;
+  topTwoBoundaryGap?: number;
+  weakestBoundaryGap?: number;
+  topTwoClear?: boolean;
+  weakestClear?: boolean;
 }
 
 export interface OverallAnalysis {
