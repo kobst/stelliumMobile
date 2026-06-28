@@ -202,11 +202,33 @@ type TopCelebMatch = {
     archetypeKey: string;
     label: string;
     blurb: string;
+    blurbRendering?: {
+      source: 'template' | 'llm' | 'template_fallback' | 'cached';
+      version: string;
+      decisionHash: string;
+      decisionVersion: string;
+      model?: string;
+      generatedAt?: string;
+      fallbackReason?: string;
+    };
+    headline?: {
+      strengthScore: number;
+      flavorCluster: 'Harmony' | 'Passion' | 'Connection' | 'Stability' | 'Growth' | null;
+      flavorPresent: boolean;
+      topCluster: 'Harmony' | 'Passion' | 'Connection' | 'Stability' | 'Growth';
+      secondCluster: 'Harmony' | 'Passion' | 'Connection' | 'Stability' | 'Growth';
+      topBoundaryGap: number;
+      topBoundaryThreshold: number;
+    };
     dominantClusters: string[];
     supportClusters: string[];
     tensionClusters: string[];
     shape: 'balanced' | 'polarized' | 'concentrated' | 'flat' | 'conflicted';
     tone: 'steady' | 'easy' | 'magnetic' | 'growth-heavy' | 'volatile' | 'mixed';
+    resolvedLabel?: string;
+    resolvedArchetypeKey?: string;
+    resolvedLevel?: 'leaf' | 'family' | 'substrate';
+    resolvedFamily?: string;
     confidence: number;
   } | null;
 };
@@ -220,8 +242,11 @@ Important:
 - `topAspects` is always present and is an empty array until matches exist
 - `topCelebMatches` is a normalized 3-card view of the currently surfaced matches
 - `topCelebMatches` preserves the existing aspect-based selection and annotation behavior while adding 5-cluster scores per surfaced celebrity
-- `topCelebMatches` now also includes the derived relationship archetype for each surfaced celebrity match
+- `topCelebMatches` now also includes the derived relationship archetype for each surfaced celebrity match, using the v4/resolved summary fields when scoring returns them
 - For the mobile reveal UI, `topCelebMatches` should be treated as the canonical field
+- Archetype headlines follow the A-4 contract: render continuous `archetype.headline.strengthScore` plus an optional `archetype.headline.flavorCluster` tag when `archetype.headline.flavorPresent === true`; do not render a discretized strength word or tier in the headline
+- `resolvedLabel` and substrate labels such as `Low Broad Connection` are internal/detail-tier labels. Do not render them on onboarding cards/lists as consumer labels; if `resolvedLevel === "substrate"`, use the strength visual instead. Leaf/family evocative labels may be shown in detail contexts.
+- `archetype.blurb` is rendered copy with a validated fallback path. Display the returned copy, but do not infer headline shape, dominance, or numeric score claims from the prose.
 
 ## High-Level Flow
 
@@ -484,15 +509,34 @@ This call does not wait on LLM annotations.
           "overall": 64
         },
         "archetype": {
-          "version": "archetype-summary-v3",
+          "version": "archetype-summary-v4-shape-family",
           "archetypeKey": "steady_hearth",
           "label": "Steady Hearth",
-          "blurb": "This connection is shaped most by Harmony and Stability, creating a bond defined by emotional ease and reliability. What keeps it from feeling more complete is that shared evolution may feel slower or less activating. Overall, this has the feel of Steady Hearth.",
+          "blurb": "This connection has a steady center with enough warmth to feel reliable without becoming static.",
+          "blurbRendering": {
+            "source": "template",
+            "version": "relationship-archetype-llm-blurb-v3",
+            "decisionHash": "abc123def4567890",
+            "decisionVersion": "relationship-archetype-blurb-decision-v1"
+          },
+          "headline": {
+            "strengthScore": 64,
+            "flavorCluster": null,
+            "flavorPresent": false,
+            "topCluster": "Harmony",
+            "secondCluster": "Stability",
+            "topBoundaryGap": 9,
+            "topBoundaryThreshold": 12.5
+          },
           "dominantClusters": ["Harmony", "Stability"],
           "supportClusters": ["Harmony", "Stability"],
           "tensionClusters": ["Growth"],
           "shape": "balanced",
           "tone": "steady",
+          "resolvedLabel": "Steady Hearth",
+          "resolvedArchetypeKey": "steady_hearth",
+          "resolvedLevel": "leaf",
+          "resolvedFamily": "Harmony+Stability / Growth low",
           "confidence": 0.82
         }
       }
@@ -522,6 +566,7 @@ This call does not wait on LLM annotations.
 - `selectedAspect` is the exact aspect used to pick the surfaced celeb and later generate annotation copy
 - `clusterScores` are already computed at match-generation time; the frontend does not need to wait for annotations to read scores
 - `archetype` is already computed at match-generation time; the frontend does not need to wait for annotations to read the archetype label or blurb
+- `archetype.headline` is the primary headline contract when present: continuous `strengthScore`, optional flavor tag only when `flavorPresent === true`, no discretized strength word/tier
 
 ## 3. Start Celebrity Annotation Generation
 
@@ -785,15 +830,34 @@ The frontend should use this endpoint to poll while annotations are being genera
           "overall": 64
         },
         "archetype": {
-          "version": "archetype-summary-v3",
+          "version": "archetype-summary-v4-shape-family",
           "archetypeKey": "steady_hearth",
           "label": "Steady Hearth",
-          "blurb": "This connection is shaped most by Harmony and Stability, creating a bond defined by emotional ease and reliability. What keeps it from feeling more complete is that shared evolution may feel slower or less activating. Overall, this has the feel of Steady Hearth.",
+          "blurb": "This connection has a steady center with enough warmth to feel reliable without becoming static.",
+          "blurbRendering": {
+            "source": "template",
+            "version": "relationship-archetype-llm-blurb-v3",
+            "decisionHash": "abc123def4567890",
+            "decisionVersion": "relationship-archetype-blurb-decision-v1"
+          },
+          "headline": {
+            "strengthScore": 64,
+            "flavorCluster": null,
+            "flavorPresent": false,
+            "topCluster": "Harmony",
+            "secondCluster": "Stability",
+            "topBoundaryGap": 9,
+            "topBoundaryThreshold": 12.5
+          },
           "dominantClusters": ["Harmony", "Stability"],
           "supportClusters": ["Harmony", "Stability"],
           "tensionClusters": ["Growth"],
           "shape": "balanced",
           "tone": "steady",
+          "resolvedLabel": "Steady Hearth",
+          "resolvedArchetypeKey": "steady_hearth",
+          "resolvedLevel": "leaf",
+          "resolvedFamily": "Harmony+Stability / Growth low",
           "confidence": 0.82
         }
       }
@@ -817,7 +881,8 @@ The frontend should use this endpoint to poll while annotations are being genera
 
 - Render the 3 celebrity onboarding cards from `topCelebMatches`
 - Read the compatibility bars, pills, or score chips from `topCelebMatches[i].clusterScores`
-- Read the archetype label and blurb from `topCelebMatches[i].archetype`
+- Read the primary archetype headline from `topCelebMatches[i].archetype.headline`: continuous `strengthScore` plus optional `flavorCluster` when `flavorPresent === true`
+- Read the archetype label and blurb from `topCelebMatches[i].archetype`, but treat resolved/substrate labels as detail-tier labels, not card/list titles
 - Read the surfaced copy from `topCelebMatches[i].annotation` when present
 - If `annotation` is absent, use `selectedAspect.label`, `selectedAspect.shortMeaning`, and placements to render loading or fallback UI
 - If you need the exact aspect metadata that drove the card, use `topCelebMatches[i].selectedAspect`
@@ -1000,15 +1065,34 @@ Each surfaced onboarding celebrity card inside `topCelebMatches[]` uses this str
     "overall": 64
   },
   "archetype": {
-    "version": "archetype-summary-v3",
+    "version": "archetype-summary-v4-shape-family",
     "archetypeKey": "steady_hearth",
     "label": "Steady Hearth",
-    "blurb": "This connection is shaped most by Harmony and Stability, creating a bond defined by emotional ease and reliability. What keeps it from feeling more complete is that shared evolution may feel slower or less activating. Overall, this has the feel of Steady Hearth.",
+    "blurb": "This connection has a steady center with enough warmth to feel reliable without becoming static.",
+    "blurbRendering": {
+      "source": "template",
+      "version": "relationship-archetype-llm-blurb-v3",
+      "decisionHash": "abc123def4567890",
+      "decisionVersion": "relationship-archetype-blurb-decision-v1"
+    },
+    "headline": {
+      "strengthScore": 64,
+      "flavorCluster": null,
+      "flavorPresent": false,
+      "topCluster": "Harmony",
+      "secondCluster": "Stability",
+      "topBoundaryGap": 9,
+      "topBoundaryThreshold": 12.5
+    },
     "dominantClusters": ["Harmony", "Stability"],
     "supportClusters": ["Harmony", "Stability"],
     "tensionClusters": ["Growth"],
     "shape": "balanced",
     "tone": "steady",
+    "resolvedLabel": "Steady Hearth",
+    "resolvedArchetypeKey": "steady_hearth",
+    "resolvedLevel": "leaf",
+    "resolvedFamily": "Harmony+Stability / Growth low",
     "confidence": 0.82
   }
 }
@@ -1021,6 +1105,9 @@ Notes:
 - `selectedAspect.annotation` and top-level `annotation` should be treated as the same content
 - `clusterScores` is present as soon as celeb matches are ready
 - `archetype` is present as soon as celeb matches are ready
+- `archetype.headline.strengthScore` is the continuous A-4 strength signal; `archetype.headline.flavorCluster` is rendered only when `archetype.headline.flavorPresent === true`
+- `archetype.resolvedLabel` and related resolved fields are detail-tier taxonomy; do not show substrate labels such as `Low Broad Connection` as onboarding-card labels
+- `archetype.blurb` is rendered copy. Display it directly, but do not parse it for score claims, shape, or cluster dominance.
 - `annotation` is only present after the annotation worker completes
 - `clusterScores` may be `null` only if scoring failed unexpectedly; the frontend should tolerate that case
 - `archetype` may be `null` only if scoring failed unexpectedly; the frontend should tolerate that case
@@ -1087,7 +1174,7 @@ Recommended rendering behavior:
 
 - On preview creation: show overview immediately; celeb section is loading
 - On matches ready: render 3 cards from `topCelebMatches`
-- On annotations pending/running: show scores and archetype immediately, show annotation skeleton or placeholder copy
+- On annotations pending/running: show scores and the A-4 archetype headline immediately, show annotation skeleton or placeholder copy
 - On annotations completed: hydrate each card’s annotation from `topCelebMatches[i].annotation`
 - On claim: keep using the returned `topCelebMatches` payload as-is; do not refetch unless needed
 

@@ -9,7 +9,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
+import Svg, {
+  Circle,
+  Defs,
+  Line,
+  LinearGradient,
+  Polygon,
+  Rect,
+  Stop,
+  Text as SvgText,
+} from 'react-native-svg';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
@@ -19,8 +28,14 @@ import { Avatar } from '../components/Avatar';
 import { CreditPill } from '../components/CreditPill';
 import { AskIrisCard } from '../components/AskIrisCard';
 import { ModifierChipRow } from '../components/shape/ModifierChipRow';
-import { ShapePatternCard } from '../components/shape/ShapePatternCard';
-import { SHAPE_TOKENS } from '../components/shape/shapeTokens';
+import {
+  FlavorTag,
+  PatternDetailCard,
+} from '../components/strength/RelationshipStrength';
+import { DetailArchetypeLabel } from '../components/strength/DetailArchetypeLabel';
+import { CompositeChip } from '../components/strength/CompositeChip';
+import { scoreColor, HEAT_STOPS } from '../components/strength/heat';
+import { buildStrengthModel } from '../components/strength/strengthModel';
 import { Stardust } from '../components/atmosphere/Stardust';
 import { Halo } from '../components/atmosphere/Halo';
 import { relationshipUsersApi } from '../../../shared/api/relationshipUsers';
@@ -246,6 +261,13 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             patches.synastryHousePlacements =
               fetchedHouses as typeof current.synastryHousePlacements;
           }
+          // compositeCharacter is a top-level field only on the analysis read (not on the
+          // create response the store was seeded with), so patch it in here.
+          const fetchedCompositeCharacter = (result as any)?.compositeCharacter;
+          if (fetchedCompositeCharacter && !current.compositeCharacter) {
+            patches.compositeCharacter =
+              fetchedCompositeCharacter as typeof current.compositeCharacter;
+          }
           if (Object.keys(patches).length > 0) {
             setPreviewAnalysis({
               ...current,
@@ -372,13 +394,29 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
     null;
 
   const overallSummary = previewAnalysis?.overall?.summary ?? null;
-  const archetypeLabel = overallSummary?.label ?? null;
+  // Prefer the detail-tier archetype (Common Cause, Fated Bond, Bedrock, …); Mosaic (suppressed)
+  // falls back to the legacy cluster archetype label.
+  const detailArchetype = overallSummary?.detailArchetype ?? null;
+  const archetypeLabel =
+    detailArchetype?.label && !detailArchetype.suppressed
+      ? detailArchetype.label
+      : overallSummary?.label ?? null;
   const archetypeBlurb = overallSummary?.blurb ?? null;
+  // Composite "character" coordinate — the relationship as an entity (element + dominant planet).
+  // Top-level on the analysis read; fall back to fullAnalysis when present.
+  const compositeCharacter =
+    previewAnalysis?.compositeCharacter ?? (fullAnalysis as any)?.compositeCharacter ?? null;
   const shapeKind = overallSummary?.shapeKind ?? null;
   const modifiers = overallSummary?.modifiers ?? [];
-  const magnitudeTier = overallSummary?.magnitudeTier ?? null;
-  const isExceptionalMagnitude = magnitudeTier === 'exceptional';
-  const patternCount = Object.keys(SHAPE_TOKENS).length;
+  // When a distinct detail archetype leads the headline, the legacy cluster
+  // archetype is demoted into the detail card as the "score shape". When there
+  // is no distinct detail name, the headline already shows the cluster label, so
+  // we omit it from the detail card to avoid showing the same name twice.
+  const hasDistinctDetail = Boolean(detailArchetype?.label && !detailArchetype.suppressed);
+  const demotedClusterLabel = hasDistinctDetail ? overallSummary?.label ?? null : null;
+  // Strength-first model: a continuous Relationship Strength reading (unweighted
+  // mean of the five pillars) leads; the archetype is demoted to a detail card.
+  const strengthModel = buildStrengthModel(previewAnalysis?.clusters, overallSummary);
   const keyAspect = previewAnalysis?.overall?.keystoneAspects?.[0] ?? null;
   const initialOverview = previewAnalysis?.initialOverview ?? null;
   const romanticBlurb = activePartnerRomanticAssets?.romanticProfileBlurb ?? null;
@@ -493,23 +531,6 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
           ) : null}
         </View>
 
-        {/* Partner romantic blurb — always visible from stage 1 */}
-        {romanticBlurb ? (
-          <View>
-            <SectionLabel color={colors.accent}>
-              {partnerName.split(' ')[0]}&apos;s Romantic Profile
-            </SectionLabel>
-            <View
-              style={[
-                styles.softCard,
-                { backgroundColor: colors.surfaceLow },
-              ]}
-            >
-              <Text style={[styles.serifItalic, { color: colors.text }]}>{romanticBlurb}</Text>
-            </View>
-          </View>
-        ) : null}
-
         {/* Stage 1: loading shimmer while scores compute */}
         {stage === 1 ? (
           <View
@@ -533,30 +554,90 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
           <>
             <Divider color={colors.ghostBorder} />
 
-            {/* Archetype */}
-            {archetypeLabel || archetypeBlurb || modifiers.length > 0 ? (
-              <View style={styles.archetypeBlock}>
-                <SectionLabelCentered color={colors.accent}>
-                  Your Connection
-                </SectionLabelCentered>
+            {/* Unified hero: the pentagon radar IS the five pillars (per-axis
+                numbers), and carries the overall Relationship Strength score in
+                its center core — one screenshottable visual, nothing twice. */}
+            {strengthModel ? (
+              <View style={styles.heroGroup}>
+                <RadarHero
+                  data={clusterScores}
+                  strengthScore={strengthModel.strengthScore}
+                  colors={colors}
+                />
+                <Text style={[styles.strengthCaption, { color: colors.textMuted }]}>
+                  RELATIONSHIP STRENGTH
+                </Text>
+                <HeatLegend />
+                <View style={styles.flavorCenter}>
+                  <FlavorTag
+                    flavorPresent={strengthModel.flavorPresent}
+                    flavorCluster={strengthModel.flavorCluster}
+                  />
+                </View>
+              </View>
+            ) : null}
+
+            {/* Reading headline: detail archetype (3) + composite character chip
+                (4) + unlock status — the Overview's identity section. */}
+            {archetypeLabel || compositeCharacter ? (
+              <View style={styles.readingHeadline}>
                 {archetypeLabel ? (
-                  <Text style={[styles.archetypeLabel, { color: colors.text }]}>
-                    {archetypeLabel}
-                  </Text>
-                ) : null}
-                {modifiers.length > 0 ? (
-                  <ModifierChipRow
-                    modifiers={modifiers}
-                    max={4}
-                    align="center"
-                    style={styles.modifierRow}
+                  <DetailArchetypeLabel
+                    detail={detailArchetype}
+                    fallbackLabel={archetypeLabel}
+                    size="lg"
                   />
                 ) : null}
-                {archetypeBlurb ? (
-                  <Text style={[styles.archetypeBlurb, { color: colors.textMuted }]}>
-                    {archetypeBlurb}
-                  </Text>
+                {compositeCharacter ? (
+                  <View style={styles.readingChip}>
+                    <CompositeChip composite={compositeCharacter} />
+                  </View>
                 ) : null}
+                {hasFullAnalysisInStore ? (
+                  <View style={styles.unlockedPill}>
+                    <Text style={styles.unlockedPillText}>✓ Full analysis unlocked</Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
+            {/* Texture chips (energy modifiers) */}
+            {modifiers.length > 0 ? (
+              <ModifierChipRow
+                modifiers={modifiers}
+                max={4}
+                align="center"
+                style={styles.modifierRow}
+              />
+            ) : null}
+
+            {/* Cluster archetype (score shape) + couple blurb — demoted below the
+                detail-archetype headline. The cluster label only appears here when
+                a distinct detail name already leads the headline. */}
+            {demotedClusterLabel || archetypeBlurb ? (
+              <PatternDetailCard
+                pattern={demotedClusterLabel}
+                blurb={archetypeBlurb}
+                shapeKind={shapeKind}
+              />
+            ) : null}
+
+            {/* Composite character phrase — the "what the relationship is" entity
+                description. The short label itself is shown as the chip above, so
+                this card carries only the longer phrase. */}
+            {compositeCharacter?.phrase ? (
+              <View
+                style={[
+                  styles.compositeCharacterCard,
+                  { backgroundColor: colors.surfaceLow, borderColor: colors.ghostBorder },
+                ]}
+              >
+                <Text style={[styles.compositeCharacterEyebrow, { color: colors.textSubtle }]}>
+                  The relationship itself
+                </Text>
+                <Text style={[styles.compositeCharacterPhrase, { color: colors.textMuted }]}>
+                  {compositeCharacter.phrase}
+                </Text>
               </View>
             ) : null}
 
@@ -586,33 +667,6 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
               </View>
             ) : null}
-
-            {/* Compatibility radar */}
-            <View>
-              <View style={styles.shapeSectionHeader}>
-                <SectionLabel color={colors.accent}>Compatibility Shape</SectionLabel>
-                {shapeKind ? (
-                  <Text style={[styles.shapeSectionHint, { color: colors.textSubtle }]}>
-                    1 of {patternCount} patterns
-                  </Text>
-                ) : null}
-              </View>
-              {shapeKind ? (
-                <View style={styles.patternCardWrap}>
-                  <ShapePatternCard kind={shapeKind} />
-                </View>
-              ) : null}
-              <View
-                style={[
-                  styles.softCard,
-                  styles.radarCard,
-                  { backgroundColor: colors.surfaceLow },
-                ]}
-              >
-                {isExceptionalMagnitude ? <View style={styles.radarGlow} /> : null}
-                <RadarChart data={clusterScores} colors={colors} />
-              </View>
-            </View>
           </>
         ) : null}
 
@@ -710,6 +764,23 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
           />
         ) : null}
 
+        {/* Individual romantic profile — about ONE person, not the couple.
+            Lives below the couple reading, clearly labelled, so it is never
+            mistaken for the relationship's own identity. */}
+        {romanticBlurb ? (
+          <View>
+            <SectionLabel color={colors.accent}>
+              {partnerName.split(' ')[0]}&apos;s Romantic Profile
+            </SectionLabel>
+            <View style={[styles.softCard, { backgroundColor: colors.surfaceLow }]}>
+              <Text style={[styles.serifItalic, { color: colors.text }]}>{romanticBlurb}</Text>
+            </View>
+            <Text style={[styles.individualProfileCaption, { color: colors.textSubtle }]}>
+              Reads {partnerName.split(' ')[0]}&apos;s chart on its own — independent of your synastry.
+            </Text>
+          </View>
+        ) : null}
+
         {/* Ask Iris card — normalized entry point */}
         {stage >= 2 ? (
           <View style={styles.askBlock}>
@@ -752,10 +823,6 @@ interface SectionLabelProps {
 
 function SectionLabel({ children, color }: SectionLabelProps) {
   return <Text style={[styles.sectionEyebrow, { color }]}>{children}</Text>;
-}
-
-function SectionLabelCentered({ children, color }: SectionLabelProps) {
-  return <Text style={[styles.sectionEyebrowCentered, { color }]}>{children}</Text>;
 }
 
 function Divider({ color }: { color: string }) {
@@ -854,10 +921,34 @@ function PulseDots({ color }: { color: string }) {
   );
 }
 
+// Compact heat key — decodes the radar's colour melange (cool → hot).
+function HeatLegend() {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.heatLegend}>
+      <Text style={[styles.heatLegendCap, { color: colors.textSubtle }]}>COOL</Text>
+      <Svg width={132} height={6} viewBox="0 0 132 6">
+        <Defs>
+          <LinearGradient id="heatKey" x1="0" y1="0" x2="132" y2="0" gradientUnits="userSpaceOnUse">
+            {HEAT_STOPS.map((c, i) => (
+              <Stop key={c} offset={`${(i / (HEAT_STOPS.length - 1)) * 100}%`} stopColor={c} />
+            ))}
+          </LinearGradient>
+        </Defs>
+        <Rect x={0} y={0} width={132} height={6} rx={3} fill="url(#heatKey)" />
+      </Svg>
+      <Text style={[styles.heatLegendCap, { color: colors.textSubtle }]}>HOT</Text>
+    </View>
+  );
+}
+
 // ── Radar chart ───────────────────────────────────────────────────────────
 interface RadarChartProps {
   data: { label: string; value: number }[];
   colors: ReturnType<typeof useTheme>['colors'];
+  // Keeps every vertex outside the center core so a single low score can't
+  // pinch the shape into a notch. Per-axis numbers stay truthful.
+  floor?: number;
 }
 
 const RADAR_WIDTH = 300;
@@ -875,8 +966,10 @@ function polarToCartesian(index: number, count: number, radius: number) {
   };
 }
 
-function RadarChart({ data, colors }: RadarChartProps) {
+function RadarChart({ data, colors, floor = 0 }: RadarChartProps) {
   const count = data.length;
+  const valueRadius = (value: number) =>
+    (floor + (1 - floor) * (Math.max(0, Math.min(100, value)) / 100)) * RADAR_MAX_R;
 
   const ringPolygons = Array.from({ length: RADAR_RINGS }).map((_, ringIndex) => {
     const radius = (RADAR_MAX_R * (ringIndex + 1)) / RADAR_RINGS;
@@ -890,13 +983,13 @@ function RadarChart({ data, colors }: RadarChartProps) {
 
   const axisLines = data.map((_, i) => polarToCartesian(i, count, RADAR_MAX_R));
 
-  const dataPointsStr = data
-    .map((entry, i) => {
-      const radius = (entry.value / 100) * RADAR_MAX_R;
-      const point = polarToCartesian(i, count, radius);
-      return `${point.x},${point.y}`;
-    })
-    .join(' ');
+  // Per-vertex heat colours + coordinates. The coloured edges (gradient between
+  // adjacent vertex colours) carry the signal; the body fill stays soft.
+  const cols = data.map((entry) => scoreColor(entry.value));
+  const dataPoints = data.map((entry, i) =>
+    polarToCartesian(i, count, valueRadius(entry.value))
+  );
+  const dataPointsStr = dataPoints.map((p) => `${p.x},${p.y}`).join(' ');
 
   const labelOffsets: { dx: number; dy: number; anchor: 'start' | 'middle' | 'end' }[] = [
     { dx: 0, dy: -14, anchor: 'middle' },
@@ -908,6 +1001,25 @@ function RadarChart({ data, colors }: RadarChartProps) {
 
   return (
     <Svg width="100%" height={RADAR_HEIGHT} viewBox={`0 0 ${RADAR_WIDTH} ${RADAR_HEIGHT}`}>
+      <Defs>
+        {dataPoints.map((p, i) => {
+          const n = dataPoints[(i + 1) % dataPoints.length];
+          return (
+            <LinearGradient
+              key={`edge-grad-${i}`}
+              id={`radEdge${i}`}
+              gradientUnits="userSpaceOnUse"
+              x1={p.x}
+              y1={p.y}
+              x2={n.x}
+              y2={n.y}
+            >
+              <Stop offset="0%" stopColor={cols[i]} />
+              <Stop offset="100%" stopColor={cols[(i + 1) % cols.length]} />
+            </LinearGradient>
+          );
+        })}
+      </Defs>
       {ringPolygons.map((points, i) => (
         <Polygon
           key={`ring-${i}`}
@@ -928,27 +1040,35 @@ function RadarChart({ data, colors }: RadarChartProps) {
           strokeWidth={0.8}
         />
       ))}
-      <Polygon
-        points={dataPointsStr}
-        fill="rgba(202, 190, 255, 0.2)"
-        stroke={colors.primary}
-        strokeWidth={2}
-      />
-      {data.map((entry, i) => {
-        const radius = (entry.value / 100) * RADAR_MAX_R;
-        const point = polarToCartesian(i, count, radius);
+      {/* Body fill — soft, lets the coloured edges carry the signal */}
+      <Polygon points={dataPointsStr} fill="rgba(202, 190, 255, 0.10)" stroke="none" />
+      {/* Per-edge gradient strokes = the colour melange */}
+      {dataPoints.map((p, i) => {
+        const n = dataPoints[(i + 1) % dataPoints.length];
         return (
-          <Circle
-            key={`dot-${i}`}
-            cx={point.x}
-            cy={point.y}
-            r={4}
-            fill={colors.primary}
-            stroke={colors.background}
-            strokeWidth={1.5}
+          <Line
+            key={`edge-${i}`}
+            x1={p.x}
+            y1={p.y}
+            x2={n.x}
+            y2={n.y}
+            stroke={`url(#radEdge${i})`}
+            strokeWidth={2.5}
+            strokeLinecap="round"
           />
         );
       })}
+      {dataPoints.map((point, i) => (
+        <Circle
+          key={`dot-${i}`}
+          cx={point.x}
+          cy={point.y}
+          r={4.5}
+          fill={cols[i]}
+          stroke="#12121a"
+          strokeWidth={1.5}
+        />
+      ))}
       {data.map((entry, i) => {
         const point = polarToCartesian(i, count, RADAR_MAX_R);
         const off = labelOffsets[i] ?? labelOffsets[0];
@@ -967,8 +1087,8 @@ function RadarChart({ data, colors }: RadarChartProps) {
             <SvgText
               x={point.x + off.dx}
               y={point.y + off.dy + 14}
-              fontSize={13}
-              fill={colors.primary}
+              fontSize={14}
+              fill={cols[i]}
               fontWeight="700"
               textAnchor={off.anchor}
             >
@@ -978,6 +1098,41 @@ function RadarChart({ data, colors }: RadarChartProps) {
         );
       })}
     </Svg>
+  );
+}
+
+// ── Radar hero ────────────────────────────────────────────────────────────
+// The ONE screenshottable visual: the pentagon radar (= the five pillars with
+// per-axis numbers) with the overall Relationship Strength score in its center
+// core. Replaces the separate strength ring + pillar bars + spider so nothing
+// is shown twice.
+interface RadarHeroProps {
+  data: { label: string; value: number }[];
+  strengthScore: number;
+  colors: ReturnType<typeof useTheme>['colors'];
+}
+
+function RadarHero({ data, strengthScore, colors }: RadarHeroProps) {
+  const heat = scoreColor(strengthScore);
+  return (
+    <View style={styles.radarHero}>
+      <RadarChart data={data} colors={colors} floor={0.42} />
+      <View style={styles.radarHeroCoreWrap} pointerEvents="none">
+        <View style={[styles.radarHeroCore, { backgroundColor: colors.background }]}>
+          <Text
+            style={[
+              styles.radarHeroScore,
+              { color: heat, textShadowColor: `${heat}66` },
+            ]}
+          >
+            {Math.round(strengthScore)}
+          </Text>
+          <Text style={[styles.radarHeroCoreLabel, { color: colors.textMuted }]}>
+            STRENGTH
+          </Text>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -1072,22 +1227,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 10,
   },
-  sectionEyebrowCentered: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 2.2,
-    textTransform: 'uppercase',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
   softCard: {
     borderRadius: 22,
     padding: 22,
-  },
-  radarCard: {
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    alignItems: 'center',
   },
   serifItalic: {
     fontFamily: SERIF_FONT,
@@ -1137,59 +1279,79 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 10,
   },
-  archetypeBlock: {
-    alignItems: 'center',
-    paddingVertical: 6,
-    gap: 6,
-  },
   modifierRow: {
     marginTop: 4,
     marginBottom: 2,
   },
-  shapeSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    gap: 8,
+  heroGroup: {
+    alignItems: 'center',
   },
-  shapeSectionHint: {
-    fontSize: 10,
-    letterSpacing: 0.4,
+  radarHero: {
+    width: '100%',
+    height: RADAR_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  patternCardWrap: {
-    marginBottom: 12,
+  radarHeroCoreWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  radarGlow: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    right: 12,
-    bottom: 12,
-    borderRadius: 200,
-    backgroundColor: 'rgba(202, 190, 255, 0.08)',
-    shadowColor: '#cabeff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 24,
+  radarHeroCore: {
+    // Diameter stays inside the floor ring (0.42 * RADAR_MAX_R ≈ 36px radius)
+    // so a low pillar vertex is never hidden behind the core.
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(202,190,255,0.20)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  archetypeLabel: {
+  radarHeroScore: {
     fontFamily: SERIF_FONT,
-    fontSize: 42,
+    fontSize: 26,
     fontWeight: '500',
-    fontStyle: 'italic',
-    letterSpacing: -0.6,
-    textAlign: 'center',
-    lineHeight: 46,
+    lineHeight: 28,
+    letterSpacing: -0.5,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 16,
   },
-  archetypeBlurb: {
-    fontFamily: SERIF_FONT,
-    fontSize: 16,
-    lineHeight: 24,
-    fontStyle: 'italic',
+  radarHeroCoreLabel: {
+    fontSize: 7,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginTop: 1,
+  },
+  strengthCaption: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2.2,
     textAlign: 'center',
-    paddingHorizontal: 10,
-    maxWidth: 320,
     marginTop: 4,
+  },
+  heatLegend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    marginTop: 14,
+  },
+  heatLegendCap: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+  },
+  flavorCenter: {
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  individualProfileCaption: {
+    fontFamily: SERIF_FONT,
+    fontSize: 11.5,
+    fontStyle: 'italic',
+    paddingLeft: 2,
+    marginTop: 8,
   },
   keyAspectCard: {
     flexDirection: 'row',
@@ -1198,6 +1360,48 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  compositeCharacterCard: {
+    marginTop: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  compositeCharacterEyebrow: {
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  compositeCharacterPhrase: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 4,
+  },
+  readingHeadline: {
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 18,
+  },
+  readingChip: {
+    alignItems: 'center',
+  },
+  unlockedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(165, 227, 184, 0.40)',
+    backgroundColor: 'rgba(165, 227, 184, 0.10)',
+  },
+  unlockedPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    color: '#A5E3B8',
   },
   keyAspectBadge: {
     borderRadius: 8,

@@ -1312,22 +1312,14 @@ function ClustersTab({
   const ca = completeAnalysis?.[activeCluster] ?? {};
   const cm: ClusterMetrics = clusterMetrics?.[activeCluster] ?? {};
   const activeScore = typeof cm.score === 'number' ? Math.round(cm.score) : null;
-  const lensSource = activeLens === 'between' ? ca.synastry : ca.composite;
-  const lensKeyAspectCodes: string[] =
-    (activeLens === 'between'
-      ? ca.keyAspects?.synastry?.codes
-      : ca.keyAspects?.composite?.codes) ?? [];
-  const subtitle =
-    activeLens === 'between'
-      ? isCelebPair
-        ? 'How their charts interact with each other'
-        : 'How your charts interact with each other'
-      : 'What the relationship creates as its own entity';
-
-  const lensTabs: { key: LensKey; label: string }[] = [
-    { key: 'between', label: isCelebPair ? 'Between Partners' : 'Between You' },
-    { key: 'relationship', label: 'The Relationship Itself' },
-  ];
+  // Chemistry-only: cluster interpretations are synastry ("between") only. The composite
+  // ("relationship itself") cluster panels are no longer returned by the backend, so the lens
+  // toggle is removed and we always render the synastry source.
+  const lensSource = ca.synastry;
+  const lensKeyAspectCodes: string[] = ca.keyAspects?.synastry?.codes ?? [];
+  const subtitle = isCelebPair
+    ? 'How their charts interact with each other'
+    : 'How your charts interact with each other';
 
   return (
     <View>
@@ -1382,35 +1374,6 @@ function ClustersTab({
           );
         })}
       </ScrollView>
-
-      <View style={styles.lensRow}>
-        {lensTabs.map((lens) => {
-          const isActive = activeLens === lens.key;
-          return (
-            <TouchableOpacity
-              key={lens.key}
-              activeOpacity={0.85}
-              onPress={() => setActiveLens(lens.key)}
-              style={[
-                styles.lensTab,
-                {
-                  backgroundColor: isActive ? 'rgba(202, 190, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)',
-                  borderColor: isActive ? 'rgba(202, 190, 255, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.lensTabText,
-                  { color: isActive ? colors.primary : colors.textSubtle },
-                ]}
-              >
-                {lens.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
 
       <View style={styles.clusterHeaderRow}>
         <View

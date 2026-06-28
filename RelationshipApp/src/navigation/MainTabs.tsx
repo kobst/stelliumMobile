@@ -105,12 +105,12 @@ export const MainTabs: React.FC = () => {
       <Tab.Screen
         name="RelationshipsTab"
         component={HistoryScreen}
-        options={{ title: 'Relationships', tabBarIcon: renderRelIcon }}
+        options={{ title: 'Connections', tabBarIcon: renderRelIcon }}
       />
       <Tab.Screen
         name="DiscoverTab"
         component={DiscoverScreen}
-        options={{ title: 'Discover', tabBarIcon: renderDiscoverIcon }}
+        options={{ title: 'Explore', tabBarIcon: renderDiscoverIcon }}
       />
       <Tab.Screen
         name="ProfileTab"

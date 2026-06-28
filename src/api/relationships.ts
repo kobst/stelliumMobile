@@ -82,9 +82,71 @@ export type RelationshipModifier =
   | 'Easy-Flowing'
   | 'Low Signal';
 
+export type RelationshipCluster =
+  | 'Harmony'
+  | 'Passion'
+  | 'Connection'
+  | 'Stability'
+  | 'Growth';
+
+// A-4 headline contract: the backend-authoritative strength + flavour signal.
+// Render `strengthScore` as the continuous primary visual and add a
+// `{flavorCluster}-Forward` tag ONLY when `flavorPresent === true`. The
+// top/second/boundary fields are diagnostics for detail/debug views, not copy.
+export interface RelationshipHeadline {
+  strengthScore: number;
+  flavorCluster: RelationshipCluster | null;
+  flavorPresent: boolean;
+  topCluster: RelationshipCluster;
+  secondCluster: RelationshipCluster;
+  topBoundaryGap: number;
+  topBoundaryThreshold: number;
+}
+
+// Provenance of `summary.blurb`. Clients display the returned copy but must not
+// infer headline shape, cluster dominance, or score claims from the prose.
+export interface RelationshipBlurbRendering {
+  source: 'template' | 'llm' | 'template_fallback' | 'cached';
+  version: string;
+  decisionHash: string;
+  decisionVersion: string;
+  model?: string;
+  generatedAt?: string;
+  fallbackReason?: string;
+}
+
+// Detail-tier relationship archetype (markers / compounds / woven / moon / Mosaic).
+// Distinct from the legacy cluster archetype in OverallSummary.label. When `suppressed`
+// is true (Mosaic), do NOT render `label` as a headline — fall back to the cluster archetype.
+export interface DetailArchetype {
+  label?: string;
+  nameKey?: string;
+  route?: 'cluster_leaf' | 'woven' | 'compound' | 'marker' | 'strength_only';
+  version?: string;
+  nameValence?: 'favorable' | 'friction' | 'neutral';
+  frictionTexture?: boolean;
+  suppressed?: boolean;
+  secondaryTextureTags?: string[];
+}
+
+// Composite "character" coordinate — the relationship as an entity (element + dominant planet).
+// A separate coordinate shown beside the archetype; never merged into it.
+export interface CompositeCharacter {
+  version?: string;
+  element?: 'Fire' | 'Earth' | 'Air' | 'Water';
+  planet?: string;
+  elementDescriptor?: string;
+  planetEngine?: string;
+  shortLabel?: string; // e.g. "Water · Saturn-driven"
+  phrase?: string;     // e.g. "A deep, emotional bond, built on endurance and commitment."
+}
+
 export interface OverallSummary {
   label?: string;
   blurb?: string;
+  detailArchetype?: DetailArchetype;
+  blurbRendering?: RelationshipBlurbRendering;
+  headline?: RelationshipHeadline;
   archetypeKey?: string;
   dominantClusters?: string[];
   supportClusters?: string[];
@@ -100,6 +162,17 @@ export interface OverallSummary {
   meanScore?: number;
   spread?: number;
   weakestCluster?: string;
+  // Detail-tier taxonomy. Leaf/family labels may render in detail contexts;
+  // substrate-level labels (e.g. "Low Broad Connection") must NOT be rendered
+  // on cards/lists — use the continuous strength visual instead.
+  resolvedLabel?: string;
+  resolvedArchetypeKey?: string;
+  resolvedLevel?: 'leaf' | 'family' | 'substrate';
+  resolvedFamily?: string;
+  topTwoBoundaryGap?: number;
+  weakestBoundaryGap?: number;
+  topTwoClear?: boolean;
+  weakestClear?: boolean;
 }
 
 export interface OverallAnalysis {
@@ -127,7 +200,9 @@ export interface ClusterAnalysis {
     challengePanel: string;
     synthesisPanel: string;
   };
-  composite: {
+  // Composite cluster interpretation panels are no longer returned (chemistry-only migration);
+  // kept optional for backward compatibility with any cached payloads.
+  composite?: {
     supportPanel: string;
     challengePanel: string;
     synthesisPanel: string;
@@ -176,6 +251,10 @@ export interface RelationshipAnalysisStatus {
     Growth: number;
     Stability: number;
   };
+  // Composite "character" coordinate surfaced on the list endpoint
+  // (getUserCompositeCharts) nested under the status — distinct from the
+  // top-level `compositeCharacter` on the single analysis read.
+  compositeCharacter?: CompositeCharacter | null;
   tensionFlowQuadrant?: string;
   hasClusterAnalysis?: boolean;
 }
@@ -203,6 +282,9 @@ export interface UserCompositeChart {
   // New 5-Cluster Analysis Data
   clusterScoring?: ClusterScoring;
   completeAnalysis?: Record<string, ClusterAnalysis>;
+  // Composite "character" coordinate (element + dominant planet). Present on the single
+  // relationship analysis read (GET /…/analysis, fetchRelationshipAnalysis); absent on list rows.
+  compositeCharacter?: CompositeCharacter | null;
   initialOverview?: string;
   relationshipAnalysisStatus?: RelationshipAnalysisStatus;
   // Horoscope scheduling fields (relationship-app only)
@@ -318,6 +400,10 @@ export interface EnhancedRelationshipAnalysisResponse {
 
   // Initial AI-generated overview
   initialOverview: string | null;
+
+  // Composite "character" coordinate (element + dominant planet). Present when this object is
+  // populated from a relationship analysis read; absent on the immediate create response.
+  compositeCharacter?: CompositeCharacter | null;
 
   // Optional: Complete analysis (if already generated)
   completeAnalysis?: Record<string, ClusterAnalysis>;
