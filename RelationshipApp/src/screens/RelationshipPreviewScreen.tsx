@@ -32,6 +32,9 @@ import {
   FlavorTag,
   PatternDetailCard,
 } from '../components/strength/RelationshipStrength';
+import { DetailArchetypeLabel } from '../components/strength/DetailArchetypeLabel';
+import { CompositeChip } from '../components/strength/CompositeChip';
+import { scoreColor, HEAT_STOPS } from '../components/strength/heat';
 import { buildStrengthModel } from '../components/strength/strengthModel';
 import { Stardust } from '../components/atmosphere/Stardust';
 import { Halo } from '../components/atmosphere/Halo';
@@ -258,6 +261,13 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
             patches.synastryHousePlacements =
               fetchedHouses as typeof current.synastryHousePlacements;
           }
+          // compositeCharacter is a top-level field only on the analysis read (not on the
+          // create response the store was seeded with), so patch it in here.
+          const fetchedCompositeCharacter = (result as any)?.compositeCharacter;
+          if (fetchedCompositeCharacter && !current.compositeCharacter) {
+            patches.compositeCharacter =
+              fetchedCompositeCharacter as typeof current.compositeCharacter;
+          }
           if (Object.keys(patches).length > 0) {
             setPreviewAnalysis({
               ...current,
@@ -384,10 +394,26 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
     null;
 
   const overallSummary = previewAnalysis?.overall?.summary ?? null;
-  const archetypeLabel = overallSummary?.label ?? null;
+  // Prefer the detail-tier archetype (Common Cause, Fated Bond, Bedrock, …); Mosaic (suppressed)
+  // falls back to the legacy cluster archetype label.
+  const detailArchetype = overallSummary?.detailArchetype ?? null;
+  const archetypeLabel =
+    detailArchetype?.label && !detailArchetype.suppressed
+      ? detailArchetype.label
+      : overallSummary?.label ?? null;
   const archetypeBlurb = overallSummary?.blurb ?? null;
+  // Composite "character" coordinate — the relationship as an entity (element + dominant planet).
+  // Top-level on the analysis read; fall back to fullAnalysis when present.
+  const compositeCharacter =
+    previewAnalysis?.compositeCharacter ?? (fullAnalysis as any)?.compositeCharacter ?? null;
   const shapeKind = overallSummary?.shapeKind ?? null;
   const modifiers = overallSummary?.modifiers ?? [];
+  // When a distinct detail archetype leads the headline, the legacy cluster
+  // archetype is demoted into the detail card as the "score shape". When there
+  // is no distinct detail name, the headline already shows the cluster label, so
+  // we omit it from the detail card to avoid showing the same name twice.
+  const hasDistinctDetail = Boolean(detailArchetype?.label && !detailArchetype.suppressed);
+  const demotedClusterLabel = hasDistinctDetail ? overallSummary?.label ?? null : null;
   // Strength-first model: a continuous Relationship Strength reading (unweighted
   // mean of the five pillars) leads; the archetype is demoted to a detail card.
   const strengthModel = buildStrengthModel(previewAnalysis?.clusters, overallSummary);
@@ -551,6 +577,30 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             ) : null}
 
+            {/* Reading headline: detail archetype (3) + composite character chip
+                (4) + unlock status — the Overview's identity section. */}
+            {archetypeLabel || compositeCharacter ? (
+              <View style={styles.readingHeadline}>
+                {archetypeLabel ? (
+                  <DetailArchetypeLabel
+                    detail={detailArchetype}
+                    fallbackLabel={archetypeLabel}
+                    size="lg"
+                  />
+                ) : null}
+                {compositeCharacter ? (
+                  <View style={styles.readingChip}>
+                    <CompositeChip composite={compositeCharacter} />
+                  </View>
+                ) : null}
+                {hasFullAnalysisInStore ? (
+                  <View style={styles.unlockedPill}>
+                    <Text style={styles.unlockedPillText}>✓ Full analysis unlocked</Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
             {/* Texture chips (energy modifiers) */}
             {modifiers.length > 0 ? (
               <ModifierChipRow
@@ -561,13 +611,34 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               />
             ) : null}
 
-            {/* Archetype label + couple blurb — demoted to a detail card */}
-            {archetypeLabel || archetypeBlurb ? (
+            {/* Cluster archetype (score shape) + couple blurb — demoted below the
+                detail-archetype headline. The cluster label only appears here when
+                a distinct detail name already leads the headline. */}
+            {demotedClusterLabel || archetypeBlurb ? (
               <PatternDetailCard
-                pattern={archetypeLabel}
+                pattern={demotedClusterLabel}
                 blurb={archetypeBlurb}
                 shapeKind={shapeKind}
               />
+            ) : null}
+
+            {/* Composite character phrase — the "what the relationship is" entity
+                description. The short label itself is shown as the chip above, so
+                this card carries only the longer phrase. */}
+            {compositeCharacter?.phrase ? (
+              <View
+                style={[
+                  styles.compositeCharacterCard,
+                  { backgroundColor: colors.surfaceLow, borderColor: colors.ghostBorder },
+                ]}
+              >
+                <Text style={[styles.compositeCharacterEyebrow, { color: colors.textSubtle }]}>
+                  The relationship itself
+                </Text>
+                <Text style={[styles.compositeCharacterPhrase, { color: colors.textMuted }]}>
+                  {compositeCharacter.phrase}
+                </Text>
+              </View>
             ) : null}
 
             {/* Key aspect badge card */}
@@ -848,20 +919,6 @@ function PulseDots({ color }: { color: string }) {
       ))}
     </View>
   );
-}
-
-// Score → vibrant heat colour. The shape's colour mix alone signals where a
-// relationship runs hot or cool, no reading required.
-//   85+  blazing rose   70–84 amber/gold   55–69 lilac
-//   40–54 cyan          <40   cool periwinkle
-const HEAT_STOPS = ['#6E7CEC', '#36E0D8', '#C3A8FF', '#FFB13C', '#FF6E84'];
-
-function scoreColor(value: number): string {
-  if (value >= 85) return '#FF6E84';
-  if (value >= 70) return '#FFB13C';
-  if (value >= 55) return '#C3A8FF';
-  if (value >= 40) return '#36E0D8';
-  return '#6E7CEC';
 }
 
 // Compact heat key — decodes the radar's colour melange (cool → hot).
@@ -1303,6 +1360,48 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  compositeCharacterCard: {
+    marginTop: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  compositeCharacterEyebrow: {
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  compositeCharacterPhrase: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 4,
+  },
+  readingHeadline: {
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 18,
+  },
+  readingChip: {
+    alignItems: 'center',
+  },
+  unlockedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(165, 227, 184, 0.40)',
+    backgroundColor: 'rgba(165, 227, 184, 0.10)',
+  },
+  unlockedPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    color: '#A5E3B8',
   },
   keyAspectBadge: {
     borderRadius: 8,

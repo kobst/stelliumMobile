@@ -847,9 +847,9 @@ export const DiscoverScreen: React.FC = () => {
       <Halo color={colors.primary} size={460} opacity={0.1} top={60} left="50%" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerBlock}>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>Discover</Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>Charts & collections</Text>
           <Text style={[styles.title, { color: colors.text }]}>
-            Explore charts<Text style={{ color: colors.accent }}>.</Text>
+            Explore<Text style={{ color: colors.accent }}>.</Text>
           </Text>
           <Text style={[styles.body, { color: colors.textMuted }]}>
             Browse by placement, explore collections, or search anyone in the database.

@@ -134,7 +134,7 @@ This section is the quickest survey of the relationship-app-relevant API surface
   - Includes the shared celebrity subject, birth chart, and relationship-app romantic summary fields
 - `POST /getCelebRelationships`
   - Public read endpoint for celebrity-to-celebrity relationship cards
-  - Returns existing composite relationship fields plus `overallScore`, `clusterScores`, `archetypeLabel`, and `archetypeBlurb` when relationship scoring data exists
+  - Returns existing composite relationship fields plus `overallScore`, `clusterScores`, `archetypeLabel`, `archetypeBlurb`, `detailArchetype`, and `compositeCharacter` when relationship scoring data exists
   - Includes `userA_profilePhotoUrl` and `userB_profilePhotoUrl` directly on each relationship card
   - `POST /getCelebrityRelationships` remains supported as a legacy alias
 - `GET /users/:userId/relationship-app/celeb-aspect-bank`
@@ -789,6 +789,24 @@ Response body:
         "resolvedFamily": "Harmony+Passion / Growth low",
         "confidence": 0.93
       },
+      "detailArchetype": {
+        "label": "Lasting Pull",
+        "nameKey": "compound:attraction+binding",
+        "route": "compound",
+        "nameValence": "favorable",
+        "frictionTexture": false,
+        "suppressed": false,
+        "secondaryTextureTags": ["venus_mars:trine", "saturn_personal:conjunction:saturn_venus"]
+      },
+      "compositeCharacter": {
+        "version": "relationship-composite-character-v1",
+        "element": "Water",
+        "planet": "Mars",
+        "elementDescriptor": "deep, emotional",
+        "planetEngine": "driven by passion and action",
+        "shortLabel": "Water · Mars-driven",
+        "phrase": "A deep, emotional bond, driven by passion and action."
+      },
       "initialOverview": "Initial relationship overview when available",
       "clusterAnalysisGeneratedAt": "2026-04-23T00:00:00.000Z",
       "createdAt": "2026-04-23T00:00:00.000Z",
@@ -806,6 +824,7 @@ Response body:
 
 Notes:
 - Scoring/archetype fields can be absent or `null` for older relationships that do not have a matching `relationship_analysis` document
+- **`detailArchetype`** (detail-tier headline name) and **`compositeCharacter`** (element + dominant planet) are now returned per row for parity with own-relationship reads — use `detailArchetype.label` (falling back to `archetypeLabel` when `detailArchetype` is absent or `suppressed`) as the card headline, and `compositeCharacter.shortLabel` for the entity line. See "Two archetype layers + the entity coordinate" for the full label set.
 - `clusterScores` contains the 5 current relationship clusters: `Harmony`, `Passion`, `Connection`, `Stability`, and `Growth`
 - `userA_profilePhotoUrl` and `userB_profilePhotoUrl` are sourced from the joined celebrity subject records and can be `null` if no photo is stored
 - `archetype.headline` follows the A-4 contract: render `strengthScore` as the continuous primary strength signal and add a flavor tag only when `flavorPresent === true`; do not render a discretized strength word or tier in the headline
@@ -1658,7 +1677,17 @@ Success response:
       "version": "archetype-summary-v4-shape-family",
       "archetypeKey": "forge",
       "label": "Forge",
-      "blurb": "Short overall archetype blurb",
+      "blurb": "Short overall archetype blurb (rendered; matches whichever archetype is shown)",
+      "detailArchetype": {
+        "version": "relationship-detail-archetype-v6-binding-compounds",
+        "nameKey": "compound:binding+venus_pluto",
+        "label": "Fated Bond",
+        "route": "cluster_leaf | woven | compound | marker | strength_only",
+        "nameValence": "favorable | friction | neutral",
+        "frictionTexture": false,
+        "suppressed": false,
+        "secondaryTextureTags": ["venus_pluto:trine", "saturn_personal:conjunction:saturn_venus"]
+      },
       "dominantClusters": ["Passion", "Growth"],
       "supportClusters": ["Harmony"],
       "tensionClusters": ["Stability"],
@@ -1755,6 +1784,40 @@ Error responses currently used by this handler:
 - `400` if either subject is missing `birthChart.planets`
 - `400` if a required `ownerUserId` cannot be inferred for a non-account relationship
 - `402` if the caller lacks enough credits
+
+Note: this immediate create response includes `overall.summary` (with `detailArchetype`) but does
+**not** include the top-level `compositeCharacter` field — that is persisted and surfaced on the read
+endpoints (`GET /…/analysis`, `POST /fetchRelationshipAnalysis`).
+
+### Two archetype layers + the entity coordinate
+
+A relationship now carries **two independent name layers plus a separate entity coordinate**. Don't
+conflate them:
+
+| coordinate | where | meaning | example |
+|---|---|---|---|
+| Cluster archetype (legacy) | `overall.summary.label` / `archetypeKey` | shape of the 5 cluster scores | `Forge`, `Iron & Honey` |
+| **Detail archetype** | `overall.summary.detailArchetype.label` / `nameKey` / `route` | the specific synastry chemistry pattern | `Fated Bond`, `Bedrock`, `Interwoven`, `Mosaic` |
+| **Composite character** | top-level `compositeCharacter` (own read + celeb cards) and `relationshipAnalysisStatus.compositeCharacter` (list rows) | the relationship "as an entity" (element + planet) | `Water · Saturn-driven` |
+
+`getCelebRelationships` cards now expose **all three** coordinates — `archetypeLabel`/`archetype.*`
+(cluster), top-level `detailArchetype`, and top-level `compositeCharacter` — at parity with the
+own-relationship read.
+
+**Detail-archetype label set** (`detailArchetype.label`, by `route`):
+- **marker** (single theme × aspect): attraction → Fused Attraction / Easy Magnetism / Playful Spark /
+  Charged Chemistry / Magnetic Polarity / Restless Attraction; warmth → Radiant Affection / Easy Warmth /
+  Bright Affection / Tender Friction / Tender Mirror / Adaptive Affection; binding → Bedrock / Old Oak /
+  Long Game / Tempered Steel / Counterweight / Weathered; secondary themes → Shared Drive / Clashing Wills /
+  Live Current / Rogue Spark / Deep Pull / Undertow / Flow State; moon textures → Emotional Resonance /
+  Emotional Ease / Emotional Charge
+- **compound** (2 themes): Lasting Pull / Home Fire / Golden Hour; **binding compounds** (binding + strong
+  secondary): **Common Cause** (driven) / **Storm Anchor** (electric) / **Fated Bond** (fated-depth)
+- **woven** (3 core themes): Interwoven
+- **strength_only**: Mosaic (`suppressed: true`, no headline name)
+- **cluster_leaf**: falls back to the cluster archetype `label`
+
+(43 distinct labels total. Full reference: backend `docs/RELATIONSHIP_NAMING_REFERENCE.md`.)
 
 ### `POST /relationship-app/workflow/relationship/start`
 
@@ -1913,11 +1976,24 @@ Typical response item:
         "Growth": 84
       },
       "hasInitialOverview": true,
-      "tensionFlowQuadrant": "Dynamic"
+      "tensionFlowQuadrant": "Dynamic",
+      "compositeCharacter": {
+        "version": "relationship-composite-character-v1",
+        "element": "Earth",
+        "planet": "Sun",
+        "elementDescriptor": "grounded, enduring",
+        "planetEngine": "anchored in identity and vitality",
+        "shortLabel": "Earth · Sun-driven",
+        "phrase": "A grounded, enduring bond, anchored in identity and vitality."
+      }
     }
   }
 ]
 ```
+
+`relationshipAnalysisStatus.compositeCharacter` is present once a relationship has been scored (set at
+the create/scores stage, before full analysis) — so list cards can render the entity line directly.
+The detail archetype is available on list rows via `relationshipAnalysisStatus.overall.summary.detailArchetype`.
 
 `relationshipAnalysisStatus.level` currently resolves to:
 - `"none"`: no analysis record exists
@@ -1954,6 +2030,21 @@ Authorization: Bearer <relationship-app-firebase-token>
 Success response:
 - returns the report object directly, not wrapped in `{ "success": true }`
 
+> **Recent contract changes (2026-06, chemistry-only migration + entity coordinate):**
+> 1. **Composite cluster panels removed.** Per-cluster interpretations under `completeAnalysis` /
+>    `relationshipAppCompleteAnalysis` are now **synastry-only**; the `composite` panel set is no
+>    longer returned per cluster. (`compositeChart` planets/houses for the wheel are still returned.)
+> 2. **New `compositeCharacter` coordinate** (top-level) — the relationship "as an entity"
+>    (dominant element + dominant planet). See shape below. Also on `POST /fetchRelationshipAnalysis`,
+>    `getCelebRelationships` rows, and `getUserCompositeCharts` list rows
+>    (`relationshipAnalysisStatus.compositeCharacter`).
+> 3. **`overall.summary.detailArchetype`** carries the detail-tier relationship name (markers /
+>    compounds, e.g. `Common Cause`, `Fated Bond`, `Bedrock`, `Interwoven`, `Mosaic`) — distinct from
+>    the legacy cluster archetype in `overall.summary.label`. See the summary shape note below.
+> 4. **Scores are synastry-weighted chemistry-only** (`clusterScoring.version: "2.1-clusters-synastry-only"`,
+>    with `calibrationVersion`). Composite contributions were removed from cluster scores and the
+>    bands recalibrated — score *values* shifted; shape is unchanged.
+
 Current response shape:
 
 ```json
@@ -1962,6 +2053,15 @@ Current response shape:
   "v2AnalysisGeneratedAt": null,
   "dynamics": null,
   "clusterScoring": null,
+  "compositeCharacter": {
+    "version": "relationship-composite-character-v1",
+    "element": "Water",
+    "planet": "Saturn",
+    "elementDescriptor": "deep, emotional",
+    "planetEngine": "built on endurance and commitment",
+    "shortLabel": "Water · Saturn-driven",
+    "phrase": "A deep, emotional bond, built on endurance and commitment."
+  },
   "completeAnalysis": {
     "Harmony": {
       "synastry": {
@@ -1969,11 +2069,7 @@ Current response shape:
         "challengePanel": "Compact relationship-app challenge text",
         "synthesisPanel": "Compact relationship-app synthesis text"
       },
-      "composite": {
-        "supportPanel": "Compact relationship-app support text",
-        "challengePanel": "Compact relationship-app challenge text",
-        "synthesisPanel": "Compact relationship-app synthesis text"
-      },
+      "_note": "The per-cluster `composite` panel set is NO LONGER returned (chemistry-only migration, Phase 1). Cluster interpretations are synastry-only. `keyAspects.composite` codes below still exist; only the composite interpretation TEXT panels were removed.",
       "keyAspects": {
         "synastry": {
           "codes": ["SynA-...", "SynP-..."],
@@ -3082,8 +3178,9 @@ Request body:
 
 Current response body:
 - identical to `GET /relationship-app/relationships/:compositeChartId/analysis`
-- same top-level fields
+- same top-level fields, including the top-level `compositeCharacter` coordinate
 - same `completeAnalysis`, `relationshipAppCompleteAnalysis`, `clusterAnalysis`, `overall`, `initialOverview`, `workflowStatus`, `tensionFlowAnalysis`, and `_fullData` structure
+- same chemistry-only migration applies: per-cluster `composite` interpretation panels are not returned (see the "Recent contract changes" callout under the analysis read endpoint)
 
 Read semantics:
 - If the relationship was only created through `POST /relationship-app/enhanced-relationship-analysis`, expect scored data plus `initialOverview`, but `relationshipAppCompleteAnalysis` / `completeAnalysis` may still be `null` or partial.
@@ -3500,13 +3597,20 @@ Observed first row for an authenticated relationship-app user:
       "Stability": 60.195726395353525,
       "Growth": 49.93333558019214
     },
-    "hasInitialOverview": true
+    "hasInitialOverview": true,
+    "compositeCharacter": {
+      "version": "relationship-composite-character-v1",
+      "element": "Air",
+      "planet": "Mercury",
+      "shortLabel": "Air · Mercury-driven",
+      "phrase": "A mental, communicative bond, drawn together by conversation and shared curiosity."
+    }
   }
 }
 ```
 
 Important:
-- list rows expose `relationshipAnalysisStatus.clusterScores`
+- list rows expose `relationshipAnalysisStatus.clusterScores`, `relationshipAnalysisStatus.overall.summary.detailArchetype` (headline name), and `relationshipAnalysisStatus.compositeCharacter` (entity line) — enough to render the card without a follow-up read
 - they do **not** expose the full `clusterAnalysis.clusters.<Cluster>` object
 - if the UI needs raw cluster metrics, it must fetch the report payload
 

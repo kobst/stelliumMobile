@@ -6,10 +6,12 @@ import { Avatar } from './Avatar';
 import { AvatarPair } from './AvatarPair';
 import { Halo } from './atmosphere/Halo';
 import type { MiniRadarScores } from './MiniRadar';
-import { ShapeBadge } from './shape/ShapeBadge';
-import { ModifierChipRow } from './shape/ModifierChipRow';
-import type { ModifierKey } from './shape/modifierTokens';
-import type { ShapeKind } from './shape/shapeTokens';
+import { StrengthRing } from './strength/StrengthRing';
+import { DetailArchetypeLabel } from './strength/DetailArchetypeLabel';
+import { CompositeChip } from './strength/CompositeChip';
+import { scoreColor } from './strength/heat';
+import { strengthOf, type PillarScores } from './strength/strengthModel';
+import type { CompositeCharacter, DetailArchetype } from '../../../shared/api/relationships';
 
 export type RelationshipKind = 'celeb' | 'person';
 
@@ -21,9 +23,7 @@ const SCORE_ORDER: { key: keyof MiniRadarScores; label: string }[] = [
   { key: 'Growth', label: 'GRO' },
 ];
 
-const HIGH_THRESHOLD = 75;
 const LOW_THRESHOLD = 45;
-const COLOR_LOW = '#E8856B';
 
 interface SinglePartner {
   name: string;
@@ -38,26 +38,42 @@ interface PairPartners {
   pairLabel: string;
 }
 
-type RelationshipCardProps = {
+interface RelationshipCardCommon {
+  // Cluster archetype label — used as the graceful fallback headline when no
+  // detail archetype is present (rows whose payload predates the contract).
   archetype?: string | null;
+  // Detail-tier archetype (preferred headline + family glyph) when available.
+  detailArchetype?: DetailArchetype | null;
+  // Composite "character" entity coordinate, when available.
+  composite?: CompositeCharacter | null;
+  // Backend-authoritative strength score; falls back to the mean of `scores`.
+  strengthScore?: number | null;
   scores?: MiniRadarScores | null;
-  shapeKind?: ShapeKind | string | null;
-  modifiers?: readonly (ModifierKey | string)[] | null;
   onPress: () => void;
-} & (
-  | ({ mode: 'single' } & SinglePartner)
-  | ({ mode: 'pair' } & PairPartners)
-);
+}
+
+type RelationshipCardProps = RelationshipCardCommon &
+  (({ mode: 'single' } & SinglePartner) | ({ mode: 'pair' } & PairPartners));
 
 export function RelationshipCard(props: RelationshipCardProps) {
   const { colors } = useTheme();
-  const { archetype, scores, shapeKind, modifiers, onPress, mode } = props;
+  const { archetype, detailArchetype, composite, strengthScore, scores, onPress, mode } = props;
   const hasScores = Boolean(scores);
 
   const displayName = mode === 'single' ? props.name : props.pairLabel;
-  const isLowSignal = hasScores && scores
-    ? Object.values(scores).every((value) => (value ?? 0) < LOW_THRESHOLD)
-    : false;
+  const isLowSignal =
+    hasScores && scores
+      ? Object.values(scores).every((value) => (value ?? 0) < LOW_THRESHOLD)
+      : false;
+
+  const resolvedStrength =
+    typeof strengthScore === 'number'
+      ? Math.round(Math.max(0, Math.min(100, strengthScore)))
+      : scores
+      ? strengthOf(scores as PillarScores)
+      : null;
+
+  const showHeadline = hasScores && (detailArchetype || archetype);
 
   return (
     <TouchableOpacity
@@ -75,7 +91,7 @@ export function RelationshipCard(props: RelationshipCardProps) {
       <View style={styles.topRow}>
         {mode === 'single' ? (
           <Avatar
-            size={48}
+            size={52}
             gradient={props.kind === 'celeb' ? 'gold' : 'green'}
             fallbackInitial={props.initial}
             photoUri={props.photoUri}
@@ -88,7 +104,7 @@ export function RelationshipCard(props: RelationshipCardProps) {
             rightPhotoUri={props.right.photoUri}
             rightInitial={props.right.initial}
             rightGradient="gold"
-            size={40}
+            size={42}
           />
         )}
 
@@ -96,29 +112,29 @@ export function RelationshipCard(props: RelationshipCardProps) {
           <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
             {displayName}
           </Text>
-          {hasScores && archetype ? (
-            <Text
-              style={[styles.archetype, { color: colors.accent }]}
-              numberOfLines={1}
-            >
-              {archetype}
-            </Text>
+          {showHeadline ? (
+            <View style={styles.headlineRow}>
+              <DetailArchetypeLabel detail={detailArchetype} fallbackLabel={archetype} size="sm" />
+            </View>
           ) : !hasScores ? (
-            <Text style={[styles.statusLine, { color: colors.textSubtle }]}>
-              Analyzing…
-            </Text>
+            <Text style={[styles.statusLine, { color: colors.textSubtle }]}>Analyzing…</Text>
           ) : null}
         </View>
 
-        {hasScores && shapeKind ? (
-          <View style={styles.shapeColumn}>
-            <ShapeBadge kind={shapeKind} />
+        {hasScores && resolvedStrength !== null ? (
+          <View style={styles.strengthColumn}>
+            <StrengthRing score={resolvedStrength} size={56} stroke={5} />
+            <Text style={[styles.strengthCaption, { color: 'rgba(202, 190, 255, 0.55)' }]}>
+              STRENGTH
+            </Text>
           </View>
         ) : null}
       </View>
 
-      {hasScores && modifiers && modifiers.length > 0 ? (
-        <ModifierChipRow modifiers={modifiers} max={2} />
+      {composite ? (
+        <View style={styles.compositeRow}>
+          <CompositeChip composite={composite} />
+        </View>
       ) : null}
 
       {hasScores && scores ? (
@@ -126,24 +142,13 @@ export function RelationshipCard(props: RelationshipCardProps) {
           {SCORE_ORDER.map((item) => {
             const raw = scores[item.key] ?? 0;
             const value = Math.round(Math.max(0, Math.min(100, raw)));
-            const isHigh = value >= HIGH_THRESHOLD;
-            const isLow = value < LOW_THRESHOLD;
-            const valueColor = isHigh
-              ? colors.accent
-              : isLow
-              ? COLOR_LOW
-              : colors.text;
-            const cellBg = isHigh
-              ? 'rgba(202, 190, 255, 0.06)'
-              : isLow
-              ? 'rgba(232, 133, 107, 0.06)'
-              : 'rgba(255, 255, 255, 0.025)';
+            const cellBg = isLowSignal
+              ? 'rgba(232, 155, 124, 0.06)'
+              : 'rgba(202, 190, 255, 0.06)';
             return (
               <View key={item.key} style={[styles.scoreCell, { backgroundColor: cellBg }]}>
-                <Text style={[styles.scoreValue, { color: valueColor }]}>{value}</Text>
-                <Text style={[styles.scoreLabel, { color: colors.textSubtle }]}>
-                  {item.label}
-                </Text>
+                <Text style={[styles.scoreValue, { color: scoreColor(value) }]}>{value}</Text>
+                <Text style={[styles.scoreLabel, { color: colors.textSubtle }]}>{item.label}</Text>
               </View>
             );
           })}
@@ -170,27 +175,32 @@ const styles = StyleSheet.create({
   headerCopy: {
     flex: 1,
     minWidth: 0,
-    gap: 3,
+    gap: 7,
   },
   name: {
     fontFamily: SERIF_FONT,
-    fontSize: 21,
+    fontSize: 22,
     fontWeight: '500',
     letterSpacing: -0.2,
+  },
+  headlineRow: {
+    flexDirection: 'row',
   },
   statusLine: {
     fontSize: 12,
     fontStyle: 'italic',
   },
-  archetype: {
-    fontFamily: SERIF_FONT,
-    fontSize: 15,
-    fontStyle: 'italic',
-    fontWeight: '500',
-  },
-  shapeColumn: {
+  strengthColumn: {
     alignItems: 'center',
     gap: 4,
+  },
+  strengthCaption: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.4,
+  },
+  compositeRow: {
+    flexDirection: 'row',
   },
   scoreStrip: {
     flexDirection: 'row',

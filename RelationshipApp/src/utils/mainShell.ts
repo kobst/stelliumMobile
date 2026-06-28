@@ -2,6 +2,7 @@ import { RelationshipAppProfile } from '../../../shared/domain/relationshipUser'
 import { UserCompositeChart } from '../../../shared/api/relationships';
 import { SubjectDocument } from '../../../shared/types/subject';
 import { Celebrity } from '../api';
+import { getArchetypeLabel } from './relationshipShape';
 
 const CLUSTER_LABELS = ['Harmony', 'Passion', 'Connection', 'Stability', 'Growth'] as const;
 
@@ -119,11 +120,13 @@ export function getRelationshipPairLabel(relationship: UserCompositeChart): stri
 }
 
 export function getRelationshipArchetypeLabel(relationship: UserCompositeChart): string {
+  // Prefer the detail-tier archetype (Common Cause, Fated Bond, Bedrock, …); falls back to the
+  // legacy cluster archetype label, then to profile strings.
+  const preferred = getArchetypeLabel(relationship);
+  if (preferred) return preferred;
   const status = relationship.relationshipAnalysisStatus;
   return (
-    relationship.clusterScoring?.overall?.summary?.label ??
     relationship.clusterScoring?.overall?.profile ??
-    status?.overall?.summary?.label ??
     status?.overall?.profile ??
     status?.profile ??
     'Compatibility read'

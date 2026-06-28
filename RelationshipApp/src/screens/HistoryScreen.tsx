@@ -34,13 +34,6 @@ import { Stardust } from '../components/atmosphere/Stardust';
 import { Halo } from '../components/atmosphere/Halo';
 import { FilterDropdown } from '../components/FilterDropdown';
 import { FilterSheet, type FilterSheetOption } from '../components/FilterSheet';
-import { ShapeGlyph } from '../components/shape/ShapeGlyph';
-import { SHAPE_TOKENS, SHAPE_KIND_ORDER, type ShapeKind } from '../components/shape/shapeTokens';
-import {
-  ALL_MODIFIERS,
-  MODIFIER_TOKENS,
-  type ModifierKey,
-} from '../components/shape/modifierTokens';
 import { RelationshipCard } from '../components/RelationshipCard';
 import { RelationshipEmptyState } from '../components/RelationshipEmptyState';
 import { Avatar } from '../components/Avatar';
@@ -49,13 +42,21 @@ import type { MiniRadarScores } from '../components/MiniRadar';
 import { relationshipsApi } from '../api';
 import type { UserCompositeChart } from '../../../shared/api/relationships';
 import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
-import { getModifiers, getShapeKind } from '../utils/relationshipShape';
+import {
+  getCompositeCharacter,
+  getDetailArchetype,
+  getOverallSummary,
+} from '../utils/relationshipShape';
+import { strengthOf, type PillarScores } from '../components/strength/strengthModel';
+import {
+  SortControl,
+  type SortDirection,
+  type SortMode,
+} from '../components/SortControl';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
 
 type IdentityFilter = 'all' | 'people' | 'celebs';
-type PatternFilter = 'all' | ShapeKind;
-type EnergyFilter = 'all' | ModifierKey;
 
 const IDENTITY_LABEL: Record<IdentityFilter, string> = {
   all: 'All',
@@ -131,6 +132,33 @@ function extractClusterScores(relationship: UserCompositeChart): MiniRadarScores
   return null;
 }
 
+/**
+ * Backend-authoritative strength score for the list card, when present.
+ * Prefers the A-4 `headline.strengthScore`, then `meanScore`; returns null so
+ * the card falls back to the unweighted mean of the cluster scores.
+ */
+function extractStrengthScore(relationship: UserCompositeChart): number | null {
+  const summary = getOverallSummary(relationship);
+  const headline = summary?.headline?.strengthScore;
+  if (typeof headline === 'number') return headline;
+  if (typeof summary?.meanScore === 'number') return summary.meanScore;
+  return null;
+}
+
+/**
+ * Comparable strength value for the "Strength" sort. Prefers the authoritative
+ * score, falls back to the unweighted mean of the cluster scores, and sinks
+ * unscored relationships to the bottom.
+ */
+function strengthSortKey(relationship: UserCompositeChart): number {
+  const explicit = extractStrengthScore(relationship);
+  if (explicit !== null) {
+    return explicit;
+  }
+  const scores = extractClusterScores(relationship);
+  return scores ? strengthOf(scores as PillarScores) : -1;
+}
+
 interface PartnerSide {
   name: string;
   initial: string;
@@ -181,11 +209,13 @@ export const HistoryScreen: React.FC = () => {
   const { ownedSubjects } = useOwnedSubjects();
 
   const [identityFilter, setIdentityFilter] = useState<IdentityFilter>('all');
-  const [patternFilter, setPatternFilter] = useState<PatternFilter>('all');
-  const [energyFilter, setEnergyFilter] = useState<EnergyFilter>('all');
-  const [openSheet, setOpenSheet] = useState<'identity' | 'pattern' | 'energy' | null>(
-    null
-  );
+  const [sortMode, setSortMode] = useState<SortMode>('strength');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [openSheet, setOpenSheet] = useState<'identity' | null>(null);
+
+  const toggleSortDirection = useCallback(() => {
+    setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
+  }, []);
   const [unconnectedExpanded, setUnconnectedExpanded] = useState(false);
   const [connectingSubjectId, setConnectingSubjectId] = useState<string | null>(null);
   const [deletingRelationshipId, setDeletingRelationshipId] = useState<string | null>(null);
@@ -212,22 +242,6 @@ export const HistoryScreen: React.FC = () => {
     []
   );
 
-  const matchesPattern = useCallback(
-    (relationship: UserCompositeChart, value: PatternFilter) => {
-      if (value === 'all') return true;
-      return getShapeKind(relationship) === value;
-    },
-    []
-  );
-
-  const matchesEnergy = useCallback(
-    (relationship: UserCompositeChart, value: EnergyFilter) => {
-      if (value === 'all') return true;
-      return getModifiers(relationship).includes(value);
-    },
-    []
-  );
-
   const identityCounts = useMemo(() => {
     const celebs = relationshipHistory.filter((rel) =>
       Boolean(rel.isCelebrityRelationship)
@@ -239,74 +253,37 @@ export const HistoryScreen: React.FC = () => {
     };
   }, [relationshipHistory]);
 
-  const patternCounts = useMemo(() => {
-    const matchingIdentityAndEnergy = relationshipHistory.filter(
-      (rel) =>
-        matchesIdentity(rel, identityFilter) && matchesEnergy(rel, energyFilter)
-    );
-    const counts: Record<PatternFilter, number> = {
-      all: matchingIdentityAndEnergy.length,
-      even: 0,
-      single_spike: 0,
-      ridge: 0,
-      ridge_missing: 0,
-      trough: 0,
-      soft_shape: 0,
-    };
-    for (const rel of matchingIdentityAndEnergy) {
-      const kind = getShapeKind(rel);
-      if (kind && kind in counts) {
-        counts[kind] += 1;
-      }
-    }
-    return counts;
-  }, [energyFilter, identityFilter, matchesEnergy, matchesIdentity, relationshipHistory]);
-
-  const energyCounts = useMemo(() => {
-    const matchingIdentityAndPattern = relationshipHistory.filter(
-      (rel) =>
-        matchesIdentity(rel, identityFilter) && matchesPattern(rel, patternFilter)
-    );
-    const counts: Record<EnergyFilter, number> = {
-      all: matchingIdentityAndPattern.length,
-      Magnetic: 0,
-      'Easy-Flowing': 0,
-      'Highly Active': 0,
-      'Tension-Rich': 0,
-      'Low Signal': 0,
-    };
-    for (const rel of matchingIdentityAndPattern) {
-      for (const mod of getModifiers(rel)) {
-        if (mod in counts) {
-          counts[mod] += 1;
-        }
-      }
-    }
-    return counts;
-  }, [identityFilter, matchesIdentity, matchesPattern, patternFilter, relationshipHistory]);
+  const recencyOf = useCallback((relationship: UserCompositeChart) => {
+    const ts = Date.parse(relationship.createdAt ?? '');
+    return Number.isFinite(ts) ? ts : 0;
+  }, []);
 
   const filteredRelationships = useMemo(() => {
-    const matched = relationshipHistory.filter(
-      (relationship) =>
-        matchesIdentity(relationship, identityFilter) &&
-        matchesPattern(relationship, patternFilter) &&
-        matchesEnergy(relationship, energyFilter)
+    const matched = relationshipHistory.filter((relationship) =>
+      matchesIdentity(relationship, identityFilter)
     );
     return [...matched].sort((a, b) => {
-      const aTs = Date.parse(a.createdAt ?? '');
-      const bTs = Date.parse(b.createdAt ?? '');
-      const aValid = Number.isFinite(aTs) ? aTs : 0;
-      const bValid = Number.isFinite(bTs) ? bTs : 0;
-      return bValid - aValid;
+      // `descCmp` is the descending comparison (high→low / newest→oldest);
+      // negate it for ascending.
+      let descCmp: number;
+      if (sortMode === 'strength') {
+        descCmp = strengthSortKey(b) - strengthSortKey(a);
+        // Tie-break equal strengths by recency so the order stays stable.
+        if (descCmp === 0) {
+          descCmp = recencyOf(b) - recencyOf(a);
+        }
+      } else {
+        descCmp = recencyOf(b) - recencyOf(a);
+      }
+      return sortDirection === 'desc' ? descCmp : -descCmp;
     });
   }, [
-    energyFilter,
     identityFilter,
-    matchesEnergy,
     matchesIdentity,
-    matchesPattern,
-    patternFilter,
+    recencyOf,
     relationshipHistory,
+    sortDirection,
+    sortMode,
   ]);
 
   const identitySheetOptions = useMemo<readonly FilterSheetOption<IdentityFilter>[]>(
@@ -318,51 +295,10 @@ export const HistoryScreen: React.FC = () => {
     [identityCounts]
   );
 
-  const patternSheetOptions = useMemo<readonly FilterSheetOption<PatternFilter>[]>(
-    () => [
-      { key: 'all', label: 'All patterns', count: patternCounts.all },
-      ...SHAPE_KIND_ORDER.map((kind) => ({
-        key: kind,
-        label: SHAPE_TOKENS[kind].name,
-        count: patternCounts[kind],
-        leading: <ShapeGlyph kind={kind} size={22} />,
-      })),
-    ],
-    [patternCounts]
-  );
-
-  const energySheetOptions = useMemo<readonly FilterSheetOption<EnergyFilter>[]>(
-    () => [
-      { key: 'all', label: 'All energies', count: energyCounts.all },
-      ...ALL_MODIFIERS.map((modifier) => ({
-        key: modifier,
-        label: modifier.replace(/-/g, ' '),
-        count: energyCounts[modifier],
-        leading: (
-          <View
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: MODIFIER_TOKENS[modifier].color,
-            }}
-          />
-        ),
-      })),
-    ],
-    [energyCounts]
-  );
-
   const identityPillLabel =
     identityFilter === 'all'
       ? `All (${identityCounts.all})`
       : IDENTITY_LABEL[identityFilter];
-  const patternPillLabel =
-    patternFilter === 'all'
-      ? 'Pattern'
-      : SHAPE_TOKENS[patternFilter].name;
-  const energyPillLabel =
-    energyFilter === 'all' ? 'Energy' : energyFilter.replace(/-/g, ' ');
 
   const openAddConnection = useCallback(() => {
     clearActiveRelationshipFlow();
@@ -614,15 +550,11 @@ export const HistoryScreen: React.FC = () => {
                   active={identityFilter !== 'all'}
                   onPress={() => setOpenSheet('identity')}
                 />
-                <FilterDropdown
-                  label={patternPillLabel}
-                  active={patternFilter !== 'all'}
-                  onPress={() => setOpenSheet('pattern')}
-                />
-                <FilterDropdown
-                  label={energyPillLabel}
-                  active={energyFilter !== 'all'}
-                  onPress={() => setOpenSheet('energy')}
+                <SortControl
+                  mode={sortMode}
+                  direction={sortDirection}
+                  onChangeMode={setSortMode}
+                  onToggleDirection={toggleSortDirection}
                 />
               </View>
             ) : null}
@@ -682,8 +614,9 @@ export const HistoryScreen: React.FC = () => {
                 !selfMatchesA &&
                 !selfMatchesB;
 
-              const shapeKind = getShapeKind(relationship);
-              const modifiers = getModifiers(relationship);
+              const detailArchetype = scores ? getDetailArchetype(relationship) : null;
+              const composite = getCompositeCharacter(relationship);
+              const strengthScore = extractStrengthScore(relationship);
 
               const cardContent = isCelebPair
                 ? (
@@ -695,9 +628,10 @@ export const HistoryScreen: React.FC = () => {
                     left={resolvePartnerSide('A', relationship)}
                     right={resolvePartnerSide('B', relationship)}
                     archetype={archetype}
+                    detailArchetype={detailArchetype}
+                    composite={composite}
+                    strengthScore={strengthScore}
                     scores={scores}
-                    shapeKind={shapeKind}
-                    modifiers={modifiers}
                     onPress={() => openRelationship(relationship)}
                   />
                 ) : (() => {
@@ -710,9 +644,10 @@ export const HistoryScreen: React.FC = () => {
                       initial={other.initial}
                       photoUri={other.photoUri}
                       archetype={archetype}
+                      detailArchetype={detailArchetype}
+                      composite={composite}
+                      strengthScore={strengthScore}
                       scores={scores}
-                      shapeKind={shapeKind}
-                      modifiers={modifiers}
                       onPress={() => openRelationship(relationship)}
                     />
                   );
@@ -861,28 +796,6 @@ export const HistoryScreen: React.FC = () => {
         }}
         onClose={() => setOpenSheet(null)}
       />
-      <FilterSheet
-        visible={openSheet === 'pattern'}
-        title="Pattern"
-        options={patternSheetOptions}
-        selected={patternFilter}
-        onSelect={(key) => {
-          setPatternFilter(key);
-          setOpenSheet(null);
-        }}
-        onClose={() => setOpenSheet(null)}
-      />
-      <FilterSheet
-        visible={openSheet === 'energy'}
-        title="Energy"
-        options={energySheetOptions}
-        selected={energyFilter}
-        onSelect={(key) => {
-          setEnergyFilter(key);
-          setOpenSheet(null);
-        }}
-        onClose={() => setOpenSheet(null)}
-      />
     </SafeAreaView>
   );
 };
@@ -926,7 +839,8 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
   },
   statusCard: {

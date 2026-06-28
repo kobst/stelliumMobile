@@ -6,9 +6,11 @@ interface FilterDropdownProps {
   label: string;
   active: boolean;
   onPress: () => void;
+  // Dropdowns (identity filter) show a caret; toggle chips (sorts) do not.
+  showCaret?: boolean;
 }
 
-export function FilterDropdown({ label, active, onPress }: FilterDropdownProps) {
+export function FilterDropdown({ label, active, onPress, showCaret = true }: FilterDropdownProps) {
   const { colors } = useTheme();
   const accentBorder = active
     ? 'rgba(202, 190, 255, 0.35)'
@@ -38,9 +40,11 @@ export function FilterDropdown({ label, active, onPress }: FilterDropdownProps) 
       >
         {label}
       </Text>
-      <Text style={[styles.caret, { color: active ? colors.text : colors.textMuted }]}>
-        ▾
-      </Text>
+      {showCaret ? (
+        <Text style={[styles.caret, { color: active ? colors.text : colors.textMuted }]}>
+          ▾
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
