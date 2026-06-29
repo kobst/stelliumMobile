@@ -336,30 +336,6 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
     });
   }
 
-  if (!previewAnalysis && !activeTargetSubject) {
-    return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View style={styles.emptyState}>
-          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>Preview</Text>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            No preview is loaded yet.
-          </Text>
-          <Text style={[styles.bodyText, { color: colors.textMuted }]}>
-            Create a partner profile first so Iris can calculate the connection.
-          </Text>
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.replace('AddConnection')}
-          >
-            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-              Create Partner
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   const partnerName = previewAnalysis?.userB.name ?? (activeTargetSubject?.firstName ?? 'Your partner');
   const selfName = previewAnalysis?.userA.name ?? (profile?.firstName ?? 'You');
   const partnerInitial = getInitial(partnerName);
@@ -460,6 +436,32 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
       value: toPercent(previewAnalysis.clusters?.[label]?.score),
     }));
   }, [previewAnalysis]);
+
+  // Guard AFTER all hooks so the hook order stays stable across renders
+  // (react-hooks/rules-of-hooks). Every const/hook above is null-safe.
+  if (!previewAnalysis && !activeTargetSubject) {
+    return (
+      <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]}>
+        <View style={styles.emptyState}>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>Preview</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            No preview is loaded yet.
+          </Text>
+          <Text style={[styles.bodyText, { color: colors.textMuted }]}>
+            Create a partner profile first so Iris can calculate the connection.
+          </Text>
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+            onPress={() => navigation.replace('AddConnection')}
+          >
+            <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
+              Create Partner
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
@@ -696,7 +698,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
               </TouchableOpacity>
               {workflowPhase === 'error' && workflowError ? (
-                <Text style={[styles.unlockError, { color: colors.danger ?? '#ff6b6b' }]}>
+                <Text style={[styles.unlockError, { color: colors.error }]}>
                   {workflowError}
                 </Text>
               ) : null}
