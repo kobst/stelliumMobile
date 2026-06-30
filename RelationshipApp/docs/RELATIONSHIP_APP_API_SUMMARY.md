@@ -2044,6 +2044,11 @@ Success response:
 > 4. **Scores are synastry-weighted chemistry-only** (`clusterScoring.version: "2.1-clusters-synastry-only"`,
 >    with `calibrationVersion`). Composite contributions were removed from cluster scores and the
 >    bands recalibrated — score *values* shifted; shape is unchanged.
+> 5. **New `compositeSummary` entity reading** (top-level) — an LLM-rendered 2-3 paragraph summary of
+>    the relationship "as a whole", built from the composite chart's actual placements and standout
+>    aspects. Distinct from `compositeCharacter` (the one-line entity chip) and from `initialOverview`
+>    (the chemistry/score overview). See shape + notes below. Also returned on
+>    `POST /fetchRelationshipAnalysis`.
 
 Current response shape:
 
@@ -2184,6 +2189,17 @@ Current response shape:
     "generatedBy": "direct-api"
   },
   "initialOverview": "Short initial overview returned by the direct create endpoint",
+  "compositeSummary": {
+    "summary": "This relationship is grounded and enduring, anchored in identity and vitality…\n\nThe Moon in Cancer in the tenth house brings emotional security to the public face of this bond…\n\nVenus in Gemini in the ninth house adds curiosity and breadth… (2-3 plain-text paragraphs, ~250-350 words, separated by \\n\\n)",
+    "rendering": {
+      "source": "llm",
+      "version": "relationship-composite-summary-llm-v1",
+      "decisionHash": "bba9be61c8e13b57",
+      "decisionVersion": "relationship-composite-summary-decision-v1",
+      "model": "claude-haiku-4-5",
+      "generatedAt": "2026-06-28T23:58:43.568Z"
+    }
+  },
   "analysis": null,
   "profileAnalysis": null,
   "workflowStatus": {
@@ -2219,6 +2235,8 @@ Current response shape:
     "clusterAnalysis": {},
     "clusterAnalyses": null,
     "initialOverview": "Short initial overview text",
+    "compositeSummary": { "...": "same compositeSummary object as the top-level field above" },
+    "compositeSummaryGeneratedAt": "2026-06-28T23:58:43.568Z",
     "holisticOverview": null,
     "profileAnalysis": null,
     "tensionFlowAnalysis": {},
@@ -2251,8 +2269,25 @@ The frontend should treat these fields as primary:
 - `clusterAnalysis`: scored metrics used for score chips, bars, and drilldown metadata
 - `overall`: top-level relationship score and archetype summary
 - `initialOverview`: short overview available before the full workflow completes
+- `compositeSummary`: the relationship "as a whole" — a multi-paragraph reading of the composite chart (placements + aspects). See shape note below.
 - `workflowStatus`: saved workflow state
 - `tensionFlowAnalysis`: support/challenge quadrant summary
+
+**`compositeSummary` (the relationship as a whole)** ⭐ NEW
+- A 2-3 paragraph (~250-350 word) **plain-text** reading of the composite chart treated as one entity —
+  "what the relationship IS" — built from its actual placements (composite Sun/Moon/Venus by sign, and
+  by **house** for accurately-timed couples) and its standout tight aspects (e.g. *Venus square Saturn*).
+- Shape: `{ summary: string, rendering: { source, version, decisionHash, decisionVersion, model?, generatedAt?, fallbackReason? } }`.
+  - `rendering.source` is `"llm"` (normal), `"template_fallback"` (deterministic fallback — still a valid summary), or `"cached"`. It is provenance metadata; the UI can ignore it.
+- **Render** `compositeSummary.summary` as prose — **no markdown**; paragraphs are separated by `\n\n`
+  (split on `/\n\n+/` to produce `<p>` blocks).
+- **Always present** for an analyzable relationship: the full-analysis workflow generates it, and any
+  relationship missing one is **backfilled lazily on first read**. It is **`null`** only when a subject
+  has been deleted (no chart to read) — guard with `?.`.
+- **First-read latency**: if a relationship has no summary yet, the first read generates it inline
+  (~5-15s) and returns it; every read after that is instant.
+- Distinct from `compositeCharacter` (the one-line entity chip, e.g. `Water · Saturn-driven`) and from
+  `initialOverview` (the short chemistry/score overview).
 
 Current error responses:
 - `400` if `compositeChartId` is missing
