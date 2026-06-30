@@ -32,7 +32,6 @@ import {
   FlavorTag,
   PatternDetailCard,
 } from '../components/strength/RelationshipStrength';
-import { DetailArchetypeLabel } from '../components/strength/DetailArchetypeLabel';
 import { CompositeChip } from '../components/strength/CompositeChip';
 import { scoreColor, HEAT_STOPS } from '../components/strength/heat';
 import { buildStrengthModel } from '../components/strength/strengthModel';
@@ -576,33 +575,19 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             ) : null}
 
-            {/* Reading headline: detail archetype (3) + composite character chip
-                (4) + unlock status — the Overview's identity section. */}
-            {archetypeLabel || compositeCharacter ? (
-              <View style={styles.readingHeadline}>
-                {archetypeLabel ? (
-                  <DetailArchetypeLabel
-                    detail={detailArchetype}
-                    fallbackLabel={archetypeLabel}
-                    size="lg"
-                  />
-                ) : null}
-                {compositeCharacter ? (
-                  <View style={styles.readingChip}>
-                    <CompositeChip composite={compositeCharacter} />
-                  </View>
-                ) : null}
-                {hasFullAnalysisInStore ? (
-                  <View style={styles.unlockedPill}>
-                    <Text style={styles.unlockedPillText}>✓ Full analysis unlocked</Text>
-                  </View>
-                ) : (
-                  <View style={styles.notGeneratedPill}>
-                    <Text style={styles.notGeneratedPillText}>Full analysis not generated yet</Text>
-                  </View>
-                )}
-              </View>
-            ) : null}
+            {/* Full-analysis unlock status (the detail archetype + composite chip
+                live further down in the Pattern Detail / composite cards). */}
+            <View style={styles.readingHeadline}>
+              {hasFullAnalysisInStore ? (
+                <View style={styles.unlockedPill}>
+                  <Text style={styles.unlockedPillText}>✓ Full analysis unlocked</Text>
+                </View>
+              ) : (
+                <View style={styles.notGeneratedPill}>
+                  <Text style={styles.notGeneratedPillText}>Full analysis not generated yet</Text>
+                </View>
+              )}
+            </View>
 
             {/* Texture chips (energy modifiers) */}
             {modifiers.length > 0 ? (
@@ -626,10 +611,9 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               />
             ) : null}
 
-            {/* Composite character phrase — the "what the relationship is" entity
-                description. The short label itself is shown as the chip above, so
-                this card carries only the longer phrase. */}
-            {compositeCharacter?.phrase ? (
+            {/* Composite character — the "what the relationship is" entity: the
+                element·planet label chip and the longer descriptive phrase. */}
+            {compositeCharacter ? (
               <View
                 style={[
                   styles.compositeCharacterCard,
@@ -639,9 +623,14 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={[styles.compositeCharacterEyebrow, { color: colors.textSubtle }]}>
                   The relationship itself
                 </Text>
-                <Text style={[styles.compositeCharacterPhrase, { color: colors.textMuted }]}>
-                  {compositeCharacter.phrase}
-                </Text>
+                <View style={styles.compositeCharacterChip}>
+                  <CompositeChip composite={compositeCharacter} />
+                </View>
+                {compositeCharacter.phrase ? (
+                  <Text style={[styles.compositeCharacterPhrase, { color: colors.textMuted }]}>
+                    {compositeCharacter.phrase}
+                  </Text>
+                ) : null}
               </View>
             ) : null}
           </>
@@ -1346,6 +1335,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 4,
   },
+  compositeCharacterChip: {
+    marginTop: 4,
+    marginBottom: 4,
+  },
   compositeCharacterPhrase: {
     fontSize: 13,
     lineHeight: 19,
@@ -1355,9 +1348,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginTop: 18,
-  },
-  readingChip: {
-    alignItems: 'center',
   },
   unlockedPill: {
     flexDirection: 'row',
