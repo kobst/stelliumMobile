@@ -395,7 +395,6 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   // Strength-first model: a continuous Relationship Strength reading (unweighted
   // mean of the five pillars) leads; the archetype is demoted to a detail card.
   const strengthModel = buildStrengthModel(previewAnalysis?.clusters, overallSummary);
-  const keyAspect = previewAnalysis?.overall?.keystoneAspects?.[0] ?? null;
   const initialOverview = previewAnalysis?.initialOverview ?? null;
   const romanticBlurb = activePartnerRomanticAssets?.romanticProfileBlurb ?? null;
 
@@ -524,11 +523,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.identityTitle, { color: colors.text }]}>
             {pairTitle}
           </Text>
-          {stage >= 2 && keyAspect ? (
-            <Text style={[styles.identitySubtitle, { color: colors.textSubtle }]}>
-              {keyAspect.description}
-            </Text>
-          ) : stage < 2 ? (
+          {stage < 2 ? (
             <Text style={[styles.identitySubtitleItalic, { color: colors.textSubtle }]}>
               Analyzing charts…
             </Text>
@@ -1198,12 +1193,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     letterSpacing: -0.3,
     marginTop: 8,
-  },
-  identitySubtitle: {
-    fontSize: 12,
-    letterSpacing: 0.4,
-    textAlign: 'center',
-    marginHorizontal: 24,
   },
   identitySubtitleItalic: {
     fontFamily: SERIF_FONT,
