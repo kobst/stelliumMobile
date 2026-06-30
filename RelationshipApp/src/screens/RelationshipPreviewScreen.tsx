@@ -58,6 +58,14 @@ const CLUSTER_ORDER: readonly ('Harmony' | 'Passion' | 'Connection' | 'Stability
 
 const FULL_RELATIONSHIP_ANALYSIS_COST = 60;
 
+// What generating the full reading unlocks — shown in the locked gate.
+const FULL_ANALYSIS_UNLOCKS = [
+  'The full written overview of how your charts work together',
+  'The composite chart — the relationship read as its own entity',
+  'Cluster-by-cluster breakdown of what works and what’s difficult',
+  'Your keystone and double-whammy aspects',
+];
+
 const RELATIONSHIP_ASK_COPY = {
   title: 'Questions about this connection',
   subtitle: 'Insights grounded in your synastry',
@@ -599,7 +607,11 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                   <View style={styles.unlockedPill}>
                     <Text style={styles.unlockedPillText}>✓ Full analysis unlocked</Text>
                   </View>
-                ) : null}
+                ) : (
+                  <View style={styles.notGeneratedPill}>
+                    <Text style={styles.notGeneratedPillText}>Full analysis not generated yet</Text>
+                  </View>
+                )}
               </View>
             ) : null}
 
@@ -682,10 +694,19 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                 { backgroundColor: colors.surfaceLow, borderColor: 'rgba(202, 190, 255, 0.20)' },
               ]}
             >
-              <Text style={[styles.unlockTitle, { color: colors.text }]}>Go deeper</Text>
-              <Text style={[styles.unlockCopy, { color: colors.textMuted }]}>
-                Unlock full synastry and composite analysis across all 5 dimensions.
+              <Text style={[styles.unlockTitle, { color: colors.text }]}>
+                Generate the full reading
               </Text>
+              <View style={styles.unlockList}>
+                {FULL_ANALYSIS_UNLOCKS.map((item) => (
+                  <View key={item} style={styles.unlockItem}>
+                    <Text style={[styles.unlockBullet, { color: colors.accent }]}>◆</Text>
+                    <Text style={[styles.unlockItemText, { color: colors.textMuted }]}>
+                      {item}
+                    </Text>
+                  </View>
+                ))}
+              </View>
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={[styles.unlockButton, { backgroundColor: colors.primary }]}
@@ -1405,6 +1426,22 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     color: '#A5E3B8',
   },
+  notGeneratedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(233, 195, 73, 0.40)',
+    backgroundColor: 'rgba(233, 195, 73, 0.10)',
+  },
+  notGeneratedPillText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    color: '#e9c349',
+  },
   keyAspectBadge: {
     borderRadius: 8,
     paddingHorizontal: 10,
@@ -1434,12 +1471,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  unlockCopy: {
+  unlockList: {
+    alignSelf: 'stretch',
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  unlockItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  unlockBullet: {
+    fontSize: 11,
+    lineHeight: 19,
+  },
+  unlockItemText: {
+    flex: 1,
     fontSize: 13,
     lineHeight: 19,
-    textAlign: 'center',
-    maxWidth: 280,
-    marginBottom: 12,
   },
   unlockButton: {
     borderRadius: 14,

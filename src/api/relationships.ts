@@ -141,6 +141,26 @@ export interface CompositeCharacter {
   phrase?: string;     // e.g. "A deep, emotional bond, built on endurance and commitment."
 }
 
+// Composite chart "as a whole" reading — an LLM-rendered 2-3 paragraph summary
+// built from the composite chart's placements + standout aspects. Distinct from
+// `compositeCharacter` (the one-line entity chip) and `initialOverview` (the
+// chemistry/score overview). Returned top-level on the analysis read.
+export interface CompositeSummaryRendering {
+  source: 'llm' | 'template_fallback' | 'cached';
+  version: string;
+  decisionHash?: string;
+  decisionVersion?: string;
+  model?: string;
+  generatedAt?: string;
+  fallbackReason?: string;
+}
+
+export interface CompositeSummary {
+  // Plain text, ~250-350 words; paragraphs separated by `\n\n` (no markdown).
+  summary: string;
+  rendering?: CompositeSummaryRendering;
+}
+
 export interface OverallSummary {
   label?: string;
   blurb?: string;
@@ -405,6 +425,10 @@ export interface EnhancedRelationshipAnalysisResponse {
   // populated from a relationship analysis read; absent on the immediate create response.
   compositeCharacter?: CompositeCharacter | null;
 
+  // Composite chart "as a whole" multi-paragraph reading. Present on the analysis read;
+  // null only when a subject was deleted (no chart to read).
+  compositeSummary?: CompositeSummary | null;
+
   // Optional: Complete analysis (if already generated)
   completeAnalysis?: Record<string, ClusterAnalysis>;
 
@@ -447,6 +471,10 @@ export interface RelationshipAnalysisResponse {
   completeAnalysis?: Record<string, ClusterAnalysis>;
   holisticOverview?: string;
   initialOverview?: string;
+
+  // Composite "character" coordinate + composite chart "as a whole" reading.
+  compositeCharacter?: CompositeCharacter | null;
+  compositeSummary?: CompositeSummary | null;
 
   // Legacy cluster scoring (for backward compatibility)
   clusterScoring?: ClusterScoring;

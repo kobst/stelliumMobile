@@ -6,6 +6,7 @@ import { AspectFocusChart } from '../../../shared/components/chart/AspectFocusCh
 import { PlacementFocusChart } from '../../../shared/components/chart/PlacementFocusChart';
 import { FullChartModal } from './FullChartModal';
 import { RelationshipHoroscopeTab } from './RelationshipHoroscopeTab';
+import { CompositeChartCard } from './strength/CompositeChartCard';
 import Svg, { Circle, Line as SvgLine } from 'react-native-svg';
 import type { TextStyle, StyleProp } from 'react-native';
 
@@ -355,6 +356,13 @@ export function FullAnalysisSection({
   const holisticOverview =
     fullAnalysis?.holisticOverview?.trim?.() ||
     initialOverview ||
+    null;
+  // Composite chart "as a whole": the entity chip/phrase + multi-paragraph summary.
+  const compositeCharacter =
+    previewAnalysis?.compositeCharacter ?? fullAnalysis?.compositeCharacter ?? null;
+  const compositeSummary =
+    fullAnalysis?.compositeSummary?.summary ??
+    previewAnalysis?.compositeSummary?.summary ??
     null;
 
   const tensionFlow = fullAnalysis?.tensionFlowAnalysis ?? null;
@@ -799,6 +807,10 @@ export function FullAnalysisSection({
               ) : null}
             </View>
           </View>
+
+          {/* Composite chart — the relationship read as its own entity. Only the
+              unlocked Overview reaches this tab, so the summary is present. */}
+          <CompositeChartCard composite={compositeCharacter} summary={compositeSummary} />
 
           {tensionQuadrant || supportDensityPct !== null || polarityRatio !== null ? (
             <View>
