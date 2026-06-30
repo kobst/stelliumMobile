@@ -408,12 +408,6 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
     previewAnalysis?.compositeCharacter ?? (fullAnalysis as any)?.compositeCharacter ?? null;
   const shapeKind = overallSummary?.shapeKind ?? null;
   const modifiers = overallSummary?.modifiers ?? [];
-  // When a distinct detail archetype leads the headline, the legacy cluster
-  // archetype is demoted into the detail card as the "score shape". When there
-  // is no distinct detail name, the headline already shows the cluster label, so
-  // we omit it from the detail card to avoid showing the same name twice.
-  const hasDistinctDetail = Boolean(detailArchetype?.label && !detailArchetype.suppressed);
-  const demotedClusterLabel = hasDistinctDetail ? overallSummary?.label ?? null : null;
   // Strength-first model: a continuous Relationship Strength reading (unweighted
   // mean of the five pillars) leads; the archetype is demoted to a detail card.
   const strengthModel = buildStrengthModel(previewAnalysis?.clusters, overallSummary);
@@ -611,12 +605,13 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               />
             ) : null}
 
-            {/* Cluster archetype (score shape) + couple blurb — demoted below the
-                detail-archetype headline. The cluster label only appears here when
-                a distinct detail name already leads the headline. */}
-            {demotedClusterLabel || archetypeBlurb ? (
+            {/* The reading — titled with the DETAIL archetype so it matches its
+                blurb (which is the detail-archetype copy). The cluster/shape name
+                (summary.label) is intentionally NOT shown as a name here — the
+                "Broad across the five pillars" strength pill conveys the shape. */}
+            {archetypeLabel || archetypeBlurb ? (
               <PatternDetailCard
-                pattern={demotedClusterLabel}
+                pattern={archetypeLabel}
                 blurb={archetypeBlurb}
                 shapeKind={shapeKind}
               />
