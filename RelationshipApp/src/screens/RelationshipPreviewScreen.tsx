@@ -32,7 +32,6 @@ import {
   FlavorTag,
   PatternDetailCard,
 } from '../components/strength/RelationshipStrength';
-import { DetailArchetypeLabel } from '../components/strength/DetailArchetypeLabel';
 import { CompositeChip } from '../components/strength/CompositeChip';
 import { scoreColor, HEAT_STOPS } from '../components/strength/heat';
 import { buildStrengthModel } from '../components/strength/strengthModel';
@@ -395,7 +394,6 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
   // Strength-first model: a continuous Relationship Strength reading (unweighted
   // mean of the five pillars) leads; the archetype is demoted to a detail card.
   const strengthModel = buildStrengthModel(previewAnalysis?.clusters, overallSummary);
-  const keyAspect = previewAnalysis?.overall?.keystoneAspects?.[0] ?? null;
   const initialOverview = previewAnalysis?.initialOverview ?? null;
   const romanticBlurb = activePartnerRomanticAssets?.romanticProfileBlurb ?? null;
 
@@ -524,11 +522,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.identityTitle, { color: colors.text }]}>
             {pairTitle}
           </Text>
-          {stage >= 2 && keyAspect ? (
-            <Text style={[styles.identitySubtitle, { color: colors.textSubtle }]}>
-              {keyAspect.description}
-            </Text>
-          ) : stage < 2 ? (
+          {stage < 2 ? (
             <Text style={[styles.identitySubtitleItalic, { color: colors.textSubtle }]}>
               Analyzing charts…
             </Text>
@@ -581,33 +575,19 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             ) : null}
 
-            {/* Reading headline: detail archetype (3) + composite character chip
-                (4) + unlock status — the Overview's identity section. */}
-            {archetypeLabel || compositeCharacter ? (
-              <View style={styles.readingHeadline}>
-                {archetypeLabel ? (
-                  <DetailArchetypeLabel
-                    detail={detailArchetype}
-                    fallbackLabel={archetypeLabel}
-                    size="lg"
-                  />
-                ) : null}
-                {compositeCharacter ? (
-                  <View style={styles.readingChip}>
-                    <CompositeChip composite={compositeCharacter} />
-                  </View>
-                ) : null}
-                {hasFullAnalysisInStore ? (
-                  <View style={styles.unlockedPill}>
-                    <Text style={styles.unlockedPillText}>✓ Full analysis unlocked</Text>
-                  </View>
-                ) : (
-                  <View style={styles.notGeneratedPill}>
-                    <Text style={styles.notGeneratedPillText}>Full analysis not generated yet</Text>
-                  </View>
-                )}
-              </View>
-            ) : null}
+            {/* Full-analysis unlock status (the detail archetype + composite chip
+                live further down in the Pattern Detail / composite cards). */}
+            <View style={styles.readingHeadline}>
+              {hasFullAnalysisInStore ? (
+                <View style={styles.unlockedPill}>
+                  <Text style={styles.unlockedPillText}>✓ Full analysis unlocked</Text>
+                </View>
+              ) : (
+                <View style={styles.notGeneratedPill}>
+                  <Text style={styles.notGeneratedPillText}>Full analysis not generated yet</Text>
+                </View>
+              )}
+            </View>
 
             {/* Texture chips (energy modifiers) */}
             {modifiers.length > 0 ? (
@@ -631,10 +611,9 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
               />
             ) : null}
 
-            {/* Composite character phrase — the "what the relationship is" entity
-                description. The short label itself is shown as the chip above, so
-                this card carries only the longer phrase. */}
-            {compositeCharacter?.phrase ? (
+            {/* Composite character — the "what the relationship is" entity: the
+                element·planet label chip and the longer descriptive phrase. */}
+            {compositeCharacter ? (
               <View
                 style={[
                   styles.compositeCharacterCard,
@@ -644,36 +623,14 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={[styles.compositeCharacterEyebrow, { color: colors.textSubtle }]}>
                   The relationship itself
                 </Text>
-                <Text style={[styles.compositeCharacterPhrase, { color: colors.textMuted }]}>
-                  {compositeCharacter.phrase}
-                </Text>
-              </View>
-            ) : null}
-
-            {/* Key aspect badge card */}
-            {keyAspect ? (
-              <View
-                style={[
-                  styles.keyAspectCard,
-                  { backgroundColor: colors.surfaceLow },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.keyAspectBadge,
-                    { backgroundColor: 'rgba(233, 195, 73, 0.14)' },
-                  ]}
-                >
-                  <Text style={[styles.keyAspectBadgeText, { color: colors.accent }]}>
-                    {keyAspect.cluster}
-                  </Text>
+                <View style={styles.compositeCharacterChip}>
+                  <CompositeChip composite={compositeCharacter} />
                 </View>
-                <Text
-                  style={[styles.keyAspectDesc, { color: colors.textMuted }]}
-                  numberOfLines={3}
-                >
-                  {keyAspect.description}
-                </Text>
+                {compositeCharacter.phrase ? (
+                  <Text style={[styles.compositeCharacterPhrase, { color: colors.textMuted }]}>
+                    {compositeCharacter.phrase}
+                  </Text>
+                ) : null}
               </View>
             ) : null}
           </>
@@ -1226,12 +1183,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     marginTop: 8,
   },
-  identitySubtitle: {
-    fontSize: 12,
-    letterSpacing: 0.4,
-    textAlign: 'center',
-    marginHorizontal: 24,
-  },
   identitySubtitleItalic: {
     fontFamily: SERIF_FONT,
     fontSize: 13,
@@ -1371,14 +1322,6 @@ const styles = StyleSheet.create({
     paddingLeft: 2,
     marginTop: 8,
   },
-  keyAspectCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
   compositeCharacterCard: {
     marginTop: 12,
     borderRadius: 18,
@@ -1392,6 +1335,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 4,
   },
+  compositeCharacterChip: {
+    marginTop: 4,
+    marginBottom: 4,
+  },
   compositeCharacterPhrase: {
     fontSize: 13,
     lineHeight: 19,
@@ -1401,9 +1348,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginTop: 18,
-  },
-  readingChip: {
-    alignItems: 'center',
   },
   unlockedPill: {
     flexDirection: 'row',
@@ -1436,22 +1380,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.2,
     color: '#e9c349',
-  },
-  keyAspectBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  keyAspectBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  keyAspectDesc: {
-    flex: 1,
-    fontSize: 12.5,
-    lineHeight: 18,
   },
   unlockCard: {
     borderRadius: 24,
