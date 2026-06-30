@@ -649,33 +649,6 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
               </View>
             ) : null}
-
-            {/* Key aspect badge card */}
-            {keyAspect ? (
-              <View
-                style={[
-                  styles.keyAspectCard,
-                  { backgroundColor: colors.surfaceLow },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.keyAspectBadge,
-                    { backgroundColor: 'rgba(233, 195, 73, 0.14)' },
-                  ]}
-                >
-                  <Text style={[styles.keyAspectBadgeText, { color: colors.accent }]}>
-                    {keyAspect.cluster}
-                  </Text>
-                </View>
-                <Text
-                  style={[styles.keyAspectDesc, { color: colors.textMuted }]}
-                  numberOfLines={3}
-                >
-                  {keyAspect.description}
-                </Text>
-              </View>
-            ) : null}
           </>
         ) : null}
 
@@ -1371,14 +1344,6 @@ const styles = StyleSheet.create({
     paddingLeft: 2,
     marginTop: 8,
   },
-  keyAspectCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
   compositeCharacterCard: {
     marginTop: 12,
     borderRadius: 18,
@@ -1436,22 +1401,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.2,
     color: '#e9c349',
-  },
-  keyAspectBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  keyAspectBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  keyAspectDesc: {
-    flex: 1,
-    fontSize: 12.5,
-    lineHeight: 18,
   },
   unlockCard: {
     borderRadius: 24,
