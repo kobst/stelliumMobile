@@ -44,14 +44,17 @@ const LABELS: Record<PlacementKey, string> = {
   descendant: 'Descendant',
 };
 
-// TODO: replace stubs with real backend copy once the endpoint is live.
-const STUB_INTERPRETATIONS: Record<PlacementKey, string> = {
-  sun: 'Your core drive in love — how you show up when you are most yourself. Placeholder copy until backend interpretations are wired.',
-  moon: 'The emotional weather you bring into intimacy — what soothes you, what threatens you. Placeholder copy.',
-  venus: 'What you find beautiful in a partner and the kind of affection that lands for you. Placeholder copy.',
-  mars: 'How you pursue, initiate, and fight for what you want. Placeholder copy.',
-  ascendant: 'The first impression you give to potential partners before they know you. Placeholder copy.',
-  descendant: 'The qualities you unconsciously look for in a partner — the mirror of your Ascendant. Placeholder copy.',
+// General descriptions of what each placement governs. Person-neutral because
+// they render on the self profile, partner detail, and celebrity detail
+// screens alike. A backend endpoint for personalized interpretations can
+// replace these per-placement later.
+const PLACEMENT_DESCRIPTIONS: Record<PlacementKey, string> = {
+  sun: 'Core identity in love — the essential self that shows up in a relationship.',
+  moon: 'The emotional weather brought into intimacy — what soothes, and what feels threatening.',
+  venus: 'What feels beautiful in a partner, and the kind of affection that lands.',
+  mars: 'How desire is pursued — the way of initiating and fighting for what is wanted.',
+  ascendant: 'The first impression given to a potential partner, before the deeper self is known.',
+  descendant: 'The qualities unconsciously sought in a partner — the mirror of the Ascendant.',
 };
 
 const OPPOSITE_SIGN: Record<string, string> = {
@@ -110,7 +113,7 @@ function buildDetail(
     sign: planet?.sign ?? null,
     degree: roundDegree(planet?.norm_degree ?? planet?.full_degree ?? null),
     house: typeof planet?.house === 'number' ? planet.house : null,
-    interpretation: STUB_INTERPRETATIONS[key],
+    interpretation: PLACEMENT_DESCRIPTIONS[key],
   };
 }
 
@@ -123,7 +126,7 @@ function buildDescendant(subject: SubjectDocument | null): PlacementDetail {
     sign,
     degree: roundDegree(ascendant?.norm_degree ?? ascendant?.full_degree ?? null),
     house: 7,
-    interpretation: STUB_INTERPRETATIONS.descendant,
+    interpretation: PLACEMENT_DESCRIPTIONS.descendant,
   };
 }
 

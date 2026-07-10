@@ -1,4 +1,4 @@
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 import { launchImageLibrary, launchCamera, Asset } from 'react-native-image-picker';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import { usersApi } from '../api/users';

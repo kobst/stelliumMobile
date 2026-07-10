@@ -50,6 +50,9 @@ const ENDPOINT_CONFIGS: Array<{ pattern: string | RegExp; config: EndpointConfig
   { pattern: /\/horoscope\/monthly/, config: { timeout: 120000, retryOnTimeout: true, maxRetries: 2, retryDelays: [3000, 7000] } },
   { pattern: /\/horoscope\/custom/, config: { timeout: 120000, retryOnTimeout: true, maxRetries: 2, retryDelays: [3000, 7000] } },
   { pattern: /\/horoscope\/transit-windows/, config: { timeout: 60000, retryOnTimeout: true, retryDelays: [2000, 5000] } },
+  // Account deletion removes every collection for the user — give it room, and
+  // never auto-retry a destructive call (the user can retry from the UI).
+  { pattern: '/account/delete', config: { timeout: 60000, retryOnTimeout: false, maxRetries: 0 } },
 ];
 
 const DEFAULT_ENDPOINT_CONFIG: EndpointConfig = {

@@ -47,8 +47,6 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Iris needs access to your camera to take profile pictures</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Iris needs access to save photos to your library</string>
 	<key>NSPhotoLibraryUsageDescription</key>

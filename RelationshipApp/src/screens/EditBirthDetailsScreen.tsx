@@ -16,7 +16,6 @@ import { useRelationshipAppStore } from '../store';
 import {
   getBirthEditsRemaining,
   updateBirthDetails,
-  updateGender,
   updateName,
 } from '../api/profile';
 import { SettingsNavBar } from '../components/SettingsNavBar';
@@ -113,18 +112,16 @@ function birthDataChanged(a: BirthDetailsDraft, b: BirthDetailsDraft): boolean {
   );
 }
 
+// Gender is display-only: the backend profile endpoint has no gender field.
 function metadataChanged(a: BirthDetailsDraft, b: BirthDetailsDraft): boolean {
-  return (
-    a.firstName !== b.firstName ||
-    a.lastName !== b.lastName ||
-    a.gender !== b.gender
-  );
+  return a.firstName !== b.firstName || a.lastName !== b.lastName;
 }
 
 export function EditBirthDetailsScreen() {
   const navigation = useNavigation<RootNavigation>();
   const { colors } = useTheme();
   const profile = useRelationshipAppStore((state) => state.profile);
+  const setProfile = useRelationshipAppStore((state) => state.setProfile);
   const draft = useRelationshipAppStore((state) => state.birthDetailsDraft);
   const setDraft = useRelationshipAppStore((state) => state.setBirthDetailsDraft);
   const clearDraft = useRelationshipAppStore((state) => state.clearBirthDetailsDraft);
@@ -189,14 +186,19 @@ export function EditBirthDetailsScreen() {
         const needsMetaUpdate = metadataChanged(activeDraft, baseline);
 
         if (needsMetaUpdate) {
-          if (
-            activeDraft.firstName !== baseline.firstName ||
-            activeDraft.lastName !== baseline.lastName
-          ) {
-            await updateName(activeDraft.firstName, activeDraft.lastName);
-          }
-          if (activeDraft.gender !== baseline.gender) {
-            await updateGender(activeDraft.gender);
+          const { firstName, lastName } = await updateName(
+            profile?.id ?? '',
+            activeDraft.firstName,
+            activeDraft.lastName
+          );
+          if (profile) {
+            setProfile({
+              ...profile,
+              firstName,
+              lastName,
+              displayName: `${firstName} ${lastName}`.trim(),
+              subject: { ...profile.subject, firstName, lastName },
+            });
           }
         }
 
@@ -228,7 +230,7 @@ export function EditBirthDetailsScreen() {
         setIsSaving(false);
       }
     },
-    [baseline, clearDraft, setEditsRemaining]
+    [baseline, clearDraft, profile, setEditsRemaining, setProfile]
   );
 
   const handleSave = useCallback(() => {
@@ -289,7 +291,6 @@ export function EditBirthDetailsScreen() {
       key: 'gender',
       label: 'Identify as',
       value: genderLabel(current.gender),
-      route: 'EditGender',
     },
     {
       key: 'dateOfBirth',
@@ -333,7 +334,7 @@ export function EditBirthDetailsScreen() {
           >
             <Text style={[styles.noticeIcon, { color: colors.error }]}>⚠︎</Text>
             <Text style={[styles.noticeText, { color: colors.error }]}>
-              No birth-data edits remaining. Name and gender can still be updated.
+              No birth-data edits remaining. Your name can still be updated.
             </Text>
           </View>
         ) : (
@@ -355,7 +356,7 @@ export function EditBirthDetailsScreen() {
                   : `${editsRemaining} more time${editsRemaining === 1 ? '' : 's'}`}
               </Text>
               . Changes to date, time, or place recalculate your profile and all relationship
-              scores. Name and gender updates are unlimited.
+              scores. Name updates are unlimited.
             </Text>
           </View>
         )}
@@ -368,7 +369,7 @@ export function EditBirthDetailsScreen() {
         >
           {fields.map((field, index) => {
             const isLast = index === fields.length - 1;
-            const disabled = field.locked || exhausted || !field.route;
+            const disabled = field.locked || !field.route;
             const rowContent = (
               <View
                 style={[

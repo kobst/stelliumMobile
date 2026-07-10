@@ -16,8 +16,14 @@ import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
 import { onboardingApi } from '../api';
+import { devLog, devError } from '../../../shared/api/devLog';
 import { CelebMatchSkeleton } from '../components/CelebMatchSkeleton';
 import { FeaturesPreview } from '../components/FeaturesPreview';
+import {
+  CELEB_POLL_INTERVAL_MS,
+  MAX_CELEB_POLL_ATTEMPTS,
+  resolveTimedOutCelebStatuses,
+} from '../utils/celebPolling';
 import type {
   ClusterScores,
   OnboardingPreviewCelebResponse,
@@ -319,6 +325,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
   const guestProfileDraft = useRelationshipAppStore((state) => state.guestProfileDraft);
   const updateProfileReveal = useRelationshipAppStore((state) => state.updateProfileReveal);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollAttemptsRef = useRef(0);
   const matchesStartedRef = useRef<string | null>(null);
   const annotationsStartedRef = useRef<string | null>(null);
   const [canRevealMatches, setCanRevealMatches] = useState(false);
@@ -367,6 +374,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
     if (!profileReveal) {
       matchesStartedRef.current = null;
       annotationsStartedRef.current = null;
+      pollAttemptsRef.current = 0;
       if (pollTimeoutRef.current) {
         clearTimeout(pollTimeoutRef.current);
       }
@@ -376,6 +384,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
     if (matchesStartedRef.current !== profileReveal.previewId) {
       matchesStartedRef.current = null;
       annotationsStartedRef.current = null;
+      pollAttemptsRef.current = 0;
       if (pollTimeoutRef.current) {
         clearTimeout(pollTimeoutRef.current);
       }
@@ -397,34 +406,41 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
 
     const startMatches = async () => {
       matchesStartedRef.current = previewId;
-      console.log('[celeb-matches] startCelebMatches request:', { previewId });
+      devLog('celeb-matches', { step: 'start request', previewId });
       try {
         const response = await onboardingApi.startCelebMatches(previewId, claimToken);
-        console.log('[celeb-matches] startCelebMatches response:', JSON.stringify(response, null, 2));
+        devLog('celeb-matches', {
+          step: 'start response',
+          previewId,
+          matchesStatus: response.celebMatchesStatus?.status,
+          annotationsStatus: response.celebAnnotationsStatus?.status,
+        });
         applyCelebResponse(response, profileReveal.fullResponse);
       } catch (error) {
         if (matchesStartedRef.current === previewId) {
           matchesStartedRef.current = null;
         }
-        console.error('Failed to start celeb matches:', error);
+        devError('celeb-matches start', error);
       }
     };
 
     const startAnnotations = async () => {
       annotationsStartedRef.current = previewId;
-      console.log('[celeb-annotations] startCelebAnnotations request:', { previewId });
+      devLog('celeb-annotations', { step: 'start request', previewId });
       try {
         const response = await onboardingApi.startCelebAnnotations(previewId, claimToken);
-        console.log(
-          '[celeb-annotations] startCelebAnnotations response:',
-          JSON.stringify(response, null, 2),
-        );
+        devLog('celeb-annotations', {
+          step: 'start response',
+          previewId,
+          matchesStatus: response.celebMatchesStatus?.status,
+          annotationsStatus: response.celebAnnotationsStatus?.status,
+        });
         applyCelebResponse(response, profileReveal.fullResponse);
       } catch (error) {
         if (annotationsStartedRef.current === previewId) {
           annotationsStartedRef.current = null;
         }
-        console.error('Failed to start celeb annotations:', error);
+        devError('celeb-annotations start', error);
       }
     };
 
@@ -433,19 +449,30 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
         clearTimeout(pollTimeoutRef.current);
       }
 
+      if (pollAttemptsRef.current >= MAX_CELEB_POLL_ATTEMPTS) {
+        updateProfileReveal({
+          previewId,
+          value: resolveTimedOutCelebStatuses(celebMatchesStatus, celebAnnotationsStatus),
+        });
+        return;
+      }
+      pollAttemptsRef.current += 1;
+
       pollTimeoutRef.current = setTimeout(async () => {
-        console.log('[celeb-matches] getCelebMatches poll request:', { previewId });
+        devLog('celeb-matches', { step: 'poll request', previewId });
         try {
           const latest = await onboardingApi.getCelebMatches(previewId, claimToken);
-          console.log(
-            '[celeb-matches] getCelebMatches poll response:',
-            JSON.stringify(latest, null, 2),
-          );
+          devLog('celeb-matches', {
+            step: 'poll response',
+            previewId,
+            matchesStatus: latest.celebMatchesStatus?.status,
+            annotationsStatus: latest.celebAnnotationsStatus?.status,
+          });
           applyCelebResponse(latest, profileReveal.fullResponse);
         } catch (error) {
-          console.error('Failed to poll celeb matches:', error);
+          devError('celeb-matches poll', error);
         }
-      }, 2500);
+      }, CELEB_POLL_INTERVAL_MS);
     };
 
     if (
@@ -480,7 +507,7 @@ export const ProfileRevealScreen: React.FC<Props> = ({ navigation }) => {
         clearTimeout(pollTimeoutRef.current);
       }
     }
-  }, [applyCelebResponse, profileReveal]);
+  }, [applyCelebResponse, profileReveal, updateProfileReveal]);
 
   const celebCards: TopCelebMatch[] = (profileReveal?.topCelebMatches ?? []).slice(
     0,

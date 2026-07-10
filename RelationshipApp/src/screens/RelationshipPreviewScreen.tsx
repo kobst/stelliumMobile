@@ -42,6 +42,7 @@ import { relationshipsApi, discoverApi } from '../api';
 import { useRelationshipAnalysisWorkflow } from '../hooks/useRelationshipAnalysisWorkflow';
 import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
 import { FullAnalysisSection } from '../components/FullAnalysisSection';
+import { FULL_ANALYSIS_COST_CREDITS } from '../api/paywall';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'RelationshipPreview'>;
 
@@ -54,8 +55,6 @@ const CLUSTER_ORDER: readonly ('Harmony' | 'Passion' | 'Connection' | 'Stability
   'Stability',
   'Growth',
 ];
-
-const FULL_RELATIONSHIP_ANALYSIS_COST = 60;
 
 // What generating the full reading unlocks — shown in the locked gate.
 const FULL_ANALYSIS_UNLOCKS = [
@@ -667,7 +666,7 @@ export const RelationshipPreviewScreen: React.FC<Props> = ({ navigation }) => {
                 }}
               >
                 <Text style={[styles.unlockButtonText, { color: colors.onPrimary }]}>
-                  {`Unlock Full Analysis · ◆ ${FULL_RELATIONSHIP_ANALYSIS_COST}`}
+                  {`Unlock Full Analysis · ◆ ${FULL_ANALYSIS_COST_CREDITS}`}
                 </Text>
               </TouchableOpacity>
               {workflowPhase === 'error' && workflowError ? (

@@ -189,7 +189,6 @@ function findRelationshipForSubject(
 export const DiscoverScreen: React.FC = () => {
   const navigation = useNavigation<RootNavigation>();
   const { colors } = useTheme();
-  const profile = useRelationshipAppStore((state) => state.profile);
   const selfProfileId = useRelationshipAppStore((state) => state.selfProfileId);
   const clearActiveRelationshipFlow = useRelationshipAppStore(
     (state) => state.clearActiveRelationshipFlow
@@ -581,38 +580,6 @@ export const DiscoverScreen: React.FC = () => {
           </Text>
         </View>
         <Text style={[styles.chevron, { color: colors.textSubtle }]}>›</Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderMiniCelebCard = (celeb: Celebrity) => {
-    const photoUri = celeb.profilePhotoUrl ?? celeb.photoUrl ?? null;
-    const fullName = `${celeb.firstName ?? ''} ${celeb.lastName ?? ''}`.trim();
-    const sunSign = getCelebritySunSign(celeb) ?? '—';
-    return (
-      <TouchableOpacity
-        key={`mini-${celeb._id}`}
-        onPress={() => openCelebrityDetail(celeb)}
-        activeOpacity={0.86}
-        style={styles.miniCard}
-      >
-        <View style={[styles.miniPhotoWrap, { backgroundColor: colors.surface }]}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.miniPhoto} resizeMode="cover" />
-          ) : (
-            <View style={[styles.miniPhotoFallback, { backgroundColor: colors.surfaceHigh }]}>
-              <Text style={[styles.miniFallbackInitial, { color: colors.textMuted }]}>
-                {celeb.firstName?.charAt(0) ?? '?'}
-              </Text>
-            </View>
-          )}
-        </View>
-        <Text style={[styles.miniName, { color: colors.text }]} numberOfLines={1}>
-          {fullName || 'Unknown'}
-        </Text>
-        <Text style={[styles.miniMeta, { color: colors.textMuted }]} numberOfLines={1}>
-          {sunSign} Sun
-        </Text>
       </TouchableOpacity>
     );
   };

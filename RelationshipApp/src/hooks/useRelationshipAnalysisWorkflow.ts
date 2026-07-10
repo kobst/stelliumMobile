@@ -5,17 +5,34 @@ import {
   RelationshipAnalysisResponse,
   RelationshipWorkflowStatusResponse,
 } from '../../../shared/api/relationships';
-import { useRelationshipAppStore } from '../store';
-import { isInsufficientCreditsError } from '../api/paywall';
+import { RelationshipWorkflowPhase, useRelationshipAppStore } from '../store';
+import { FULL_ANALYSIS_COST_CREDITS, isInsufficientCreditsError } from '../api/paywall';
 
-const FULL_ANALYSIS_COST_CREDITS = 50;
+type WorkflowStatus = RelationshipWorkflowStatusResponse['status'];
 
-const TERMINAL_STATUSES = new Set<RelationshipWorkflowStatusResponse['status']>([
-  'completed',
-  'completed_with_failures',
-  'failed',
-  'paused_after_scores',
-]);
+const COMPLETED_STATUSES = new Set<WorkflowStatus>(['completed', 'completed_with_failures']);
+
+const POLL_INTERVAL_MS = 3000;
+// Hard stop so a stuck workflow (e.g. persistent 'unknown'/'not_started')
+// cannot poll forever: 100 × 3s = 5 minutes.
+const MAX_POLL_ATTEMPTS = 100;
+// Polls tolerated in 'paused' after a resume request before giving up.
+const MAX_PAUSED_POLLS_AFTER_RESUME = 5;
+
+const POLL_TIMEOUT_MESSAGE =
+  'The analysis is taking longer than expected. Please try again in a few minutes.';
+const PAUSED_RESUME_FAILED_MESSAGE =
+  'The analysis is paused and could not be resumed. Please try unlocking again.';
+
+function resolveWorkflowPhase(status: WorkflowStatus): RelationshipWorkflowPhase {
+  if (status === 'failed') {
+    return 'error';
+  }
+  if (COMPLETED_STATUSES.has(status)) {
+    return 'completed';
+  }
+  return 'polling';
+}
 
 export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null) {
   const workflowStatus = useRelationshipAppStore((state) => state.workflowStatus);
@@ -55,15 +72,11 @@ export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null
       const response = await relationshipsApi.getRelationshipWorkflowStatus(targetCompositeChartId);
       setWorkflowState({
         workflowStatus: response,
-        workflowPhase: TERMINAL_STATUSES.has(response.status)
-          ? response.status === 'failed'
-            ? 'error'
-            : 'completed'
-          : 'polling',
+        workflowPhase: resolveWorkflowPhase(response.status),
         workflowError: response.status === 'failed' ? response.message : null,
       });
 
-      if (response.status === 'completed' || response.status === 'completed_with_failures') {
+      if (COMPLETED_STATUSES.has(response.status)) {
         await loadFullAnalysis(targetCompositeChartId);
       }
 
@@ -188,25 +201,61 @@ export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null
     }
 
     let cancelled = false;
+    let pollCount = 0;
+    let resumeRequested = false;
+    let pausedPollsAfterResume = 0;
     const interval = setInterval(async () => {
       try {
+        pollCount += 1;
+        if (pollCount > MAX_POLL_ATTEMPTS) {
+          setWorkflowState({
+            workflowPhase: 'error',
+            workflowError: POLL_TIMEOUT_MESSAGE,
+          });
+          return;
+        }
+
         const response = await relationshipsApi.getRelationshipWorkflowStatus(compositeChartId);
 
         if (cancelled) {
           return;
         }
 
+        if (response.status === 'paused') {
+          // The backend pauses the compact workflow after preview scores;
+          // resume it once instead of polling a stalled workflow forever.
+          if (!resumeRequested) {
+            resumeRequested = true;
+            await relationshipsApi.resumeRelationshipWorkflow(compositeChartId);
+            if (cancelled) {
+              return;
+            }
+          } else {
+            pausedPollsAfterResume += 1;
+            if (pausedPollsAfterResume >= MAX_PAUSED_POLLS_AFTER_RESUME) {
+              setWorkflowState({
+                workflowStatus: response,
+                workflowPhase: 'error',
+                workflowError: PAUSED_RESUME_FAILED_MESSAGE,
+              });
+              return;
+            }
+          }
+          setWorkflowState({
+            workflowStatus: response,
+            workflowPhase: 'polling',
+            workflowError: null,
+          });
+          return;
+        }
+
         setWorkflowState({
           workflowStatus: response,
-          workflowPhase: TERMINAL_STATUSES.has(response.status)
-            ? response.status === 'failed'
-              ? 'error'
-              : 'completed'
-            : 'polling',
+          workflowPhase: resolveWorkflowPhase(response.status),
           workflowError: response.status === 'failed' ? response.message : null,
         });
 
-        if (response.status === 'completed' || response.status === 'completed_with_failures') {
+        if (COMPLETED_STATUSES.has(response.status)) {
           await loadFullAnalysis(compositeChartId);
         }
       } catch (error) {
@@ -218,7 +267,7 @@ export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null
           });
         }
       }
-    }, 3000);
+    }, POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;

@@ -496,7 +496,10 @@ export interface RelationshipWorkflowStatusResponse {
   success: boolean;
   workflowId: string;
   compositeChartId: string;
-  status: 'in_progress' | 'completed' | 'completed_with_failures' | 'failed' | 'paused_after_scores' | 'unknown';
+  // Status set emitted by the backend Step Functions path
+  // (stellium-backend/controllers/stepFunctionsWorkflowController.ts);
+  // 'unknown' is the client-side catchall.
+  status: 'not_started' | 'in_progress' | 'completed' | 'completed_with_failures' | 'failed' | 'paused' | 'unknown';
   completed: boolean;
   phase: 'running' | 'complete' | 'paused';
   stepFunctionStatus: string;

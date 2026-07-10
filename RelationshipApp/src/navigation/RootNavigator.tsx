@@ -22,7 +22,6 @@ import { PartnerBirthCityScreen } from '../screens/PartnerBirthCityScreen';
 import { PartnerConfirmScreen } from '../screens/PartnerConfirmScreen';
 import { CreditHistoryScreen } from '../screens/CreditHistoryScreen';
 import { ManageSubscriptionScreen } from '../screens/ManageSubscriptionScreen';
-import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { PrivacyScreen } from '../screens/PrivacyScreen';
 import { HelpSupportScreen } from '../screens/HelpSupportScreen';
 import { EditBirthDetailsScreen } from '../screens/EditBirthDetailsScreen';
@@ -30,7 +29,6 @@ import { EditBirthDateScreen } from '../screens/EditBirthDateScreen';
 import { EditBirthTimeScreen } from '../screens/EditBirthTimeScreen';
 import { EditBirthCityScreen } from '../screens/EditBirthCityScreen';
 import { EditNameScreen } from '../screens/EditNameScreen';
-import { EditGenderScreen } from '../screens/EditGenderScreen';
 import { MainTabs } from './MainTabs';
 import { navigationRef } from './navigationRef';
 import { BootstrapStatusScreen } from '../screens/BootstrapStatusScreen';
@@ -77,8 +75,6 @@ export type RelationshipRootParamList = {
   EditBirthTime: undefined;
   EditBirthCity: undefined;
   EditName: undefined;
-  EditGender: undefined;
-  Notifications: undefined;
   Privacy: undefined;
   HelpSupport: undefined;
   CreditHistory: undefined;
@@ -96,6 +92,7 @@ const Stack = createStackNavigator<RelationshipRootParamList>();
 export const RootNavigator: React.FC = () => {
   const bootstrapStatus = useRelationshipAppStore((state) => state.bootstrapStatus);
   const bootstrapError = useRelationshipAppStore((state) => state.bootstrapError);
+  const retryBootstrap = useRelationshipAppStore((state) => state.retryBootstrap);
   const hasCompletedSelfProfile = useRelationshipAppStore(
     (state) => state.hasCompletedSelfProfile
   );
@@ -117,6 +114,8 @@ export const RootNavigator: React.FC = () => {
       <BootstrapStatusScreen
         title="We couldn't load your account."
         body={bootstrapError ?? 'The relationship app could not finish bootstrapping.'}
+        actionLabel="Retry"
+        onAction={retryBootstrap}
       />
     );
   }
@@ -163,10 +162,8 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="EditBirthTime" component={EditBirthTimeScreen} />
         <Stack.Screen name="EditBirthCity" component={EditBirthCityScreen} />
         <Stack.Screen name="EditName" component={EditNameScreen} />
-        <Stack.Screen name="EditGender" component={EditGenderScreen} />
         <Stack.Screen name="CreditHistory" component={CreditHistoryScreen} />
         <Stack.Screen name="ManageSubscription" component={ManageSubscriptionScreen} />
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
         <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
         <Stack.Screen
