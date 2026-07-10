@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 import { devLog } from './devLog';
 import { SubjectDocument } from '../types';
+import { RELATIONSHIP_APP_DOMAIN } from '../domain/relationshipUser';
 
 export interface CreateUserRequest {
   firebaseUid: string; // Firebase Auth UID
@@ -255,7 +256,10 @@ export const usersApi = {
       totalDeleted: number;
       firebaseAuthDeletionRequired: boolean;
       firebaseUid: string;
-    }>('/account/delete', { userId });
+    // appDomain routes backend token verification to the Iris Firebase
+    // project; without it the middleware falls back to the classic domain
+    // and rejects the token.
+    }>('/account/delete', { userId, appDomain: RELATIONSHIP_APP_DOMAIN });
     devLog('usersApi.deleteAccount', {
       step: 'response',
       success: response?.success,
