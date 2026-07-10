@@ -30,15 +30,24 @@ describe('relationship app history selection state', () => {
       relationshipAnalysisStatus: { level: 'complete' },
     } as any;
 
-    expect(buildHistorySelectionState(relationship)).toEqual({
-      fullAnalysis: {
-        completeAnalysis: relationship.completeAnalysis,
-        clusterScoring: relationship.clusterScoring,
-        initialOverview: 'A strong preview',
-        userA_name: 'Alex',
-        userB_name: 'Taylor',
-      },
-      workflowPhase: 'completed',
+    const state = buildHistorySelectionState(relationship);
+
+    expect(state.fullAnalysis).toEqual({
+      completeAnalysis: relationship.completeAnalysis,
+      clusterScoring: relationship.clusterScoring,
+      initialOverview: 'A strong preview',
+      userA_name: 'Alex',
+      userB_name: 'Taylor',
+    });
+    expect(state.workflowPhase).toBe('completed');
+    expect(state.previewAnalysis).toMatchObject({
+      success: true,
+      compositeChartId: 'rel_1',
+      userA: { name: 'Alex' },
+      userB: { name: 'Taylor' },
+      clusters: { Harmony: { score: 80 } },
+      initialOverview: 'A strong preview',
+      status: 'scores_calculated',
     });
   });
 
@@ -53,6 +62,7 @@ describe('relationship app history selection state', () => {
 
     expect(buildHistorySelectionState(relationship)).toEqual({
       fullAnalysis: null,
+      previewAnalysis: null,
       workflowPhase: 'idle',
     });
   });

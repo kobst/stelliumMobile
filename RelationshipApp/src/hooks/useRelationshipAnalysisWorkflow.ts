@@ -10,12 +10,12 @@ import { isInsufficientCreditsError } from '../api/paywall';
 
 const FULL_ANALYSIS_COST_CREDITS = 50;
 
-const TERMINAL_STATUSES = new Set([
+const TERMINAL_STATUSES = new Set<RelationshipWorkflowStatusResponse['status']>([
   'completed',
   'completed_with_failures',
   'failed',
   'paused_after_scores',
-] as const);
+]);
 
 export function useRelationshipAnalysisWorkflow(compositeChartId?: string | null) {
   const workflowStatus = useRelationshipAppStore((state) => state.workflowStatus);

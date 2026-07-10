@@ -250,7 +250,7 @@ export function createLocalFullAnalysis(
 
   return {
     overall: preview.overall,
-    initialOverview: preview.initialOverview,
+    initialOverview: preview.initialOverview ?? undefined,
     holisticOverview:
       'This full read suggests a relationship with strong emotional ease, good conversational chemistry, and enough productive friction to support long-term growth if both people stay honest.',
     completeAnalysis: clusterEntries,

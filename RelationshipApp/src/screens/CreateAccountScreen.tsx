@@ -160,7 +160,7 @@ export const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
         subject: claimedSubject as any,
         backendAppDomain: claimResponse.user.appDomain,
         isDomainExplicit: true,
-        romanticOverview: claimResponse.overview,
+        romanticOverview: claimResponse.overview ?? undefined,
         romanticProfileBlurb: claimResponse.romanticProfileBlurb,
         referencedCodes: claimResponse.referencedCodes ?? [],
         celebAspectBank: claimResponse.celebAspectBank ?? null,

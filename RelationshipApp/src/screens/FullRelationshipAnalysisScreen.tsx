@@ -115,10 +115,14 @@ export const FullRelationshipAnalysisScreen: React.FC<Props> = ({ navigation }) 
             <Text style={[styles.detailCopy, { color: colors.textMuted }]}>
               {clusterData.synastry.challengePanel}
             </Text>
-            <Text style={[styles.subsectionTitle, { color: colors.textMuted }]}>Composite synthesis</Text>
-            <Text style={[styles.detailCopy, { color: colors.textMuted }]}>
-              {clusterData.composite.synthesisPanel}
-            </Text>
+            {clusterData.composite ? (
+              <>
+                <Text style={[styles.subsectionTitle, { color: colors.textMuted }]}>Composite synthesis</Text>
+                <Text style={[styles.detailCopy, { color: colors.textMuted }]}>
+                  {clusterData.composite.synthesisPanel}
+                </Text>
+              </>
+            ) : null}
           </View>
         ))}
       </ScrollView>

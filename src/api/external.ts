@@ -173,7 +173,8 @@ export const externalApi = {
     const apiKey = getGoogleApiKey();
     const params = new URLSearchParams();
     if (sessionToken) {
-      params.set('sessionToken', sessionToken);
+      // RN's URLSearchParams has no `set` (throws at runtime); append is safe on an empty params object.
+      params.append('sessionToken', sessionToken);
     }
     const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}${params.toString() ? `?${params.toString()}` : ''}`;
 
