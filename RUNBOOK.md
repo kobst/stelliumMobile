@@ -2,7 +2,8 @@
 
 ## Default Development App
 
-The default development target is now the relationship app.
+The development target is Iris (`RelationshipApp/`). The legacy classic app is
+deleted; there is no other target.
 
 From the repo root:
 
@@ -22,16 +23,8 @@ These commands use:
 
 - `ENVFILE=RelationshipApp/.env.dev`
 - iOS scheme `StelliumApp.Dev`
-- `APP_VARIANT=relationship`
 
-## Explicit Relationship App Commands
-
-These are equivalent to the default commands:
-
-```bash
-npm run start:relationship:dev
-npm run ios:relationship:dev
-```
+Equivalent explicit commands: `npm run start:dev` and `npm run ios:dev`.
 
 ## If The Simulator Gets Stuck
 
@@ -53,14 +46,3 @@ npm run ios
 ```
 
 Hot reload is not sufficient for `react-native-config` changes like `GOOGLE_API_KEY`.
-
-## Classic App
-
-The classic app is still available, but no longer the default development path.
-
-Use:
-
-```bash
-npm run start:classic:dev
-npm run ios:classic:dev
-```

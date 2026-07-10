@@ -4,108 +4,145 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-StelliumApp is a React Native mobile application for AI-powered astrology guidance. It uses Firebase Authentication, Google Sign-In, and connects to a backend API for astrological analysis and birth chart generation.
+This repo builds **Iris**, a React Native app for astrology-based relationship
+compatibility. Users create a birth-chart profile, add partners (real people or
+celebrities), and get AI-generated compatibility analysis. Monetization is a
+credit system plus subscriptions via RevenueCat.
 
-## Branch Strategy
+The repo name (`StelliumApp`) and native project names are legacy. The live app
+is Iris; bundle IDs are `com.irisapp.ios` / `com.irisapp` (Android), with
+`.dev`-suffixed variants for the dev environment.
 
-- **`dev`**: Development branch - day-to-day development work, points to dev API
-- **`main`** (or `prod`): Production branch - release-ready code, points to prod API
-  - Protected with PR requirements and status checks
-  - All changes must go through pull request review
-  - Never commit directly to this branch
+## Repository Layout
+
+```
+index.js                 # entry → App.tsx → RelationshipApp/App.tsx
+RelationshipApp/         # the app
+  App.tsx                # providers + RootNavigator
+  .env.dev / .env.prod   # environment config (react-native-config)
+  src/
+    navigation/          # RootNavigator (stack) + MainTabs (Home/Relationships/Discover/Profile)
+    screens/             # all screens
+    components/          # shared UI
+    api/                 # app-level API modules (wrap shared/api)
+    store/               # zustand store (single store in index.ts)
+    hooks/               # useBootstrapSession, useRelationshipAnalysisWorkflow, etc.
+    services/            # irisRevenueCatService (purchases)
+    config/env.ts        # typed access to react-native-config vars
+  docs/                  # SIGNUP_FLOW.md, DESIGN_SYSTEM.md, API summaries, HTML mocks
+shared/                  # backend integration layer (imported by RelationshipApp)
+  api/                   # baseClient + endpoint modules (relationships, onboarding, users, …)
+  auth/session.ts        # Firebase ID-token helper
+  config/firebase.ts     # Firebase init
+  domain/                # domain constants/types
+  types/                 # shared TS types
+android/ ios/            # the native projects (root-level; RelationshipApp has no native dirs)
+__tests__/               # Jest suites
+```
 
 ## Development Commands
 
 ```bash
-# Environment-specific commands
-npm run start:dev      # Start Metro bundler with dev config
-npm run start:prod     # Start Metro bundler with prod config
+npm run start            # Metro with dev env (ENVFILE=RelationshipApp/.env.dev)
+npm run ios              # dev build, scheme StelliumApp.Dev (copies dev Firebase plist)
+npm run ios:prod         # prod build, scheme StelliumApp.Prod
+npm run android:dev      # dev flavor (com.irisapp.dev)
+npm run android:prod     # prod flavor
+npm run android:build:dev|prod   # release APKs
 
-# Android
-npm run android:dev    # Run dev build on Android
-npm run android:prod   # Run prod build on Android
-npm run android:build:dev   # Build dev release APK
-npm run android:build:prod  # Build prod release APK
+npm test                 # Jest
+npm run lint             # ESLint
+npx tsc -p RelationshipApp/tsconfig.json --noEmit   # typecheck the live app (must stay at 0 errors)
 
-# iOS (requires Xcode scheme setup - see IOS_SETUP.md)
-npm run ios:dev        # Run dev build on iOS
-npm run ios:prod       # Run prod build on iOS
-
-# Code quality
-npm run lint          # Run ESLint
-npm test             # Run Jest tests
-
-# iOS-specific setup
-bundle install        # Install Ruby gems
-bundle exec pod install  # Install iOS CocoaPods dependencies (run from ios/ directory)
+# iOS native deps (run after changing native dependencies)
+bundle install && cd ios && bundle exec pod install
 ```
+
+Sanity check after structural changes. The release bundle must build:
+
+```bash
+npx react-native bundle --platform ios --dev false --entry-file index.js --bundle-output /tmp/bundle-check.bundle
+```
+
+## Branch Strategy
+
+- **`dev`**: day-to-day development, points to dev API
+- **`main`**: production. Protected; all changes via PR. Never commit directly.
 
 ## Environment Configuration
 
-The app uses `react-native-config` for environment-specific configuration:
+`react-native-config` reads `RelationshipApp/.env.dev` or `.env.prod`
+(npm scripts set `ENVFILE`; Android flavors map dev/prod to the same files in
+`android/app/build.gradle`). Typed access is `relationshipAppEnv` in
+`RelationshipApp/src/config/env.ts`. Variables:
 
-- **Dev environment** (`.env.dev`): Points to `https://api.dev.stellium.ai`
-- **Prod environment** (`.env.prod`): Points to `https://api.stellium.ai`
+- `API_URL` — backend base URL (dev: `https://api.dev.stellium.ai`, prod: `https://api.stellium.ai`)
+- `ENV` — `development` | `production`
+- `GOOGLE_API_KEY` — Google Places/timezone lookups
+- `IRIS_REVENUECAT_API_KEY` — RevenueCat
+- `APP_VARIANT` — legacy selector, always `relationship`
 
-### Android Build Flavors
-- `dev`: Bundle ID `com.stelliumapp.dev`, app name "Stellium Dev"
-- `prod`: Bundle ID `com.stelliumapp`, app name "Stellium"
+Firebase: separate dev/prod projects. iOS plists are copied by the npm run
+scripts (`ios/GoogleService-Info-{Dev,Prod}.plist`); Android configs live at
+`android/app/src/{dev,prod}/google-services.json`.
 
-### iOS Schemes
-- `StelliumApp.Dev`: Bundle ID `com.stelliumapp.dev`, app name "Stellium Dev"
-- `StelliumApp.Prod`: Bundle ID `com.stelliumapp`, app name "Stellium"
-
-See `IOS_SETUP.md` for detailed iOS configuration instructions.
+Env changes require a rebuild (`npm run ios`), not just a Metro reload.
 
 ## Architecture
 
-### Authentication Flow
-- App starts with `AuthScreen.tsx` until user authenticates
-- Firebase Auth integration with Google Sign-In and phone verification
-- Auth state managed via Firebase `onAuthStateChanged` listener
+### Entry and session
 
-### Core Components
-- `App.tsx`: Main app container with conditional auth rendering
-- `AuthScreen.tsx`: Handles all authentication methods (Google, phone, Facebook placeholder)
-- `api.ts`: Centralized API layer for backend communication
-- `constants.ts`: Astrology domain data (signs, planets, houses, aspects)
+`RelationshipApp/App.tsx` mounts providers and `RootNavigator`.
+`useBootstrapSession` listens to Firebase `onAuthStateChanged` and resolves the
+session against the backend; the store's `authStatus`
+(`booting`/`signedOut`/`signedIn`) plus onboarding state pick the initial route
+(`Main`, `ProfileReveal`, `CreateSelfProfile`, or `Welcome`).
 
-### Backend Integration
-API functions in `api.ts` handle:
-- User profile management (`createUser`, `getUser`)
-- Astrology chart generation (`getBirthChartAnalysis`, `getCompositeCharts`)
-- AI-powered analysis (`handleUserQuery`)
-- Relationship compatibility scoring
+### Onboarding (value before signup)
+
+Welcome → CreateSelfProfile (8-step wizard) → ProfileReveal → CreateAccount
+(Apple/Google via Firebase; `claimPreview` attaches the pre-auth profile to the
+new account) → Main tabs. Details: `RelationshipApp/docs/SIGNUP_FLOW.md`.
+
+### State
+
+One zustand store: `RelationshipApp/src/store/index.ts`. Auth status, self
+profile, subjects, relationship/preview analysis caches, credits, UI state.
+
+### API layer
+
+`shared/api/baseClient.ts` is the HTTP client: per-endpoint timeout/retry
+config, explicit **no retry on billed endpoints** (e.g. `/ask-iris`). Endpoint
+modules in `shared/api/*` are wrapped by feature modules in
+`RelationshipApp/src/api/*`. Auth uses Firebase ID tokens
+(`shared/auth/session.ts`).
+
+### Payments
+
+RevenueCat (`react-native-purchases`) via
+`RelationshipApp/src/services/irisRevenueCatService.ts` and
+`useIrisRevenueCat`. Server-authoritative: purchases land via RevenueCat
+webhooks; the client polls entitlements. Credit costs live in
+`RelationshipApp/src/api/paywall.ts` and the analysis workflow hook.
 
 ## Platform Configuration
 
-### Android
-- Min SDK 24, Target SDK 35
-- Namespace: `com.stelliumapp`
-- Firebase config: `android/app/google-services.json`
+- **Android**: min SDK 24, target SDK 35, flavors `dev`/`prod`
+  (`com.irisapp.dev` "Iris Dev" / `com.irisapp` "Iris")
+- **iOS**: min iOS 16, static frameworks (Firebase), schemes
+  `StelliumApp.Dev` (Debug) / `StelliumApp.Prod` (Release), bundle IDs
+  `com.irisapp.dev` / `com.irisapp.ios`. See `IOS_SETUP.md`.
 
-### iOS
-- Min iOS 16.0
-- Uses static frameworks for Firebase compatibility
-- Firebase config: `ios/GoogleService-Info.plist`
-- CocoaPods manages dependencies
+## Testing
 
-## Environment Variables
+Jest with `jest.config.js` + `jest.setup.js` (mocks for Firebase, Google/Apple
+sign-in, purchases, blob-util). Suites live in `__tests__/`. All suites and
+`tsc --noEmit` must pass before merging.
 
-- `REACT_APP_SERVER_URL`: Backend API base URL
-- `REACT_APP_GOOGLE_API_KEY`: For timezone/location services
+## Other Docs
 
-## Astrology Domain
-
-The app includes extensive astrology calculations and data:
-- Zodiac signs, planets, houses with comprehensive mappings
-- Aspect calculations (conjunction, sextile, square, trine, opposition, quincunx)
-- Elements/modalities classification and planetary dominance scoring
-- Multiple analysis categories for personality, relationships, career, etc.
-
-## Development Notes
-
-- TypeScript configured with React Native presets
-- Jest testing setup with React Native preset
-- Metro bundler with default configuration
-- Firebase deeply integrated - ensure config files are present before building
+- `RUNBOOK.md` — simulator workflows, dev session reset
+- `RELATIONSHIP_APP_MVP_BLUEPRINT.md` — product blueprint
+- `BACKLOG.md` — known work
+- `IRIS_APP_AUDIT_2026-07-06.md` — full app audit (security, dead code, release gaps)
+- `RelationshipApp/docs/DESIGN_SYSTEM.md` — UI tokens/patterns

@@ -1,307 +1,134 @@
-# Relationship App Signup Flow
+# Iris Signup Flow
 
-This document describes the current first-run/signup flow in the relationship app as it exists today.
+Describes the current first-run flow as implemented. Source of truth:
+`RelationshipApp/src/navigation/RootNavigator.tsx` and the screens it registers.
 
-It covers:
-- the implemented entry flow
-- the difference between development local UX mode and live auth mode
-- the first-run screens and decisions
-- simple wireframes for product review
+## Principle: value before signup
 
-## Summary
-
-The relationship app currently starts with a lightweight onboarding flow:
-
-1. Welcome
-2. Create self profile
-3. Choose target type
-4. Continue into either:
-   - real person flow
-   - celebrity selection flow
-
-In development, `Get Started` uses a local UX session by default so product flow can be tested without Firebase blocking the front door.
-
-## Modes
-
-### Development Local UX Mode
-
-Current default in dev builds:
-- user taps `Get Started`
-- app creates a local signed-in state
-- app skips Firebase dependency at the front door
-- user proceeds directly to self-profile creation
-
-Purpose:
-- validate UX quickly
-- avoid auth/config friction during product iteration
-
-### Live/Auth-Backed Mode
-
-When local UX mode is disabled:
-- `Get Started` attempts Firebase session creation
-- self-profile creation uses live romantic self-profile APIs
-- subsequent relationship preview/full-analysis calls use live endpoints
-
-## Flow Overview
+The user builds a full birth-chart profile and sees their romantic profile
+reveal before any account exists. Account creation happens last, and claims the
+pre-auth work.
 
 ```text
 Welcome
   |
   v
-Create Self Profile
+CreateSelfProfile (8-step wizard, no auth)
+  |   submitPreview() -> previewId + claimToken
+  v
+ProfileReveal (romantic profile + top celeb matches)
   |
   v
-Choose Target Type
-  |                     \
-  v                      v
-Someone I Know         Celebrity
-  |                      |
-  v                      v
-Create Partner        Select Celebrity
-  |                      |
-  \__________  __________/
-             \/
-      Shared Preview Start
-             |
-             v
-   Relationship Preview
-             |
-             v
-          Unlock
-             |
-             v
-    Full Relationship Analysis
+CreateAccount (Apple / Google / email via Firebase)
+  |   claimPreview({previewId, claimToken}) attaches the guest profile
+  v
+Main tabs (Home / Relationships / Discover / Profile)
 ```
 
-## Screen-by-Screen
+Existing users take `Welcome -> SignIn` instead.
 
-### 1. Welcome
+## Initial route selection
 
-Purpose:
-- establish product framing
-- let user enter the app
+`RootNavigator` picks the initial route from store state after
+`useBootstrapSession` resolves:
 
-Current actions:
-- `Get Started`
-- `Preview The App`
+- `hasCompletedSelfProfile` -> `Main`
+- `profileReveal && guestProfileDraft` -> `ProfileReveal` (reveal generated, account not yet created)
+- `guestProfileDraft` only -> `CreateSelfProfile` (wizard abandoned mid-way)
+- otherwise -> `Welcome`
 
-Behavior:
-- in dev local UX mode, `Get Started` pushes directly into self-profile creation
-- in live mode, `Get Started` attempts auth-backed session setup
+Bootstrap loading and error states render `BootstrapStatusScreen` before any
+route mounts.
 
-Wireframe:
+## Screens
 
-```text
-+--------------------------------------------------+
-| RELATIONSHIP APP                                |
-|                                                  |
-| Understand your chemistry before you invest      |
-| your heart.                                      |
-|                                                  |
-| Start with your own profile, then explore        |
-| attraction, communication, conflict patterns,    |
-| and long-term compatibility.                     |
-|                                                  |
-| [ Get Started ]                                  |
-| [ Preview The App ]                              |
-+--------------------------------------------------+
-```
+### 1. Welcome (`WelcomeScreen.tsx`)
 
-### 2. Create Self Profile
+Wordmark, tagline, two actions:
 
-Purpose:
-- create the persistent “You” profile the app reuses
+- `Create your profile` -> `CreateSelfProfile`
+- `I already have an account` -> `SignIn`
 
-Current fields:
-- first name
-- last name
-- gender
-- date of birth
-- birth time / birth time unknown
-- birth location
+Terms & Privacy line is display-only text, not tappable (known gap, audit §
+top-10 #4).
 
-Behavior:
-- place field supports Google place suggestions
-- in local UX mode, typed place is sufficient to proceed
-- in live mode, location is resolved before submitting romantic self-profile creation
+### 2. Create Self Profile (`CreateSelfProfileScreen.tsx`)
 
-Wireframe:
+Eight-step wizard, one question per screen, progress dashes on top:
 
-```text
-+--------------------------------------------------+
-| YOU                                              |
-| Create the one profile this app will reuse.      |
-|                                                  |
-| Identity                                         |
-| [ First name                                  ]  |
-| [ Last name                                   ]  |
-| [ Gender                                      ]  |
-|                                                  |
-| Birth data                                       |
-| [ YYYY-MM-DD                                  ]  |
-| ( ) Birth time unknown                           |
-| [ HH:MM                                       ]  |
-|                                                  |
-| Birth location                                   |
-| [ Search place...                              ]  |
-|   -> place suggestions dropdown                  |
-|                                                  |
-| [ Save Profile ]                                 |
-| [ Back ]                                         |
-+--------------------------------------------------+
-```
+1. Name (first / last)
+2. Photo (optional; uploaded later, after account creation)
+3. Gender identity
+4. Partner-gender preference (filters the first celebrity match set)
+5. Birth date
+6. Birth time (skippable; "birth time unknown" supported with honest copy)
+7. Birth city (Google Places autocomplete resolves coordinates + timezone)
+8. Review and confirm
 
-### 3. Choose Target Type
+Submit calls `onboardingApi.submitPreview()` with the draft. No account exists
+yet; the response returns `previewId` + `claimToken` plus the reveal content.
+The draft persists in the store as `guestProfileDraft`, so a killed app resumes
+at the wizard.
 
-Purpose:
-- route the user into the correct target acquisition branch
+### 3. Profile Reveal (`ProfileRevealScreen.tsx`)
 
-Current options:
-- `Someone I Know`
-- `Celebrity`
+The payoff screen before signup:
 
-Wireframe:
+- romantic profile blurb / overview
+- top natal aspects with plain-language annotations
+- top celebrity matches (generated async; the screen polls
+  `celebMatchesStatus` / `celebAnnotationsStatus` until completed)
 
-```text
-+--------------------------------------------------+
-| TARGET                                           |
-| Choose who you want to analyze.                  |
-|                                                  |
-| [ Someone I Know ]                               |
-| [ Celebrity ]                                    |
-+--------------------------------------------------+
-```
+Primary action -> `CreateAccount`.
 
-### 4A. Real Person Branch
+### 4. Create Account (`CreateAccountScreen.tsx`)
 
-Purpose:
-- collect a partner’s birth data
-- create guest subject
-- start shared preview flow
+Firebase auth with three methods: Apple, Google, email/password.
 
-Current steps:
-- enter partner identity
-- enter partner birth data
-- enter partner birth location
-- tap `Generate Preview`
+After Firebase sign-up, `finalizeAuth`:
 
-Wireframe:
+1. forces an ID-token refresh
+2. calls `onboardingApi.claimPreview({previewId, claimToken})`, which creates
+   the backend user and attaches the guest profile/preview
+3. uploads the onboarding photo (best-effort; failure never blocks account
+   creation)
+4. writes profile + auth state to the store, clears the onboarding flow, and
+   resets navigation to `Main`
 
-```text
-+--------------------------------------------------+
-| REAL PERSON                                      |
-| Create a partner profile and request the first   |
-| live compatibility preview.                      |
-|                                                  |
-| [ Partner first name                           ] |
-| [ Partner last name                            ] |
-| [ Gender                                       ] |
-| [ YYYY-MM-DD                                   ] |
-| [ HH:MM                                        ] |
-| [ Search place...                              ] |
-|                                                  |
-| [ Generate Preview ]                             |
-+--------------------------------------------------+
-```
+If `claimPreview` fails, `resetPartialAuthState` rolls back the half-created
+Firebase user so the flow can retry cleanly.
 
-### 4B. Celebrity Branch
+### 5. Sign In (`SignInScreen.tsx`)
 
-Purpose:
-- fetch and search celebrities from the shared celebrity dataset
-- select one celebrity subject
-- feed the same preview flow used by the real-person branch
+For returning users: email/password, Google, Apple. On success the normal
+bootstrap path resolves the profile and lands on `Main`.
 
-Current steps:
-- search celebrities
-- tap a celebrity card
-- confirm with `Use This Celebrity`
-- return to Home
-- tap `Start Celebrity Preview`
+## After signup
 
-Wireframe:
+From the Main tabs the user adds connections:
 
-```text
-+--------------------------------------------------+
-| CELEBRITY                                        |
-| Choose from the shared celebrity dataset.        |
-|                                                  |
-| [ Search celebrities...                        ] |
-|                                                  |
-| + Celebrity Card                               + |
-| | Ariana Grande                                | |
-| | 1993-06-26                                   | |
-| | Boca Raton, Florida, USA                     | |
-| +----------------------------------------------+ |
-|                                                  |
-| [ Use This Celebrity ]                           |
-| [ Back ]                                         |
-+--------------------------------------------------+
-```
+- real person: `AddConnection -> PartnerIdentity -> PartnerBirthDate ->
+  PartnerBirthTime -> PartnerBirthCity -> PartnerConfirm`
+- celebrity: `SelectCelebrity -> CelebrityDetail`
 
-### 5. Shared Preview Start
+Both paths lead to `RelationshipPreview`, then `Unlock` (credit-gated) and
+`FullRelationshipAnalysis`.
 
-This is now unified.
+## Dev notes
 
-Only target acquisition differs:
-- real person: create guest subject first
-- celebrity: use selected celebrity subject directly
+- `relationshipAppEnv.enableLocalUxMode` (default `false` in
+  `src/config/env.ts`) plus the store's `isLocalUxMode` short-circuit the
+  wizard submit with local demo data instead of live `submitPreview` calls.
+  The demo branch lives in the wizard submit handler; flagged by the audit for
+  removal from production code.
+- `DevSessionPanel` (dev builds) inspects auth status / Firebase UID / profile
+  id and resets the session.
 
-After that, both paths do the same thing:
-- call `enhancedRelationshipAnalysis(...)`
-- store preview result
-- navigate to preview screen
+## Known gaps
 
-### 6. Relationship Preview
-
-Purpose:
-- show initial scores and overview
-- act as the free preview surface
-
-Current content:
-- overall compatibility
-- tier/profile
-- 5 cluster scores
-- dominant/challenge clusters
-- initial overview
-
-Wireframe:
-
-```text
-+--------------------------------------------------+
-| PREVIEW                                          |
-| Alex and Ariana                                  |
-|                                                  |
-| "Initial overview text..."                       |
-|                                                  |
-| Overall compatibility: 76%                       |
-| Tier: Flourishing                                |
-|                                                  |
-| [ Harmony ] [ Passion ]                          |
-| [ Connection ] [ Stability ]                     |
-| [ Growth ]                                       |
-|                                                  |
-| [ See Unlock Flow ]                              |
-| [ Start Another Preview ]                        |
-+--------------------------------------------------+
-```
-
-## Current Product Notes
-
-- The signup/onboarding flow is functional, but still intentionally plain.
-- The first-run UX is usable for testing and product review.
-- The entry flow is not yet polished as final production onboarding.
-- Dev session tools still exist elsewhere in the app for QA/reset, but the front door is more product-like now.
-
-## Current Gaps
-
-- final production auth UX is not done
-- celebrity branch currently starts preview from the home shell after selection instead of flowing immediately in one step
-- onboarding copy and visual design are still MVP-level
-- no dedicated “account creation complete” transition moment yet
-
-## Recommended Next UX Iterations
-
-1. Collapse celebrity selection and preview start into a single continuous flow.
-2. Add a stronger post-profile success transition before target selection.
-3. Replace placeholder-style onboarding copy with final product copy.
-4. Revisit whether `Preview The App` should remain visible on the first screen.
+- Terms & Privacy on Welcome are not real links.
+- Default DOB (`1995-01-01` / 12:00) passes validation untouched; fast tappers
+  get silently wrong charts (audit).
+- Full birth data is logged to console in the onboarding path (compliance
+  flag).
+- No dedicated "account created" transition moment after `claimPreview`.

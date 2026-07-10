@@ -1,46 +1,40 @@
-# RelationshipApp
+# RelationshipApp (Iris)
 
-This directory is the new relationship-first mobile app scaffold.
+This directory is the Iris app: all screens, navigation, state, and UI live
+here. Backend integration (HTTP clients, endpoint modules, Firebase config,
+shared types) lives in the sibling `shared/` directory. The root `android/`
+and `ios/` projects are the native targets; this directory has no native code.
 
-It is intentionally isolated from the current `StelliumApp` shell so we can:
+Entry chain: root `index.js` -> root `App.tsx` -> `RelationshipApp/App.tsx`
+(providers + `RootNavigator`).
 
-- reuse backend integrations
-- define a new product surface
-- avoid leaking horoscope-first navigation and state into the new app
+## Running
 
-Current status:
+From the repo root:
 
-- app shell scaffolded
-- shared API bridge modules added under `shared/`
-- screens are placeholders for the onboarding-to-preview vertical slice
+- `npm run start` (Metro, dev env)
+- `npm run ios` (dev scheme) / `npm run ios:prod`
+- `npm run android:dev` / `npm run android:prod`
 
-Implementation should proceed in this order:
+Env files live at `RelationshipApp/.env.dev` and `RelationshipApp/.env.prod`
+(templates alongside). The npm scripts pass the right `ENVFILE`. Env changes
+require a rebuild, not a Metro reload.
 
-1. shared module hardening
-2. onboarding-to-preview flow
-3. unlock flow
-4. full report
-5. Ask Stellium
+## Layout
 
-## Running In iOS Simulator
+- `src/navigation/` — `RootNavigator` (stack) + `MainTabs` (Home /
+  Relationships / Discover / Profile)
+- `src/screens/` — all screens
+- `src/components/` — shared UI
+- `src/api/` — feature API modules wrapping `shared/api`
+- `src/store/` — single zustand store
+- `src/hooks/` — session bootstrap, analysis workflow, RevenueCat
+- `src/services/` — `irisRevenueCatService`
+- `src/config/env.ts` — typed `react-native-config` access
 
-The repo still uses the main native target. Relationship app launch is selected through `APP_VARIANT=relationship` in the env file.
+## Docs
 
-Default dev commands from the repo root:
-
-- `npm run start`
-- `npm run ios`
-
-Explicit relationship-app commands:
-
-- `npm run ios:relationship:dev`
-- `npm run start:relationship:dev`
-
-Local env files live at:
-
-- `RelationshipApp/.env.dev`
-- `RelationshipApp/.env.prod`
-
-See also:
-
-- [`RUNBOOK.md`](/Users/edwardhan/stellium-mobile/StelliumApp/RUNBOOK.md)
+- [`docs/SIGNUP_FLOW.md`](docs/SIGNUP_FLOW.md) — first-run/onboarding flow
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — UI tokens and patterns
+- [`../RUNBOOK.md`](../RUNBOOK.md) — simulator workflows
+- [`../CLAUDE.md`](../CLAUDE.md) — architecture overview
