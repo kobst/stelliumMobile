@@ -23,7 +23,7 @@ import { ApiError, relationshipUsersApi } from '../api';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useRelationshipAppStore } from '../store';
 import { useTheme } from '../theme';
-import { GOOGLE_WEB_CLIENT_ID, IOS_GOOGLE_CLIENT_ID } from '../../../src/config/firebase';
+import { GOOGLE_WEB_CLIENT_ID, IOS_GOOGLE_CLIENT_ID } from '../../../shared/config/firebase';
 
 let GoogleSignin: ReturnType<typeof require> | null = null;
 try {

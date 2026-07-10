@@ -1,4 +1,4 @@
-import type { RelationshipModifier } from '../../../../src/api/relationships';
+import type { RelationshipModifier } from '../../../../shared/api/relationships';
 
 export type ModifierKey = RelationshipModifier;
 

@@ -74,3 +74,19 @@ export function getPlanetIconFromConstant(planet: string): React.ComponentType<S
   const normalized = planet.toLowerCase() as PlanetKey;
   return planetIcons[normalized] || null;
 }
+
+export type ZodiacSign = ZodiacSignKey;
+
+interface ZodiacIconProps {
+  sign: ZodiacSign;
+  size?: number;
+  color?: string;
+}
+
+export function ZodiacIcon({ sign, size = 24, color = '#000' }: ZodiacIconProps) {
+  const IconComponent = zodiacIcons[sign];
+  if (!IconComponent) {
+    return null;
+  }
+  return <IconComponent width={`${size}`} height={`${size}`} fill={color} />;
+}

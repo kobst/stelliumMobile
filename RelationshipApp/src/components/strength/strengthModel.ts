@@ -10,7 +10,7 @@
 import type {
   OverallSummary,
   RelationshipModifier,
-} from '../../../../src/api/relationships';
+} from '../../../../shared/api/relationships';
 
 export type ClusterKey =
   | 'Harmony'

@@ -1,4 +1,4 @@
-import type { RelationshipShapeKind } from '../../../../src/api/relationships';
+import type { RelationshipShapeKind } from '../../../../shared/api/relationships';
 
 export type ShapeKind = RelationshipShapeKind;
 

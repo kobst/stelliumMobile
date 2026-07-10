@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useTheme } from '../theme';
-import { ZodiacIcon, type ZodiacSign } from '../../../utils/astrologyIcons';
+import { ZodiacIcon, type ZodiacSign } from '../../../shared/utils/astrologyIcons';
 
 export type PlacementLabel = 'Sun' | 'Moon' | 'Rising';
 

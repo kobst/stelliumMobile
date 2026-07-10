@@ -24,7 +24,7 @@ import type { UserCompositeChart } from '../../../shared/api/relationships';
 import {
   pickImageFromLibrary,
   pickImageFromCamera,
-} from '../../../src/utils/imageHelpers';
+} from '../../../shared/utils/imageHelpers';
 import { uploadSubjectProfilePhoto } from '../utils/subjectPhotoUpload';
 import { AstrologicalProfileView } from '../components/AstrologicalProfileView';
 import { SingleChartModal } from '../components/SingleChartModal';

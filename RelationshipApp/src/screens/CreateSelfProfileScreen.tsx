@@ -36,7 +36,7 @@ import {
   PrivacyFooter,
   ONB,
 } from '../components/onboarding/atoms';
-import { pickImageFromLibrary, pickImageFromCamera } from '../../../src/utils/imageHelpers';
+import { pickImageFromLibrary, pickImageFromCamera } from '../../../shared/utils/imageHelpers';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
 
