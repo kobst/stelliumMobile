@@ -1,4 +1,4 @@
-import { apiClient } from './legacyClient';
+import { apiClient } from './client';
 import { User, SubjectDocument } from '../types';
 
 export interface CreateUserRequest {

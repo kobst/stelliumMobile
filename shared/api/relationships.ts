@@ -1,4 +1,4 @@
-import { apiClient } from './legacyClient';
+import { apiClient } from './client';
 
 // New 5-Cluster Relationship Analysis Types
 export interface KeystoneAspect {

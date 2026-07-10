@@ -1,4 +1,4 @@
-import { apiClient } from './legacyClient';
+import { apiClient } from './client';
 
 export interface Celebrity {
   _id: string;
