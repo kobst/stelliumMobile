@@ -6,7 +6,6 @@ import { CreateSelfProfileScreen } from '../screens/CreateSelfProfileScreen';
 import { ProfileRevealScreen } from '../screens/ProfileRevealScreen';
 import { CreateAccountScreen } from '../screens/CreateAccountScreen';
 import { SignInScreen } from '../screens/SignInScreen';
-import { SelfProfileSuccessScreen } from '../screens/SelfProfileSuccessScreen';
 import { SelectCelebrityScreen } from '../screens/SelectCelebrityScreen';
 import { CelebrityDetailScreen } from '../screens/CelebrityDetailScreen';
 import { SubjectDetailScreen } from '../screens/SubjectDetailScreen';
@@ -46,7 +45,6 @@ export type RelationshipRootParamList = {
   ProfileReveal: undefined;
   CreateAccount: undefined;
   SignIn: undefined;
-  SelfProfileSuccess: undefined;
   SelectCelebrity: undefined;
   CelebrityDetail: {
     celebrity?: import('../api').Celebrity;
@@ -146,7 +144,6 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen name="ProfileReveal" component={ProfileRevealScreen} />
         <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
         <Stack.Screen name="SignIn" component={SignInScreen} />
-        <Stack.Screen name="SelfProfileSuccess" component={SelfProfileSuccessScreen} />
         <Stack.Screen name="SelectCelebrity" component={SelectCelebrityScreen} />
         <Stack.Screen name="CelebrityDetail" component={CelebrityDetailScreen} />
         <Stack.Screen name="SubjectDetail" component={SubjectDetailScreen} />
