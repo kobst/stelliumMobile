@@ -1,4 +1,4 @@
-import type { NotificationPrefs, ProfileGender } from '../store';
+import { usersApi } from '../../../shared/api/users';
 
 const STUB_DELAY_MS = 250;
 
@@ -29,42 +29,53 @@ export async function updateBirthDetails(
   return { remaining: 1 };
 }
 
-export async function getNotificationPrefs(): Promise<NotificationPrefs> {
-  await delay(STUB_DELAY_MS);
-  return {
-    weeklyArticle: true,
-    productUpdates: true,
-    transitAlerts: false,
-  };
+export interface DeleteAccountResult {
+  success: boolean;
+  message: string;
+  // Backend deletes all user data but may leave the Firebase Auth record for
+  // the client to remove (auth deletion needs a recent client-side sign-in).
+  firebaseAuthDeletionRequired: boolean;
 }
 
-export async function updateNotificationPrefs(
-  prefs: NotificationPrefs
-): Promise<NotificationPrefs> {
-  await delay(STUB_DELAY_MS);
-  return prefs;
+export async function deleteAccount(userId: string): Promise<DeleteAccountResult> {
+  if (!userId) {
+    throw new Error('No signed-in user to delete.');
+  }
+  const response = await usersApi.deleteAccount(userId);
+  if (!response.success) {
+    throw new Error(response.message || 'Account deletion failed.');
+  }
+  return response;
 }
 
-// TODO: real delete-account endpoint. See BACKLOG.md → "Wire real
-// delete-account endpoint".
-export async function deleteAccount(): Promise<{ success: true }> {
-  await delay(STUB_DELAY_MS);
-  return { success: true };
+export interface UpdateNameResult {
+  firstName: string;
+  lastName: string;
 }
 
-// TODO: wire to real `/updateProfileName` endpoint. See BACKLOG.md.
+// Backend contract: PUT /users/:userId/profile accepts firstName/lastName only.
+// Gender has no update endpoint, so the edit screen renders it read-only.
 export async function updateName(
-  _firstName: string,
-  _lastName: string
-): Promise<{ success: true }> {
-  await delay(STUB_DELAY_MS);
-  return { success: true };
-}
-
-// TODO: wire to real `/updateProfileGender` endpoint. See BACKLOG.md.
-export async function updateGender(
-  _gender: ProfileGender
-): Promise<{ success: true }> {
-  await delay(STUB_DELAY_MS);
-  return { success: true };
+  userId: string,
+  firstName: string,
+  lastName: string
+): Promise<UpdateNameResult> {
+  if (!userId) {
+    throw new Error('No signed-in user.');
+  }
+  const trimmedFirst = firstName.trim();
+  if (!trimmedFirst) {
+    throw new Error('First name is required.');
+  }
+  const response = await usersApi.updateUserProfile(userId, {
+    firstName: trimmedFirst,
+    lastName: lastName.trim(),
+  });
+  if (!response.success) {
+    throw new Error('Name update failed.');
+  }
+  return {
+    firstName: response.user.firstName,
+    lastName: response.user.lastName,
+  };
 }

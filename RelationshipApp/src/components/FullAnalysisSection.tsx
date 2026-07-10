@@ -294,7 +294,7 @@ function aggregateKeystoneAspects(
   }
   const deduped = Array.from(byDesc.values());
   deduped.sort((a, b) => b.magnitude - a.magnitude);
-  return deduped.slice(0, maxCount).map(({ magnitude, ...rest }) => rest);
+  return deduped.slice(0, maxCount).map(({ magnitude: _magnitude, ...rest }) => rest);
 }
 
 interface FullAnalysisSectionProps {
@@ -1301,7 +1301,6 @@ function ClustersTab({
   clusterMetrics,
   activeCluster,
   setActiveCluster,
-  activeLens,
   setActiveLens,
   codeToDescription,
   codeToScoredItem,

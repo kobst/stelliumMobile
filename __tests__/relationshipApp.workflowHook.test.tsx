@@ -8,6 +8,7 @@ jest.mock('../RelationshipApp/src/api', () => ({
     startFullRelationshipAnalysis: jest.fn(),
     getRelationshipWorkflowStatus: jest.fn(),
     fetchRelationshipAnalysis: jest.fn(),
+    resumeRelationshipWorkflow: jest.fn(),
   },
 }));
 
@@ -16,8 +17,33 @@ const { relationshipsApi } = jest.requireMock('../RelationshipApp/src/api') as {
     startFullRelationshipAnalysis: jest.Mock;
     getRelationshipWorkflowStatus: jest.Mock;
     fetchRelationshipAnalysis: jest.Mock;
+    resumeRelationshipWorkflow: jest.Mock;
   };
 };
+
+function workflowStatusResponse(
+  overrides: Partial<{
+    workflowId: string;
+    compositeChartId: string;
+    status: string;
+    completed: boolean;
+    phase: string;
+    message: string;
+  }> = {}
+) {
+  return {
+    success: true,
+    workflowId: 'wf_1',
+    compositeChartId: 'rel_123',
+    status: 'in_progress',
+    completed: false,
+    phase: 'running',
+    stepFunctionStatus: 'RUNNING',
+    executionArn: 'arn:test',
+    message: 'Running',
+    ...overrides,
+  };
+}
 
 function resetRelationshipAppStore() {
   useRelationshipAppStore.setState({
@@ -188,6 +214,105 @@ describe('relationship app analysis workflow hook', () => {
     expect(useRelationshipAppStore.getState().workflowPhase).toBe('completed');
     expect(useRelationshipAppStore.getState().fullAnalysis?.holisticOverview).toBe(
       'Completed after polling'
+    );
+  });
+
+  test('resumes a paused workflow and keeps polling until it completes', async () => {
+    relationshipsApi.getRelationshipWorkflowStatus
+      .mockResolvedValueOnce(
+        workflowStatusResponse({
+          compositeChartId: 'rel_paused',
+          status: 'paused',
+          phase: 'paused',
+          message: 'Paused',
+        })
+      )
+      .mockResolvedValueOnce(
+        workflowStatusResponse({
+          compositeChartId: 'rel_paused',
+          status: 'completed',
+          completed: true,
+          phase: 'complete',
+          message: 'Complete',
+        })
+      );
+    relationshipsApi.resumeRelationshipWorkflow.mockResolvedValue({ success: true });
+    relationshipsApi.fetchRelationshipAnalysis.mockResolvedValue({
+      holisticOverview: 'Resumed and completed',
+    });
+
+    await act(async () => {
+      resetRelationshipAppStore();
+      renderer = ReactTestRenderer.create(<Harness compositeChartId="rel_paused" />);
+    });
+
+    await act(async () => {
+      useRelationshipAppStore.getState().setWorkflowState({
+        workflowPhase: 'polling',
+        workflowStatus: null,
+        workflowError: null,
+      });
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(relationshipsApi.resumeRelationshipWorkflow).toHaveBeenCalledTimes(1);
+    expect(relationshipsApi.resumeRelationshipWorkflow).toHaveBeenCalledWith('rel_paused');
+    expect(useRelationshipAppStore.getState().workflowPhase).toBe('polling');
+
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(useRelationshipAppStore.getState().workflowPhase).toBe('completed');
+    expect(useRelationshipAppStore.getState().fullAnalysis?.holisticOverview).toBe(
+      'Resumed and completed'
+    );
+  });
+
+  test('stops polling with an error when a workflow stays paused after a resume request', async () => {
+    relationshipsApi.getRelationshipWorkflowStatus.mockResolvedValue(
+      workflowStatusResponse({
+        compositeChartId: 'rel_stuck',
+        status: 'paused',
+        phase: 'paused',
+        message: 'Paused',
+      })
+    );
+    relationshipsApi.resumeRelationshipWorkflow.mockResolvedValue({ success: true });
+
+    await act(async () => {
+      resetRelationshipAppStore();
+      renderer = ReactTestRenderer.create(<Harness compositeChartId="rel_stuck" />);
+    });
+
+    await act(async () => {
+      useRelationshipAppStore.getState().setWorkflowState({
+        workflowPhase: 'polling',
+        workflowStatus: null,
+        workflowError: null,
+      });
+    });
+
+    // 1 resume poll + MAX_PAUSED_POLLS_AFTER_RESUME (5) paused polls
+    for (let i = 0; i < 6; i += 1) {
+      await act(async () => {
+        jest.advanceTimersByTime(3000);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+    }
+
+    expect(relationshipsApi.resumeRelationshipWorkflow).toHaveBeenCalledTimes(1);
+    expect(useRelationshipAppStore.getState().workflowPhase).toBe('error');
+    expect(useRelationshipAppStore.getState().workflowError).toBe(
+      'The analysis is paused and could not be resumed. Please try unlocking again.'
     );
   });
 

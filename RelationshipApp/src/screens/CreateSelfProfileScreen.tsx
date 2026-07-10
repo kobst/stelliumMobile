@@ -37,6 +37,7 @@ import {
   ONB,
 } from '../components/onboarding/atoms';
 import { pickImageFromLibrary, pickImageFromCamera } from '../../../shared/utils/imageHelpers';
+import { devLog } from '../../../shared/api/devLog';
 
 type Props = StackScreenProps<RelationshipRootParamList, 'CreateSelfProfile'>;
 
@@ -118,7 +119,7 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const [timeSet, setTimeSet] = useState(false);
+  const [, setTimeSet] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoMimeType, setPhotoMimeType] = useState<string | null>(null);
 
@@ -457,9 +458,14 @@ export const CreateSelfProfileScreen: React.FC<Props> = ({ navigation }) => {
         totalOffsetHours: draft.totalOffsetHours ?? 0,
       };
 
-      console.log('[onboarding-preview] request:', JSON.stringify(requestPayload, null, 2));
+      devLog('onboarding-preview', { step: 'request', hasTime: !draft.birthTimeUnknown });
       const previewResponse = await onboardingApi.submitPreview(requestPayload);
-      console.log('[onboarding-preview] response:', JSON.stringify(previewResponse, null, 2));
+      devLog('onboarding-preview', {
+        step: 'response',
+        previewId: previewResponse.previewId,
+        matchesStatus: previewResponse.celebMatchesStatus?.status,
+        annotationsStatus: previewResponse.celebAnnotationsStatus?.status,
+      });
 
       setProfileRevealWithDraft(draft, {
         previewId: previewResponse.previewId,

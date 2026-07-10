@@ -24,6 +24,7 @@ import {
   restoreIrisPurchases,
 } from '../services/irisRevenueCatService';
 import { signOutAndResetSession } from '../utils/session';
+import { getAppVersionLabel } from '../config/appVersion';
 
 const PROFILE_THREAD_KEY = 'profile' as const;
 
@@ -38,7 +39,7 @@ const ASK_COPY = {
   ],
 } as const;
 
-const APP_VERSION = 'Iris v0.1 (dev)';
+const APP_VERSION = getAppVersionLabel();
 
 export function ProfileSettingsScreen() {
   const navigation = useNavigation<StackNavigationProp<RelationshipRootParamList>>();
@@ -192,12 +193,6 @@ export function ProfileSettingsScreen() {
         icon: '✦',
         label: 'Manage subscription',
         onPress: () => navigation.navigate('ManageSubscription'),
-      },
-      {
-        key: 'notifications',
-        icon: '🔔',
-        label: 'Notifications',
-        onPress: () => navigation.navigate('Notifications'),
       },
       {
         key: 'privacy',

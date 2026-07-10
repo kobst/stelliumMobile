@@ -1,7 +1,8 @@
-import React from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { Alert, Linking, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
+import { TERMS_URL, PRIVACY_POLICY_URL } from '../config/legal';
 import { Stardust } from '../components/atmosphere/Stardust';
 import { Halo } from '../components/atmosphere/Halo';
 import { HeroEmblem } from '../components/onboarding/HeroEmblem';
@@ -11,6 +12,16 @@ import { SERIF_FONT } from '../theme/typography';
 type Props = StackScreenProps<RelationshipRootParamList, 'Welcome'>;
 
 export const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
+  const openLegalLink = useCallback((url: string, fallbackLabel: string) => {
+    return async () => {
+      try {
+        await Linking.openURL(url);
+      } catch {
+        Alert.alert(fallbackLabel, `Unable to open ${url}.`);
+      }
+    };
+  }, []);
+
   return (
     <View style={styles.root}>
       <Stardust density={55} seed={5} />
@@ -44,8 +55,23 @@ export const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
               onPress={() => navigation.navigate('SignIn')}
             />
             <Text style={styles.terms}>
-              By continuing you agree to our <Text style={styles.termsStrong}>Terms</Text> &{' '}
-              <Text style={styles.termsStrong}>Privacy Policy</Text>.
+              By continuing you agree to our{' '}
+              <Text
+                style={styles.termsStrong}
+                accessibilityRole="link"
+                onPress={openLegalLink(TERMS_URL, 'Terms of Service')}
+              >
+                Terms
+              </Text>{' '}
+              &{' '}
+              <Text
+                style={styles.termsStrong}
+                accessibilityRole="link"
+                onPress={openLegalLink(PRIVACY_POLICY_URL, 'Privacy Policy')}
+              >
+                Privacy Policy
+              </Text>
+              .
             </Text>
           </View>
         </View>
@@ -105,5 +131,6 @@ const styles = StyleSheet.create({
   },
   termsStrong: {
     color: ONB.textMuted,
+    textDecorationLine: 'underline',
   },
 });

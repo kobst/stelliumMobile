@@ -1,3 +1,4 @@
+/* eslint-env jest */
 import 'react-native-gesture-handler/jestSetup';
 
 jest.mock('@react-native-firebase/app', () => ({
@@ -12,6 +13,17 @@ jest.mock('@react-native-firebase/auth', () => {
     signOut: jest.fn(() => Promise.resolve()),
   };
 });
+
+// virtual: the package may not be installed locally yet; CI installs it.
+jest.mock(
+  '@react-native-firebase/crashlytics',
+  () => ({
+    getCrashlytics: jest.fn(() => ({})),
+    log: jest.fn(),
+    recordError: jest.fn(),
+  }),
+  { virtual: true }
+);
 
 jest.mock('@react-native-google-signin/google-signin', () => ({
   GoogleSignin: {

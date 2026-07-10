@@ -13,14 +13,12 @@ import { useTheme } from '../theme';
 import { useRelationshipAppStore } from '../store';
 import {
   relationshipHoroscopesApi,
-  type MoonPhase,
   type RelationshipHoroscopeDocument,
 } from '../api';
 import {
   buildLensTransits,
   buildRelationshipKeyDays,
   buildTimelineBuckets,
-  classifyAspect,
   composeHoroscopeHeadline,
   flattenUnifiedTransitsForTimeline,
   formatExactMonthDay,

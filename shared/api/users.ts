@@ -1,5 +1,6 @@
 import { apiClient } from './client';
-import { User, SubjectDocument } from '../types';
+import { devLog } from './devLog';
+import { SubjectDocument } from '../types';
 
 export interface CreateUserRequest {
   firebaseUid: string; // Firebase Auth UID
@@ -85,14 +86,9 @@ export interface PaginatedUserSubjectsResponse {
 export const usersApi = {
   // Create user with known birth time
   createUser: async (userData: CreateUserRequest): Promise<UserResponse> => {
-    console.log('\n=== USERS API: createUser ===');
-    console.log('Request data:', JSON.stringify(userData, null, 2));
-
+    devLog('usersApi.createUser', { step: 'request' });
     const response = await apiClient.post<UserResponse>('/createUser', userData);
-
-    console.log('Response received:', JSON.stringify(response, null, 2));
-    console.log('===========================\n');
-
+    devLog('usersApi.createUser', { step: 'response', id: response?.id });
     return response;
   },
 
@@ -110,13 +106,9 @@ export const usersApi = {
 
   // Get user by Firebase UID - returns backend SubjectDocument format
   getUserByFirebaseUid: async (firebaseUid: string): Promise<SubjectDocument> => {
-    console.log('\n=== USERS API: getUserByFirebaseUid ===');
-    console.log('Firebase UID:', firebaseUid);
-    console.log('=====================================\n');
-
+    devLog('usersApi.getUserByFirebaseUid', { step: 'request' });
     const response = await apiClient.post<SubjectDocument>('/getUserByFirebaseUid', { firebaseUid });
-    console.log('Response received:', JSON.stringify(response, null, 2));
-    console.log('=====================================\n');
+    devLog('usersApi.getUserByFirebaseUid', { step: 'response', found: Boolean(response) });
     return response;
   },
 
@@ -148,12 +140,22 @@ export const usersApi = {
     return apiClient.post<any[]>('/getUserSubjects', { ownerUserId: userId });
   },
 
-  // Update user profile
-  updateUser: async (
+  // Update profile name. The backend only supports firstName/lastName here;
+  // gender has no update endpoint. (PUT /users/:userId — no /profile — 404s.)
+  updateUserProfile: async (
     userId: string,
-    userData: Partial<CreateUserRequest>
-  ): Promise<UserResponse> => {
-    return apiClient.put<UserResponse>(`/users/${userId}`, userData);
+    updates: { firstName?: string; lastName?: string }
+  ): Promise<{
+    success: boolean;
+    user: {
+      _id: string;
+      firstName: string;
+      lastName: string;
+      email: string | null;
+      updatedAt: string | null;
+    };
+  }> => {
+    return apiClient.put(`/users/${userId}/profile`, updates);
   },
 
   // Delete user
@@ -163,14 +165,9 @@ export const usersApi = {
 
   // Create guest subject with known birth time
   createGuestSubject: async (guestData: CreateGuestSubjectRequest): Promise<SubjectDocument> => {
-    console.log('\n=== USERS API: createGuestSubject ===');
-    console.log('Request data:', JSON.stringify(guestData, null, 2));
-
+    devLog('usersApi.createGuestSubject', { step: 'request' });
     const response = await apiClient.post<SubjectDocument>('/createGuestSubject', guestData);
-
-    console.log('Response received:', JSON.stringify(response, null, 2));
-    console.log('===========================\n');
-
+    devLog('usersApi.createGuestSubject', { step: 'response', found: Boolean(response) });
     return response;
   },
 
@@ -178,14 +175,9 @@ export const usersApi = {
   createGuestSubjectUnknownTime: async (
     guestData: CreateGuestSubjectUnknownTimeRequest
   ): Promise<SubjectDocument> => {
-    console.log('\n=== USERS API: createGuestSubjectUnknownTime ===');
-    console.log('Request data:', JSON.stringify(guestData, null, 2));
-
+    devLog('usersApi.createGuestSubjectUnknownTime', { step: 'request' });
     const response = await apiClient.post<SubjectDocument>('/createGuestSubjectUnknownTime', guestData);
-
-    console.log('Response received:', JSON.stringify(response, null, 2));
-    console.log('===========================\n');
-
+    devLog('usersApi.createGuestSubjectUnknownTime', { step: 'response', found: Boolean(response) });
     return response;
   },
 
@@ -196,10 +188,7 @@ export const usersApi = {
     subjectId: string,
     contentType: string = 'image/jpeg'
   ): Promise<{ uploadUrl: string; photoKey: string; expiresIn: number }> => {
-    console.log('\n=== USERS API: getPresignedUploadUrl ===');
-    console.log('Subject ID:', subjectId);
-    console.log('Content Type:', contentType);
-
+    devLog('usersApi.getPresignedUploadUrl', { subjectId, contentType });
     const response = await apiClient.post<{
       success: boolean;
       uploadUrl: string;
@@ -207,10 +196,7 @@ export const usersApi = {
       expiresIn: number;
       instructions: string;
     }>(`/subjects/${subjectId}/profile-photo/presigned-url`, { contentType });
-
-    console.log('Response received:', JSON.stringify(response, null, 2));
-    console.log('=====================================\n');
-
+    devLog('usersApi.getPresignedUploadUrl', { step: 'response', success: response?.success });
     return {
       uploadUrl: response.uploadUrl,
       photoKey: response.photoKey,
@@ -223,20 +209,14 @@ export const usersApi = {
     subjectId: string,
     photoKey: string
   ): Promise<{ profilePhotoUrl: string; profilePhotoKey: string; updatedAt: string }> => {
-    console.log('\n=== USERS API: confirmProfilePhotoUpload ===');
-    console.log('Subject ID:', subjectId);
-    console.log('Photo Key:', photoKey);
-
+    devLog('usersApi.confirmProfilePhotoUpload', { subjectId });
     const response = await apiClient.post<{
       success: boolean;
       profilePhotoUrl: string;
       profilePhotoKey: string;
       updatedAt: string;
     }>(`/subjects/${subjectId}/profile-photo/confirm`, { photoKey });
-
-    console.log('Response received:', JSON.stringify(response, null, 2));
-    console.log('=====================================\n');
-
+    devLog('usersApi.confirmProfilePhotoUpload', { step: 'response', success: response?.success });
     return {
       profilePhotoUrl: response.profilePhotoUrl,
       profilePhotoKey: response.profilePhotoKey,
@@ -248,18 +228,13 @@ export const usersApi = {
   deleteProfilePhoto: async (
     subjectId: string
   ): Promise<{ success: boolean; message: string; deletedAt: string }> => {
-    console.log('\n=== USERS API: deleteProfilePhoto ===');
-    console.log('Subject ID:', subjectId);
-
+    devLog('usersApi.deleteProfilePhoto', { subjectId });
     const response = await apiClient.delete<{
       success: boolean;
       message: string;
       deletedAt: string;
     }>(`/subjects/${subjectId}/profile-photo`);
-
-    console.log('Response received:', JSON.stringify(response, null, 2));
-    console.log('===================================\n');
-
+    devLog('usersApi.deleteProfilePhoto', { step: 'response', success: response?.success });
     return response;
   },
 
@@ -272,9 +247,7 @@ export const usersApi = {
     firebaseAuthDeletionRequired: boolean;
     firebaseUid: string;
   }> => {
-    console.log('\n=== USERS API: deleteAccount ===');
-    console.log('User ID:', userId);
-
+    devLog('usersApi.deleteAccount', { step: 'request' });
     const response = await apiClient.post<{
       success: boolean;
       message: string;
@@ -283,10 +256,11 @@ export const usersApi = {
       firebaseAuthDeletionRequired: boolean;
       firebaseUid: string;
     }>('/account/delete', { userId });
-
-    console.log('Response received:', JSON.stringify(response, null, 2));
-    console.log('================================\n');
-
+    devLog('usersApi.deleteAccount', {
+      step: 'response',
+      success: response?.success,
+      totalDeleted: response?.totalDeleted,
+    });
     return response;
   },
 };

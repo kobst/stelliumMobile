@@ -36,6 +36,7 @@ export function useBootstrapSession() {
   const setSubscription = useRelationshipAppStore((state) => state.setSubscription);
   const guestProfileDraft = useRelationshipAppStore((state) => state.guestProfileDraft);
   const profileReveal = useRelationshipAppStore((state) => state.profileReveal);
+  const bootstrapRetryNonce = useRelationshipAppStore((state) => state.bootstrapRetryNonce);
 
   useEffect(() => {
     if (relationshipAppEnv.enableLocalUxMode) {
@@ -147,6 +148,7 @@ export function useBootstrapSession() {
     firebaseAuth,
     guestProfileDraft,
     profileReveal,
+    bootstrapRetryNonce,
     setAuthState,
     setBootstrapState,
     setProfile,

@@ -83,6 +83,17 @@ export const relationshipsApi = {
     );
   },
 
+  resumeRelationshipWorkflow: async (
+    compositeChartId: string
+  ): Promise<RelationshipWorkflowStartResponse> => {
+    return relationshipApiClient.post<RelationshipWorkflowStartResponse>(
+      '/relationship-app/workflow/relationship/resume',
+      {
+        compositeChartId,
+      }
+    );
+  },
+
   fetchRelationshipAnalysis: async (
     compositeChartId: string
   ): Promise<RelationshipAnalysisResponse> => {

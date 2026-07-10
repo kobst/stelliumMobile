@@ -18,6 +18,7 @@ export function isDailyLimitError(error: unknown): boolean {
 // Mirror the backend costs (constants/irisBilling.ts).
 const RELATIONSHIP_OVERVIEW_COST_CREDITS = 10;
 const GUEST_SUBJECT_OVERVIEW_COST_CREDITS = 1;
+export const FULL_ANALYSIS_COST_CREDITS = 50;
 
 interface PaywallTrigger {
   label: string;

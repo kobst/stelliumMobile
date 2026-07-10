@@ -82,12 +82,6 @@ export interface CreditTransaction {
   delta: number;
 }
 
-export interface NotificationPrefs {
-  weeklyArticle: boolean;
-  productUpdates: boolean;
-  transitAlerts: boolean;
-}
-
 export type ProfileGender = 'male' | 'female' | 'other';
 
 export interface BirthDetailsDraft {
@@ -168,6 +162,7 @@ interface RelationshipSessionState {
   firebaseUid: string | null;
   firebaseEmail: string | null;
   bootstrapError: string | null;
+  bootstrapRetryNonce: number;
   profile: RelationshipAppProfile | null;
   isLocalUxMode: boolean;
 }
@@ -222,7 +217,6 @@ interface CreditsFlowState {
   paywall: PaywallRequest | null;
   askThreads: Record<string, AskMessage[]>;
   creditTransactions: CreditTransaction[];
-  notificationPrefs: NotificationPrefs;
   birthEditsRemaining: number | null;
   birthDetailsDraft: BirthDetailsDraft | null;
   partnerDraft: PartnerDraft | null;
@@ -242,6 +236,7 @@ interface RelationshipAppStore
     bootstrapStatus: RelationshipBootstrapStatus;
     bootstrapError?: string | null;
   }) => void;
+  retryBootstrap: () => void;
   setLocalUxMode: (value: boolean) => void;
   setProfile: (profile: RelationshipAppProfile | null) => void;
   resetSession: () => void;
@@ -291,7 +286,6 @@ interface RelationshipAppStore
   setAskThread: (threadKey: AskThreadKey, messages: AskMessage[]) => void;
   clearAskThread: (threadKey: AskThreadKey) => void;
   setCreditTransactions: (value: CreditTransaction[]) => void;
-  setNotificationPrefs: (value: NotificationPrefs) => void;
   setBirthEditsRemaining: (value: number | null) => void;
   setBirthDetailsDraft: (value: BirthDetailsDraft | null) => void;
   updateBirthDetailsDraft: (partial: Partial<BirthDetailsDraft>) => void;
@@ -307,6 +301,7 @@ const initialSessionState: RelationshipSessionState = {
   firebaseUid: null,
   firebaseEmail: null,
   bootstrapError: null,
+  bootstrapRetryNonce: 0,
   profile: null,
   isLocalUxMode: false,
 };
@@ -316,19 +311,12 @@ const initialOnboardingState: OnboardingFlowState = {
   profileReveal: null,
 };
 
-const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
-  weeklyArticle: true,
-  productUpdates: true,
-  transitAlerts: false,
-};
-
 const initialCreditsState: CreditsFlowState = {
   credits: null,
   subscription: null,
   paywall: null,
   askThreads: {},
   creditTransactions: [],
-  notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
   birthEditsRemaining: null,
   birthDetailsDraft: null,
   partnerDraft: null,
@@ -374,6 +362,14 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       bootstrapStatus,
       bootstrapError,
     }),
+  // Bumping the nonce re-runs useBootstrapSession's effect, which re-subscribes
+  // onAuthStateChanged; Firebase re-fires the listener immediately, retrying the fetch.
+  retryBootstrap: () =>
+    set((state) => ({
+      bootstrapRetryNonce: state.bootstrapRetryNonce + 1,
+      bootstrapStatus: 'loading',
+      bootstrapError: null,
+    })),
   setLocalUxMode: (value) => set({ isLocalUxMode: value }),
   setProfile: (profile) =>
     set((state) => {
@@ -555,7 +551,6 @@ export const useRelationshipAppStore = create<RelationshipAppStore>((set) => ({
       return { askThreads: next };
     }),
   setCreditTransactions: (value) => set({ creditTransactions: value }),
-  setNotificationPrefs: (value) => set({ notificationPrefs: value }),
   setBirthEditsRemaining: (value) => set({ birthEditsRemaining: value }),
   setBirthDetailsDraft: (value) => set({ birthDetailsDraft: value }),
   updateBirthDetailsDraft: (partial) =>

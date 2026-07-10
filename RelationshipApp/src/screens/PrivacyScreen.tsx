@@ -11,22 +11,23 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { getAuth } from '@react-native-firebase/auth';
 import { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
 import { deleteAccount } from '../api/profile';
+import { useRelationshipAppStore } from '../store';
 import { signOutAndResetSession } from '../utils/session';
 import { SettingsNavBar } from '../components/SettingsNavBar';
 import { SettingsInfoCard } from '../components/SettingsInfoCard';
 import { SectionLabel } from '../components/SectionLabel';
+import { TERMS_URL, PRIVACY_POLICY_URL } from '../config/legal';
 
 type RootNavigation = StackNavigationProp<RelationshipRootParamList>;
-
-const TERMS_URL = 'https://irislove.app/terms';
-const PRIVACY_POLICY_URL = 'https://irislove.app/privacy';
 
 export function PrivacyScreen() {
   const { colors } = useTheme();
   const navigation = useNavigation<RootNavigation>();
+  const userId = useRelationshipAppStore((state) => state.profile?.id ?? null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -89,7 +90,20 @@ export function PrivacyScreen() {
   const handleDelete = useCallback(async () => {
     setIsDeleting(true);
     try {
-      await deleteAccount();
+      const result = await deleteAccount(userId ?? '');
+      if (result.firebaseAuthDeletionRequired) {
+        // Best-effort: removing the Firebase Auth record can fail with
+        // auth/requires-recent-login. Backend data is already gone either way;
+        // sign-out below still clears the session.
+        try {
+          await getAuth().currentUser?.delete();
+        } catch (authError) {
+          console.warn(
+            '[deleteAccount] Firebase auth record deletion failed:',
+            authError instanceof Error ? authError.message : String(authError)
+          );
+        }
+      }
       await signOutAndResetSession();
       navigation.reset({
         index: 0,
@@ -102,7 +116,7 @@ export function PrivacyScreen() {
         error instanceof Error ? error.message : 'Please try again shortly.'
       );
     }
-  }, [navigation]);
+  }, [navigation, userId]);
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surfaceLow }]}>
