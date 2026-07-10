@@ -146,20 +146,6 @@ export const relationshipUsersApi = {
     return normalizeRelationshipAppProfile(response, request.firebaseUid);
   },
 
-  async updateProfile(
-    userId: string,
-    updates: Partial<
-      Omit<RelationshipAppCreateUserRequest, 'firebaseUid' | 'appDomain' | 'clientProduct'>
-    >
-  ): Promise<RelationshipAppProfile> {
-    const response = await relationshipApiClient.put<SubjectResponse>(`/users/${userId}`, {
-      ...updates,
-      ...getRelationshipAppRequestMetadata(),
-    });
-
-    return normalizeRelationshipAppProfile(response, null);
-  },
-
   async createGuestSubjectRomantic(request: {
     firstName: string;
     lastName: string;

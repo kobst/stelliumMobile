@@ -589,21 +589,6 @@ export const relationshipsApi = {
     return apiClient.delete<{ success: boolean }>(`/relationships/${relationshipId}`);
   },
 
-  // Chat API for relationship analysis (legacy - maintained for compatibility)
-  chatForUserRelationship: async (
-    userId: string,
-    compositeChartId: string,
-    message: string,
-    selectedElements?: ClusterScoredItem[]
-  ): Promise<string> => {
-    return apiClient.post<string>('/chatForUserRelationship', {
-      userId,
-      compositeChartId,
-      message,
-      selectedElements,
-    });
-  },
-
   // Fetch chat history (legacy - maintained for compatibility)
   fetchUserChatRelationshipAnalysis: async (
     userId: string,

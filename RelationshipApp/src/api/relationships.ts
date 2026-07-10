@@ -1,7 +1,6 @@
 import { relationshipApiClient } from '../../../shared/api/relationshipClient';
 import { devLog } from '../../../shared/api/devLog';
 import type {
-  ClusterScoredItem,
   EnhancedRelationshipAnalysisResponse,
   HoroscopeSettingsResponse,
   RelationshipAnalysisResponse,
@@ -164,19 +163,5 @@ export const relationshipsApi = {
       horoscopeFreeTrialUsed: response?.relationship?.horoscopeFreeTrialUsed,
     });
     return response;
-  },
-
-  chatForUserRelationship: async (
-    userId: string,
-    compositeChartId: string,
-    message: string,
-    selectedElements?: ClusterScoredItem[]
-  ): Promise<string> => {
-    return relationshipApiClient.post<string>('/chatForUserRelationship', {
-      userId,
-      compositeChartId,
-      message,
-      selectedElements,
-    });
   },
 };
