@@ -160,6 +160,13 @@ export function FeaturesPreview(): React.ReactElement {
         />
 
         <FeatureCard
+          icon="☾"
+          iconBackground="rgba(160, 214, 190, 0.16)"
+          title="Weekly Relationship Horoscopes"
+          description="A fresh forecast every week for you and each connection — the transits moving through your relationship, and the days that matter most."
+        />
+
+        <FeatureCard
           icon="✦"
           iconBackground="rgba(0, 220, 229, 0.14)"
           title="Ask Iris"
