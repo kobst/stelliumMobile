@@ -30,19 +30,21 @@ import { isDailyLimitError, presentPaywallIfInsufficient } from '../api/paywall'
 
 type Props = StackScreenProps<RelationshipRootParamList, 'AskIris'>;
 
-type AskContext = 'home' | 'profile' | 'relationship';
+type AskContext = 'home' | 'profile' | 'relationship' | 'subject';
 
 const MAX_CONTEXTS = 3;
 
 // Resolve which chart/relationship the question is scoped to. `home` and
 // `profile` both ask about the signed-in user's own chart; `relationship` uses
-// the composite id (carried in the thread key, with store fallbacks).
+// the composite id, and `subject` uses the person id carried in the thread key
+// with a route-param fallback.
 function resolveAskTarget(
   context: AskContext,
   threadKey: AskThreadKey,
   activeRelationshipId: string | null,
   previewCompositeId: string | null,
-  selfUserId: string | null
+  selfUserId: string | null,
+  subjectId: string | null
 ): AskTarget | null {
   if (context === 'relationship') {
     let compositeChartId: string | null = null;
@@ -54,6 +56,14 @@ function resolveAskTarget(
     }
     compositeChartId = compositeChartId ?? activeRelationshipId ?? previewCompositeId;
     return compositeChartId ? { kind: 'relationship', compositeChartId } : null;
+  }
+  if (context === 'subject') {
+    let resolvedSubjectId: string | null = null;
+    if (threadKey.startsWith('subject:')) {
+      resolvedSubjectId = threadKey.slice('subject:'.length) || null;
+    }
+    resolvedSubjectId = resolvedSubjectId ?? subjectId;
+    return resolvedSubjectId ? { kind: 'subject', subjectId: resolvedSubjectId } : null;
   }
   return selfUserId ? { kind: 'self', userId: selfUserId } : null;
 }
@@ -76,6 +86,12 @@ const HOME_SUGGESTIONS = [
   'What relationship pattern should I be watching this week?',
 ] as const;
 
+const SUBJECT_SUGGESTIONS = [
+  (name: string) => `What is ${name} looking for in a partner?`,
+  (name: string) => `How does ${name} handle conflict?`,
+  (name: string) => `What makes ${name} feel secure?`,
+] as const;
+
 const RELATIONSHIP_FILTERS = [
   { key: 'All', label: 'All' },
   { key: 'Synastry', label: 'Synastry' },
@@ -90,10 +106,14 @@ const PROFILE_FILTERS = [
 
 function defaultThreadKey(
   context: AskContext,
-  relationshipId: string | null
+  relationshipId: string | null,
+  subjectId: string | null
 ): AskThreadKey {
   if (context === 'relationship') {
     return `relationship:${relationshipId ?? 'active'}`;
+  }
+  if (context === 'subject') {
+    return `subject:${subjectId ?? ''}`;
   }
   if (context === 'profile') return 'profile';
   return 'home';
@@ -105,6 +125,8 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
   const prefill = route.params?.prefill;
   const providedThreadKey = route.params?.threadKey;
   const relationshipLabelFromRoute = route.params?.relationshipLabel;
+  const subjectIdFromRoute = route.params?.subjectId ?? null;
+  const subjectName = route.params?.subjectName?.trim() || 'this person';
 
   const profile = useRelationshipAppStore((state) => state.profile);
   const credits = useRelationshipAppStore((state) => state.credits);
@@ -120,8 +142,8 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const threadKey: AskThreadKey = useMemo(() => {
     if (providedThreadKey) return providedThreadKey as AskThreadKey;
-    return defaultThreadKey(context, activeRelationshipId);
-  }, [providedThreadKey, context, activeRelationshipId]);
+    return defaultThreadKey(context, activeRelationshipId, subjectIdFromRoute);
+  }, [providedThreadKey, context, activeRelationshipId, subjectIdFromRoute]);
 
   const thread = useMemo(
     () => askThreads[threadKey] ?? [],
@@ -184,8 +206,13 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
     return buildProfileAspects(shape);
   }, [context, profileBirthChart]);
 
+  // TODO: Add subject aspect-context once AskScreen can load a subject chart.
   const aspectBundle =
-    context === 'relationship' ? relationshipAspectBundle : profileAspectBundle;
+    context === 'relationship'
+      ? relationshipAspectBundle
+      : context === 'profile'
+      ? profileAspectBundle
+      : { aspects: [], countsByType: {} as Record<string, number> };
 
   const filters =
     context === 'relationship'
@@ -194,11 +221,18 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
       ? PROFILE_FILTERS
       : [];
 
+  const subjectSuggestions = useMemo(
+    () => SUBJECT_SUGGESTIONS.map((buildSuggestion) => buildSuggestion(subjectName)),
+    [subjectName]
+  );
+
   const suggestions =
     context === 'relationship'
       ? RELATIONSHIP_SUGGESTIONS
       : context === 'profile'
       ? PROFILE_SUGGESTIONS
+      : context === 'subject'
+      ? subjectSuggestions
       : HOME_SUGGESTIONS;
 
   const placeholder =
@@ -206,6 +240,8 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
       ? 'Ask about this connection…'
       : context === 'profile'
       ? 'Ask about your chart…'
+      : context === 'subject'
+      ? `Ask about ${subjectName}'s chart…`
       : 'Ask Iris anything…';
 
   const [inputValue, setInputValue] = useState(prefill ?? '');
@@ -224,7 +260,8 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
       threadKey,
       activeRelationshipId,
       previewAnalysis?.compositeChartId ?? null,
-      profile?.id ?? null
+      profile?.id ?? null,
+      subjectIdFromRoute
     );
     if (!target) {
       return;
@@ -257,6 +294,7 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
     activeRelationshipId,
     previewAnalysis?.compositeChartId,
     profile?.id,
+    subjectIdFromRoute,
     setAskThread,
   ]);
 
@@ -291,12 +329,13 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
       threadKey,
       activeRelationshipId,
       previewAnalysis?.compositeChartId ?? null,
-      profile?.id ?? null
+      profile?.id ?? null,
+      subjectIdFromRoute
     );
     if (!target) {
       Alert.alert(
         'Not available yet',
-        'Iris needs a chart to answer. Open Ask Iris from your profile or a relationship.'
+        'Iris needs a chart to answer. Open Ask Iris from a profile, person, or relationship.'
       );
       return;
     }
@@ -372,6 +411,7 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
     scrollToEnd,
     selectedAspects,
     spendCredits,
+    subjectIdFromRoute,
     threadKey,
   ]);
 
@@ -433,6 +473,29 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       ) : null}
 
+      {context === 'subject' ? (
+        <View
+          style={[
+            styles.contextBar,
+            { backgroundColor: colors.surface, borderColor: colors.ghostBorder },
+          ]}
+        >
+          <Avatar
+            size={32}
+            gradient="green"
+            fallbackInitial={getInitials(subjectName) || subjectName.charAt(0)}
+          />
+          <View style={styles.contextBarText}>
+            <Text style={[styles.contextBarTitle, { color: colors.text }]} numberOfLines={1}>
+              {subjectName}
+            </Text>
+            <Text style={[styles.contextBarSubtitle, { color: colors.textSubtle }]}>
+              Individual birth chart
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
@@ -454,6 +517,8 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
                     ? 'Ask Iris anything'
                     : context === 'profile'
                     ? 'Ask Iris about your chart'
+                    : context === 'subject'
+                    ? `Ask Iris about ${subjectName}`
                     : 'Ask Iris anything'
                 }
                 body={
@@ -461,6 +526,8 @@ export const AskScreen: React.FC<Props> = ({ navigation, route }) => {
                     ? `Ask about your connection with ${partnerName}. Add specific aspects for deeper answers.`
                     : context === 'profile'
                     ? 'Ask Iris about your own chart. Pin specific placements or aspects for grounded answers.'
+                    : context === 'subject'
+                    ? `Ask Iris questions grounded in ${subjectName}'s placements.`
                     : 'Open-ended prompts start here — pick one to get going.'
                 }
                 suggestions={suggestions}

@@ -64,7 +64,11 @@ export interface AskMessage {
   contexts?: AskAspectRef[];
 }
 
-export type AskThreadKey = 'profile' | 'home' | `relationship:${string}`;
+export type AskThreadKey =
+  | 'profile'
+  | 'home'
+  | `relationship:${string}`
+  | `subject:${string}`;
 
 export type CreditTransactionKind =
   | 'analysis_full'

@@ -125,6 +125,35 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const setWorkflowState = useRelationshipAppStore((state) => state.setWorkflowState);
   const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
   const upsertOwnedSubject = useRelationshipAppStore((state) => state.upsertOwnedSubject);
+  const askThreads = useRelationshipAppStore((state) => state.askThreads);
+
+  const subjectName = [subject?.firstName, subject?.lastName].filter(Boolean).join(' ').trim();
+  const subjectThreadKey = subject?._id ? (`subject:${subject._id}` as const) : null;
+  const subjectThread = React.useMemo(
+    () => (subjectThreadKey ? askThreads[subjectThreadKey] ?? [] : []),
+    [askThreads, subjectThreadKey]
+  );
+  const lastSubjectUserMessage = React.useMemo(
+    () => [...subjectThread].reverse().find((message) => message.role === 'user') ?? null,
+    [subjectThread]
+  );
+  const lastSubjectIrisMessage = React.useMemo(
+    () => [...subjectThread].reverse().find((message) => message.role === 'iris') ?? null,
+    [subjectThread]
+  );
+  const openAsk = React.useCallback(
+    (prefill?: string) => {
+      if (!subject?._id) return;
+      navigation.navigate('AskIris', {
+        context: 'subject',
+        subjectId: subject._id,
+        subjectName: subjectName || 'Your person',
+        threadKey: `subject:${subject._id}`,
+        prefill,
+      });
+    },
+    [navigation, subject?._id, subjectName]
+  );
 
   const [isStartingPreview, setIsStartingPreview] = React.useState(false);
   const [blurb, setBlurb] = React.useState<string | null>(null);
@@ -199,6 +228,18 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
       : ({ ...subject, birthChart: hydratedChart } as typeof subject);
 
   const fullName = [subject.firstName, subject.lastName].filter(Boolean).join(' ').trim();
+  const askName = fullName || 'Your person';
+  const askCopy = {
+    sectionLabel: `Ask Iris About ${askName}`,
+    title: `Questions about ${askName}'s chart`,
+    subtitle: `Grounded in ${askName}'s placements`,
+    inputPlaceholder: `Ask about ${askName}'s chart…`,
+    suggestions: [
+      `What is ${askName} looking for in a partner?`,
+      `How does ${askName} handle conflict?`,
+      `What makes ${askName} feel secure?`,
+    ],
+  } as const;
   const initial = subject.firstName?.charAt(0) ?? '?';
   const { sun: sunSign, moon: moonSign, rising: risingSign } = getBigThree(detailSubject);
   const venusSign = getSubjectPlanetSign(detailSubject, 'Venus');
@@ -471,6 +512,10 @@ export const SubjectDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           eyebrow="Your Person"
           headerSlot={headerSlot}
           identityOverride={identityOverride}
+          askCopy={askCopy}
+          lastUserMessage={lastSubjectUserMessage}
+          lastIrisMessage={lastSubjectIrisMessage}
+          onPressAsk={openAsk}
           onPressViewFullChart={
             detailSubject.birthChart ? () => setChartModalVisible(true) : undefined
           }
