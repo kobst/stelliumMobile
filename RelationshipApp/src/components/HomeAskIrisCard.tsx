@@ -5,8 +5,8 @@ import { SERIF_FONT } from '../theme/typography';
 import { Halo } from './atmosphere/Halo';
 
 const SUGGESTIONS: readonly string[] = [
-  'Why do I keep attracting Scorpios?',
-  'What should I look for this week?',
+  'What does my chart say about how I love?',
+  'What do I need most from a partner?',
   'What makes me hard to read in love?',
 ];
 
