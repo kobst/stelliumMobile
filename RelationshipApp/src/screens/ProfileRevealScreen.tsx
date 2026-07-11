@@ -246,31 +246,33 @@ const CelebCard: React.FC<CelebCardProps> = ({ match, onPress, annotationLoading
             {placementSummary}
           </Text>
         ) : null}
-        {aspectSentence ? (
-          <View style={styles.annotationSentenceWrap}>
-            <Text style={[styles.annotationSentence, { color: colors.textMuted }]}>
-              {aspectSentence}
-            </Text>
-            <View pointerEvents="none" style={styles.annotationFade}>
-              <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <Defs>
-                  <SvgLinearGradient id="annotationFade" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0" stopColor={colors.surfaceLow} stopOpacity="0" />
-                    <Stop offset="1" stopColor={colors.surfaceLow} stopOpacity="1" />
-                  </SvgLinearGradient>
-                </Defs>
-                <Rect x="0" y="0" width="100" height="100" fill="url(#annotationFade)" />
-              </Svg>
+        <View style={styles.annotationSentenceWrap}>
+          {aspectSentence ? (
+            <>
+              <Text style={[styles.annotationSentence, { color: colors.textMuted }]}>
+                {aspectSentence}
+              </Text>
+              <View pointerEvents="none" style={styles.annotationFade}>
+                <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <Defs>
+                    <SvgLinearGradient id="annotationFade" x1="0" y1="0" x2="0" y2="1">
+                      <Stop offset="0" stopColor={colors.surfaceLow} stopOpacity="0" />
+                      <Stop offset="1" stopColor={colors.surfaceLow} stopOpacity="1" />
+                    </SvgLinearGradient>
+                  </Defs>
+                  <Rect x="0" y="0" width="100" height="100" fill="url(#annotationFade)" />
+                </Svg>
+              </View>
+            </>
+          ) : annotationLoading && !hasAnnotation ? (
+            <View style={styles.annotationLoadingRow}>
+              <ActivityIndicator size="small" color={colors.textSubtle} />
+              <Text style={[styles.annotationLoadingText, { color: colors.textSubtle }]}>
+                Writing annotation...
+              </Text>
             </View>
-          </View>
-        ) : annotationLoading && !hasAnnotation ? (
-          <View style={styles.annotationLoadingRow}>
-            <ActivityIndicator size="small" color={colors.textSubtle} />
-            <Text style={[styles.annotationLoadingText, { color: colors.textSubtle }]}>
-              Writing annotation...
-            </Text>
-          </View>
-        ) : null}
+          ) : null}
+        </View>
         <View
           style={[
             styles.scorePillsRow,
@@ -800,6 +802,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     lineHeight: 18,
+    minHeight: 36,
   },
   scorePillsRow: {
     flexDirection: 'row',
@@ -858,8 +861,7 @@ const styles = StyleSheet.create({
   annotationSentenceWrap: {
     position: 'relative',
     overflow: 'hidden',
-    minHeight: 36,
-    maxHeight: 42,
+    height: 42,
   },
   annotationSentence: {
     fontSize: 12,
