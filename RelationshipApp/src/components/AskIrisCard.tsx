@@ -6,6 +6,7 @@ import { Halo } from './atmosphere/Halo';
 import type { AskMessage } from '../store';
 
 export interface AskIrisCardCopy {
+  sectionLabel?: string;
   title: string;
   subtitle: string;
   inputPlaceholder: string;
@@ -35,6 +36,11 @@ export function AskIrisCard({
   return (
     <View style={[styles.card, { backgroundColor: colors.surfaceLow }]}>
       <Halo color={colors.tertiary} size={180} opacity={0.16} top={-60} right={-50} />
+      {copy.sectionLabel ? (
+        <Text style={[styles.sectionLabel, { color: colors.accent }]}>
+          {copy.sectionLabel}
+        </Text>
+      ) : null}
       <View style={styles.header}>
         <View
           style={[
@@ -134,6 +140,12 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 14,
     overflow: 'hidden',
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2.2,
+    textTransform: 'uppercase',
   },
   header: {
     flexDirection: 'row',

@@ -55,8 +55,10 @@ export type RelationshipRootParamList = {
   RelationshipPreview: undefined;
   AskIris:
     | {
-        context: 'home' | 'profile' | 'relationship';
+        context: 'home' | 'profile' | 'relationship' | 'subject';
         relationshipLabel?: string;
+        subjectId?: string;
+        subjectName?: string;
         prefill?: string;
         threadKey?: string;
       }

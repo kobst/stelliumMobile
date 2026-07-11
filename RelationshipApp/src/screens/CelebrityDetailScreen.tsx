@@ -62,6 +62,37 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const setPreviewAnalysis = useRelationshipAppStore((state) => state.setPreviewAnalysis);
   const setActiveRelationshipId = useRelationshipAppStore((state) => state.setActiveRelationshipId);
   const setRelationshipHistory = useRelationshipAppStore((state) => state.setRelationshipHistory);
+  const askThreads = useRelationshipAppStore((state) => state.askThreads);
+
+  const celebrityName = `${passedCelebrity?.firstName ?? preview?.firstName ?? ''} ${
+    passedCelebrity?.lastName ?? preview?.lastName ?? ''
+  }`.trim();
+  const celebrityThreadKey = celebrityId ? (`subject:${celebrityId}` as const) : null;
+  const celebrityThread = React.useMemo(
+    () => (celebrityThreadKey ? askThreads[celebrityThreadKey] ?? [] : []),
+    [askThreads, celebrityThreadKey]
+  );
+  const lastCelebrityUserMessage = React.useMemo(
+    () => [...celebrityThread].reverse().find((message) => message.role === 'user') ?? null,
+    [celebrityThread]
+  );
+  const lastCelebrityIrisMessage = React.useMemo(
+    () => [...celebrityThread].reverse().find((message) => message.role === 'iris') ?? null,
+    [celebrityThread]
+  );
+  const openAsk = React.useCallback(
+    (prefill?: string) => {
+      if (!celebrityId) return;
+      navigation.navigate('AskIris', {
+        context: 'subject',
+        subjectId: celebrityId,
+        subjectName: celebrityName || 'Celebrity',
+        threadKey: `subject:${celebrityId}`,
+        prefill,
+      });
+    },
+    [celebrityId, celebrityName, navigation]
+  );
 
   const [hydratedBirthChart, setHydratedBirthChart] = React.useState<
     Record<string, unknown> | null
@@ -129,6 +160,18 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const firstName = passedCelebrity?.firstName ?? preview?.firstName ?? '';
   const lastName = passedCelebrity?.lastName ?? preview?.lastName ?? '';
   const fullName = `${firstName} ${lastName}`.trim();
+  const askName = fullName || 'Celebrity';
+  const askCopy = {
+    sectionLabel: `Ask Iris About ${askName}`,
+    title: `Questions about ${askName}'s chart`,
+    subtitle: `Grounded in ${askName}'s placements`,
+    inputPlaceholder: `Ask about ${askName}'s chart…`,
+    suggestions: [
+      `What is ${askName} looking for in a partner?`,
+      `How does ${askName} handle conflict?`,
+      `What makes ${askName} feel secure?`,
+    ],
+  } as const;
   const initial = firstName.charAt(0) || '?';
   const photoUri =
     passedCelebrity?.profilePhotoUrl ??
@@ -328,6 +371,10 @@ export const CelebrityDetailScreen: React.FC<Props> = ({ navigation, route }) =>
           eyebrow="Celebrity"
           headerSlot={headerSlot}
           identityOverride={identityOverride}
+          askCopy={askCopy}
+          lastUserMessage={lastCelebrityUserMessage}
+          lastIrisMessage={lastCelebrityIrisMessage}
+          onPressAsk={openAsk}
           onPressViewFullChart={
             birthChartSource ? () => setChartModalVisible(true) : undefined
           }
