@@ -218,8 +218,9 @@ export const WeeklyRelationshipHoroscopeDetailScreen: React.FC<Props> = ({
     navigation.navigate('AskIris', {
       context: 'relationship',
       relationshipLabel: sides ? `You & ${sides.partnerName}` : undefined,
+      threadKey: `relationship:${compositeChartId}`,
     });
-  }, [navigation, sides]);
+  }, [navigation, sides, compositeChartId]);
 
   if (!compositeChartId) {
     return (
