@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HomeScreen } from '../screens/HomeScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { DiscoverScreen } from '../screens/DiscoverScreen';
+import { InboxScreen } from '../screens/InboxScreen';
 import { ProfileSettingsScreen } from '../screens/ProfileSettingsScreen';
 import { useTheme } from '../theme';
 import { TabIcon, type TabIconKind } from '../components/TabIcon';
@@ -12,6 +13,7 @@ export type MainTabParamList = {
   HomeTab: undefined;
   RelationshipsTab: undefined;
   DiscoverTab: undefined;
+  IrisTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -63,6 +65,9 @@ const renderRelIcon = ({ color, focused }: { color: string; focused: boolean }) 
 const renderDiscoverIcon = ({ color, focused }: { color: string; focused: boolean }) => (
   <IconCell kind="discover" color={color} focused={focused} activeColor={ACTIVE_COLOR} />
 );
+const renderIrisIcon = ({ color, focused }: { color: string; focused: boolean }) => (
+  <IconCell kind="iris" color={color} focused={focused} activeColor={ACTIVE_COLOR} />
+);
 const renderProfileIcon = ({ color, focused }: { color: string; focused: boolean }) => (
   <IconCell kind="profile" color={color} focused={focused} activeColor={ACTIVE_COLOR} />
 );
@@ -111,6 +116,11 @@ export const MainTabs: React.FC = () => {
         name="DiscoverTab"
         component={DiscoverScreen}
         options={{ title: 'Explore', tabBarIcon: renderDiscoverIcon }}
+      />
+      <Tab.Screen
+        name="IrisTab"
+        component={InboxScreen}
+        options={{ title: 'Iris', tabBarIcon: renderIrisIcon }}
       />
       <Tab.Screen
         name="ProfileTab"
