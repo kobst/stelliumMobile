@@ -9,6 +9,36 @@ export type AskTarget =
   | { kind: 'subject'; subjectId: string }
   | { kind: 'self'; userId: string };
 
+export interface AskThreadPerson {
+  photoUrl: string | null;
+  initial: string;
+}
+
+interface AskThreadBase {
+  id: string;
+  title: string;
+  subtitle: string;
+  lastMessage: {
+    role: 'user' | 'iris';
+    text: string;
+    timestamp: string;
+  };
+  messageCount: number;
+}
+
+// Avatar mirrors the backend shape: self/subject carry a single face;
+// a relationship carries the self + partner pair.
+export type AskThread =
+  | (AskThreadBase & { kind: 'self' | 'subject'; avatar: AskThreadPerson })
+  | (AskThreadBase & {
+      kind: 'relationship';
+      avatar: { self: AskThreadPerson; partner: AskThreadPerson };
+    });
+
+interface AskThreadsResponse {
+  threads?: AskThread[];
+}
+
 export interface AskBilling {
   creditsCharged: number;
   packBalance: number | null;
@@ -88,6 +118,14 @@ interface AskHistoryMessage {
 interface AskHistoryResponse {
   success?: boolean;
   chatHistory?: AskHistoryMessage[];
+}
+
+export async function fetchAskThreads(): Promise<AskThread[]> {
+  const response = await relationshipApiClient.get<AskThreadsResponse>(
+    '/relationship-app/ask-iris/threads'
+  );
+
+  return response.threads ?? [];
 }
 
 /**
