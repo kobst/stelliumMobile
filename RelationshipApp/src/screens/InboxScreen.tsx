@@ -26,6 +26,11 @@ import type { MainTabParamList } from '../navigation/MainTabs';
 import type { RelationshipRootParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme';
 import { SERIF_FONT } from '../theme/typography';
+import { useRelationshipHistory } from '../hooks/useRelationshipHistory';
+import { useRelationshipAppStore } from '../store';
+import { NewConversationSheet } from '../components/NewConversationSheet';
+import type { UserCompositeChart } from '../../../shared/api/relationships';
+import type { OwnedGuestSubject } from '../../../shared/api/relationshipUsers';
 
 type InboxNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'IrisTab'>,
@@ -74,6 +79,12 @@ export const InboxScreen: React.FC = () => {
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
+
+  const profile = useRelationshipAppStore((state) => state.profile);
+  const ownedSubjects = useRelationshipAppStore((state) => state.ownedSubjects);
+  const { relationshipHistory } = useRelationshipHistory(true);
+  const selfProfileId = profile?.id ?? null;
 
   const loadThreads = useCallback(async (isRefresh = false) => {
     const currentRequest = ++requestId.current;
@@ -138,6 +149,35 @@ export const InboxScreen: React.FC = () => {
     },
     [navigation]
   );
+
+  const startRelationship = useCallback(
+    (chart: UserCompositeChart) => {
+      const selfIsA = Boolean(selfProfileId) && chart.userA_id === selfProfileId;
+      const partnerName = (selfIsA ? chart.userB_name : chart.userA_name) || 'Partner';
+      navigation.navigate('AskIris', {
+        context: 'relationship',
+        threadKey: `relationship:${chart._id}`,
+        relationshipLabel: `You & ${partnerName}`,
+      });
+    },
+    [navigation, selfProfileId]
+  );
+
+  const startSubject = useCallback(
+    (subject: OwnedGuestSubject) => {
+      const name = [subject.firstName, subject.lastName].filter(Boolean).join(' ').trim();
+      navigation.navigate('AskIris', {
+        context: 'subject',
+        subjectId: subject._id,
+        subjectName: name || 'Saved person',
+        threadKey: `subject:${subject._id}`,
+      });
+    },
+    [navigation]
+  );
+
+  const goAddConnection = useCallback(() => navigation.navigate('AddConnection'), [navigation]);
+  const goExplore = useCallback(() => navigation.navigate('DiscoverTab'), [navigation]);
 
   const renderThread = useCallback(
     ({ item }: { item: AskThread }) => {
@@ -233,27 +273,77 @@ export const InboxScreen: React.FC = () => {
     }
 
     return (
-      <View style={[styles.emptyCard, { backgroundColor: colors.surfaceLow }]}>
-        <Text style={[styles.emptyGlyph, { color: colors.primary }]}>✦</Text>
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>A conversation starts here.</Text>
-        <Text style={[styles.emptyBody, { color: colors.textMuted }]}>
-          Ask Iris what your chart says about love, timing, or the patterns you keep meeting.
+      <View style={styles.hintBlock}>
+        <Text style={[styles.hintText, { color: colors.textSubtle }]}>
+          Start a conversation about a connection or someone you&apos;ve saved — tap &ldquo;+ New&rdquo; above.
         </Text>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={openSelfThread}
-          accessibilityRole="button"
-          style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-        >
-          <Text style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
-            Ask about my chart
-          </Text>
-        </TouchableOpacity>
       </View>
     );
   };
 
+  const selfThread = threads.find((thread) => thread.kind === 'self') ?? null;
+  const otherThreads = threads.filter((thread) => thread.kind !== 'self');
+  // "+ New" only offers targets you don't already have a conversation with —
+  // existing ones are already one tap away in the inbox list.
+  const existingRelationshipIds = new Set(
+    threads.filter((thread) => thread.kind === 'relationship').map((thread) => thread.id)
+  );
+  const existingSubjectIds = new Set(
+    threads.filter((thread) => thread.kind === 'subject').map((thread) => thread.id)
+  );
+  const newRelationships = relationshipHistory.filter(
+    (relationship) => !existingRelationshipIds.has(relationship._id)
+  );
+  const newSubjects = ownedSubjects.filter((subject) => !existingSubjectIds.has(subject._id));
+  const includeSelfInPicker = selfThread === null;
   const showInlineError = loadState === 'error' && threads.length > 0;
+
+  const renderPinnedSelf = () => {
+    const preview = selfThread?.lastMessage?.text?.trim();
+    const speaker = selfThread?.lastMessage?.role === 'user' ? 'You' : 'Iris';
+    return (
+      <TouchableOpacity
+        activeOpacity={0.82}
+        onPress={openSelfThread}
+        accessibilityRole="button"
+        accessibilityLabel="Open your chart Iris conversation"
+        style={[styles.threadRow, styles.pinnedRow, { backgroundColor: colors.surfaceLow }]}
+      >
+        <View style={styles.avatarColumn}>
+          <Avatar
+            size={46}
+            photoUri={null}
+            fallbackInitial={profile?.firstName?.trim().charAt(0).toUpperCase() || 'Y'}
+            gradient="lavender"
+            ringColor={colors.surfaceLow}
+          />
+        </View>
+        <View style={styles.threadCopy}>
+          <View style={styles.titleRow}>
+            <Text style={[styles.threadTitle, { color: colors.text }]} numberOfLines={1}>
+              You
+            </Text>
+            {selfThread ? (
+              <Text style={[styles.timestamp, { color: colors.textSubtle }]}>
+                {formatRelativeTimestamp(selfThread.lastMessage?.timestamp)}
+              </Text>
+            ) : null}
+          </View>
+          <SectionLabel style={styles.scopeTag}>Your chart</SectionLabel>
+          {preview ? (
+            <Text style={[styles.preview, { color: colors.textMuted }]} numberOfLines={2}>
+              <Text style={[styles.speaker, { color: colors.text }]}>{speaker}: </Text>
+              {preview}
+            </Text>
+          ) : (
+            <Text style={[styles.preview, { color: colors.textMuted }]} numberOfLines={1}>
+              Ask your chart anything →
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.surface }]}>
@@ -262,7 +352,7 @@ export const InboxScreen: React.FC = () => {
       </View>
       <Halo color={colors.primary} size={440} opacity={0.1} top={30} left="50%" />
       <FlatList
-        data={threads}
+        data={otherThreads}
         keyExtractor={(item) => `${item.kind}:${item.id}`}
         renderItem={renderThread}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -276,9 +366,21 @@ export const InboxScreen: React.FC = () => {
           />
         }
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>Iris</Text>
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Your conversations</Text>
+          <View>
+            <View style={styles.headerRow}>
+              <View style={styles.headerText}>
+                <Text style={[styles.title, { color: colors.text }]}>Iris</Text>
+                <Text style={[styles.subtitle, { color: colors.textMuted }]}>Your conversations</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setPickerVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Start a new conversation"
+                style={[styles.newButton, { borderColor: colors.ghostBorder }]}
+              >
+                <Text style={[styles.newButtonText, { color: colors.primary }]}>+ New</Text>
+              </TouchableOpacity>
+            </View>
             {showInlineError ? (
               <View style={[styles.inlineError, { backgroundColor: colors.surfaceLow }]}>
                 <Text style={[styles.inlineErrorText, { color: colors.error }]} numberOfLines={2}>
@@ -289,9 +391,24 @@ export const InboxScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
             ) : null}
+            {renderPinnedSelf()}
+            {otherThreads.length > 0 ? <View style={styles.separator} /> : null}
           </View>
         }
         ListEmptyComponent={renderStatus}
+      />
+      <NewConversationSheet
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        relationships={newRelationships}
+        subjects={newSubjects}
+        selfProfileId={selfProfileId}
+        includeSelf={includeSelfInPicker}
+        onSelectSelf={openSelfThread}
+        onSelectRelationship={startRelationship}
+        onSelectSubject={startSubject}
+        onAddConnection={goAddConnection}
+        onExplore={goExplore}
       />
     </SafeAreaView>
   );
@@ -322,6 +439,43 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     letterSpacing: 0.3,
+  },
+  headerRow: {
+    paddingTop: 18,
+    paddingBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  headerText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 5,
+  },
+  newButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 100,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  newButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  pinnedRow: {
+    marginBottom: 0,
+  },
+  hintBlock: {
+    paddingTop: 18,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  hintText: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
   },
   separator: {
     height: 10,

@@ -27,7 +27,6 @@ import { PersonalHoroscopeCard } from '../components/PersonalHoroscopeCard';
 import { WeeklyDispatchCard } from '../components/WeeklyDispatchCard';
 import { ThisWeekTogetherSection } from '../components/ThisWeekTogetherSection';
 import { QuickActionsRow, type QuickAction } from '../components/QuickActionsRow';
-import { HomeAskIrisCard } from '../components/HomeAskIrisCard';
 import { Stardust } from '../components/atmosphere/Stardust';
 import { Halo } from '../components/atmosphere/Halo';
 import { buildHistorySelectionState } from './historySelection';
@@ -92,13 +91,6 @@ export const HomeScreen: React.FC = () => {
         icon: '+',
         tint: 'primary',
         onPress: () => navigation.navigate('AddConnection'),
-      },
-      {
-        id: 'ask-iris',
-        label: 'Ask Iris',
-        icon: '✦',
-        tint: 'tertiary',
-        onPress: () => navigation.navigate('AskIris', { context: 'home' }),
       },
       {
         id: 'your-chart',
@@ -167,12 +159,6 @@ export const HomeScreen: React.FC = () => {
           <SectionLabel>Quick Actions</SectionLabel>
           <QuickActionsRow actions={quickActions} />
         </View>
-
-        <HomeAskIrisCard
-          onPressSuggestion={(suggestion) =>
-            navigation.navigate('AskIris', { context: 'home', prefill: suggestion })
-          }
-        />
       </ScrollView>
     </SafeAreaView>
   );
